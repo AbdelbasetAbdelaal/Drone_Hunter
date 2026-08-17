@@ -1,6 +1,6 @@
 {
-  "coins": 30,
-  "highscore": 460,
+  "coins": 718,
+  "highscore": 13400,
   "upgrades": {
     "battery": 0,
     "speed": 0,
@@ -9,21 +9,24 @@
     "wingman": 0,
     "cloak": 0,
     "missiles": 0,
-    "beam": 0
+    "beam": 0,
+    "tesla": 0,
+    "cluster": 0,
+    "overdrive": 0
   },
   "sectors": [
     true,
-    false,
+    true,
     false,
     false,
     false
   ],
   "stages": [
     true,
-    false,
-    false,
-    false,
-    false,
+    true,
+    true,
+    true,
+    true,
     false,
     false,
     false,
@@ -35,5 +38,6 @@
     false,
     false
   ],
-  "show_crt": false
+  "show_crt": false,
+  "difficulty_mode": 0
 }

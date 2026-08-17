@@ -1,0 +1,22 @@
+Fatal Error: 'FloatingText' object has no attribute 'max_lifetime'
+
+Traceback (most recent call last):
+  File "D:\Drone_Hunter\drone_hunter_pc\main.py", line 31, in main
+    game.run()
+    ~~~~~~~~^^
+  File "D:\Drone_Hunter\drone_hunter_pc\src\core\game.py", line 457, in run
+    self.render()
+    ~~~~~~~~~~~^^
+  File "D:\Drone_Hunter\drone_hunter_pc\src\core\game.py", line 422, in render
+    self.renderer.render_gameplay(ctx, self.background, self.particle_manager)
+    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "D:\Drone_Hunter\drone_hunter_pc\src\rendering\renderer.py", line 63, in render_gameplay
+    particle_manager.draw(self.canvas)
+    ~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^
+  File "D:\Drone_Hunter\drone_hunter_pc\src\rendering\particles.py", line 199, in draw
+    txt.draw(surface)
+    ~~~~~~~~^^^^^^^^^
+  File "D:\Drone_Hunter\drone_hunter_pc\src\rendering\particles.py", line 71, in draw
+    pct = max(0.0, min(1.0, self.lifetime / self.max_lifetime))
+                                            ^^^^^^^^^^^^^^^^^
+AttributeError: 'FloatingText' object has no attribute 'max_lifetime'
