@@ -89,6 +89,8 @@ class Player(pygame.sprite.Sprite):
 
         self.overdrive_timer = 0.0
         self.overdrive_cooldown = 0.0
+        self.overdrive_duration_max = OVERDRIVE_DURATION
+        self.overdrive_cooldown_max = OVERDRIVE_COOLDOWN_MAX
 
         # EMP Jammed Mechanic (Fixes Bug 4)
         self.emp_jammed_timer = 0.0
@@ -153,8 +155,8 @@ class Player(pygame.sprite.Sprite):
         if self.is_jammed:
             return False
         if self.overdrive_cooldown <= 0.0 and self.overdrive_timer <= 0.0:
-            self.overdrive_timer = OVERDRIVE_DURATION
-            self.overdrive_cooldown = OVERDRIVE_COOLDOWN_MAX
+            self.overdrive_timer = getattr(self, "overdrive_duration_max", OVERDRIVE_DURATION)
+            self.overdrive_cooldown = getattr(self, "overdrive_cooldown_max", OVERDRIVE_COOLDOWN_MAX)
             self.activate_shield(3)
             self.energy = self.max_energy
             return True
@@ -230,13 +232,16 @@ class Player(pygame.sprite.Sprite):
         beam_lvl = upgrade_levels.get("beam", 0)
         tesla_lvl = upgrade_levels.get("tesla", 0)
         cluster_lvl = upgrade_levels.get("cluster", 0)
+        od_lvl = upgrade_levels.get("overdrive", 0)
 
-        self.max_health = 100 + (bat_lvl * 20)
+        self.max_health = PLAYER_MAX_HEALTH + (bat_lvl * 25.0)
         self.health = self.max_health
         self.agility_mult = 1.0 + (spd_lvl * 0.15)
         self.cooldown_mult = max(0.35, 1.0 - (fr_lvl * 0.12))
         self.emp_cooldown_max = max(6.0, EMP_COOLDOWN_MAX - (emp_lvl * 2.5))
         self.has_cloak_upgrade = (cloak_lvl > 0)
+        self.overdrive_duration_max = OVERDRIVE_DURATION + (od_lvl * 1.5)
+        self.overdrive_cooldown_max = max(12.0, OVERDRIVE_COOLDOWN_MAX - (od_lvl * 3.0))
 
         self.available_weapons = [WEAPON_PULSE, WEAPON_SCATTER]
         if missile_lvl > 0: self.available_weapons.append(WEAPON_MISSILE)
@@ -251,7 +256,7 @@ class Player(pygame.sprite.Sprite):
         self._render_drone_sprite()
 
     def take_damage(self, amount: float) -> bool:
-        """Applies damage considering shields, rolling i-frames, and cloak. Returns True if destroyed."""
+        """Applies damage to shields and health hull. Returns True if destroyed."""
         if self.is_invulnerable:
             return False
 
@@ -259,8 +264,8 @@ class Player(pygame.sprite.Sprite):
             self.shield_hits -= 1
             return False
 
-        self.energy = max(0.0, self.energy - float(amount))
-        if self.energy <= 0.0:
+        self.health = max(0.0, self.health - float(amount))
+        if self.health <= 0.0:
             self.alive = False
             return True
         return False
@@ -273,13 +278,16 @@ class Player(pygame.sprite.Sprite):
         return self.shoot_timer <= 0.0 and (self.energy >= cost or self.overdrive_timer > 0.0)
 
     def shoot(self, target_pos: tuple[float, float], level: int = 1, targets_group=None) -> list[pygame.sprite.Sprite]:
-        """Fires projectiles based on active weapon definition."""
+        """Fires projectiles using authoritative balance values from WEAPON_DEFS."""
         if not self.can_shoot():
             return []
 
         w_def = WEAPON_DEFS.get(self.active_weapon, {})
         base_cd = w_def.get("cooldown", 0.18)
         cost = w_def.get("energy_cost", 2.5)
+        dmg = int(w_def.get("damage", 25))
+        spd = float(w_def.get("speed", 850.0))
+        col = w_def.get("color", COLOR_CYAN)
 
         cd_scale = 0.50 if self.overdrive_timer > 0.0 else (0.65 if self.overclock_timer > 0.0 else 1.0)
         self.shoot_timer = base_cd * self.cooldown_mult * cd_scale
@@ -291,31 +299,32 @@ class Player(pygame.sprite.Sprite):
         cx, cy = self.rect.center
 
         if self.active_weapon == WEAPON_PULSE:
-            bullets.append(Bullet((cx, cy - 8), target_pos, speed=920.0, damage=28, color=COLOR_CYAN))
-            bullets.append(Bullet((cx, cy + 8), target_pos, speed=920.0, damage=28, color=COLOR_CYAN))
+            bullets.append(Bullet((cx, cy - 8), target_pos, speed=spd, damage=dmg, color=col))
+            bullets.append(Bullet((cx, cy + 8), target_pos, speed=spd, damage=dmg, color=col))
             if self.overdrive_timer > 0.0:
-                bullets.append(Bullet((cx, cy), target_pos, angle_offset_deg=-12.0, speed=980.0, damage=32, color=COLOR_GOLD))
-                bullets.append(Bullet((cx, cy), target_pos, angle_offset_deg=12.0, speed=980.0, damage=32, color=COLOR_GOLD))
+                od_dmg = int(dmg * 1.25)
+                bullets.append(Bullet((cx, cy), target_pos, angle_offset_deg=-12.0, speed=spd * 1.1, damage=od_dmg, color=COLOR_GOLD))
+                bullets.append(Bullet((cx, cy), target_pos, angle_offset_deg=12.0, speed=spd * 1.1, damage=od_dmg, color=COLOR_GOLD))
 
         elif self.active_weapon == WEAPON_SCATTER:
             spread_angles = [-16.0, -8.0, 0.0, 8.0, 16.0] if self.overdrive_timer > 0.0 else [-12.0, -4.0, 4.0, 12.0]
             for ang in spread_angles:
-                bullets.append(Bullet((cx, cy), target_pos, angle_offset_deg=ang, speed=860.0, damage=18, color=COLOR_GOLD))
+                bullets.append(Bullet((cx, cy), target_pos, angle_offset_deg=ang, speed=spd, damage=dmg, color=col))
 
         elif self.active_weapon == WEAPON_MISSILE:
-            bullets.append(HomingMissile((cx, cy - 12), target_pos, damage=65))
-            bullets.append(HomingMissile((cx, cy + 12), target_pos, damage=65))
+            bullets.append(HomingMissile((cx, cy - 12), target_pos, damage=dmg, speed=spd))
+            bullets.append(HomingMissile((cx, cy + 12), target_pos, damage=dmg, speed=spd))
 
         elif self.active_weapon == WEAPON_BEAM:
-            bullets.append(PlasmaLaserBeam((cx, cy), target_pos, damage=14))
+            bullets.append(PlasmaLaserBeam((cx, cy), target_pos, damage=dmg, speed=spd))
 
         elif self.active_weapon == WEAPON_TESLA:
-            bullets.append(TeslaArcBeam((cx, cy), target_pos, damage=42))
+            bullets.append(TeslaArcBeam((cx, cy), target_pos, damage=dmg, speed=spd))
             if self.overdrive_timer > 0.0:
-                bullets.append(TeslaArcBeam((cx, cy), target_pos, damage=42))
+                bullets.append(TeslaArcBeam((cx, cy), target_pos, damage=dmg, speed=spd))
 
         elif self.active_weapon == WEAPON_CLUSTER:
-            bullets.append(ClusterTorpedo((cx, cy), target_pos, damage=85))
+            bullets.append(ClusterTorpedo((cx, cy), target_pos, damage=dmg, speed=spd))
 
         return bullets
 

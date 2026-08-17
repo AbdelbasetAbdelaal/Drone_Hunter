@@ -10,7 +10,8 @@ import math
 import pygame
 from src.data.settings import (
     SCREEN_WIDTH, SCREEN_HEIGHT, COLOR_HUD, COLOR_CYAN, COLOR_GOLD,
-    COLOR_CRIMSON, COLOR_EMERALD, COLOR_SHIELD, COLOR_OVERCLOCK, COLOR_WHITE
+    COLOR_CRIMSON, COLOR_EMERALD, COLOR_SHIELD, COLOR_OVERCLOCK, COLOR_WHITE,
+    COLOR_NEON_RED
 )
 from src.data.game_data import WEAPON_DEFS, SECTORS
 from src.ui.font_manager import font_hud, font_card, font_banner
@@ -30,25 +31,36 @@ def draw_hud(canvas: pygame.Surface, player, sector_idx: int, level_score: int, 
 
     # Health & Energy
     if player:
-        # HP Bar
-        hp_pct = max(0.0, min(1.0, player.energy / player.max_energy))
-        hp_bar_w = 170
-        pygame.draw.rect(canvas, (30, 41, 59), (bar_x + 15, bar_y + 12, hp_bar_w, 14), border_radius=4)
+        # HP Hull Bar
+        hp_pct = max(0.0, min(1.0, player.health / player.max_health))
+        hp_bar_w = 150
+        pygame.draw.rect(canvas, (30, 41, 59), (bar_x + 15, bar_y + 10, hp_bar_w, 14), border_radius=4)
         if hp_pct > 0:
             fill_w = int(hp_bar_w * hp_pct)
             hp_col = COLOR_EMERALD if hp_pct > 0.5 else (COLOR_GOLD if hp_pct > 0.25 else COLOR_CRIMSON)
-            pygame.draw.rect(canvas, hp_col, (bar_x + 15, bar_y + 12, fill_w, 14), border_radius=4)
-        pygame.draw.rect(canvas, COLOR_WHITE, (bar_x + 15, bar_y + 12, hp_bar_w, 14), 1, border_radius=4)
+            pygame.draw.rect(canvas, hp_col, (bar_x + 15, bar_y + 10, fill_w, 14), border_radius=4)
+        pygame.draw.rect(canvas, COLOR_WHITE, (bar_x + 15, bar_y + 10, hp_bar_w, 14), 1, border_radius=4)
         
-        txt_hp = font_card.render(f"HULL: {int(player.energy)}/{int(player.max_energy)}", True, COLOR_WHITE)
-        canvas.blit(txt_hp, (bar_x + 15, bar_y + 30))
+        txt_hp = font_card.render(f"HULL: {int(player.health)}/{int(player.max_health)}", True, COLOR_WHITE)
+        canvas.blit(txt_hp, (bar_x + 15, bar_y + 28))
 
-        # Shield Hit Charges (Fixes Bug 1)
+        # NRG Bar
+        nrg_pct = max(0.0, min(1.0, player.energy / player.max_energy))
+        nrg_bar_w = 90
+        pygame.draw.rect(canvas, (30, 41, 59), (bar_x + 180, bar_y + 10, nrg_bar_w, 14), border_radius=4)
+        if nrg_pct > 0:
+            fill_nrg = int(nrg_bar_w * nrg_pct)
+            pygame.draw.rect(canvas, COLOR_CYAN, (bar_x + 180, bar_y + 10, fill_nrg, 14), border_radius=4)
+        pygame.draw.rect(canvas, COLOR_WHITE, (bar_x + 180, bar_y + 10, nrg_bar_w, 14), 1, border_radius=4)
+        txt_nrg = font_card.render(f"NRG: {int(player.energy)}%", True, COLOR_CYAN)
+        canvas.blit(txt_nrg, (bar_x + 180, bar_y + 28))
+
+        # Shield Hit Charges (Authoritative Integer Shield Hits)
         if player.shield_hits > 0:
             for s_i in range(min(5, player.shield_hits)):
-                pygame.draw.circle(canvas, COLOR_SHIELD, (bar_x + 200 + s_i * 14, bar_y + 18), 5)
+                pygame.draw.circle(canvas, COLOR_SHIELD, (bar_x + 285 + s_i * 12, bar_y + 16), 4)
             txt_sh = font_card.render(f"SHIELD ({player.shield_hits})", True, COLOR_SHIELD)
-            canvas.blit(txt_sh, (bar_x + 200, bar_y + 30))
+            canvas.blit(txt_sh, (bar_x + 285, bar_y + 28))
 
     # Stage / Sector Information
     sec_name = SECTORS[sector_idx]["name"] if 0 <= sector_idx < len(SECTORS) else "Sector"

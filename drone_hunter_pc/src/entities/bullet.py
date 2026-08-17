@@ -56,11 +56,11 @@ class Bullet(pygame.sprite.Sprite):
 
 
 class HomingMissile(pygame.sprite.Sprite):
-    """Target-seeking guided missile projectile."""
-    def __init__(self, start_pos: tuple[float, float], target_pos: tuple[float, float], damage: int = 65):
+    """Target-seeking guided missile tracking nearest hostile entity."""
+    def __init__(self, start_pos: tuple[float, float], target_pos: tuple[float, float], damage: int = 65, speed: float = 680.0):
         super().__init__()
         self.damage = damage
-        self.speed = 680.0
+        self.speed = speed
         self.turn_rate = 7.5
         
         self.original_image = pygame.Surface((28, 10), pygame.SRCALPHA)
@@ -98,10 +98,10 @@ class HomingMissile(pygame.sprite.Sprite):
 
 class PlasmaLaserBeam(pygame.sprite.Sprite):
     """High-velocity cutting laser beam with piercing capability."""
-    def __init__(self, start_pos: tuple[float, float], target_pos: tuple[float, float], damage: int = 14):
+    def __init__(self, start_pos: tuple[float, float], target_pos: tuple[float, float], damage: int = 14, speed: float = 1500.0):
         super().__init__()
         self.damage = damage
-        self.speed = 1500.0
+        self.speed = speed
         self.is_piercing = True
         
         self.original_image = pygame.Surface((44, 8), pygame.SRCALPHA)
@@ -130,10 +130,10 @@ class PlasmaLaserBeam(pygame.sprite.Sprite):
 
 class TeslaArcBeam(pygame.sprite.Sprite):
     """Electric arc bolt that zaps and branches to nearby targets."""
-    def __init__(self, start_pos: tuple[float, float], target_pos: tuple[float, float], damage: int = 42):
+    def __init__(self, start_pos: tuple[float, float], target_pos: tuple[float, float], damage: int = 42, speed: float = 1100.0):
         super().__init__()
         self.damage = damage
-        self.speed = 1100.0
+        self.speed = speed
         self.chained_targets = set()
         
         self.original_image = pygame.Surface((32, 10), pygame.SRCALPHA)
@@ -192,10 +192,10 @@ class ClusterBomblet(pygame.sprite.Sprite):
 
 class ClusterTorpedo(pygame.sprite.Sprite):
     """Heavy ballistic torpedo that splits into 6 bomblets."""
-    def __init__(self, start_pos: tuple[float, float], target_pos: tuple[float, float], damage: int = 80):
+    def __init__(self, start_pos: tuple[float, float], target_pos: tuple[float, float], damage: int = 80, speed: float = 520.0):
         super().__init__()
         self.damage = damage
-        self.speed = 520.0
+        self.speed = speed
         self.fuse_timer = 0.55
         self.detonated = False
         

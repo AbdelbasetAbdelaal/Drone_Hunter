@@ -132,7 +132,7 @@ class CombatSystem:
                         p_type = random.choice(["battery", "overclock", "shield", "slowmo", "coin", "wingman", "weapon"])
                         ctx.powerup_group.add(PowerupItem(target.rect.center, p_type))
 
-        # 3. Enemy Bullets vs Player Drone (Fixes Bug 1 & 4)
+        # 3. Enemy Bullets vs Player Drone
         if player.alive and not player.is_invulnerable and not player.is_cloaked:
             e_hits = pygame.sprite.spritecollide(player, ctx.enemy_bullet_group, True)
             for eb in e_hits:
@@ -140,42 +140,43 @@ class CombatSystem:
                 diff_dmg_mult = ctx.difficulty_data.get("damage_mult", 1.0)
                 scaled_dmg = dmg * diff_dmg_mult
 
-                if player.shield_hits > 0:
-                    player.shield_hits -= 1
+                had_shield = player.shield_hits > 0
+                is_destroyed = player.take_damage(scaled_dmg)
+
+                if had_shield:
                     ctx.audio_manager.play_hit()
                     ctx.particle_manager.spawn_spark(player.rect.center, count=10, color=COLOR_SHIELD)
                 else:
-                    player.energy = max(0.0, player.energy - scaled_dmg)
                     ctx.trigger_shake(8.0, 0.25)
                     ctx.damage_flash_timer = 0.18
                     ctx.audio_manager.play_explosion()
                     ctx.particle_manager.spawn_explosion(player.rect.center, count=20, color=COLOR_CRIMSON)
-                    if player.energy <= 0.0:
-                        player.alive = False
-                        player.kill()
-                        ctx.state = STATE_GAME_OVER
+
+                if is_destroyed:
+                    player.kill()
+                    ctx.state = STATE_GAME_OVER
 
         # 4. Hazards vs Player
         if player.alive and not player.is_cloaked:
             h_hits = pygame.sprite.spritecollide(player, ctx.hazard_group, False)
             for h in h_hits:
                 if hasattr(h, "gap_y"): # LaserGridFence
-                    player.energy = max(0.0, player.energy - 35.0 * dt)
+                    is_destroyed = player.take_damage(35.0 * dt)
                     ctx.trigger_shake(4.0, 0.1)
                     ctx.particle_manager.spawn_spark(player.rect.center, count=4, color=COLOR_NEON_RED)
-                    if player.energy <= 0.0:
-                        player.alive = False
+                    if is_destroyed:
                         player.kill()
                         ctx.state = STATE_GAME_OVER
 
-        # 5. Player vs Power-up Items (Fixes Bug 2)
+        # 5. Player vs Power-up Items
         if player.alive:
             p_hits = pygame.sprite.spritecollide(player, ctx.powerup_group, True)
             for p in p_hits:
                 ctx.audio_manager.play_powerup()
                 if p.p_type == "battery":
-                    player.energy = min(player.max_energy, player.energy + 35.0)
-                    ctx.particle_manager.spawn_floating_text(p.rect.center, "+ENERGY", COLOR_EMERALD, 18)
+                    player.health = min(player.max_health, player.health + 35.0)
+                    player.energy = min(player.max_energy, player.energy + 25.0)
+                    ctx.particle_manager.spawn_floating_text(p.rect.center, "+HULL REPAIR", COLOR_EMERALD, 18)
                 elif p.p_type == "overclock":
                     player.trigger_overclock(6.0)
                     ctx.particle_manager.spawn_floating_text(p.rect.center, "OVERCLOCK!", COLOR_OVERCLOCK, 22)

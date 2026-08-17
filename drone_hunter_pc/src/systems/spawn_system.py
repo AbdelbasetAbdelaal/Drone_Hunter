@@ -23,9 +23,11 @@ from src.entities.boss import (
 )
 
 class WaveManager:
-    def __init__(self, target_score: int = 5000):
+    def __init__(self, target_score: int = 5000, is_boss_stage: bool = False):
         self.target_score = max(500, target_score)
+        self.is_boss_stage = is_boss_stage
         self.current_wave = 1
+        self.boss_spawned = False
 
     def update_wave(self, current_score: int) -> int:
         ratio = current_score / self.target_score
@@ -35,8 +37,21 @@ class WaveManager:
         else: self.current_wave = 4
         return self.current_wave
 
-    def is_stage_complete(self, current_score: int) -> bool:
-        return current_score >= self.target_score
+    def is_stage_complete(self, current_score: int, targets_group=None) -> bool:
+        score_reached = current_score >= self.target_score
+        if not self.is_boss_stage:
+            return score_reached
+
+        # Boss stages require score met + Boss spawned + Boss eliminated
+        if not score_reached or not self.boss_spawned:
+            return False
+
+        if targets_group is not None:
+            for t in targets_group:
+                if getattr(t, "is_boss", False) and t.alive:
+                    return False
+
+        return True
 
 
 class Spawner:
@@ -67,6 +82,8 @@ class Spawner:
         # Stage 3 Boss Spawn (Wave 4)
         if context.current_sub_level == 3 and current_wave == 4 and not self.boss_spawned:
             self.boss_spawned = True
+            if hasattr(context, "wave_manager") and context.wave_manager:
+                context.wave_manager.boss_spawned = True
             boss = self._create_sector_boss(self.sector_idx, hp_mult, spd_mult)
             if boss:
                 context.target_group.add(boss)

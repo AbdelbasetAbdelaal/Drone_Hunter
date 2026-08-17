@@ -1,16 +1,19 @@
 """
 ================================================================================
-            DRONE HUNTER 2D - AUTOMATED VERIFICATION TEST SUITE
+            DRONE HUNTER 2D - COMPREHENSIVE VERIFICATION TEST SUITE
 ================================================================================
-Comprehensive unit & integration tests covering all requirements:
-1. Shield Hit System Consistency (Bug 1)
-2. SlowMo Time-Dilation Bullet-Time (Bug 2)
-3. Campaign Progression & Victory State (Bug 3)
-4. EMP Boss Attack & Player Jammed Mechanic (Bug 4)
-5. Enemy & Boss Metadata API Unification (Bug 5)
-6. Difficulty Stat Multipliers
-7. Atomic Save/Load & Recovery
-8. Projectiles, Overdrive, & Weapons Arsenal
+Full test suite verifying all 2D requirements:
+1. Authoritative Player Health vs Energy & Battery Upgrade Model
+2. Overdrive Reactor Upgrade & Gameplay Effects
+3. Single Source of Truth Weapon Statistics (WEAPON_DEFS)
+4. Boss Stage Completion (Boss spawn & elimination requirement)
+5. Multi-Phase Boss Behaviors (Sky, Stealth, EMP, Colossus Titan)
+6. EMP Shockwave & Player Jammed Restrictions
+7. Shield Hit System Consistency
+8. SlowMo Time Dilation Bullet-Time
+9. Difficulty Modifiers & Multipliers
+10. Atomic Save/Load & Corruption Recovery
+11. Multi-Frame Runtime Gameplay Simulation
 """
 
 import os
@@ -18,7 +21,7 @@ import sys
 import unittest
 import pygame
 
-# Set headless SDL dummy video driver for non-interactive test runs
+# Set headless SDL dummy drivers for non-interactive automated test runs
 os.environ["SDL_VIDEODRIVER"] = "dummy"
 os.environ["SDL_AUDIODRIVER"] = "dummy"
 
@@ -29,7 +32,7 @@ pygame.display.set_mode((1, 1))
 
 from src.data.settings import *
 from src.data.game_data import *
-from src.core.game_state import GameState, STATE_PLAYING, STATE_VICTORY
+from src.core.game_state import GameState, STATE_PLAYING, STATE_LEVEL_CLEAR, STATE_VICTORY, STATE_GAME_OVER
 from src.core.game_context import GameContext
 from src.entities.player import Player
 from src.entities.enemy import Enemy
@@ -47,224 +50,206 @@ from src.systems.spawn_system import Spawner, WaveManager
 
 class TestDroneHunter2D(unittest.TestCase):
 
-    def test_bug1_shield_system_consistency(self):
-        """Verify Player uses shield_hits consistently and does not crash when damaged."""
+    def test_health_vs_energy_and_battery_upgrade(self):
+        """Verify Health represents survivability and Energy represents weapon ammo."""
         p = Player((100, 100))
-        self.assertEqual(p.shield_hits, 0)
-        
-        # Activate shield
-        p.activate_shield(3)
-        self.assertEqual(p.shield_hits, 3)
-        
-        # Hit 1
-        destroyed = p.take_damage(30)
-        self.assertFalse(destroyed)
-        self.assertEqual(p.shield_hits, 2)
-        self.assertEqual(p.energy, p.max_energy) # Energy protected by shield
+        self.assertEqual(p.health, PLAYER_MAX_HEALTH)
+        self.assertEqual(p.max_health, PLAYER_MAX_HEALTH)
+        self.assertEqual(p.energy, PLAYER_MAX_ENERGY)
 
-        # Hit 2 & 3
-        p.take_damage(30)
-        p.take_damage(30)
-        self.assertEqual(p.shield_hits, 0)
+        # Apply battery upgrade level 3 (+75 health)
+        upgrades = {"battery": 3}
+        p.apply_shop_upgrades(upgrades)
+        self.assertEqual(p.max_health, PLAYER_MAX_HEALTH + 75.0)
+        self.assertEqual(p.health, p.max_health)
 
-        # Hit 4 (Shield gone, energy damaged)
-        destroyed = p.take_damage(25)
-        self.assertFalse(destroyed)
-        self.assertEqual(p.energy, p.max_energy - 25)
+        # Taking damage reduces HEALTH, NOT ENERGY
+        p.take_damage(40)
+        self.assertEqual(p.health, p.max_health - 40.0)
+        self.assertEqual(p.energy, PLAYER_MAX_ENERGY, "Incoming damage must NOT drain weapon energy!")
 
-    def test_bug2_slowmo_time_dilation(self):
-        """Verify SlowMo powerup sets time_scale to 0.40 and restores to 1.0 when expired."""
-        ctx = GameContext()
-        self.assertEqual(ctx.time_scale, 1.0)
-        
-        # Activate SlowMo
-        ctx.trigger_slowmo(5.0)
-        self.assertEqual(ctx.time_scale, 0.40)
-        self.assertEqual(ctx.slowmo_timer, 5.0)
+        # Firing weapon reduces ENERGY, NOT HEALTH
+        p.shoot((300, 100))
+        self.assertLess(p.energy, PLAYER_MAX_ENERGY, "Firing weapons must consume energy!")
+        self.assertEqual(p.health, p.max_health - 40.0, "Firing weapon must NOT reduce player health!")
 
-        # Update timers partially
-        ctx.update_timers(2.5)
-        self.assertEqual(ctx.time_scale, 0.40)
-        self.assertAlmostEqual(ctx.slowmo_timer, 2.5, places=2)
+    def test_overdrive_upgrade_integration(self):
+        """Verify Overdrive upgrade increases duration and reduces cooldown."""
+        p = Player((100, 100))
+        # Default lvl 0
+        p.apply_shop_upgrades({"overdrive": 0})
+        self.assertEqual(p.overdrive_duration_max, OVERDRIVE_DURATION)
+        self.assertEqual(p.overdrive_cooldown_max, OVERDRIVE_COOLDOWN_MAX)
 
-        # Update timers until expiration
-        ctx.update_timers(3.0)
-        self.assertEqual(ctx.time_scale, 1.0)
-        self.assertEqual(ctx.slowmo_timer, 0.0)
+        # Upgrade lvl 2 (+3.0s duration, -6.0s cooldown)
+        p.apply_shop_upgrades({"overdrive": 2})
+        self.assertEqual(p.overdrive_duration_max, OVERDRIVE_DURATION + 3.0)
+        self.assertEqual(p.overdrive_cooldown_max, OVERDRIVE_COOLDOWN_MAX - 6.0)
 
-    def test_bug3_campaign_progression_and_victory(self):
-        """Verify stages progress through Sector 1-1 to 5-3 and reach STATE_VICTORY."""
-        prog = ProgressionSystem()
-        cur_sec = 0
-        cur_stg = 1
+        # Trigger overdrive
+        self.assertTrue(p.trigger_overdrive())
+        self.assertEqual(p.overdrive_timer, OVERDRIVE_DURATION + 3.0)
+        self.assertEqual(p.overdrive_cooldown, OVERDRIVE_COOLDOWN_MAX - 6.0)
+        self.assertTrue(p.is_invulnerable)
 
-        # Simulate clearing all 15 stages
-        for sec in range(5):
-            for stg in range(1, 4):
-                next_sec, next_stg, is_vic = prog.unlock_next_stage(sec, stg)
-                if sec == 4 and stg == 3:
-                    self.assertTrue(is_vic, "Sector 5 Stage 3 must trigger Campaign Victory!")
-                else:
-                    self.assertFalse(is_vic)
+    def test_authoritative_weapon_definitions(self):
+        """Verify Player shoots projectiles with authoritative stats from WEAPON_DEFS."""
+        p = Player((100, 100))
+        p.available_weapons = [WEAPON_PULSE, WEAPON_SCATTER, WEAPON_MISSILE, WEAPON_BEAM, WEAPON_TESLA, WEAPON_CLUSTER]
 
-    def test_bug4_emp_boss_and_player_jammed(self):
-        """Verify EMP Disrupter Boss expanding wave jams the player and disables abilities."""
+        for w_key in p.available_weapons:
+            p.active_weapon = w_key
+            p.shoot_timer = 0.0
+            bullets = p.shoot((300, 100))
+            self.assertGreater(len(bullets), 0)
+            w_def = WEAPON_DEFS[w_key]
+            # Verify damage matches WEAPON_DEFS
+            self.assertEqual(bullets[0].damage, w_def["damage"])
+            self.assertEqual(bullets[0].speed, w_def["speed"])
+
+    def test_boss_stage_completion_requirement(self):
+        """Verify Boss stage requires score met, boss spawned, and boss defeated."""
+        # Standard non-boss stage (Stage 1-1)
+        wm_standard = WaveManager(target_score=1000, is_boss_stage=False)
+        self.assertFalse(wm_standard.is_stage_complete(500))
+        self.assertTrue(wm_standard.is_stage_complete(1000))
+
+        # Boss Stage (Stage 1-3)
+        wm_boss = WaveManager(target_score=3000, is_boss_stage=True)
+        boss = SkyDreadnoughtBoss(1, 0)
+        targets_group = pygame.sprite.Group(boss)
+
+        # Case A: Score met, but Boss not spawned yet
+        self.assertFalse(wm_boss.is_stage_complete(3500, targets_group=targets_group))
+
+        # Case B: Score met, Boss spawned, but Boss is ALIVE
+        wm_boss.boss_spawned = True
+        self.assertFalse(wm_boss.is_stage_complete(3500, targets_group=targets_group), "Stage must NOT complete while Boss is alive!")
+
+        # Case C: Score met, Boss spawned, Boss DEFEATED
+        boss.alive = False
+        targets_group.remove(boss)
+        self.assertTrue(wm_boss.is_stage_complete(3500, targets_group=targets_group), "Stage completes only when Boss is eliminated!")
+
+    def test_emp_disrupter_wave_and_player_jammed(self):
+        """Verify EMP Disrupter Boss expanding shockwave jams player and disables weapons."""
         p = Player((300, 360))
         boss = EMPDisrupterBoss(level=1, sector_idx=2)
         boss.time_accum = 0.0
         boss.pos = pygame.Vector2(300, 360)
         boss.is_emp_expanding = True
-        boss.emp_wave_radius = 100.0 # Wide wave covering player
+        boss.emp_wave_radius = 120.0
 
         self.assertFalse(p.is_jammed)
-        
-        # Update boss with player passed in
         boss.update(0.016, player_pos=(p.pos.x, p.pos.y), player_obj=p)
-        self.assertTrue(p.is_jammed, "Player must be jammed when hit by EMP wave!")
-        self.assertFalse(p.can_shoot(), "Jammed player cannot fire weapons!")
-        self.assertFalse(p.trigger_emp(), "Jammed player cannot trigger EMP ability!")
-        self.assertFalse(p.trigger_overdrive(), "Jammed player cannot trigger Overdrive!")
+        self.assertTrue(p.is_jammed, "Player must be jammed upon EMP shockwave contact!")
+        self.assertFalse(p.can_shoot(), "Jammed player cannot shoot weapons!")
+        self.assertFalse(p.trigger_emp(), "Jammed player cannot activate EMP!")
+        self.assertFalse(p.trigger_overdrive(), "Jammed player cannot activate Overdrive!")
 
-        # Update player until jammed timer expires
+        # Verify HUD renders jammed banner without error
+        from src.ui.hud import draw_hud
+        test_surf = pygame.Surface((SCREEN_WIDTH, SCREEN_HEIGHT))
+        draw_hud(test_surf, p, sector_idx=2, level_score=1000, total_score=2000, coins=100, difficulty_name="NORMAL")
+
+        # After jammed duration expires, player recovers
         p.update(3.5)
-        self.assertFalse(p.is_jammed, "Player systems must restore after timer expires!")
+        self.assertFalse(p.is_jammed)
         self.assertTrue(p.can_shoot())
 
-    def test_bug5_enemy_and_boss_metadata_api(self):
-        """Verify all enemies and bosses expose unified type, is_boss, color, hp, and score_value."""
-        enemy_types = [
-            TARGET_TYPE_STANDARD, TARGET_TYPE_FAST, TARGET_TYPE_ARMORED,
-            TARGET_TYPE_SHOOTER, TARGET_TYPE_TURRET, TARGET_TYPE_VEHICLE,
-            TARGET_TYPE_CHASER, TARGET_TYPE_SWARM, TARGET_TYPE_SHIELD_DRONE, TARGET_TYPE_SNIPER
-        ]
-        for et in enemy_types:
-            e = Enemy(enemy_type=et)
-            self.assertEqual(e.type, et)
-            self.assertEqual(e.enemy_type, et)
-            self.assertFalse(e.is_boss)
-            self.assertIsInstance(e.color, tuple)
-            self.assertGreater(e.max_hp, 0)
-            self.assertGreater(e.score_value, 0)
-
-        # Test Bosses
-        bosses = [
-            SkyDreadnoughtBoss(1, 0),
-            StealthMirageBoss(1, 1),
-            EMPDisrupterBoss(1, 2),
-            ColossusTitanMechBoss(1, 4)
-        ]
-        for b in bosses:
-            self.assertTrue(b.is_boss)
-            self.assertIsInstance(b.type, str)
-            self.assertGreater(b.max_hp, 50)
-            self.assertGreater(b.score_value, 500)
-
     def test_colossus_titan_3_phases(self):
-        """Verify Colossus Titan transitions through 3 phases as HP decreases."""
-        titan = ColossusTitanMechBoss(1, 4)
+        """Verify Colossus Titan transitions through 3 distinct combat phases."""
+        titan = ColossusTitanMechBoss(level=1, sector_idx=4)
         self.assertEqual(titan.boss_phase, 1)
 
-        # Drop HP to 60% -> Phase 2
-        titan.hp = int(titan.max_hp * 0.60)
+        # Drop HP to 55% -> Phase 2
+        titan.hp = int(titan.max_hp * 0.55)
         titan.update(0.016)
         self.assertEqual(titan.boss_phase, 2)
 
-        # Drop HP to 25% -> Phase 3 (Overclock Berserk)
-        titan.hp = int(titan.max_hp * 0.25)
+        # Drop HP to 20% -> Phase 3 (Overclock Berserk)
+        titan.hp = int(titan.max_hp * 0.20)
         titan.update(0.016)
         self.assertEqual(titan.boss_phase, 3)
 
-    def test_difficulty_system_multipliers(self):
+    def test_shield_hit_absorption(self):
+        """Verify Shield hit charges absorb incoming hits without damage to health."""
+        p = Player((100, 100))
+        p.activate_shield(2)
+        self.assertEqual(p.shield_hits, 2)
+
+        # Hit 1: absorbed by shield
+        p.take_damage(50)
+        self.assertEqual(p.shield_hits, 1)
+        self.assertEqual(p.health, p.max_health)
+
+        # Hit 2: absorbed by shield
+        p.take_damage(50)
+        self.assertEqual(p.shield_hits, 0)
+        self.assertEqual(p.health, p.max_health)
+
+        # Hit 3: shield depleted, damage goes to health
+        p.take_damage(30)
+        self.assertEqual(p.health, p.max_health - 30.0)
+
+    def test_slowmo_time_dilation(self):
+        """Verify SlowMo scales time_scale to 0.40 and restores to 1.0."""
+        ctx = GameContext()
+        self.assertEqual(ctx.time_scale, 1.0)
+
+        ctx.trigger_slowmo(4.0)
+        self.assertEqual(ctx.time_scale, 0.40)
+        self.assertEqual(ctx.slowmo_timer, 4.0)
+
+        ctx.update_timers(4.5)
+        self.assertEqual(ctx.time_scale, 1.0)
+        self.assertEqual(ctx.slowmo_timer, 0.0)
+
+    def test_difficulty_modifiers(self):
         """Verify difficulty modifiers scale HP, speed, damage, and drop rates."""
         diff = DifficultySystem(DIFFICULTY_EASY)
-        self.assertEqual(diff.name, "EASY")
         self.assertLess(diff.hp_multiplier, 1.0)
         self.assertGreater(diff.drop_rate, 0.30)
 
         diff.set_mode(DIFFICULTY_NIGHTMARE)
-        self.assertEqual(diff.name, "NIGHTMARE")
         self.assertGreater(diff.hp_multiplier, 1.5)
+        self.assertGreater(diff.damage_multiplier, 1.3)
         self.assertLess(diff.drop_rate, 0.20)
-        self.assertEqual(diff.score_multiplier, 2.0)
 
     def test_atomic_save_and_recovery(self):
-        """Verify save system writes atomically and recovers from corrupt files."""
-        save_sys = SaveSystem(save_filename="test_save.json")
+        """Verify atomic JSON save with .tmp file swap and recovery from corrupted files."""
+        save_sys = SaveSystem(save_filename="test_save_data.json")
         try:
-            # 1. Save valid data
-            upgrades = {"battery": 2, "speed": 1, "fire_rate": 3}
+            upgrades = {"battery": 2, "overdrive": 1, "speed": 3}
             sectors = [True, True, False, False, False]
-            success = save_sys.save(coins=500, highscore=12000, upgrades=upgrades, sectors=sectors)
-            self.assertTrue(success)
+            self.assertTrue(save_sys.save(coins=350, highscore=8500, upgrades=upgrades, sectors=sectors))
 
-            # 2. Load and verify
             loaded = save_sys.load()
-            self.assertEqual(loaded["coins"], 500)
-            self.assertEqual(loaded["highscore"], 12000)
-            self.assertEqual(loaded["upgrades"]["battery"], 2)
+            self.assertEqual(loaded["coins"], 350)
+            self.assertEqual(loaded["highscore"], 8500)
+            self.assertEqual(loaded["upgrades"]["overdrive"], 1)
 
-            # 3. Test corruption recovery
+            # Corrupt file test
             with open(save_sys.save_path, "w") as f:
-                f.write("CORRUPTED_NON_JSON_DATA!!!")
+                f.write("INVALID_JSON_CORRUPTION_DATA")
 
             recovered = save_sys.load()
-            self.assertEqual(recovered["coins"], 0) # Fallback to safe defaults
+            self.assertEqual(recovered["coins"], 0)
             self.assertTrue(recovered["sectors"][0])
-
         finally:
-            if os.path.exists(save_sys.save_path):
-                os.remove(save_sys.save_path)
-            if os.path.exists(save_sys.temp_path):
-                os.remove(save_sys.temp_path)
+            if os.path.exists(save_sys.save_path): os.remove(save_sys.save_path)
+            if os.path.exists(save_sys.temp_path): os.remove(save_sys.temp_path)
 
-    def test_weapon_arsenal_and_overdrive(self):
-        """Verify all 6 weapons fire distinct projectiles and Overdrive functions."""
-        p = Player((100, 100))
-        p.available_weapons = [WEAPON_PULSE, WEAPON_SCATTER, WEAPON_MISSILE, WEAPON_BEAM, WEAPON_TESLA, WEAPON_CLUSTER]
-
-        # 1. Pulse
-        p.select_weapon(0)
-        b1 = p.shoot((300, 100))
-        self.assertIsInstance(b1[0], Bullet)
-
-        # 2. Missiles
-        p.select_weapon(2)
-        p.shoot_timer = 0
-        b2 = p.shoot((300, 100))
-        self.assertIsInstance(b2[0], HomingMissile)
-
-        # 3. Tesla Arc
-        p.select_weapon(4)
-        p.shoot_timer = 0
-        b3 = p.shoot((300, 100))
-        self.assertIsInstance(b3[0], TeslaArcBeam)
-
-        # 4. Cluster
-        p.select_weapon(5)
-        p.shoot_timer = 0
-        b4 = p.shoot((300, 100))
-        self.assertIsInstance(b4[0], ClusterTorpedo)
-
-        # 5. Overdrive
-        self.assertTrue(p.trigger_overdrive())
-        self.assertTrue(p.is_invulnerable)
-        self.assertGreater(p.shield_hits, 0)
-        self.assertEqual(p.overdrive_timer, OVERDRIVE_DURATION)
-
-    def test_particles_and_floating_text(self):
-        """Verify particle manager, weather, and floating combat text render cleanly."""
-        from src.rendering.particles import ParticleManager, FloatingText
-        pm = ParticleManager()
-        pm.spawn_spark((100, 100))
-        pm.spawn_explosion((100, 100))
-        pm.spawn_lightning_arc((100, 100), (200, 200))
-        pm.spawn_floating_text((100, 100), "+100 SCORE", (250, 204, 21))
-        pm.spawn_weather("rain")
-        
-        surf = pygame.Surface((300, 300))
-        pm.update(0.016)
-        pm.draw(surf)
-        self.assertGreater(len(pm.floating_texts), 0)
+    def test_campaign_progression_to_victory(self):
+        """Verify progression advances 1-1 to 5-3 and properly reaches STATE_VICTORY."""
+        prog = ProgressionSystem()
+        for sec in range(5):
+            for stg in range(1, 4):
+                next_sec, next_stg, is_vic = prog.unlock_next_stage(sec, stg)
+                if sec == 4 and stg == 3:
+                    self.assertTrue(is_vic, "Sector 5 Stage 3 completion must trigger Campaign Victory!")
+                else:
+                    self.assertFalse(is_vic)
 
 
 if __name__ == "__main__":

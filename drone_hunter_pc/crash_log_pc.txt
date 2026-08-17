@@ -1,22 +1,23 @@
-Fatal Error: 'FloatingText' object has no attribute 'max_lifetime'
+Fatal Error: name 'COLOR_NEON_RED' is not defined
 
 Traceback (most recent call last):
   File "D:\Drone_Hunter\drone_hunter_pc\main.py", line 31, in main
     game.run()
     ~~~~~~~~^^
-  File "D:\Drone_Hunter\drone_hunter_pc\src\core\game.py", line 457, in run
+  File "D:\Drone_Hunter\drone_hunter_pc\src\core\game.py", line 468, in run
     self.render()
     ~~~~~~~~~~~^^
-  File "D:\Drone_Hunter\drone_hunter_pc\src\core\game.py", line 422, in render
-    self.renderer.render_gameplay(ctx, self.background, self.particle_manager)
-    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-  File "D:\Drone_Hunter\drone_hunter_pc\src\rendering\renderer.py", line 63, in render_gameplay
-    particle_manager.draw(self.canvas)
-    ~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^
-  File "D:\Drone_Hunter\drone_hunter_pc\src\rendering\particles.py", line 199, in draw
-    txt.draw(surface)
-    ~~~~~~~~^^^^^^^^^
-  File "D:\Drone_Hunter\drone_hunter_pc\src\rendering\particles.py", line 71, in draw
-    pct = max(0.0, min(1.0, self.lifetime / self.max_lifetime))
-                                            ^^^^^^^^^^^^^^^^^
-AttributeError: 'FloatingText' object has no attribute 'max_lifetime'
+  File "D:\Drone_Hunter\drone_hunter_pc\src\core\game.py", line 436, in render
+    draw_hud(
+    ~~~~~~~~^
+        canvas, ctx.player, ctx.current_sector_idx, ctx.level_score,
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    ...<2 lines>...
+        current_wave=ctx.current_wave, sub_level=ctx.current_sub_level
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    )
+    ^
+  File "D:\Drone_Hunter\drone_hunter_pc\src\ui\hud.py", line 109, in draw_hud
+    jam_banner = font_banner.render(f"⚡ SYSTEM JAMMED: {player.emp_jammed_timer:.1f}s", True, COLOR_NEON_RED)
+                                                                                               ^^^^^^^^^^^^^^
+NameError: name 'COLOR_NEON_RED' is not defined

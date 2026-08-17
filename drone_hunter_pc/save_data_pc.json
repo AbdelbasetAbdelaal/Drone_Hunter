@@ -1,23 +1,23 @@
 {
-  "coins": 718,
-  "highscore": 13400,
+  "coins": 19352,
+  "highscore": 332770,
   "upgrades": {
-    "battery": 0,
-    "speed": 0,
-    "fire_rate": 0,
-    "emp_recharge": 0,
-    "wingman": 0,
-    "cloak": 0,
-    "missiles": 0,
-    "beam": 0,
-    "tesla": 0,
-    "cluster": 0,
-    "overdrive": 0
+    "battery": 5,
+    "speed": 5,
+    "fire_rate": 5,
+    "emp_recharge": 4,
+    "wingman": 3,
+    "cloak": 3,
+    "missiles": 3,
+    "beam": 3,
+    "tesla": 3,
+    "cluster": 3,
+    "overdrive": 3
   },
   "sectors": [
     true,
     true,
-    false,
+    true,
     false,
     false
   ],
@@ -27,10 +27,10 @@
     true,
     true,
     true,
-    false,
-    false,
-    false,
-    false,
+    true,
+    true,
+    true,
+    true,
     false,
     false,
     false,
@@ -39,5 +39,5 @@
     false
   ],
   "show_crt": false,
-  "difficulty_mode": 0
+  "difficulty_mode": 1
 }

@@ -116,7 +116,8 @@ class Game:
         target_score = self.progression.get_current_stage_target_score(
             ctx.current_sector_idx, ctx.current_sub_level
         )
-        ctx.wave_manager = WaveManager(target_score)
+        is_boss_stage = (ctx.current_sub_level == 3)
+        ctx.wave_manager = WaveManager(target_score, is_boss_stage=is_boss_stage)
         self.spawner.reset_for_stage(ctx.current_sector_idx * 3 + ctx.current_sub_level, ctx.current_sector_idx)
         self.background.set_sector(ctx.current_sector_idx)
 
@@ -214,6 +215,7 @@ class Game:
                     elif event.key == pygame.K_8: self.buy_upgrade("beam")
                     elif event.key == pygame.K_9: self.buy_upgrade("tesla")
                     elif event.key in (pygame.K_0, pygame.K_KP0): self.buy_upgrade("cluster")
+                    elif event.key in (pygame.K_u, pygame.K_o): self.buy_upgrade("overdrive")
                     elif event.key == pygame.K_c and ctx.player: ctx.player.cycle_skin()
                     elif event.key == pygame.K_m: ctx.state = STATE_SECTOR_SELECT
                     elif event.key in (pygame.K_SPACE, pygame.K_RETURN):
@@ -305,6 +307,15 @@ class Game:
                                 ctx.state = STATE_PLAYING
                                 break
 
+                elif ctx.state == STATE_HANGAR:
+                    exit_r, skin_r, item_rects = draw_hangar_shop_ui(self.renderer.canvas, ctx.coins, ctx.current_sector_idx, ctx.upgrade_levels)
+                    if skin_r.collidepoint(mx, my) and ctx.player:
+                        ctx.player.cycle_skin()
+                    for upg_id, upg_r in item_rects.items():
+                        if upg_r.collidepoint(mx, my):
+                            self.buy_upgrade(upg_id)
+                            break
+
                 elif ctx.state == STATE_PAUSED:
                     pause_btns = draw_pause_settings_ui(self.renderer.canvas, ctx.difficulty_mode, ctx.show_crt, self.audio_manager.sound_enabled)
                     if pause_btns["diff"].collidepoint(mx, my): ctx.difficulty_mode = (ctx.difficulty_mode + 1) % 4
@@ -394,8 +405,8 @@ class Game:
                 # 4. Combat & Collision Resolution
                 self.combat_system.update_combat(dt)
 
-                # 5. Check Stage Completion
-                if ctx.wave_manager.is_stage_complete(ctx.level_score):
+                # 5. Check Stage Completion (Respects Boss Spawn & Elimination in Boss Stages)
+                if ctx.wave_manager.is_stage_complete(ctx.level_score, targets_group=ctx.target_group):
                     ctx.state = STATE_LEVEL_CLEAR
                     self.audio_manager.play_powerup()
                     self.save_progress()
