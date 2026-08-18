@@ -172,6 +172,8 @@ class Enemy(pygame.sprite.Sprite):
         self.speed = base_speed
         self.max_hp = max(1, base_hp)
         self.hp = self.max_hp
+        self.score_value = self.points
+        self.color = self.color_outer
         self.alive = True
         self.hit_flash_timer = 0.0
 
@@ -194,6 +196,22 @@ class Enemy(pygame.sprite.Sprite):
         self.rect = self.image.get_rect(center=self.pos)
         self.radius = self.size // 2
         self._render_sprite()
+
+    @property
+    def score_value(self) -> int:
+        return getattr(self, "points", 100)
+
+    @score_value.setter
+    def score_value(self, val: int):
+        self.points = val
+
+    @property
+    def color(self) -> tuple[int, int, int]:
+        return getattr(self, "color_outer", (239, 68, 68))
+
+    @color.setter
+    def color(self, val: tuple[int, int, int]):
+        self.color_outer = val
 
     def take_damage(self, amount: int, source: str = "bullet", **kwargs) -> bool:
         """Applies damage and returns True if entity dies."""
