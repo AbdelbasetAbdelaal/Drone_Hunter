@@ -414,8 +414,8 @@ class Game:
                     # Smooth Camera Tracking
                     self.camera.update((ctx.player.pos.x, ctx.player.pos.y), dt)
 
-                # 2. Spawner / Controlled Encounter System Update
-                if ctx.current_sector_idx == 0 and ctx.current_sub_level == 1 and self.encounter_system.is_active:
+                # 2. Spawner / Controlled Encounter System Update (Cyber Factory Sector 1 / Stage 1)
+                if ctx.current_sector_idx == 1 and ctx.current_sub_level == 1 and self.encounter_system.is_active:
                     # Suppress legacy random wave spawning during intro Scout encounter
                     self.encounter_system.update(dt, ctx)
                 else:
