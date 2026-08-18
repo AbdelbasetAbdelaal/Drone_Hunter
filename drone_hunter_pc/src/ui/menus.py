@@ -123,6 +123,8 @@ def draw_sector_select_ui(canvas: pygame.Surface, unlocked_sectors: list[bool], 
     gap = 14
     mx, my = pygame.mouse.get_pos()
 
+    stage_buttons = []
+
     for idx, sec in enumerate(SECTORS):
         is_sec_unlocked = unlocked_sectors[idx] if idx < len(unlocked_sectors) else False
         cx = start_x + idx * (card_w + gap)
@@ -149,6 +151,7 @@ def draw_sector_select_ui(canvas: pygame.Surface, unlocked_sectors: list[bool], 
             stg_unlocked = unlocked_stages[flat_idx] if flat_idx < len(unlocked_stages) else (flat_idx == 0)
             
             stg_rect = pygame.Rect(cx + 10, stage_y + stg_i * 38, card_w - 20, 34)
+            stage_buttons.append((stg_rect, idx, stg_i + 1, stg_unlocked))
             stg_hov = stg_rect.collidepoint(mx, my)
 
             stg_bg = (30, 58, 138) if (stg_hov and stg_unlocked) else ((20, 30, 50) if stg_unlocked else (15, 20, 30))
@@ -162,7 +165,8 @@ def draw_sector_select_ui(canvas: pygame.Surface, unlocked_sectors: list[bool], 
             txt_stg = font_card.render(stg_label, True, stg_col)
             canvas.blit(txt_stg, txt_stg.get_rect(center=stg_rect.center))
 
-    draw_exit_button(canvas)
+    exit_rect = draw_exit_button(canvas)
+    return diff_rect, exit_rect, stage_buttons
 
 
 def draw_pause_settings_ui(canvas: pygame.Surface, difficulty_mode: int, show_crt: bool, sound_enabled: bool) -> dict:

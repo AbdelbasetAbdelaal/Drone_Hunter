@@ -181,6 +181,17 @@ class Game:
             return True
         return False
 
+    def get_canvas_mouse_pos(self, screen_pos: tuple[int, int] = None) -> tuple[int, int]:
+        """Maps window screen pixel coordinates to internal 1280x720 canvas coordinates."""
+        if screen_pos is None:
+            raw_x, raw_y = pygame.mouse.get_pos()
+        else:
+            raw_x, raw_y = screen_pos
+
+        scale_x = SCREEN_WIDTH / max(1, self.win_w)
+        scale_y = SCREEN_HEIGHT / max(1, self.win_h)
+        return (int(raw_x * scale_x), int(raw_y * scale_y))
+
     def handle_events(self):
         ctx = self.context
         for event in pygame.event.get():
@@ -189,6 +200,7 @@ class Game:
 
             elif event.type == pygame.VIDEORESIZE:
                 self.win_w, self.win_h = event.w, event.h
+                self.screen = pygame.display.set_mode((self.win_w, self.win_h), pygame.RESIZABLE)
                 self.camera.set_viewport_size(event.w, event.h)
 
             elif event.type == pygame.KEYDOWN:
@@ -256,8 +268,8 @@ class Game:
                             self.particle_manager.spawn_shockwave(ctx.player.pos, max_r=550, color=(250, 204, 21))
                     elif event.key in (pygame.K_LSHIFT, pygame.K_RSHIFT):
                         if ctx.player and ctx.player.trigger_roll(dir_x=1.0):
-                            self.audio_manager.play_roll()
-                            ctx.trigger_shake(4.0, 0.18)
+                            self.audio_manager.play_whoosh()
+                            self.particle_manager.spawn_barrel_roll_rings(ctx.player.pos, radius=40, color=COLOR_CYAN)
                     elif event.key in (pygame.K_k, pygame.K_c):
                         if event.key == pygame.K_c and ctx.player:
                             ctx.player.cycle_skin()
@@ -274,11 +286,9 @@ class Game:
 
                 elif ctx.state == STATE_PAUSED:
                     if event.key in (pygame.K_p, pygame.K_SPACE): ctx.state = STATE_PLAYING
-                    elif event.key == pygame.K_d: ctx.difficulty_mode = (ctx.difficulty_mode + 1) % 4
-                    elif event.key == pygame.K_s: self.audio_manager.sound_enabled = not self.audio_manager.sound_enabled
-                    elif event.key == pygame.K_h: ctx.state = STATE_HANGAR
                     elif event.key == pygame.K_m: ctx.state = STATE_SECTOR_SELECT
-                    elif event.key in (pygame.K_q, pygame.K_ESCAPE): self.running = False
+                    elif event.key == pygame.K_h: ctx.state = STATE_HANGAR
+                    elif event.key == pygame.K_q: self.running = False
 
                 elif ctx.state == STATE_VICTORY:
                     if event.key in (pygame.K_SPACE, pygame.K_RETURN):
@@ -299,11 +309,11 @@ class Game:
                     ctx.player.select_weapon(prev_idx)
 
             elif event.type == pygame.MOUSEBUTTONDOWN:
-                mx, my = pygame.mouse.get_pos()
+                mx, my = self.get_canvas_mouse_pos(getattr(event, "pos", None))
                 if ctx.state == STATE_MENU:
                     btn_w, btn_h = 240, 44
-                    cx = self.win_w // 2 - btn_w // 2
-                    btn_y_start = self.win_h // 2 - 10
+                    cx = SCREEN_WIDTH // 2 - btn_w // 2
+                    btn_y_start = SCREEN_HEIGHT // 2 - 10
                     gap = 14
                     
                     r_play = pygame.Rect(cx, btn_y_start, btn_w, btn_h)
@@ -321,22 +331,18 @@ class Game:
                         self.running = False
 
                 elif ctx.state == STATE_SECTOR_SELECT:
-                    exit_r = pygame.Rect(self.win_w - 140, self.win_h - 55, 120, 40)
-                    if exit_r.collidepoint(mx, my): self.running = False
-                    diff_rect = pygame.Rect(480, 28, 220, 36)
-                    if diff_rect.collidepoint(mx, my):
+                    diff_rect, exit_r, stage_buttons = draw_sector_select_ui(
+                        self.renderer.canvas, ctx.unlocked_sectors, ctx.coins,
+                        ctx.difficulty_mode, ctx.unlocked_stages
+                    )
+                    if exit_r.collidepoint(mx, my):
+                        self.running = False
+                    elif diff_rect.collidepoint(mx, my):
                         ctx.difficulty_mode = (ctx.difficulty_mode + 1) % 4
-
-                    card_w = 226
-                    start_x = 44
-                    gap = 18
-                    for idx in range(len(SECTORS)):
-                        cx = start_x + idx * (card_w + gap)
-                        stage_y_start = 390
-                        for stg_i in range(3):
-                            stg_r = pygame.Rect(cx + 10, stage_y_start + stg_i * 38, card_w - 20, 34)
-                            if stg_r.collidepoint(mx, my) and self.progression.is_stage_unlocked(idx, stg_i + 1):
-                                self.start_stage(idx, stg_i + 1)
+                    else:
+                        for stg_rect, sec_idx, stg_num, is_unlocked in stage_buttons:
+                            if stg_rect.collidepoint(mx, my) and is_unlocked:
+                                self.start_stage(sec_idx, stg_num)
                                 break
 
                 elif ctx.state == STATE_HANGAR:
@@ -359,7 +365,18 @@ class Game:
                     elif pause_btns["exit"].collidepoint(mx, my): self.running = False
 
                 elif ctx.state == STATE_PLAYING:
-                    if event.button == 3: # Right click -> EMP
+                    if event.button == 1 and ctx.player and ctx.player.can_shoot():
+                        cam_ox, cam_oy = self.camera.get_offset()
+                        world_mx, world_my = mx + cam_ox, my + cam_oy
+                        fired_bullets = ctx.player.shoot((world_mx, world_my), level=ctx.current_sub_level, targets_group=ctx.target_group)
+                        for b in fired_bullets: ctx.bullet_group.add(b)
+                        if ctx.player.active_weapon == "pulse": self.audio_manager.play_laser()
+                        elif ctx.player.active_weapon == "scatter": self.audio_manager.play_laser()
+                        elif ctx.player.active_weapon == "missile": self.audio_manager.play_missile()
+                        elif ctx.player.active_weapon == "beam": self.audio_manager.play_beam()
+                        elif ctx.player.active_weapon == "tesla": self.audio_manager.play_tesla()
+                        elif ctx.player.active_weapon == "cluster": self.audio_manager.play_cluster()
+                    elif event.button == 3: # Right click -> EMP
                         self.combat_system.execute_emp_blast()
                     elif event.button == 2 and ctx.player: # Middle click -> Overdrive
                         if ctx.player.trigger_overdrive():
