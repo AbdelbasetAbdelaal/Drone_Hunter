@@ -128,9 +128,20 @@ class Game:
         ctx.wave_manager = WaveManager(target_score, is_boss_stage=is_boss_stage)
         self.spawner.reset_for_stage(ctx.current_sector_idx * 3 + ctx.current_sub_level, ctx.current_sector_idx)
         self.encounter_system.reset()
+        self.background.set_sector(ctx.current_sector_idx)
+
+    def start_stage(self, sector_idx: int = None, stage_idx: int = None):
+        """Prepares and launches a gameplay stage, explicitly starting encounters where defined."""
+        ctx = self.context
+        if sector_idx is not None: ctx.current_sector_idx = sector_idx
+        if stage_idx is not None: ctx.current_sub_level = stage_idx
+
+        self.reset_game()
+        ctx.state = STATE_PLAYING
+
+        # Explicitly start the intro Scout encounter only for Cyber Factory Sector 1 Stage 1
         if ctx.current_sector_idx == 1 and ctx.current_sub_level == 1:
             self.encounter_system.start()
-        self.background.set_sector(ctx.current_sector_idx)
 
     def save_progress(self):
         ctx = self.context
@@ -145,21 +156,17 @@ class Game:
         )
 
     def start_next_stage(self):
-        """Advances to next stage or triggers Campaign Victory (Bug 3)."""
+        """Advances to next stage or triggers Campaign Victory."""
         ctx = self.context
         next_sec, next_stg, is_victory = self.progression.unlock_next_stage(
             ctx.current_sector_idx, ctx.current_sub_level
         )
-        ctx.current_sector_idx = next_sec
-        ctx.current_sub_level = next_stg
-
         self.save_progress()
 
         if is_victory:
             ctx.state = STATE_VICTORY
         else:
-            self.reset_game()
-            ctx.state = STATE_PLAYING
+            self.start_stage(next_sec, next_stg)
 
     def buy_upgrade(self, upgrade_id: str) -> bool:
         ctx = self.context
@@ -189,7 +196,9 @@ class Game:
                 self.camera.set_viewport_size(event.w, event.h)
 
             elif event.type == pygame.KEYDOWN:
-                if event.key == pygame.K_F2:
+                if event.key == pygame.K_F11:
+                    self.renderer.toggle_fullscreen()
+                elif event.key == pygame.K_F2:
                     ctx.show_crt = not ctx.show_crt
                     self.save_progress()
 
@@ -198,8 +207,7 @@ class Game:
 
                 if ctx.state == STATE_MENU:
                     if event.key in (pygame.K_SPACE, pygame.K_RETURN):
-                        self.reset_game()
-                        ctx.state = STATE_PLAYING
+                        self.start_stage()
                     elif event.key == pygame.K_m:
                         ctx.state = STATE_SECTOR_SELECT
                     elif event.key == pygame.K_h:
@@ -211,15 +219,15 @@ class Game:
                     if event.key == pygame.K_d:
                         ctx.difficulty_mode = (ctx.difficulty_mode + 1) % 4
                     elif event.key in (pygame.K_1, pygame.K_KP1) and self.progression.is_stage_unlocked(0, 1):
-                        ctx.current_sector_idx, ctx.current_sub_level = 0, 1; self.reset_game(); ctx.state = STATE_PLAYING
+                        self.start_stage(0, 1)
                     elif event.key in (pygame.K_2, pygame.K_KP2) and self.progression.is_stage_unlocked(1, 1):
-                        ctx.current_sector_idx, ctx.current_sub_level = 1, 1; self.reset_game(); ctx.state = STATE_PLAYING
+                        self.start_stage(1, 1)
                     elif event.key in (pygame.K_3, pygame.K_KP3) and self.progression.is_stage_unlocked(2, 1):
-                        ctx.current_sector_idx, ctx.current_sub_level = 2, 1; self.reset_game(); ctx.state = STATE_PLAYING
+                        self.start_stage(2, 1)
                     elif event.key in (pygame.K_4, pygame.K_KP4) and self.progression.is_stage_unlocked(3, 1):
-                        ctx.current_sector_idx, ctx.current_sub_level = 3, 1; self.reset_game(); ctx.state = STATE_PLAYING
+                        self.start_stage(3, 1)
                     elif event.key in (pygame.K_5, pygame.K_KP5) and self.progression.is_stage_unlocked(4, 1):
-                        ctx.current_sector_idx, ctx.current_sub_level = 4, 1; self.reset_game(); ctx.state = STATE_PLAYING
+                        self.start_stage(4, 1)
                     elif event.key in (pygame.K_SPACE, pygame.K_h):
                         ctx.state = STATE_HANGAR
 
@@ -238,8 +246,7 @@ class Game:
                     elif event.key == pygame.K_c and ctx.player: ctx.player.cycle_skin()
                     elif event.key == pygame.K_m: ctx.state = STATE_SECTOR_SELECT
                     elif event.key in (pygame.K_SPACE, pygame.K_RETURN):
-                        self.reset_game()
-                        ctx.state = STATE_PLAYING
+                        self.start_stage()
 
                 elif ctx.state == STATE_PLAYING:
                     if event.key in (pygame.K_p, pygame.K_ESCAPE):
@@ -280,16 +287,14 @@ class Game:
                 elif ctx.state == STATE_VICTORY:
                     if event.key in (pygame.K_SPACE, pygame.K_RETURN):
                         ctx.difficulty_mode = DIFFICULTY_NIGHTMARE
-                        ctx.current_sector_idx, ctx.current_sub_level = 4, 3
-                        self.reset_game()
-                        ctx.state = STATE_PLAYING
+                        self.start_stage(4, 3)
                     elif event.key == pygame.K_m: ctx.state = STATE_SECTOR_SELECT
                     elif event.key == pygame.K_h: ctx.state = STATE_HANGAR
 
                 elif ctx.state in (STATE_GAME_OVER, STATE_LEVEL_CLEAR):
                     if event.key in (pygame.K_SPACE, pygame.K_RETURN):
                         if ctx.state == STATE_LEVEL_CLEAR: self.start_next_stage()
-                        else: self.reset_game(); ctx.state = STATE_PLAYING
+                        else: self.start_stage()
 
             elif event.type == pygame.MOUSEWHEEL and ctx.state == STATE_PLAYING and ctx.player:
                 if event.y > 0: ctx.player.cycle_weapon()
@@ -311,8 +316,7 @@ class Game:
                     r_exit = pygame.Rect(cx, btn_y_start + 3 * (btn_h + gap), btn_w, btn_h)
                     
                     if r_play.collidepoint(mx, my):
-                        self.reset_game()
-                        ctx.state = STATE_PLAYING
+                        self.start_stage()
                     elif r_sec.collidepoint(mx, my):
                         ctx.state = STATE_SECTOR_SELECT
                     elif r_hangar.collidepoint(mx, my):
@@ -336,9 +340,7 @@ class Game:
                         for stg_i in range(3):
                             stg_r = pygame.Rect(cx + 10, stage_y_start + stg_i * 38, card_w - 20, 34)
                             if stg_r.collidepoint(mx, my) and self.progression.is_stage_unlocked(idx, stg_i + 1):
-                                ctx.current_sector_idx, ctx.current_sub_level = idx, stg_i + 1
-                                self.reset_game()
-                                ctx.state = STATE_PLAYING
+                                self.start_stage(idx, stg_i + 1)
                                 break
 
                 elif ctx.state == STATE_HANGAR:

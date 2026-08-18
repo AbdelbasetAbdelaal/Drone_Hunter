@@ -4,12 +4,19 @@
 ================================================================================
 Exhaustive verification of:
 1. Scout Initialization, Stats, Approach, Strafe, Telegraph, Dive, Recover, Damage, Death, Contact Cooldown
-2. Encounter System Lifecycle: reset returns IDLE, explicit start, initial delay, 3 sequential Scouts, COMPLETE state
-3. Game Integration:
+2. Encounter System Lifecycle:
+   - reset returns IDLE
+   - reset does NOT start encounter
+   - explicit start works
+   - initial delay works
+   - 3 sequential Scouts with wait intervals
+   - COMPLETE state after Scout #3
+3. Game Integration & Sector Selection:
    - Sector 0 Stage 1 does NOT start Scout encounter (stays IDLE)
-   - Sector 1 Stage 1 DOES start Scout encounter (starts WAITING)
+   - Sector 1 Stage 1 explicitly starts Scout encounter (starts WAITING)
    - Encounter suppresses normal Spawner during intro
    - Normal Spawner resumes after encounter completes
+4. 360-degree projectile flight in 2D world space
 """
 
 import os
@@ -125,8 +132,14 @@ class TestPhase2AScoutAndEncounter(unittest.TestCase):
             self.assertEqual(ctx.player.health, 100.0 - SCOUT_CONTACT_DAMAGE)
 
     # ==========================================================================
-    # ENCOUNTER SYSTEM TESTS
+    # ENCOUNTER SYSTEM LIFECYCLE TESTS
     # ==========================================================================
+    def test_reset_does_not_start_encounter(self):
+        encounter = EncounterSystem()
+        encounter.reset()
+        self.assertEqual(encounter.state, "idle")
+        self.assertFalse(encounter.is_active)
+
     def test_encounter_reset_returns_idle(self):
         encounter = EncounterSystem()
         encounter.start()
@@ -241,21 +254,15 @@ class TestPhase2AScoutAndEncounter(unittest.TestCase):
     def test_sector_0_stage_1_does_not_start_scout_encounter(self):
         """Sector 0 Stage 1 should keep EncounterSystem in IDLE."""
         game = Game()
-        ctx = game.context
-        ctx.current_sector_idx = 0
-        ctx.current_sub_level = 1
-        game.reset_game()
+        game.start_stage(0, 1)
 
         self.assertEqual(game.encounter_system.state, "idle")
         self.assertFalse(game.encounter_system.is_active)
 
     def test_sector_1_stage_1_does_start_scout_encounter(self):
-        """Cyber Factory Sector 1 Stage 1 starts EncounterSystem in WAITING."""
+        """Cyber Factory Sector 1 Stage 1 explicitly starts EncounterSystem in WAITING."""
         game = Game()
-        ctx = game.context
-        ctx.current_sector_idx = 1
-        ctx.current_sub_level = 1
-        game.reset_game()
+        game.start_stage(1, 1)
 
         self.assertEqual(game.encounter_system.state, "waiting")
         self.assertTrue(game.encounter_system.is_active)
@@ -285,6 +292,38 @@ class TestPhase2AScoutAndEncounter(unittest.TestCase):
 
         self.assertTrue(encounter.is_complete)
         self.assertFalse(encounter.is_suppressing_spawner)
+
+    # ==========================================================================
+    # 360-DEGREE PROJECTILE FLIGHT TEST
+    # ==========================================================================
+    def test_player_shooting_360_degrees_in_world_space(self):
+        """Verify projectiles fired right, down, and across world space do not prematurely despawn."""
+        player = Player((1200, 700))
+        group = pygame.sprite.Group()
+
+        # Fire Right (towards (2000, 700))
+        bullets_right = player.shoot((2000, 700))
+        self.assertGreater(len(bullets_right), 0)
+        b_right = bullets_right[0]
+        group.add(b_right)
+
+        # Simulate 10 frames of motion to the right
+        for _ in range(10):
+            b_right.update(0.016)
+        self.assertTrue(b_right.alive())
+        self.assertGreater(b_right.pos.x, 1200.0)
+
+        # Fire Down (towards (1200, 1300))
+        player.shoot_timer = 0.0
+        bullets_down = player.shoot((1200, 1300))
+        self.assertGreater(len(bullets_down), 0)
+        b_down = bullets_down[0]
+        group.add(b_down)
+
+        for _ in range(10):
+            b_down.update(0.016)
+        self.assertTrue(b_down.alive())
+        self.assertGreater(b_down.pos.y, 700.0)
 
 
 if __name__ == "__main__":

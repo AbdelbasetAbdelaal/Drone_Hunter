@@ -4,13 +4,14 @@
 ================================================================================
 Defines all player and enemy 2D projectile sprites with kinematic physics,
 guidance tracking, cluster bomblet sub-munitions, and railgun beams.
+Uses full 2D world-space bounds for 360-degree combat coverage.
 """
 
 import math
 import random
 import pygame
 from src.data.settings import (
-    SCREEN_WIDTH, SCREEN_HEIGHT, COLOR_CYAN, COLOR_GOLD, COLOR_CRIMSON,
+    WORLD_WIDTH, WORLD_HEIGHT, COLOR_CYAN, COLOR_GOLD, COLOR_CRIMSON,
     COLOR_MISSILE, COLOR_BEAM, COLOR_TESLA, COLOR_CLUSTER, COLOR_WHITE,
     COLOR_NEON_RED
 )
@@ -50,8 +51,8 @@ class Bullet(pygame.sprite.Sprite):
         self.pos.y += math.sin(self.angle_rad) * self.speed * dt
         self.rect.center = (round(self.pos.x), round(self.pos.y))
 
-        if (self.rect.right < -40 or self.rect.left > SCREEN_WIDTH + 40 or
-            self.rect.bottom < -40 or self.rect.top > SCREEN_HEIGHT + 40):
+        if (self.rect.right < -80 or self.rect.left > WORLD_WIDTH + 80 or
+            self.rect.bottom < -80 or self.rect.top > WORLD_HEIGHT + 80):
             self.kill()
 
 
@@ -91,8 +92,8 @@ class HomingMissile(pygame.sprite.Sprite):
         self.pos.y += math.sin(self.angle_rad) * self.speed * dt
         self.rect.center = (round(self.pos.x), round(self.pos.y))
 
-        if (self.rect.right < -50 or self.rect.left > SCREEN_WIDTH + 50 or
-            self.rect.bottom < -50 or self.rect.top > SCREEN_HEIGHT + 50):
+        if (self.rect.right < -80 or self.rect.left > WORLD_WIDTH + 80 or
+            self.rect.bottom < -80 or self.rect.top > WORLD_HEIGHT + 80):
             self.kill()
 
 
@@ -123,8 +124,8 @@ class PlasmaLaserBeam(pygame.sprite.Sprite):
         self.pos.y += math.sin(self.angle_rad) * self.speed * dt
         self.rect.center = (round(self.pos.x), round(self.pos.y))
 
-        if (self.rect.right < -50 or self.rect.left > SCREEN_WIDTH + 50 or
-            self.rect.bottom < -50 or self.rect.top > SCREEN_HEIGHT + 50):
+        if (self.rect.right < -80 or self.rect.left > WORLD_WIDTH + 80 or
+            self.rect.bottom < -80 or self.rect.top > WORLD_HEIGHT + 80):
             self.kill()
 
 
@@ -137,7 +138,6 @@ class TeslaArcBeam(pygame.sprite.Sprite):
         self.chained_targets = set()
         
         self.original_image = pygame.Surface((32, 10), pygame.SRCALPHA)
-        # Jagged lightning bolt shape
         points = [(0, 5), (10, 0), (14, 4), (24, 1), (32, 5), (22, 9), (18, 5), (8, 10)]
         pygame.draw.polygon(self.original_image, COLOR_TESLA, points)
         pygame.draw.polygon(self.original_image, COLOR_WHITE, [(4, 5), (11, 2), (15, 5), (23, 3), (28, 5), (21, 7), (9, 7)])
@@ -155,8 +155,8 @@ class TeslaArcBeam(pygame.sprite.Sprite):
         self.pos.y += math.sin(self.angle_rad) * self.speed * dt
         self.rect.center = (round(self.pos.x), round(self.pos.y))
 
-        if (self.rect.right < -40 or self.rect.left > SCREEN_WIDTH + 40 or
-            self.rect.bottom < -40 or self.rect.top > SCREEN_HEIGHT + 40):
+        if (self.rect.right < -80 or self.rect.left > WORLD_WIDTH + 80 or
+            self.rect.bottom < -80 or self.rect.top > WORLD_HEIGHT + 80):
             self.kill()
 
 
@@ -185,8 +185,8 @@ class ClusterBomblet(pygame.sprite.Sprite):
         self.pos.y += math.sin(self.angle_rad) * self.speed * dt
         self.rect.center = (round(self.pos.x), round(self.pos.y))
 
-        if (self.rect.right < -20 or self.rect.left > SCREEN_WIDTH + 20 or
-            self.rect.bottom < -20 or self.rect.top > SCREEN_HEIGHT + 20):
+        if (self.rect.right < -40 or self.rect.left > WORLD_WIDTH + 40 or
+            self.rect.bottom < -40 or self.rect.top > WORLD_HEIGHT + 40):
             self.kill()
 
 
@@ -219,8 +219,8 @@ class ClusterTorpedo(pygame.sprite.Sprite):
         self.pos.y += math.sin(self.angle_rad) * self.speed * dt
         self.rect.center = (round(self.pos.x), round(self.pos.y))
 
-        if (self.rect.right < -40 or self.rect.left > SCREEN_WIDTH + 40 or
-            self.rect.bottom < -40 or self.rect.top > SCREEN_HEIGHT + 40):
+        if (self.rect.right < -80 or self.rect.left > WORLD_WIDTH + 80 or
+            self.rect.bottom < -80 or self.rect.top > WORLD_HEIGHT + 80):
             self.kill()
             return []
 
@@ -267,8 +267,8 @@ class EnemyBullet(pygame.sprite.Sprite):
         self.pos.y += math.sin(self.angle_rad) * self.speed * dt
         self.rect.center = (round(self.pos.x), round(self.pos.y))
 
-        if (self.rect.right < -40 or self.rect.left > SCREEN_WIDTH + 40 or
-            self.rect.bottom < -40 or self.rect.top > SCREEN_HEIGHT + 40):
+        if (self.rect.right < -80 or self.rect.left > WORLD_WIDTH + 80 or
+            self.rect.bottom < -80 or self.rect.top > WORLD_HEIGHT + 80):
             self.kill()
 
 
@@ -298,6 +298,6 @@ class EnemySniperBeam(pygame.sprite.Sprite):
         self.pos.y += math.sin(self.angle_rad) * self.speed * dt
         self.rect.center = (round(self.pos.x), round(self.pos.y))
 
-        if (self.rect.right < -50 or self.rect.left > SCREEN_WIDTH + 50 or
-            self.rect.bottom < -50 or self.rect.top > SCREEN_HEIGHT + 50):
+        if (self.rect.right < -80 or self.rect.left > WORLD_WIDTH + 80 or
+            self.rect.bottom < -80 or self.rect.top > WORLD_HEIGHT + 80):
             self.kill()
