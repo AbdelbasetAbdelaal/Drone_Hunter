@@ -333,10 +333,18 @@ class Player(pygame.sprite.Sprite):
         move_x = 0.0
         move_y = 0.0
 
-        if keys[pygame.K_w] or keys[pygame.K_UP]: move_y -= 1.0
-        if keys[pygame.K_s] or keys[pygame.K_DOWN]: move_y += 1.0
-        if keys[pygame.K_a] or keys[pygame.K_LEFT]: move_x -= 1.0
-        if keys[pygame.K_d] or keys[pygame.K_RIGHT]: move_x += 1.0
+        def _is_pressed(k):
+            if isinstance(keys, dict):
+                return keys.get(k, False)
+            try:
+                return bool(keys[k])
+            except (IndexError, KeyError):
+                return False
+
+        if _is_pressed(pygame.K_w) or _is_pressed(pygame.K_UP): move_y -= 1.0
+        if _is_pressed(pygame.K_s) or _is_pressed(pygame.K_DOWN): move_y += 1.0
+        if _is_pressed(pygame.K_a) or _is_pressed(pygame.K_LEFT): move_x -= 1.0
+        if _is_pressed(pygame.K_d) or _is_pressed(pygame.K_RIGHT): move_x += 1.0
 
         target_vel_x = move_x * self.speed
         target_vel_y = move_y * (VERTICAL_SPEED * self.agility_mult)
