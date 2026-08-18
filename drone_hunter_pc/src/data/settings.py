@@ -8,6 +8,8 @@ Centralized display, timing, audio constants, and unified sci-fi color palette.
 # Screen & Display Configuration
 SCREEN_WIDTH = 1280
 SCREEN_HEIGHT = 720
+WORLD_WIDTH = 2400
+WORLD_HEIGHT = 1400
 FPS = 60
 TITLE = "Drone Hunter 2D"
 

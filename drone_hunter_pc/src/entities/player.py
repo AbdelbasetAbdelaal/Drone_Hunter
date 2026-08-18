@@ -11,9 +11,10 @@ import math
 import random
 import pygame
 from src.data.settings import (
-    SCREEN_WIDTH, SCREEN_HEIGHT, COLOR_CYAN, COLOR_GOLD, COLOR_EMERALD,
-    COLOR_CRIMSON, COLOR_MAGENTA, COLOR_PURPLE, COLOR_SHIELD, COLOR_OVERCLOCK,
-    COLOR_SLOWMO, COLOR_BEAM, COLOR_MISSILE, COLOR_TESLA, COLOR_CLUSTER, COLOR_WHITE
+    SCREEN_WIDTH, SCREEN_HEIGHT, WORLD_WIDTH, WORLD_HEIGHT, COLOR_CYAN, COLOR_GOLD,
+    COLOR_EMERALD, COLOR_CRIMSON, COLOR_MAGENTA, COLOR_PURPLE, COLOR_SHIELD,
+    COLOR_OVERCLOCK, COLOR_SLOWMO, COLOR_BEAM, COLOR_MISSILE, COLOR_TESLA,
+    COLOR_CLUSTER, COLOR_WHITE
 )
 from src.data.game_data import (
     HORIZONTAL_SPEED, VERTICAL_SPEED, ACCELERATION, FRICTION,
@@ -51,21 +52,21 @@ class WingmanDrone:
 
     def draw(self, canvas: pygame.Surface, camera_offset: tuple[float, float] = (0, 0)):
         ox, oy = camera_offset
-        px, py = int(self.pos.x - ox), int(self.pos.y - oy)
-        pygame.draw.circle(canvas, (15, 23, 42), (px, py), 9)
-        pygame.draw.circle(canvas, COLOR_CYAN, (px, py), 9, 2)
+        px, py = int(round(self.pos.x - ox)), int(round(self.pos.y - oy))
+        pygame.draw.circle(canvas, (15, 23, 42), (px, py), 10)
+        pygame.draw.circle(canvas, COLOR_CYAN, (px, py), 10, 2)
         pygame.draw.circle(canvas, COLOR_WHITE, (px, py), 4)
 
 
 class Player(pygame.sprite.Sprite):
-    def __init__(self, pos: tuple[float, float] = (200, 360)):
+    def __init__(self, pos: tuple[float, float] = (WORLD_WIDTH // 2, WORLD_HEIGHT // 2)):
         super().__init__()
         
         # Position & Kinematic Flight Physics
         self.pos = pygame.Vector2(pos)
         self.velocity = pygame.Vector2(0, 0)
-        self.acceleration = 2800.0
-        self.drag = 9.0
+        self.acceleration = 3200.0
+        self.drag = 7.5
         self.max_speed = HORIZONTAL_SPEED
         self.is_accelerating = False
         
@@ -74,9 +75,9 @@ class Player(pygame.sprite.Sprite):
         self.facing_angle_deg = 0.0
         self.tilt_y = 0.0
         
-        # Arena Boundaries
-        self.arena_width = SCREEN_WIDTH
-        self.arena_height = SCREEN_HEIGHT
+        # Arena Boundaries (2400x1400 World Arena)
+        self.arena_width = float(WORLD_WIDTH)
+        self.arena_height = float(WORLD_HEIGHT)
         
         # Visual & Combat Effects
         self.renderer = PlayerRenderer()
@@ -130,10 +131,10 @@ class Player(pygame.sprite.Sprite):
 
         # Aesthetics
         self.skin_theme = 0
-        self.base_image = pygame.Surface((64, 64), pygame.SRCALPHA)
+        self.base_image = pygame.Surface((80, 80), pygame.SRCALPHA)
         self.image = self.base_image.copy()
-        self.rect = self.image.get_rect(center=pos)
-        self.radius = 24
+        self.rect = self.image.get_rect(center=(int(round(pos[0])), int(round(pos[1]))))
+        self.radius = 28
         
         self._render_drone_sprite()
 
@@ -252,9 +253,9 @@ class Player(pygame.sprite.Sprite):
         wm_lvl = upgrades.get("wingman", 0)
         self.wingmen.clear()
         if wm_lvl >= 1:
-            self.wingmen.append(WingmanDrone(-36, -34))
+            self.wingmen.append(WingmanDrone(-42, -40))
         if wm_lvl >= 2:
-            self.wingmen.append(WingmanDrone(-36, 34))
+            self.wingmen.append(WingmanDrone(-42, 40))
 
         clk_lvl = upgrades.get("cloak", 0)
         self.has_cloak_upgrade = (clk_lvl > 0)
@@ -281,7 +282,7 @@ class Player(pygame.sprite.Sprite):
         if self.is_invulnerable:
             return False
 
-        self.damage_flash_timer = 0.16
+        self.damage_flash_timer = 0.18
 
         if self.shield_hits > 0:
             self.shield_hits -= 1
@@ -301,7 +302,7 @@ class Player(pygame.sprite.Sprite):
         return self.shoot_timer <= 0.0 and (self.energy >= cost or self.overdrive_timer > 0.0)
 
     def shoot(self, target_pos: tuple[float, float], level: int = 1, targets_group=None) -> list[pygame.sprite.Sprite]:
-        """Fires projectiles toward target position using authoritative balance values."""
+        """Fires projectiles toward world target position using authoritative balance values."""
         if not self.can_shoot():
             return []
 
@@ -324,7 +325,7 @@ class Player(pygame.sprite.Sprite):
         self.muzzle_flash_timer = 0.08
 
         # Subtle Recoil Impulse
-        recoil_kick = 24.0
+        recoil_kick = 26.0
         self.velocity.x -= math.cos(self.aim_angle) * recoil_kick
         self.velocity.y -= math.sin(self.aim_angle) * recoil_kick
 
@@ -333,11 +334,11 @@ class Player(pygame.sprite.Sprite):
         sin_a = math.sin(self.aim_angle)
 
         if self.active_weapon == WEAPON_PULSE:
-            # Dual Hardpoint Muzzle Positions
-            m1_x = cx + (20 * cos_a) - (14 * sin_a)
-            m1_y = cy + (20 * sin_a) + (14 * cos_a)
-            m2_x = cx + (20 * cos_a) + (14 * sin_a)
-            m2_y = cy + (20 * sin_a) - (14 * cos_a)
+            # Dual Hardpoint Muzzle Positions (~70px wingspan)
+            m1_x = cx + (28 * cos_a) - (18 * sin_a)
+            m1_y = cy + (28 * sin_a) + (18 * cos_a)
+            m2_x = cx + (28 * cos_a) + (18 * sin_a)
+            m2_y = cy + (28 * sin_a) - (18 * cos_a)
 
             bullets.append(Bullet((m1_x, m1_y), target_pos, speed=spd, damage=dmg, color=col))
             bullets.append(Bullet((m2_x, m2_y), target_pos, speed=spd, damage=dmg, color=col))
@@ -352,8 +353,8 @@ class Player(pygame.sprite.Sprite):
                 bullets.append(Bullet((cx, cy), target_pos, angle_offset_deg=ang, speed=spd, damage=dmg, color=col))
 
         elif self.active_weapon == WEAPON_MISSILE:
-            bullets.append(HomingMissile((cx - 12 * sin_a, cy + 12 * cos_a), target_pos, damage=dmg, speed=spd))
-            bullets.append(HomingMissile((cx + 12 * sin_a, cy - 12 * cos_a), target_pos, damage=dmg, speed=spd))
+            bullets.append(HomingMissile((cx - 16 * sin_a, cy + 16 * cos_a), target_pos, damage=dmg, speed=spd))
+            bullets.append(HomingMissile((cx + 16 * sin_a, cy - 16 * cos_a), target_pos, damage=dmg, speed=spd))
 
         elif self.active_weapon == WEAPON_BEAM:
             bullets.append(PlasmaLaserBeam((cx, cy), target_pos, damage=dmg, speed=spd))
@@ -369,7 +370,7 @@ class Player(pygame.sprite.Sprite):
         return bullets
 
     def handle_input(self, keys, dt: float, mouse_pos: tuple[float, float] = None):
-        """Processes 360-degree vector flight kinematics and mouse aiming."""
+        """Processes 360-degree vector flight kinematics, lateral banking, and mouse aiming."""
         move_x = 0.0
         move_y = 0.0
 
@@ -394,7 +395,7 @@ class Player(pygame.sprite.Sprite):
         else:
             self.is_accelerating = False
 
-        # Linear Inertial Drag & Deceleration
+        # Linear Inertial Drag & Smooth Deceleration
         drag_damping = max(0.0, 1.0 - (self.drag * dt))
         self.velocity *= drag_damping
 
@@ -403,24 +404,27 @@ class Player(pygame.sprite.Sprite):
         if self.velocity.length() > current_max:
             self.velocity.scale_to_length(current_max)
 
-        # Update Aim Direction from Mouse
+        # Update Aim Direction from Mouse (World Coordinates)
         if mouse_pos:
             self.aim_angle = math.atan2(mouse_pos[1] - self.pos.y, mouse_pos[0] - self.pos.x)
 
-        # Visual Tilt Banking
-        target_tilt = -18.0 if move_y < 0 else (18.0 if move_y > 0 else 0.0)
-        self.tilt_y += (target_tilt - self.tilt_y) * 10.0 * dt
+        # Smooth Lateral Velocity Banking relative to Aim Angle
+        cos_a = math.cos(self.aim_angle)
+        sin_a = math.sin(self.aim_angle)
+        lateral_speed = (-sin_a * self.velocity.x) + (cos_a * self.velocity.y)
+        target_tilt = max(-26.0, min(26.0, (lateral_speed / max(1.0, current_max)) * 32.0))
+        self.tilt_y += (target_tilt - self.tilt_y) * min(1.0, 12.0 * dt)
 
     def update(self, dt: float, targets_group=None) -> list[pygame.sprite.Sprite]:
-        """Updates drone physics position, timers, and energy regeneration."""
+        """Updates drone physics position, boundary clamping, timers, and energy regeneration."""
         # Position Update
         self.pos += self.velocity * dt
         
-        # Smooth Boundary Clamping
-        pad = 32.0
+        # Smooth World Arena Boundary Clamping
+        pad = 36.0
         self.pos.x = max(pad, min(self.arena_width - pad, self.pos.x))
         self.pos.y = max(pad, min(self.arena_height - pad, self.pos.y))
-        self.rect.center = (round(self.pos.x), round(self.pos.y))
+        self.rect.center = (int(round(self.pos.x)), int(round(self.pos.y)))
 
         # Energy Regeneration
         if self.energy < self.max_energy:
@@ -482,14 +486,14 @@ class Player(pygame.sprite.Sprite):
         prim_col = skin.get("primary_color", COLOR_CYAN)
         glow_col = skin.get("glow_color", COLOR_CYAN)
 
-        w, h = 64, 64
+        w, h = 80, 80
         surf = pygame.Surface((w, h), pygame.SRCALPHA)
         center = (w // 2, h // 2)
 
         # Delta-wing silhouette facing right
-        pts = [(w - 8, h // 2), (12, 12), (16, h // 2), (12, h - 12)]
+        pts = [(w - 8, h // 2), (14, 14), (20, h // 2), (14, h - 14)]
         pygame.draw.polygon(surf, body_col, pts)
         pygame.draw.polygon(surf, prim_col, pts, 2)
-        pygame.draw.circle(surf, glow_col, (center[0] + 4, center[1]), 5)
+        pygame.draw.circle(surf, glow_col, (center[0] + 6, center[1]), 6)
 
         self.image = surf

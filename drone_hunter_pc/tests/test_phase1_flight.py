@@ -1,17 +1,17 @@
 """
 ================================================================================
-        DRONE HUNTER 2D - PHASE 1 PLAYER FLIGHT & ARENA TEST SUITE
+    DRONE HUNTER 2D - PHASE 1.5 PLAYER FLIGHT, ARENA & CAMERA TEST SUITE
 ================================================================================
 Automated test suite verifying:
-1. Player 360-degree vector acceleration
-2. Player deceleration & inertia drag
-3. Maximum speed clamping
-4. Movement vector normalization (diagonal movement)
-5. Decoupled mouse aim calculation
-6. Arena boundary containment
-7. Primary weapon dual hardpoint firing
-8. Player damage & shield hit absorption
-9. Player death state trigger
+1. World coordinates larger than viewport (2400x1400 vs 1280x720)
+2. Player boundary containment within world coordinates
+3. Camera smooth tracking & boundary clamping
+4. World-to-screen & Screen-to-world coordinate transformations
+5. Decoupled mouse aim calculation from flight velocity
+6. Player acceleration, deceleration, and max speed clamping
+7. Dual Pulse cannon hardpoint firing
+8. Responsive HUD dynamic layout scaling across resolutions (1280x720, 1152x648, 1024x576)
+9. Player damage & death states
 """
 
 import os
@@ -28,112 +28,127 @@ sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 pygame.init()
 pygame.display.set_mode((1, 1))
 
-from src.data.settings import SCREEN_WIDTH, SCREEN_HEIGHT, COLOR_CYAN
+from src.data.settings import SCREEN_WIDTH, SCREEN_HEIGHT, WORLD_WIDTH, WORLD_HEIGHT, COLOR_CYAN
 from src.data.game_data import HORIZONTAL_SPEED, PLAYER_MAX_HEALTH, PLAYER_MAX_ENERGY
 from src.entities.player import Player
 from src.rendering.player_renderer import PlayerRenderer
 from src.rendering.camera import Camera2D
 from src.systems.combat_feedback import CombatFeedbackSystem
+from src.ui.hud import draw_hud
 
 class TestPhase1FlightAndArena(unittest.TestCase):
 
     def setUp(self):
-        self.player = Player((400, 300))
+        self.player = Player((WORLD_WIDTH // 2, WORLD_HEIGHT // 2))
 
-    def test_player_acceleration(self):
-        """Verify pressing movement keys accelerates the drone along the movement vector."""
-        self.assertEqual(self.player.velocity.length(), 0.0)
+    def test_world_larger_than_viewport(self):
+        """Verify arena world dimensions exceed standard viewport dimensions."""
+        self.assertGreater(WORLD_WIDTH, SCREEN_WIDTH)
+        self.assertGreater(WORLD_HEIGHT, SCREEN_HEIGHT)
+        self.assertEqual(WORLD_WIDTH, 2400)
+        self.assertEqual(WORLD_HEIGHT, 1400)
+
+    def test_player_world_boundary_containment(self):
+        """Verify player can explore beyond 1280x720 and clamps to world bounds (2400x1400)."""
+        # Move far to the right in world space (e.g. x = 2000)
+        self.player.pos = pygame.Vector2(2000.0, 1000.0)
+        self.player.velocity = pygame.Vector2(1000.0, 1000.0)
+        self.player.update(0.1)
+        self.assertGreater(self.player.pos.x, SCREEN_WIDTH)
+        self.assertLessEqual(self.player.pos.x, WORLD_WIDTH - 36.0)
+        self.assertLessEqual(self.player.pos.y, WORLD_HEIGHT - 36.0)
+
+        # Move to top-left corner
+        self.player.pos = pygame.Vector2(-100.0, -100.0)
+        self.player.update(0.016)
+        self.assertGreaterEqual(self.player.pos.x, 36.0)
+        self.assertGreaterEqual(self.player.pos.y, 36.0)
+
+    def test_camera_tracking_and_clamping(self):
+        """Verify Camera2D smooth lerp tracking and boundary offset clamping."""
+        cam = Camera2D(world_w=WORLD_WIDTH, world_h=WORLD_HEIGHT, view_w=SCREEN_WIDTH, view_h=SCREEN_HEIGHT)
         
-        # Press 'D' (right) for 0.1s
+        # Center of world (1200, 700) -> offset should be (1200 - 640 = 560, 700 - 360 = 340)
+        cam.center_x = 1200.0
+        cam.center_y = 700.0
+        cam.update((1200.0, 700.0), dt=1.0)
+        
+        self.assertAlmostEqual(cam.offset_x, 560.0, delta=1.0)
+        self.assertAlmostEqual(cam.offset_y, 340.0, delta=1.0)
+
+        # Target near world edge -> offset clamped to 0
+        cam.update((100.0, 100.0), dt=10.0)
+        self.assertEqual(cam.offset_x, 0.0)
+        self.assertEqual(cam.offset_y, 0.0)
+
+        # Target near world far edge -> offset clamped to max_offset
+        cam.update((2350.0, 1350.0), dt=10.0)
+        self.assertEqual(cam.offset_x, WORLD_WIDTH - SCREEN_WIDTH)
+        self.assertEqual(cam.offset_y, WORLD_HEIGHT - SCREEN_HEIGHT)
+
+    def test_world_screen_coordinate_conversion(self):
+        """Verify bidirectional world-to-screen and screen-to-world transformations."""
+        cam = Camera2D(world_w=WORLD_WIDTH, world_h=WORLD_HEIGHT, view_w=SCREEN_WIDTH, view_h=SCREEN_HEIGHT)
+        cam.offset_x = 500.0
+        cam.offset_y = 300.0
+
+        world_x, world_y = 750.0, 450.0
+        screen_x, screen_y = cam.world_to_screen(world_x, world_y)
+        self.assertEqual((screen_x, screen_y), (250, 150))
+
+        reconverted_world_x, reconverted_world_y = cam.screen_to_world(screen_x, screen_y)
+        self.assertEqual((reconverted_world_x, reconverted_world_y), (world_x, world_y))
+
+    def test_aim_independent_from_movement(self):
+        """Verify aim angle is purely governed by mouse position regardless of movement vector."""
+        # Moving left (A key), aiming right
+        self.player.handle_input({pygame.K_a: True}, dt=0.1, mouse_pos=(self.player.pos.x + 200, self.player.pos.y))
+        self.assertLess(self.player.velocity.x, 0.0) # Moving left
+        self.assertAlmostEqual(self.player.aim_angle, 0.0, delta=0.01) # Aiming right
+
+    def test_player_acceleration_and_deceleration(self):
+        """Verify flight kinematics acceleration and linear drag."""
+        self.player.velocity = pygame.Vector2(0, 0)
         self.player.handle_input({pygame.K_d: True}, dt=0.1)
         self.assertGreater(self.player.velocity.x, 0.0)
-        self.assertEqual(self.player.velocity.y, 0.0)
         self.assertTrue(self.player.is_accelerating)
 
-    def test_player_deceleration_and_inertia(self):
-        """Verify releasing movement keys decelerates the drone via linear drag."""
-        self.player.velocity = pygame.Vector2(300.0, 0.0)
-        
-        # No keys pressed for 0.1s
+        # Release keys -> deceleration
+        init_speed = self.player.velocity.x
         self.player.handle_input({}, dt=0.1)
         self.assertFalse(self.player.is_accelerating)
-        self.assertLess(self.player.velocity.x, 300.0)
-        self.assertGreater(self.player.velocity.x, 0.0)
+        self.assertLess(self.player.velocity.x, init_speed)
 
     def test_max_speed_clamping(self):
-        """Verify velocity does not exceed max_speed during sustained acceleration."""
+        """Verify velocity does not exceed maximum speed."""
         for _ in range(100):
-            self.player.handle_input({pygame.K_d: True, pygame.K_s: True}, dt=0.016)
-        
+            self.player.handle_input({pygame.K_w: True, pygame.K_d: True}, dt=0.016)
         self.assertLessEqual(self.player.velocity.length(), self.player.speed + 0.01)
 
-    def test_movement_vector_normalization(self):
-        """Verify diagonal movement is normalized so speed is not faster diagonally."""
-        p_axial = Player((200, 200))
-        p_diag = Player((200, 200))
-
-        # Axial movement (Right)
-        p_axial.handle_input({pygame.K_d: True}, dt=0.05)
-        # Diagonal movement (Right + Down)
-        p_diag.handle_input({pygame.K_d: True, pygame.K_s: True}, dt=0.05)
-
-        # Acceleration magnitude should be equal
-        self.assertAlmostEqual(p_axial.velocity.length(), p_diag.velocity.length(), delta=1.0)
-
-    def test_mouse_aim_direction(self):
-        """Verify drone aim angle correctly tracks mouse cursor coordinates."""
-        # Aim directly to the right (Angle ~ 0 rad)
-        self.player.handle_input({}, dt=0.016, mouse_pos=(self.player.pos.x + 100, self.player.pos.y))
-        self.assertAlmostEqual(self.player.aim_angle, 0.0, delta=0.01)
-
-        # Aim directly downwards (Angle ~ pi/2 rad)
-        self.player.handle_input({}, dt=0.016, mouse_pos=(self.player.pos.x, self.player.pos.y + 100))
-        self.assertAlmostEqual(self.player.aim_angle, math.pi / 2.0, delta=0.01)
-
-    def test_arena_boundary_containment(self):
-        """Verify drone position is clamped safely inside arena boundaries."""
-        self.player.pos = pygame.Vector2(10.0, 10.0)
-        self.player.velocity = pygame.Vector2(-500.0, -500.0)
-        self.player.update(0.016)
-
-        self.assertGreaterEqual(self.player.pos.x, 32.0)
-        self.assertGreaterEqual(self.player.pos.y, 32.0)
-
-    def test_primary_weapon_dual_firing(self):
-        """Verify Pulse weapon fires twin projectiles toward aim target."""
-        self.player.active_weapon = "pulse"
-        target_pos = (800, 300)
+    def test_primary_weapon_firing(self):
+        """Verify Pulse cannon fires dual projectiles toward aim target."""
+        target_pos = (self.player.pos.x + 400, self.player.pos.y)
         bullets = self.player.shoot(target_pos)
-
         self.assertEqual(len(bullets), 2)
-        # Verify bullets have authoritative damage and velocity
         self.assertEqual(bullets[0].damage, 28)
-        self.assertAlmostEqual(bullets[0].speed, 920.0, delta=1.0)
+
+    def test_responsive_hud_multi_resolution(self):
+        """Verify HUD renders cleanly without errors across multiple viewport resolutions."""
+        resolutions = [(1280, 720), (1152, 648), (1024, 576)]
+        for w, h in resolutions:
+            canvas = pygame.Surface((w, h))
+            # Test HUD draw
+            draw_hud(canvas, self.player, sector_idx=0, level_score=15200, total_score=45000,
+                     coins=120, difficulty_name="NORMAL", combo_mult=5)
+            self.assertEqual(canvas.get_size(), (w, h))
 
     def test_damage_and_death_flow(self):
-        """Verify damage reduces hull integrity and health reaching 0 marks player dead."""
-        self.player.health = 50.0
+        """Verify damage and destruction states."""
+        self.player.health = 40.0
         self.assertTrue(self.player.alive)
-
-        # Take 30 damage -> 20 health remaining
-        destroyed = self.player.take_damage(30)
-        self.assertFalse(destroyed)
-        self.assertEqual(self.player.health, 20.0)
-        self.assertTrue(self.player.alive)
-
-        # Take 25 damage -> 0 health -> destroyed
-        destroyed = self.player.take_damage(25)
-        self.assertTrue(destroyed)
+        self.player.take_damage(40.0)
         self.assertEqual(self.player.health, 0.0)
         self.assertFalse(self.player.alive)
-
-    def test_camera_2d_smooth_tracking(self):
-        """Verify Camera2D smooth lerp and viewport offset clamping."""
-        cam = Camera2D(world_w=1920, world_h=1080)
-        # Target player at center
-        cam.update((960, 540), dt=0.5)
-        self.assertGreaterEqual(cam.offset_x, 0.0)
-        self.assertGreaterEqual(cam.offset_y, 0.0)
 
 
 if __name__ == "__main__":

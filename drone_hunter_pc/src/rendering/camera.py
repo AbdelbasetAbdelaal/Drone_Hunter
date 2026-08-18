@@ -3,18 +3,19 @@
                     DRONE HUNTER 2D - 2D SMOOTH CAMERA
 ================================================================================
 Target-following 2D camera providing smooth position interpolation (lerp),
-viewport offset calculations, coordinate conversions, and screen shake.
+dynamic viewport sizing, boundary clamping, and world/screen conversions.
 """
 
 import pygame
-from src.data.settings import SCREEN_WIDTH, SCREEN_HEIGHT
+from src.data.settings import SCREEN_WIDTH, SCREEN_HEIGHT, WORLD_WIDTH, WORLD_HEIGHT
 
 class Camera2D:
-    def __init__(self, world_w: int = 1920, world_h: int = 1080):
+    def __init__(self, world_w: int = WORLD_WIDTH, world_h: int = WORLD_HEIGHT,
+                 view_w: int = SCREEN_WIDTH, view_h: int = SCREEN_HEIGHT):
         self.world_width = world_w
         self.world_height = world_h
-        self.viewport_width = SCREEN_WIDTH
-        self.viewport_height = SCREEN_HEIGHT
+        self.viewport_width = view_w
+        self.viewport_height = view_h
         
         # Camera center position in world space
         self.center_x = float(world_w // 2)
@@ -24,8 +25,13 @@ class Camera2D:
         self.offset_x = 0.0
         self.offset_y = 0.0
         
-        # Camera smoothness (0.0 = instant, higher = smoother)
-        self.smooth_speed = 8.0
+        # Camera smoothness (higher = more responsive, lower = floatier)
+        self.smooth_speed = 6.5
+
+    def set_viewport_size(self, vw: int, vh: int):
+        """Updates viewport dimensions when window is resized."""
+        self.viewport_width = max(320, vw)
+        self.viewport_height = max(240, vh)
 
     def update(self, target_pos: tuple[float, float], dt: float):
         """Smoothly interpolates camera toward target position, clamping to arena bounds."""
@@ -43,16 +49,20 @@ class Camera2D:
         target_ox = self.center_x - half_vw
         target_oy = self.center_y - half_vh
         
-        # Clamp camera to arena boundaries
-        max_ox = max(0.0, self.world_width - self.viewport_width)
-        max_oy = max(0.0, self.world_height - self.viewport_height)
+        # Clamp camera offset to world boundaries
+        max_ox = max(0.0, float(self.world_width - self.viewport_width))
+        max_oy = max(0.0, float(self.world_height - self.viewport_height))
         
         self.offset_x = max(0.0, min(max_ox, target_ox))
         self.offset_y = max(0.0, min(max_oy, target_oy))
 
+    def get_offset(self) -> tuple[float, float]:
+        """Returns current top-left camera world offset tuple."""
+        return (self.offset_x, self.offset_y)
+
     def world_to_screen(self, world_x: float, world_y: float) -> tuple[int, int]:
         """Converts world coordinates to screen viewport coordinates."""
-        return int(world_x - self.offset_x), int(world_y - self.offset_y)
+        return int(round(world_x - self.offset_x)), int(round(world_y - self.offset_y))
 
     def screen_to_world(self, screen_x: float, screen_y: float) -> tuple[float, float]:
         """Converts screen coordinates to world coordinates."""
@@ -60,4 +70,4 @@ class Camera2D:
 
     def apply_rect(self, rect: pygame.Rect) -> pygame.Rect:
         """Returns a new Rect translated by the camera offset."""
-        return rect.move(-int(self.offset_x), -int(self.offset_y))
+        return rect.move(-int(round(self.offset_x)), -int(round(self.offset_y)))

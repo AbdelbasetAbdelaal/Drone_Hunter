@@ -1,202 +1,205 @@
 """
 ================================================================================
-                    DRONE HUNTER 2D - PARALLAX BACKGROUNDS
+            DRONE HUNTER 2D - 2D COMBAT ARENA & PARALLAX BACKGROUND
 ================================================================================
-Multi-layer dynamic 2D parallax backgrounds for all 5 sectors:
-- Sector 0: Megacity Skyline (Cyberpunk skyscrapers & neon searchlights)
-- Sector 1: Cyber Factory Core (Smokestacks & molten lava channels)
-- Sector 2: Orbital Space Citadel (Nebulas, starfields, & orbital citadels)
-- Sector 3: Stormy Ocean Battlescape (Ocean swells & lightning storms)
-- Sector 4: Neon Sun Desert Wasteland (Sand dunes & cyber pyramids)
+Multi-layered 2D Cyber Factory Arena (2400x1400 world space) with industrial
+machinery blocks, glowing power conduits, floor grates, structural pylons,
+perimeter energy barriers, and camera-offset scrolling depth.
 """
 
 import random
 import math
 import pygame
-from src.data.settings import SCREEN_WIDTH, SCREEN_HEIGHT
+from src.data.settings import (
+    SCREEN_WIDTH, SCREEN_HEIGHT, WORLD_WIDTH, WORLD_HEIGHT,
+    COLOR_CYAN, COLOR_GOLD, COLOR_CRIMSON, COLOR_WHITE
+)
 from src.data.game_data import SECTORS
 
-class CloudLayer:
-    def __init__(self, count: int = 6):
-        self.clouds = []
-        for _ in range(count):
-            x = random.randint(0, SCREEN_WIDTH)
-            y = random.randint(20, 220)
-            speed = random.uniform(15, 35)
-            w = random.randint(140, 280)
-            h = random.randint(40, 80)
-            surf = pygame.Surface((w, h), pygame.SRCALPHA)
-            color = (255, 255, 255, 25)
-            pygame.draw.ellipse(surf, color, (0, 0, w, h))
-            self.clouds.append([x, y, speed, w, h, surf])
-
-    def update(self, dt: float):
-        for c in self.clouds:
-            c[0] -= c[2] * dt
-            if c[0] < -c[3]:
-                c[0] = SCREEN_WIDTH + random.randint(20, 100)
-                c[1] = random.randint(20, 220)
-
-    def draw(self, surface: pygame.Surface):
-        for c in self.clouds:
-            surface.blit(c[5], (c[0], c[1]))
-
-
-class ParallaxBackground:
-    def __init__(self):
+class CyberFactoryArenaBackground:
+    def __init__(self, world_w: int = WORLD_WIDTH, world_h: int = WORLD_HEIGHT):
+        self.world_width = world_w
+        self.world_height = world_h
         self.current_sector = 0
-        self.stars = []
-        for _ in range(90):
-            x = random.randint(0, SCREEN_WIDTH)
-            y = random.randint(0, int(SCREEN_HEIGHT * 0.75))
-            speed = random.uniform(20, 55)
-            radius = random.choice([1, 1, 2, 2])
-            brightness = random.randint(160, 255)
-            self.stars.append([x, y, speed, radius, brightness])
-
-        self.cloud_layer = CloudLayer(count=8)
-        self.mountain_scroll = 0.0
-        self.city_scroll = 0.0
-        self.ground_scroll = 0.0
         self.time_accum = 0.0
+
+        # Distant Parallax Stars & Dust Motes
+        self.dust_particles = []
+        for _ in range(70):
+            self.dust_particles.append([
+                random.uniform(0, world_w),
+                random.uniform(0, world_h),
+                random.uniform(0.15, 0.45), # Parallax factor
+                random.choice([1, 2]),
+                random.randint(90, 180)
+            ])
+
+        # Pre-generated Modular Machinery Blocks & Structural Props (Deterministic Placement)
+        self.machinery_blocks = [
+            # Rect: (x, y, w, h), type
+            (280, 220, 180, 110, "generator"),
+            (740, 160, 220, 130, "vent_stack"),
+            (1450, 200, 240, 120, "transformer"),
+            (1920, 260, 200, 140, "generator"),
+            (360, 920, 220, 130, "generator"),
+            (900, 980, 260, 140, "transformer"),
+            (1560, 940, 200, 120, "vent_stack"),
+            (1100, 520, 160, 160, "core_reactor"),
+        ]
+
+        # Heavy Industrial Conduits connecting modules
+        self.conduit_lines = [
+            ((280 + 90, 220 + 55), (740 + 110, 160 + 65)),
+            ((740 + 110, 160 + 65), (1100 + 80, 520 + 80)),
+            ((1450 + 120, 200 + 60), (1100 + 80, 520 + 80)),
+            ((1100 + 80, 520 + 80), (900 + 130, 980 + 70)),
+            ((1100 + 80, 520 + 80), (1560 + 100, 940 + 60)),
+            ((1920 + 100, 260 + 70), (1560 + 100, 940 + 60)),
+            ((360 + 110, 920 + 65), (900 + 130, 980 + 70)),
+        ]
 
     def set_sector(self, sector_idx: int):
         self.current_sector = sector_idx % len(SECTORS)
 
     def update(self, dt: float):
         self.time_accum += dt
-        self.mountain_scroll = (self.mountain_scroll + 40.0 * dt) % SCREEN_WIDTH
-        self.city_scroll = (self.city_scroll + 80.0 * dt) % SCREEN_WIDTH
-        self.ground_scroll = (self.ground_scroll + 140.0 * dt) % SCREEN_WIDTH
+        for d in self.dust_particles:
+            d[0] = (d[0] - 12.0 * dt) % self.world_width
+            d[1] = (d[1] + math.sin(self.time_accum * 1.5 + d[0] * 0.01) * 4.0 * dt) % self.world_height
 
-        for s in self.stars:
-            s[0] -= s[2] * dt
-            if s[0] < 0:
-                s[0] = SCREEN_WIDTH
-                s[1] = random.randint(0, int(SCREEN_HEIGHT * 0.75))
+    def draw(self, surface: pygame.Surface, camera_offset: tuple[float, float] = (0.0, 0.0)):
+        """Renders 2D Cyber Factory Arena with camera viewport offset."""
+        ox, oy = camera_offset
+        vw, vh = surface.get_size()
 
-        self.cloud_layer.update(dt)
+        # 1. Base Atmospheric Sky / Deep Foundry Floor
+        base_bg = (10, 14, 23)
+        surface.fill(base_bg)
 
-    def draw(self, surface: pygame.Surface):
-        # Base Sky Gradient
-        if self.current_sector == 0:
-            top_c = (15, 23, 42)
-            bot_c = (30, 41, 59)
-        elif self.current_sector == 1:
-            top_c = (35, 15, 20)
-            bot_c = (60, 25, 25)
-        elif self.current_sector == 2:
-            top_c = (8, 5, 20)
-            bot_c = (25, 10, 40)
-        elif self.current_sector == 3:
-            top_c = (10, 25, 45)
-            bot_c = (20, 45, 75)
-        else: # Sector 4: Desert Wasteland
-            top_c = (45, 20, 15)
-            bot_c = (80, 35, 20)
+        # 2. Distant Parallax Dust Motes
+        for d in self.dust_particles:
+            sx = int(round(d[0] - ox * d[2])) % vw
+            sy = int(round(d[1] - oy * d[2])) % vh
+            col = (d[4], d[4], int(d[4] * 1.1)) if self.current_sector == 0 else (d[4], int(d[4] * 0.7), int(d[4] * 0.5))
+            pygame.draw.circle(surface, col, (sx, sy), d[3])
 
-        pygame.draw.rect(surface, top_c, (0, 0, SCREEN_WIDTH, SCREEN_HEIGHT // 2))
-        pygame.draw.rect(surface, bot_c, (0, SCREEN_HEIGHT // 2, SCREEN_WIDTH, SCREEN_HEIGHT // 2))
+        # 3. Modular Industrial Steel Floor Plating & Grid (World Space)
+        tile_size = 120
+        start_x = int(ox // tile_size) * tile_size
+        start_y = int(oy // tile_size) * tile_size
+        end_x = start_x + vw + tile_size * 2
+        end_y = start_y + vh + tile_size * 2
 
-        # Stars & Nebulas
-        for s in self.stars:
-            col = (s[4], s[4], s[4]) if self.current_sector != 1 else (s[4], int(s[4] * 0.8), int(s[4] * 0.6))
-            pygame.draw.circle(surface, col, (int(s[0]), int(s[1])), s[3])
+        # Draw Grid Seam Lines
+        grid_col = (18, 26, 42)
+        accent_seam = (24, 38, 62)
+        
+        for gx in range(start_x, end_x, tile_size):
+            if 0 <= gx <= self.world_width:
+                sx = int(round(gx - ox))
+                pygame.draw.line(surface, grid_col, (sx, 0), (sx, vh), 1)
+                # Subtle bolt rivets along seams
+                for gy in range(start_y, end_y, tile_size):
+                    if 0 <= gy <= self.world_height:
+                        sy = int(round(gy - oy))
+                        pygame.draw.rect(surface, accent_seam, (sx - 2, sy - 2, 4, 4))
 
-        # Clouds
-        if self.current_sector in (0, 3):
-            self.cloud_layer.draw(surface)
+        for gy in range(start_y, end_y, tile_size):
+            if 0 <= gy <= self.world_height:
+                sy = int(round(gy - oy))
+                pygame.draw.line(surface, grid_col, (0, sy), (vw, sy), 1)
 
-        # Scrolling Midground Structures
-        self._draw_midground(surface)
+        # 4. Heavy Illuminated Power Conduits
+        pulse_alpha = int(140 + 60 * math.sin(self.time_accum * 3.0))
+        conduit_core = (14, 165, 233, pulse_alpha // 2)
+        conduit_surf = pygame.Surface((vw, vh), pygame.SRCALPHA)
 
-        # Tactical Arena Grid & Boundaries
-        self._draw_arena_boundaries(surface)
+        for p1, p2 in self.conduit_lines:
+            sp1 = (int(round(p1[0] - ox)), int(round(p1[1] - oy)))
+            sp2 = (int(round(p2[0] - ox)), int(round(p2[1] - oy)))
+            # Conduit Outer Duct
+            pygame.draw.line(surface, (25, 35, 52), sp1, sp2, 6)
+            # Glowing Neon Pulse Core
+            pygame.draw.line(conduit_surf, conduit_core, sp1, sp2, 2)
+        surface.blit(conduit_surf, (0, 0))
 
-        # Ground Floor Layer
-        self._draw_ground(surface)
+        # 5. Industrial Machinery Platforms & Debris (World Space)
+        for bx, by, bw, bh, mtype in self.machinery_blocks:
+            sx = int(round(bx - ox))
+            sy = int(round(by - oy))
+            # Only draw if visible in viewport
+            if -bw <= sx <= vw + bw and -bh <= sy <= vh + bh:
+                # Platform Drop Shadow
+                pygame.draw.rect(surface, (5, 8, 14), (sx + 8, sy + 8, bw, bh), border_radius=6)
+                # Main Heavy Metal Housing
+                pygame.draw.rect(surface, (20, 28, 44), (sx, sy, bw, bh), border_radius=6)
+                pygame.draw.rect(surface, (40, 54, 80), (sx, sy, bw, bh), 2, border_radius=6)
 
-    def _draw_arena_boundaries(self, surface: pygame.Surface):
-        """Renders subtle combat arena tactical grid and perimeter barrier brackets."""
-        # Subtle tactical arena grid
-        grid_alpha = 18
-        grid_surf = pygame.Surface((SCREEN_WIDTH, SCREEN_HEIGHT), pygame.SRCALPHA)
-        for gx in range(0, SCREEN_WIDTH, 80):
-            pygame.draw.line(grid_surf, (14, 165, 233, grid_alpha), (gx, 0), (gx, SCREEN_HEIGHT), 1)
-        for gy in range(0, SCREEN_HEIGHT, 80):
-            pygame.draw.line(grid_surf, (14, 165, 233, grid_alpha), (0, gy), (SCREEN_WIDTH, gy), 1)
-        surface.blit(grid_surf, (0, 0))
+                if mtype == "core_reactor":
+                    # Central Core Chamber
+                    core_r = 38
+                    cx, cy = sx + bw // 2, sy + bh // 2
+                    pygame.draw.circle(surface, (15, 20, 32), (cx, cy), core_r)
+                    glow_r = int(core_r * 0.75 + math.sin(self.time_accum * 4.0) * 4.0)
+                    pygame.draw.circle(surface, (14, 165, 233), (cx, cy), glow_r, 2)
+                    pygame.draw.circle(surface, (56, 189, 248), (cx, cy), 12)
+                elif mtype == "transformer":
+                    # Cooling Vents
+                    for vy in range(sy + 16, sy + bh - 16, 14):
+                        pygame.draw.line(surface, (14, 165, 233), (sx + 14, vy), (sx + bw - 14, vy), 2)
+                elif mtype == "vent_stack":
+                    # Steam Grates
+                    for vx in range(sx + 18, sx + bw - 18, 18):
+                        pygame.draw.rect(surface, (10, 14, 20), (vx, sy + 14, 10, bh - 28))
+                        pygame.draw.rect(surface, (245, 158, 11), (vx + 2, sy + 16, 6, bh - 32), 1)
 
-        # Arena Boundary Perimeter Barriers
-        pad = 20
-        c_len = 24
-        # Top-Left
-        pygame.draw.line(surface, (56, 189, 248), (pad, pad), (pad + c_len, pad), 2)
-        pygame.draw.line(surface, (56, 189, 248), (pad, pad), (pad, pad + c_len), 2)
-        # Top-Right
-        pygame.draw.line(surface, (56, 189, 248), (SCREEN_WIDTH - pad, pad), (SCREEN_WIDTH - pad - c_len, pad), 2)
-        pygame.draw.line(surface, (56, 189, 248), (SCREEN_WIDTH - pad, pad), (SCREEN_WIDTH - pad, pad + c_len), 2)
-        # Bottom-Left
-        pygame.draw.line(surface, (56, 189, 248), (pad, SCREEN_HEIGHT - pad), (pad + c_len, SCREEN_HEIGHT - pad), 2)
-        pygame.draw.line(surface, (56, 189, 248), (pad, SCREEN_HEIGHT - pad), (pad, SCREEN_HEIGHT - pad - c_len), 2)
-        # Bottom-Right
-        pygame.draw.line(surface, (56, 189, 248), (SCREEN_WIDTH - pad, SCREEN_HEIGHT - pad), (SCREEN_WIDTH - pad - c_len, SCREEN_HEIGHT - pad), 2)
-        pygame.draw.line(surface, (56, 189, 248), (SCREEN_WIDTH - pad, SCREEN_HEIGHT - pad), (SCREEN_WIDTH - pad, SCREEN_HEIGHT - pad - c_len), 2)
+        # 6. High-Voltage Perimeter Energy Barrier (World Boundary)
+        pad = 28.0
+        bx1, by1 = int(round(pad - ox)), int(round(pad - oy))
+        bx2, by2 = int(round((self.world_width - pad) - ox)), int(round((self.world_height - pad) - oy))
 
-    def _draw_midground(self, surface: pygame.Surface):
-        offset = int(self.city_scroll)
-        if self.current_sector == 0: # Megacity Buildings
-            b_col = (20, 28, 48)
-            for i in range(-1, int(SCREEN_WIDTH / 90) + 2):
-                bx = i * 90 - (offset % 90)
-                bh = 180 + (i * 37) % 140
-                pygame.draw.rect(surface, b_col, (bx, SCREEN_HEIGHT - 90 - bh, 80, bh))
-                # Glowing windows
-                for wy in range(SCREEN_HEIGHT - 70 - bh, SCREEN_HEIGHT - 100, 24):
-                    pygame.draw.rect(surface, (14, 165, 233, 180), (bx + 12, wy, 8, 12))
-                    pygame.draw.rect(surface, (245, 158, 11, 180), (bx + 40, wy, 8, 12))
+        # Perimeter Lines
+        b_alpha = int(180 + 55 * math.sin(self.time_accum * 4.5))
+        barrier_col = (14, 165, 233, b_alpha)
+        barrier_surf = pygame.Surface((vw, vh), pygame.SRCALPHA)
 
-        elif self.current_sector == 1: # Factory Smokestacks
-            f_col = (40, 30, 35)
-            for i in range(-1, int(SCREEN_WIDTH / 110) + 2):
-                fx = i * 110 - (offset % 110)
-                fh = 160 + (i * 43) % 110
-                pygame.draw.rect(surface, f_col, (fx, SCREEN_HEIGHT - 90 - fh, 65, fh))
-                pygame.draw.rect(surface, (239, 68, 68), (fx + 10, SCREEN_HEIGHT - 85 - fh, 45, 6))
+        # Left Boundary
+        if 0 <= bx1 <= vw:
+            pygame.draw.line(barrier_surf, barrier_col, (bx1, max(0, by1)), (bx1, min(vh, by2)), 3)
+            # Hazard stripes
+            for hy in range(max(0, by1), min(vh, by2), 36):
+                pygame.draw.line(barrier_surf, (245, 158, 11, 200), (bx1 - 4, hy), (bx1 + 4, hy + 8), 2)
 
-        elif self.current_sector == 2: # Space Citadel Spires
-            c_col = (30, 20, 50)
-            for i in range(-1, int(SCREEN_WIDTH / 140) + 2):
-                cx = i * 140 - (offset % 140)
-                ch = 220 + (i * 51) % 160
-                pts = [(cx + 40, SCREEN_HEIGHT - 90 - ch), (cx + 80, SCREEN_HEIGHT - 90), (cx, SCREEN_HEIGHT - 90)]
-                pygame.draw.polygon(surface, c_col, pts)
-                pygame.draw.circle(surface, (217, 70, 239), (cx + 40, SCREEN_HEIGHT - 88 - ch), 6)
+        # Right Boundary
+        if 0 <= bx2 <= vw:
+            pygame.draw.line(barrier_surf, barrier_col, (bx2, max(0, by1)), (bx2, min(vh, by2)), 3)
+            for hy in range(max(0, by1), min(vh, by2), 36):
+                pygame.draw.line(barrier_surf, (245, 158, 11, 200), (bx2 - 4, hy), (bx2 + 4, hy + 8), 2)
 
-        elif self.current_sector == 3: # Ocean Waves
-            wave_col = (15, 40, 70)
-            for i in range(-1, int(SCREEN_WIDTH / 100) + 2):
-                wx = i * 100 - (offset % 100)
-                wy = SCREEN_HEIGHT - 160 + math.sin((wx + self.time_accum * 120.0) * 0.02) * 20.0
-                pygame.draw.ellipse(surface, wave_col, (wx, wy, 120, 60))
+        # Top Boundary
+        if 0 <= by1 <= vh:
+            pygame.draw.line(barrier_surf, barrier_col, (max(0, bx1), by1), (min(vw, bx2), by1), 3)
+            for hx in range(max(0, bx1), min(vw, bx2), 36):
+                pygame.draw.line(barrier_surf, (245, 158, 11, 200), (hx, by1 - 4), (hx + 8, by1 + 4), 2)
 
-        else: # Desert Cyber Pyramids
-            p_col = (65, 30, 20)
-            for i in range(-1, int(SCREEN_WIDTH / 160) + 2):
-                px = i * 160 - (offset % 160)
-                ph = 200 + (i * 61) % 130
-                pts = [(px + 80, SCREEN_HEIGHT - 90 - ph), (px + 160, SCREEN_HEIGHT - 90), (px, SCREEN_HEIGHT - 90)]
-                pygame.draw.polygon(surface, p_col, pts)
-                pygame.draw.line(surface, (245, 158, 11), (px + 80, SCREEN_HEIGHT - 90 - ph), (px + 80, SCREEN_HEIGHT - 90), 2)
+        # Bottom Boundary
+        if 0 <= by2 <= vh:
+            pygame.draw.line(barrier_surf, barrier_col, (max(0, bx1), by2), (min(vw, bx2), by2), 3)
+            for hx in range(max(0, bx1), min(vw, bx2), 36):
+                pygame.draw.line(barrier_surf, (245, 158, 11, 200), (hx, by2 - 4), (hx + 8, by2 + 4), 2)
 
-    def _draw_ground(self, surface: pygame.Surface):
-        ground_h = 85
-        gy = SCREEN_HEIGHT - ground_h
-        if self.current_sector == 0: g_col = (15, 23, 42)
-        elif self.current_sector == 1: g_col = (30, 20, 25)
-        elif self.current_sector == 2: g_col = (20, 15, 35)
-        elif self.current_sector == 3: g_col = (10, 30, 55)
-        else: g_col = (45, 22, 15)
+        surface.blit(barrier_surf, (0, 0))
 
-        pygame.draw.rect(surface, g_col, (0, gy, SCREEN_WIDTH, ground_h))
-        pygame.draw.line(surface, (56, 189, 248) if self.current_sector != 4 else (245, 158, 11), (0, gy), (SCREEN_WIDTH, gy), 2)
+        # Corner Defense Pylons
+        for c_wx, c_wy in [(pad, pad), (self.world_width - pad, pad),
+                           (pad, self.world_height - pad), (self.world_width - pad, self.world_height - pad)]:
+            csx = int(round(c_wx - ox))
+            csy = int(round(c_wy - oy))
+            if -40 <= csx <= vw + 40 and -40 <= csy <= vh + 40:
+                pygame.draw.circle(surface, (25, 35, 55), (csx, csy), 18)
+                pygame.draw.circle(surface, (14, 165, 233), (csx, csy), 18, 2)
+                pygame.draw.circle(surface, (245, 158, 11), (csx, csy), 6)
+
+
+# Backwards compatibility alias
+ParallaxBackground = CyberFactoryArenaBackground

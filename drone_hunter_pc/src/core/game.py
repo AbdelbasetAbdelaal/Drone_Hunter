@@ -11,7 +11,7 @@ import math
 import random
 import pygame
 from src.data.settings import (
-    SCREEN_WIDTH, SCREEN_HEIGHT, TITLE, COLOR_BG, COLOR_CYAN, COLOR_GOLD,
+    SCREEN_WIDTH, SCREEN_HEIGHT, WORLD_WIDTH, WORLD_HEIGHT, TITLE, COLOR_BG, COLOR_CYAN, COLOR_GOLD,
     COLOR_CRIMSON, COLOR_EMERALD, COLOR_SHIELD, COLOR_OVERCLOCK, COLOR_SLOWMO,
     COLOR_COIN, COLOR_NEON_RED, COLOR_TESLA, COLOR_CLUSTER
 )
@@ -32,6 +32,7 @@ from src.systems.save_system import SaveSystem
 from src.systems.progression_system import ProgressionSystem
 from src.systems.spawn_system import Spawner, WaveManager
 from src.systems.combat_system import CombatSystem
+from src.rendering.camera import Camera2D
 from src.rendering.background import ParallaxBackground
 from src.rendering.particles import ParticleManager
 from src.rendering.renderer import GameRenderer
@@ -87,6 +88,7 @@ class Game:
             self.context.unlocked_stages
         )
 
+        self.camera = Camera2D(world_w=WORLD_WIDTH, world_h=WORLD_HEIGHT, view_w=SCREEN_WIDTH, view_h=SCREEN_HEIGHT)
         self.running = True
         self.reset_game()
 
@@ -110,9 +112,11 @@ class Game:
         self.particle_manager.particles.empty()
         self.particle_manager.floating_texts.empty()
 
-        ctx.player = Player((200, SCREEN_HEIGHT // 2))
+        ctx.player = Player((WORLD_WIDTH // 2, WORLD_HEIGHT // 2))
         ctx.player.apply_shop_upgrades(ctx.upgrade_levels)
         ctx.player_group.add(ctx.player)
+        self.camera.center_x = float(ctx.player.pos.x)
+        self.camera.center_y = float(ctx.player.pos.y)
 
         target_score = self.progression.get_current_stage_target_score(
             ctx.current_sector_idx, ctx.current_sub_level
@@ -176,6 +180,7 @@ class Game:
 
             elif event.type == pygame.VIDEORESIZE:
                 self.win_w, self.win_h = event.w, event.h
+                self.camera.set_viewport_size(event.w, event.h)
 
             elif event.type == pygame.KEYDOWN:
                 if event.key == pygame.K_F2:
@@ -353,14 +358,15 @@ class Game:
                 keys = pygame.key.get_pressed()
                 if ctx.player and ctx.player.alive:
                     mx, my = pygame.mouse.get_pos()
-                    ctx.player.handle_input(keys, dt, mouse_pos=(mx, my))
+                    world_mx, world_my = self.camera.screen_to_world(mx, my)
+                    ctx.player.handle_input(keys, dt, mouse_pos=(world_mx, world_my))
 
                     # Spawn particle trail when accelerating or high velocity
                     if ctx.player.is_accelerating or ctx.player.velocity.length_squared() > 10000.0:
                         cos_a = math.cos(ctx.player.aim_angle)
                         sin_a = math.sin(ctx.player.aim_angle)
-                        rear_x = ctx.player.pos.x - cos_a * 18.0
-                        rear_y = ctx.player.pos.y - sin_a * 18.0
+                        rear_x = ctx.player.pos.x - cos_a * 24.0
+                        rear_y = ctx.player.pos.y - sin_a * 24.0
                         self.particle_manager.spawn_drone_trail((rear_x, rear_y))
 
                     wm_bullets = ctx.player.update(dt, targets_group=ctx.target_group)
@@ -369,7 +375,7 @@ class Game:
                     # Player Weapon Shooting
                     mouse_pressed = pygame.mouse.get_pressed()
                     if mouse_pressed[0] and ctx.player.can_shoot():
-                        fired_bullets = ctx.player.shoot((mx, my), level=ctx.current_sub_level, targets_group=ctx.target_group)
+                        fired_bullets = ctx.player.shoot((world_mx, world_my), level=ctx.current_sub_level, targets_group=ctx.target_group)
                         for b in fired_bullets: ctx.bullet_group.add(b)
                         
                         if ctx.player.active_weapon == "pulse": self.audio_manager.play_laser()
@@ -378,6 +384,9 @@ class Game:
                         elif ctx.player.active_weapon == "beam": self.audio_manager.play_beam()
                         elif ctx.player.active_weapon == "tesla": self.audio_manager.play_tesla()
                         elif ctx.player.active_weapon == "cluster": self.audio_manager.play_cluster()
+
+                    # Smooth Camera Tracking
+                    self.camera.update((ctx.player.pos.x, ctx.player.pos.y), dt)
 
                 # 2. Spawner Update
                 self.spawner.update(dt, ctx)
@@ -439,26 +448,24 @@ class Game:
             draw_campaign_victory_ui(canvas, ctx.total_score, ctx.highscore, ctx.coins)
 
         elif ctx.state in (STATE_PLAYING, STATE_PAUSED, STATE_LEVEL_CLEAR, STATE_GAME_OVER):
-            self.renderer.render_gameplay(ctx, self.background, self.particle_manager)
+            camera_offset = self.camera.get_offset()
+            self.renderer.render_gameplay(ctx, self.background, self.particle_manager, camera_offset=camera_offset)
             
-            # Draw HUD & Radar
+            # Draw Clean Minimal HUD
             draw_hud(
                 canvas, ctx.player, ctx.current_sector_idx, ctx.level_score,
                 ctx.total_score, ctx.coins, DIFFICULTY_NAMES[ctx.difficulty_mode],
                 combo_mult=ctx.combo_count, show_crt=ctx.show_crt,
                 current_wave=ctx.current_wave, sub_level=ctx.current_sub_level
             )
-            draw_radar_minimap(canvas, ctx.player, ctx.target_group, wingmen_group=ctx.player.wingmen if ctx.player else None)
 
             # Boss Health Bar
             boss_entity = next((t for t in ctx.target_group if getattr(t, "is_boss", False) and t.alive), None)
             if boss_entity:
                 draw_boss_health_bar(canvas, boss_entity)
 
-            self.renderer.draw_crosshair()
-
             if ctx.state == STATE_PLAYING:
-                draw_combo_banner(canvas, ctx.combo_count, ctx.combo_timer)
+                self.renderer.draw_crosshair()
             elif ctx.state == STATE_PAUSED:
                 draw_pause_settings_ui(canvas, ctx.difficulty_mode, ctx.show_crt, self.audio_manager.sound_enabled)
             elif ctx.state == STATE_LEVEL_CLEAR:

@@ -1,163 +1,141 @@
 """
 ================================================================================
-                    DRONE HUNTER 2D - HOLOGRAPHIC HUD & RADAR
+                DRONE HUNTER 2D - MINIMAL RESPONSIVE COMBAT HUD
 ================================================================================
-Renders in-game tactical heads-up display, energy/shield status bars, ability
-cooldown pills, dynamic radar minimap, boss health bars, and combo streaks.
+Streamlined, non-cluttering tactical HUD providing dynamic resolution scaling,
+crisp Hull/Energy bars, score telemetry, compact combo streaks, and active weapon.
 """
 
 import math
 import pygame
 from src.data.settings import (
-    SCREEN_WIDTH, SCREEN_HEIGHT, COLOR_HUD, COLOR_CYAN, COLOR_GOLD,
-    COLOR_CRIMSON, COLOR_EMERALD, COLOR_SHIELD, COLOR_OVERCLOCK, COLOR_WHITE,
-    COLOR_NEON_RED
+    COLOR_HUD, COLOR_CYAN, COLOR_GOLD, COLOR_CRIMSON, COLOR_EMERALD,
+    COLOR_SHIELD, COLOR_OVERCLOCK, COLOR_WHITE, COLOR_NEON_RED
 )
-from src.data.game_data import WEAPON_DEFS, SECTORS
+from src.data.game_data import WEAPON_DEFS
 from src.ui.font_manager import font_hud, font_card, font_banner
 
-def draw_hud(canvas: pygame.Surface, player, sector_idx: int, level_score: int, total_score: int,
-             coins: int, difficulty_name: str, combo_mult: int = 1, show_crt: bool = False,
+def draw_hud(canvas: pygame.Surface, player, sector_idx: int = 0, level_score: int = 0, total_score: int = 0,
+             coins: int = 0, difficulty_name: str = "NORMAL", combo_mult: int = 1, show_crt: bool = False,
              current_wave: int = 1, sub_level: int = 1):
-    """Renders top holographic status ribbon and ability indicators."""
-    bar_w, bar_h = SCREEN_WIDTH - 60, 52
-    bar_x, bar_y = 30, 10
-    
-    # Backdrop
-    hud_bg = pygame.Surface((bar_w, bar_h), pygame.SRCALPHA)
-    hud_bg.fill((15, 23, 42, 235))
-    canvas.blit(hud_bg, (bar_x, bar_y))
-    pygame.draw.rect(canvas, COLOR_CYAN, (bar_x, bar_y, bar_w, bar_h), 2, border_radius=8)
+    """Renders clean, responsive tactical HUD that adapts dynamically to viewport dimensions."""
+    vw, vh = canvas.get_size()
+    margin_x = 24
+    margin_y = 16
 
-    # Health & Energy
+    # =========================================================================
+    # 1. TOP-LEFT: Hull Integrity & Energy Status
+    # =========================================================================
     if player:
         # HP Hull Bar
-        hp_pct = max(0.0, min(1.0, player.health / player.max_health))
-        hp_bar_w = 150
-        pygame.draw.rect(canvas, (30, 41, 59), (bar_x + 15, bar_y + 10, hp_bar_w, 14), border_radius=4)
-        if hp_pct > 0:
-            fill_w = int(hp_bar_w * hp_pct)
-            hp_col = COLOR_EMERALD if hp_pct > 0.5 else (COLOR_GOLD if hp_pct > 0.25 else COLOR_CRIMSON)
-            pygame.draw.rect(canvas, hp_col, (bar_x + 15, bar_y + 10, fill_w, 14), border_radius=4)
-        pygame.draw.rect(canvas, COLOR_WHITE, (bar_x + 15, bar_y + 10, hp_bar_w, 14), 1, border_radius=4)
+        hp_pct = max(0.0, min(1.0, player.health / max(1.0, player.max_health)))
+        hp_w = 160
+        hp_h = 16
         
-        txt_hp = font_card.render(f"HULL: {int(player.health)}/{int(player.max_health)}", True, COLOR_WHITE)
-        canvas.blit(txt_hp, (bar_x + 15, bar_y + 28))
+        # Hull Background & Fill
+        pygame.draw.rect(canvas, (15, 23, 42, 220), (margin_x, margin_y, hp_w, hp_h), border_radius=4)
+        if hp_pct > 0:
+            fill_w = int(round(hp_w * hp_pct))
+            hp_col = COLOR_EMERALD if hp_pct > 0.5 else (COLOR_GOLD if hp_pct > 0.25 else COLOR_CRIMSON)
+            pygame.draw.rect(canvas, hp_col, (margin_x, margin_y, fill_w, hp_h), border_radius=4)
+        pygame.draw.rect(canvas, (51, 65, 85), (margin_x, margin_y, hp_w, hp_h), 1, border_radius=4)
+        
+        txt_hp = font_card.render(f"HULL  {int(player.health)}/{int(player.max_health)}", True, COLOR_WHITE)
+        canvas.blit(txt_hp, (margin_x, margin_y + hp_h + 4))
 
-        # NRG Bar
-        nrg_pct = max(0.0, min(1.0, player.energy / player.max_energy))
-        nrg_bar_w = 90
-        pygame.draw.rect(canvas, (30, 41, 59), (bar_x + 180, bar_y + 10, nrg_bar_w, 14), border_radius=4)
+        # NRG Bar (Stacked right below Hull readout)
+        nrg_y = margin_y + hp_h + 24
+        nrg_pct = max(0.0, min(1.0, player.energy / max(1.0, player.max_energy)))
+        nrg_w = 120
+        nrg_h = 10
+        
+        pygame.draw.rect(canvas, (15, 23, 42, 220), (margin_x, nrg_y, nrg_w, nrg_h), border_radius=3)
         if nrg_pct > 0:
-            fill_nrg = int(nrg_bar_w * nrg_pct)
-            pygame.draw.rect(canvas, COLOR_CYAN, (bar_x + 180, bar_y + 10, fill_nrg, 14), border_radius=4)
-        pygame.draw.rect(canvas, COLOR_WHITE, (bar_x + 180, bar_y + 10, nrg_bar_w, 14), 1, border_radius=4)
-        txt_nrg = font_card.render(f"NRG: {int(player.energy)}%", True, COLOR_CYAN)
-        canvas.blit(txt_nrg, (bar_x + 180, bar_y + 28))
+            fill_nrg = int(round(nrg_w * nrg_pct))
+            pygame.draw.rect(canvas, COLOR_CYAN, (margin_x, nrg_y, fill_nrg, nrg_h), border_radius=3)
+        pygame.draw.rect(canvas, (30, 58, 85), (margin_x, nrg_y, nrg_w, nrg_h), 1, border_radius=3)
+        
+        txt_nrg = font_card.render(f"NRG  {int(player.energy)}%", True, COLOR_CYAN)
+        canvas.blit(txt_nrg, (margin_x + nrg_w + 8, nrg_y - 2))
 
-        # Shield Hit Charges (Authoritative Integer Shield Hits)
+        # Shield Hit Charge Indicators
         if player.shield_hits > 0:
+            sh_x = margin_x + hp_w + 14
             for s_i in range(min(5, player.shield_hits)):
-                pygame.draw.circle(canvas, COLOR_SHIELD, (bar_x + 285 + s_i * 12, bar_y + 16), 4)
-            txt_sh = font_card.render(f"SHIELD ({player.shield_hits})", True, COLOR_SHIELD)
-            canvas.blit(txt_sh, (bar_x + 285, bar_y + 28))
+                pygame.draw.circle(canvas, COLOR_SHIELD, (sh_x + s_i * 14, margin_y + 8), 5)
+                pygame.draw.circle(canvas, COLOR_WHITE, (sh_x + s_i * 14, margin_y + 8), 2)
+            txt_sh = font_card.render(f"SHIELD x{player.shield_hits}", True, COLOR_SHIELD)
+            canvas.blit(txt_sh, (sh_x + player.shield_hits * 14 + 6, margin_y + 2))
 
-    # Stage / Sector Information
-    sec_name = SECTORS[sector_idx]["name"] if 0 <= sector_idx < len(SECTORS) else "Sector"
-    stg_text = f"SEC {sector_idx+1}-{sub_level} | {sec_name.upper()}"
-    lbl_stg = font_hud.render(stg_text, True, COLOR_GOLD)
-    canvas.blit(lbl_stg, (bar_x + 320, bar_y + 8))
-
-    # Score & Currency
-    score_text = f"SCORE: {level_score}  |  TOTAL: {total_score}  |  SCRAP: ${coins}"
-    lbl_score = font_card.render(score_text, True, COLOR_HUD)
-    canvas.blit(lbl_score, (bar_x + 320, bar_y + 28))
-
-    # Tactical Pills Helper
-    def _pill(px: int, tag: str, val: str, ready: bool, color: tuple[int, int, int]):
-        pill_rect = pygame.Rect(px, bar_y + 10, 92, 32)
-        pygame.draw.rect(canvas, (10, 15, 26, 220), pill_rect, border_radius=6)
-        pygame.draw.rect(canvas, color if ready else (60, 70, 90), pill_rect, 1, border_radius=6)
-        t1 = font_card.render(tag, True, (148, 163, 184))
-        t2 = font_card.render(val, True, color if ready else (100, 115, 135))
-        canvas.blit(t1, (px + 6, bar_y + 12))
-        canvas.blit(t2, (px + 6, bar_y + 24))
-
-    if player:
-        # Weapon Pill
-        w_def = WEAPON_DEFS.get(player.active_weapon, {})
-        w_name = w_def.get("name", "Pulse").split()[0]
-        w_col = w_def.get("color", COLOR_GOLD)
-        _pill(bar_x + 720, "WPN", w_name.upper()[:6], True, w_col)
-
-        # EMP Pill
-        emp_ready = player.emp_cooldown <= 0.0 and not player.is_jammed
-        emp_lbl = "READY" if emp_ready else (f"{player.emp_cooldown:.1f}s" if not player.is_jammed else "LOCK")
-        _pill(bar_x + 820, "EMP [E]", emp_lbl, emp_ready, COLOR_CYAN)
-
-        # Roll Pill
-        roll_ready = player.roll_cooldown <= 0.0 and not player.is_jammed
-        _pill(bar_x + 920, "ROLL", "READY" if roll_ready else "WAIT", roll_ready, COLOR_EMERALD)
-
-        # Overdrive Pill
-        od_active = player.overdrive_timer > 0.0
-        od_ready = player.overdrive_cooldown <= 0.0 and not player.is_jammed
-        od_label = f"{player.overdrive_timer:.1f}s" if od_active else ("READY" if od_ready else f"{player.overdrive_cooldown:.0f}s")
-        _pill(bar_x + 1020, "ULT [F]", od_label, od_active or od_ready, COLOR_GOLD if od_ready else (COLOR_OVERCLOCK if od_active else (239, 68, 68)))
-
-        # EMP Jammed Warning Banner (Fixes Bug 4)
+        # EMP Jammed Alert Banner
         if player.is_jammed:
             jam_banner = font_banner.render(f"⚡ SYSTEM JAMMED: {player.emp_jammed_timer:.1f}s", True, COLOR_NEON_RED)
-            canvas.blit(jam_banner, (bar_x + 480, bar_y + 60))
+            canvas.blit(jam_banner, (vw // 2 - jam_banner.get_width() // 2, 70))
+
+    # =========================================================================
+    # 2. TOP-RIGHT: Score & Compact Combo Indicator
+    # =========================================================================
+    score_str = f"SCORE: {level_score:,}"
+    lbl_score = font_hud.render(score_str, True, COLOR_WHITE)
+    score_x = vw - margin_x - lbl_score.get_width()
+    canvas.blit(lbl_score, (score_x, margin_y))
+
+    # Compact Combo Streak Pill (Adjacent to Score)
+    if combo_mult > 1:
+        combo_txt = f"COMBO x{combo_mult}"
+        lbl_combo = font_card.render(combo_txt, True, COLOR_GOLD)
+        combo_w = lbl_combo.get_width() + 14
+        combo_rect = pygame.Rect(score_x - combo_w - 12, margin_y + 2, combo_w, 22)
+        pygame.draw.rect(canvas, (245, 158, 11, 40), combo_rect, border_radius=4)
+        pygame.draw.rect(canvas, COLOR_GOLD, combo_rect, 1, border_radius=4)
+        canvas.blit(lbl_combo, (combo_rect.left + 7, combo_rect.top + 4))
+
+    # =========================================================================
+    # 3. BOTTOM-RIGHT: Active Weapon Indicator
+    # =========================================================================
+    if player:
+        w_def = WEAPON_DEFS.get(player.active_weapon, {})
+        w_name = w_def.get("name", "Pulse Laser").upper()
+        w_col = w_def.get("color", COLOR_CYAN)
+        w_icon = w_def.get("icon", "⚡")
+        
+        lbl_wpn = font_hud.render(f"{w_icon} {w_name}", True, w_col)
+        wpn_w = lbl_wpn.get_width() + 20
+        wpn_h = 32
+        wpn_x = vw - margin_x - wpn_w
+        wpn_y = vh - margin_y - wpn_h
+        
+        wpn_rect = pygame.Rect(wpn_x, wpn_y, wpn_w, wpn_h)
+        pygame.draw.rect(canvas, (15, 23, 42, 220), wpn_rect, border_radius=6)
+        pygame.draw.rect(canvas, w_col, wpn_rect, 1, border_radius=6)
+        canvas.blit(lbl_wpn, (wpn_x + 10, wpn_y + 6))
 
 
 def draw_boss_health_bar(canvas: pygame.Surface, boss_target):
-    """Renders Boss Health Bar with flashing alarm border."""
+    """Renders Boss Health Bar centered dynamically at top of viewport."""
     if not boss_target or not boss_target.alive:
         return
-    hp_pct = max(0.0, min(1.0, boss_target.hp / boss_target.max_hp))
-    bar_w = 440
-    bar_rect = pygame.Rect(SCREEN_WIDTH // 2 - bar_w // 2, 70, bar_w, 24)
+    vw, vh = canvas.get_size()
+    hp_pct = max(0.0, min(1.0, boss_target.hp / max(1, boss_target.max_hp)))
+    bar_w = min(480, vw - 120)
+    bar_rect = pygame.Rect(vw // 2 - bar_w // 2, 54, bar_w, 20)
     
-    pygame.draw.rect(canvas, (15, 23, 42, 240), bar_rect, border_radius=6)
-    fill_w = int(bar_w * hp_pct)
+    pygame.draw.rect(canvas, (15, 23, 42, 240), bar_rect, border_radius=5)
+    fill_w = int(round(bar_w * hp_pct))
     if fill_w > 0:
-        pygame.draw.rect(canvas, COLOR_CRIMSON, (bar_rect.left, bar_rect.top, fill_w, 24), border_radius=6)
-    pygame.draw.rect(canvas, COLOR_WHITE, bar_rect, 2, border_radius=6)
+        pygame.draw.rect(canvas, COLOR_CRIMSON, (bar_rect.left, bar_rect.top, fill_w, 20), border_radius=5)
+    pygame.draw.rect(canvas, COLOR_WHITE, bar_rect, 1, border_radius=5)
     
     boss_name = getattr(boss_target, "enemy_type", "BOSS").replace("_", " ").upper()
-    lbl = font_hud.render(f"⚠️ {boss_name}: {int(hp_pct * 100)}%", True, COLOR_WHITE)
+    lbl = font_card.render(f"⚠️ {boss_name}: {int(hp_pct * 100)}%", True, COLOR_WHITE)
     canvas.blit(lbl, lbl.get_rect(center=bar_rect.center))
 
 
-def draw_radar_minimap(canvas: pygame.Surface, player, targets_group, wingmen_group=None):
-    """Renders dynamic radar scanner in top right."""
-    radar_w, radar_h = 175, 56
-    radar_rect = pygame.Rect(SCREEN_WIDTH - 185, 10, radar_w, radar_h)
-    
-    pygame.draw.rect(canvas, (15, 23, 42, 235), radar_rect, border_radius=8)
-    pygame.draw.rect(canvas, COLOR_CYAN, radar_rect, 2, border_radius=8)
-    pygame.draw.line(canvas, (30, 41, 59), (radar_rect.centerx, radar_rect.top), (radar_rect.centerx, radar_rect.bottom), 1)
-    pygame.draw.line(canvas, (30, 41, 59), (radar_rect.left, radar_rect.centery), (radar_rect.right, radar_rect.centery), 1)
-
-    if player:
-        px = radar_rect.left + int((player.pos.x / SCREEN_WIDTH) * radar_w)
-        py = radar_rect.top + int((player.pos.y / SCREEN_HEIGHT) * radar_h)
-        pygame.draw.circle(canvas, COLOR_CYAN, (px, py), 3)
-
-    if targets_group:
-        for t in targets_group:
-            tx = radar_rect.left + int((t.rect.centerx / SCREEN_WIDTH) * radar_w)
-            ty = radar_rect.top + int((t.rect.centery / SCREEN_HEIGHT) * radar_h)
-            if radar_rect.collidepoint(tx, ty):
-                col = COLOR_CRIMSON if not getattr(t, "is_boss", False) else COLOR_GOLD
-                r = 2 if not getattr(t, "is_boss", False) else 4
-                pygame.draw.circle(canvas, col, (tx, ty), r)
-
-
 def draw_combo_banner(canvas: pygame.Surface, combo_count: int, combo_timer: float):
-    """Draws multi-kill combo streak banner."""
-    if combo_count > 1 and combo_timer > 0:
-        c_text = f"🔥 {combo_count}X COMBO STREAK!"
-        lbl = font_banner.render(c_text, True, COLOR_GOLD)
-        canvas.blit(lbl, (SCREEN_WIDTH // 2 - lbl.get_width() // 2, SCREEN_HEIGHT - 65))
+    """Minimal compact combo indicator (kept for backwards compatibility)."""
+    # Redundant with top-right compact combo tag in Phase 1.5
+    pass
+
+def draw_radar_minimap(canvas: pygame.Surface, player, targets_group, wingmen_group=None):
+    """Radar minimap stub (kept for backwards compatibility)."""
+    pass
