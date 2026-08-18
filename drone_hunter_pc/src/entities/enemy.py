@@ -195,7 +195,7 @@ class Enemy(pygame.sprite.Sprite):
         self.radius = self.size // 2
         self._render_sprite()
 
-    def take_damage(self, amount: int) -> bool:
+    def take_damage(self, amount: int, source: str = "bullet", **kwargs) -> bool:
         """Applies damage and returns True if entity dies."""
         self.hp -= amount
         self.hit_flash_timer = 0.10
