@@ -245,20 +245,16 @@ class Game:
                             self.audio_manager.play_overdrive()
                             ctx.trigger_shake(14.0, 0.5)
                             self.particle_manager.spawn_shockwave(ctx.player.pos, max_r=550, color=(250, 204, 21))
-                            self.particle_manager.spawn_floating_text(ctx.player.pos, "⚡ OVERDRIVE!", (250, 204, 21), 26)
                     elif event.key in (pygame.K_LSHIFT, pygame.K_RSHIFT):
                         if ctx.player and ctx.player.trigger_roll(dir_x=1.0):
                             self.audio_manager.play_roll()
                             ctx.trigger_shake(4.0, 0.18)
-                            self.particle_manager.spawn_floating_text(ctx.player.pos, "🌀 ROLL!", COLOR_CYAN, 20)
                     elif event.key in (pygame.K_k, pygame.K_c):
                         if event.key == pygame.K_c and ctx.player:
-                            s_i = ctx.player.cycle_skin()
-                            self.particle_manager.spawn_floating_text(ctx.player.pos, f"SKIN: {s_i+1}", COLOR_CYAN, 20)
+                            ctx.player.cycle_skin()
                         elif event.key == pygame.K_k and ctx.player:
                             if ctx.player.trigger_cloak():
                                 self.audio_manager.play_cloak()
-                                self.particle_manager.spawn_floating_text(ctx.player.pos, "👻 CLOAKED", COLOR_PURPLE, 20)
                     elif event.key in (pygame.K_1, pygame.K_KP1) and ctx.player: ctx.player.select_weapon(0)
                     elif event.key in (pygame.K_2, pygame.K_KP2) and ctx.player: ctx.player.select_weapon(1)
                     elif event.key in (pygame.K_3, pygame.K_KP3) and ctx.player: ctx.player.select_weapon(2)
