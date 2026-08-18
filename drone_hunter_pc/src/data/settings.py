@@ -42,3 +42,7 @@ DEFAULT_MUSIC_VOLUME = 0.70
 
 # Save System File Path
 SAVE_FILE_NAME = "save_data_pc.json"
+
+# Production & Debug Rendering Flags
+DEBUG_ASSET_LABELS = False
+DEBUG_COLLISION = False
