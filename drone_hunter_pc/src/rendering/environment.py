@@ -174,6 +174,11 @@ class PowerReactor:
         pygame.draw.circle(aura_surf, (56, 189, 248, pulse_a), (aura_r + 3, aura_r + 3), int(aura_r * 0.70), 2)
         surface.blit(aura_surf, (cx - aura_r - 3, cy - aura_r - 3))
 
+        if DEBUG_ASSET_LABELS:
+            from src.ui.font_manager import font_card
+            lbl = font_card.render("reactor_01.png", True, COLOR_CYAN)
+            surface.blit(lbl, (rx, ry - 18))
+
 
 class FactoryMachineryUnit:
     """Industrial Factory Machinery (Turbine / Generator) with wide combat lane spacing."""
@@ -207,6 +212,11 @@ class FactoryMachineryUnit:
         b_col = (245, 158, 11) if is_lit else (60, 40, 10)
         pygame.draw.circle(surface, b_col, (sx + self.w - 12, sy + 12), 3)
 
+        if DEBUG_ASSET_LABELS:
+            from src.ui.font_manager import font_card
+            lbl = font_card.render(f"{self.mtype}_01.png", True, COLOR_GOLD)
+            surface.blit(lbl, (sx, sy - 18))
+
 
 class WallStructure:
     """Physical structural wall slab establishing combat lane separation."""
@@ -224,6 +234,10 @@ class WallStructure:
 
         if -self.w <= sx <= vw and -self.h <= sy <= vh:
             surface.blit(self.image, (sx, sy))
+            if DEBUG_ASSET_LABELS:
+                from src.ui.font_manager import font_card
+                lbl = font_card.render("wall_01.png", True, COLOR_WHITE)
+                surface.blit(lbl, (sx, sy - 18))
 
 
 class PipeNetwork:
