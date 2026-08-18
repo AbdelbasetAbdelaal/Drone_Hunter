@@ -23,18 +23,20 @@ SCOUT_INTRO_ENCOUNTER = {
 }
 
 class EncounterSystem:
-    def __init__(self, config: dict = None):
+    """Manages deterministic sequential encounters with spawn suppression."""
+    def __init__(self, config: dict = None, enabled: bool = True):
         self.config = config if config is not None else SCOUT_INTRO_ENCOUNTER
-        self.state = "idle" # idle, active, waiting, complete
+        self.enabled = enabled
+        self.state = "idle" # idle, waiting, active, complete
         self.total_count = self.config.get("count", 3)
         self.spawned_count = 0
         self.eliminated_count = 0
         self.active_enemy = None
         self.timer = 0.0
-        self.min_spawn_distance = 480.0
+        self.min_spawn_distance = 500.0
 
     def start(self):
-        """Starts or resets the encounter to initial state."""
+        """Starts or resets the encounter to initial waiting state."""
         self.state = "waiting"
         self.spawned_count = 0
         self.eliminated_count = 0
@@ -44,25 +46,42 @@ class EncounterSystem:
     def reset(self):
         self.start()
 
+    @property
+    def is_active(self) -> bool:
+        """True while the encounter is actively running and not yet complete."""
+        return self.enabled and (self.state in ("waiting", "active"))
+
+    @property
+    def is_complete(self) -> bool:
+        """True once all encounter enemies have been spawned and eliminated."""
+        return self.state == "complete"
+
+    @property
+    def is_suppressing_spawner(self) -> bool:
+        """True during the encounter to prevent legacy random wave spawning."""
+        return self.is_active
+
     def get_safe_spawn_pos(self, player_pos: tuple[float, float]) -> tuple[float, float]:
-        """Calculates world-space spawn location along perimeter with minimum safe distance."""
+        """Calculates world-space spawn location along perimeter with minimum safe distance (>=500px)."""
         px, py = player_pos
-        # Candidate edge spawn points
+        # Candidate edge spawn points around the arena perimeter
         candidates = [
-            (random.uniform(200, WORLD_WIDTH - 200), 100.0),                  # North edge
-            (random.uniform(200, WORLD_WIDTH - 200), WORLD_HEIGHT - 100.0),   # South edge
-            (100.0, random.uniform(150, WORLD_HEIGHT - 150)),                 # West edge
-            (WORLD_WIDTH - 100.0, random.uniform(150, WORLD_HEIGHT - 150)),  # East edge
+            (random.uniform(200, WORLD_WIDTH - 200), 80.0),                  # North edge
+            (random.uniform(200, WORLD_WIDTH - 200), WORLD_HEIGHT - 80.0),   # South edge
+            (80.0, random.uniform(150, WORLD_HEIGHT - 150)),                 # West edge
+            (WORLD_WIDTH - 80.0, random.uniform(150, WORLD_HEIGHT - 150)),  # East edge
         ]
-        # Sort by distance to player and choose one safely separated (>= min_spawn_distance)
         valid = [c for c in candidates if math.hypot(c[0] - px, c[1] - py) >= self.min_spawn_distance]
         if valid:
             return random.choice(valid)
-        # Fallback to furthest candidate
+        # Fallback to candidate furthest from player
         return max(candidates, key=lambda c: math.hypot(c[0] - px, c[1] - py))
 
     def update(self, dt: float, context):
         """Updates encounter progression, timing, and enemy lifecycle."""
+        if not self.enabled:
+            return
+
         if self.state == "idle":
             self.start()
 
@@ -101,7 +120,3 @@ class EncounterSystem:
                 else:
                     if self.eliminated_count >= self.total_count:
                         self.state = "complete"
-
-    @property
-    def is_complete(self) -> bool:
-        return self.state == "complete"

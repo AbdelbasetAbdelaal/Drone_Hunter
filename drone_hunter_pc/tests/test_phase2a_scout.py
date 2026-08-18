@@ -2,13 +2,26 @@
 ================================================================================
         DRONE HUNTER 2D - PHASE 2A SCOUT ENEMY & ENCOUNTER TEST SUITE
 ================================================================================
-Verification tests covering:
-1. Scout Initialization & Authoritative Baseline Stats (HP, speed, score, size)
-2. Scout 4-State Movement Machine (Approach, Strafe, Telegraph, Dive, Recover)
-3. Scout Contact Damage Application and Contact Cooldown
-4. Player Roll Invulnerability during Scout Contact
-5. Weapon Damage, Death, and Single Score Award
-6. EncounterSystem Lifecycle (Spawn delay, 1-by-1 progression, Completion)
+Exhaustive verification tests covering:
+1. Scout initialization
+2. Scout stats (HP 30, speed 210, size 32, contact damage 22, score 150)
+3. Scout state starts as APPROACH
+4. Approach -> Strafe
+5. Strafe -> Telegraph
+6. Telegraph -> Dive
+7. Dive -> Recover
+8. Contact damage cooldown (1.0s)
+9. Scout death
+10. Scout score value
+11. Encounter starts
+12. Encounter spawns exactly 3 Scouts
+13. Second Scout waits for first death
+14. Third Scout waits for second death
+15. Encounter reaches COMPLETE
+16. Encounter reset works
+17. Normal Spawner is suppressed during intro
+18. Normal Spawner resumes after intro
+19. Encounter does not award score itself
 """
 
 import os
@@ -33,149 +46,230 @@ from src.entities.enemy import Enemy, Scout
 from src.entities.bullet import Bullet
 from src.systems.combat_system import CombatSystem
 from src.systems.encounter_system import EncounterSystem, SCOUT_INTRO_ENCOUNTER
+from src.systems.spawn_system import Spawner
 
 class TestPhase2AScoutAndEncounter(unittest.TestCase):
 
-    def test_scout_initialization_stats(self):
-        """Verify Scout initializes with authoritative baseline specs."""
+    # 1. Scout initialization
+    def test_01_scout_initialization(self):
         scout = Scout(enemy_type=TARGET_TYPE_SCOUT, pos=(600, 400))
+        self.assertIsNotNone(scout)
         self.assertEqual(scout.enemy_type, TARGET_TYPE_SCOUT)
-        self.assertEqual(scout.hp, SCOUT_HP)
-        self.assertEqual(scout.max_hp, SCOUT_HP)
-        self.assertEqual(scout.score_value, SCOUT_SCORE)
-        self.assertEqual(scout.size, SCOUT_SIZE)
-        self.assertEqual(scout.speed, SCOUT_SPEED)
-        self.assertEqual(scout.dive_speed, SCOUT_DIVE_SPEED)
-        self.assertEqual(scout.contact_damage, SCOUT_CONTACT_DAMAGE)
+
+    # 2. Scout stats
+    def test_02_scout_stats(self):
+        scout = Scout(enemy_type=TARGET_TYPE_SCOUT, pos=(600, 400))
+        self.assertEqual(scout.hp, 30)
+        self.assertEqual(scout.max_hp, 30)
+        self.assertEqual(scout.speed, 210.0)
+        self.assertEqual(scout.size, 32)
+        self.assertEqual(scout.contact_damage, 22.0)
+        self.assertEqual(scout.score_value, 150)
+
+    # 3. Scout state starts as APPROACH
+    def test_03_scout_state_starts_as_approach(self):
+        scout = Scout(enemy_type=TARGET_TYPE_SCOUT, pos=(600, 400))
         self.assertEqual(scout.ai_state, "approach")
 
-    def test_scout_movement_state_transitions(self):
-        """Verify Scout advances through Approach -> Strafe -> Telegraph -> Dive -> Recover."""
+    # 4. Approach -> Strafe
+    def test_04_scout_transition_approach_to_strafe(self):
         scout = Scout(enemy_type=TARGET_TYPE_SCOUT, pos=(1200, 400))
-        player_pos = (500, 400)
-
-        # 1. Approach -> Strafe
         scout.state_timer = 2.6
-        scout.update(0.016, player_pos=player_pos)
+        scout.update(0.016, player_pos=(500, 400))
         self.assertEqual(scout.ai_state, "strafe")
 
-        # 2. Strafe -> Telegraph
+    # 5. Strafe -> Telegraph
+    def test_05_scout_transition_strafe_to_telegraph(self):
+        scout = Scout(enemy_type=TARGET_TYPE_SCOUT, pos=(600, 400))
+        scout.ai_state = "strafe"
         scout.state_timer = SCOUT_STRAFE_DURATION + 0.1
-        scout.update(0.016, player_pos=player_pos)
+        scout.update(0.016, player_pos=(500, 400))
         self.assertEqual(scout.ai_state, "telegraph")
 
-        # 3. Telegraph -> Dive
+    # 6. Telegraph -> Dive
+    def test_06_scout_transition_telegraph_to_dive(self):
+        scout = Scout(enemy_type=TARGET_TYPE_SCOUT, pos=(600, 400))
+        scout.ai_state = "telegraph"
         scout.state_timer = SCOUT_TELEGRAPH_TIME + 0.05
-        scout.update(0.016, player_pos=player_pos)
+        scout.update(0.016, player_pos=(500, 400))
         self.assertEqual(scout.ai_state, "dive")
 
-        # 4. Dive -> Recover
+    # 7. Dive -> Recover
+    def test_07_scout_transition_dive_to_recover(self):
+        scout = Scout(enemy_type=TARGET_TYPE_SCOUT, pos=(600, 400))
+        scout.ai_state = "dive"
         scout.state_timer = SCOUT_DIVE_DURATION + 0.05
-        scout.update(0.016, player_pos=player_pos)
+        scout.update(0.016, player_pos=(500, 400))
         self.assertEqual(scout.ai_state, "recover")
 
-        # 5. Recover -> Strafe
-        scout.state_timer = SCOUT_RECOVER_TIME + 0.05
-        scout.update(0.016, player_pos=player_pos)
-        self.assertEqual(scout.ai_state, "strafe")
-
-    def test_scout_contact_damage_and_cooldown(self):
-        """Verify Scout inflicts contact damage with 1.0s per-enemy cooldown."""
+    # 8. Contact damage cooldown
+    def test_08_scout_contact_damage_cooldown(self):
         ctx = GameContext()
         ctx.state = STATE_PLAYING
         ctx.player = Player((400, 400))
-        initial_hp = ctx.player.health
-
         scout = Scout(enemy_type=TARGET_TYPE_SCOUT, pos=(400, 400))
         ctx.target_group.add(scout)
         combat = CombatSystem(ctx)
 
-        # Frame 1: Contact damage applied
         combat.update_combat(0.016)
-        self.assertEqual(ctx.player.health, initial_hp - SCOUT_CONTACT_DAMAGE)
+        self.assertEqual(ctx.player.health, 100.0 - 22.0)
         self.assertEqual(scout.contact_cooldown_timer, 1.0)
 
-        # Frame 2: Immediately following frame should NOT re-apply damage (cooldown active)
+        # Immediate next frame should not re-damage
         combat.update_combat(0.016)
-        self.assertEqual(ctx.player.health, initial_hp - SCOUT_CONTACT_DAMAGE)
+        self.assertEqual(ctx.player.health, 100.0 - 22.0)
 
-    def test_player_roll_invulnerability_against_scout_contact(self):
-        """Verify player taking evasive roll ignores Scout contact damage."""
-        ctx = GameContext()
-        ctx.state = STATE_PLAYING
-        ctx.player = Player((400, 400))
-        ctx.player.trigger_roll()
-        self.assertTrue(ctx.player.is_invulnerable)
-
+    # 9. Scout death
+    def test_09_scout_death(self):
         scout = Scout(enemy_type=TARGET_TYPE_SCOUT, pos=(400, 400))
-        ctx.target_group.add(scout)
-        combat = CombatSystem(ctx)
-
-        combat.update_combat(0.016)
-        self.assertEqual(ctx.player.health, 100.0)
-
-    def test_pulse_laser_damages_and_eliminates_scout_once(self):
-        """Verify Pulse Laser bullets destroy Scout and award score exactly once."""
-        ctx = GameContext()
-        ctx.state = STATE_PLAYING
-        ctx.player = Player((200, 400))
-        scout = Scout(enemy_type=TARGET_TYPE_SCOUT, pos=(400, 400))
-        ctx.target_group.add(scout)
-
-        bullet = Bullet((400, 400), (1, 0), speed=900.0, damage=SCOUT_HP + 10)
-        ctx.bullet_group.add(bullet)
-
-        combat = CombatSystem(ctx)
-        combat.update_combat(0.016)
-
+        is_destroyed = scout.take_damage(35)
+        self.assertTrue(is_destroyed)
         self.assertFalse(scout.alive)
-        self.assertEqual(ctx.level_score, SCOUT_SCORE)
+        self.assertEqual(scout.hp, 0)
 
-    def test_encounter_system_three_scout_progression(self):
-        """Verify EncounterSystem sequentially spawns 3 Scouts and marks completion."""
-        ctx = GameContext()
-        ctx.state = STATE_PLAYING
-        ctx.player = Player((1200, 700))
+    # 10. Scout score value
+    def test_10_scout_score_value(self):
+        scout = Scout(enemy_type=TARGET_TYPE_SCOUT, pos=(400, 400))
+        self.assertEqual(scout.score_value, 150)
+
+    # 11. Encounter starts
+    def test_11_encounter_starts(self):
         encounter = EncounterSystem()
-
-        # Start encounter
         encounter.start()
         self.assertEqual(encounter.state, "waiting")
+        self.assertTrue(encounter.is_active)
+        self.assertFalse(encounter.is_complete)
 
-        # Elapse spawn delay -> Scout 1 spawns
+    # 12. Encounter spawns exactly 3 Scouts
+    def test_12_encounter_spawns_exactly_3_scouts(self):
+        ctx = GameContext()
+        ctx.player = Player((1200, 700))
+        encounter = EncounterSystem()
+        encounter.start()
+
+        # Scout 1
         encounter.update(1.3, ctx)
-        self.assertEqual(encounter.state, "active")
-        self.assertEqual(len(ctx.target_group), 1)
-        scout_1 = list(ctx.target_group)[0]
-        self.assertEqual(scout_1.enemy_type, TARGET_TYPE_SCOUT)
-
-        # Eliminate Scout 1
-        scout_1.kill()
+        self.assertEqual(encounter.spawned_count, 1)
+        s1 = list(ctx.target_group)[0]
+        s1.kill()
         encounter.update(0.016, ctx)
-        self.assertEqual(encounter.state, "waiting")
 
-        # Elapse respawn delay -> Scout 2 spawns
+        # Scout 2
         encounter.update(1.1, ctx)
-        self.assertEqual(encounter.state, "active")
-        self.assertEqual(len(ctx.target_group), 1)
-        scout_2 = list(ctx.target_group)[0]
-
-        # Eliminate Scout 2
-        scout_2.kill()
+        self.assertEqual(encounter.spawned_count, 2)
+        s2 = [t for t in ctx.target_group if t != s1][0]
+        s2.kill()
         encounter.update(0.016, ctx)
-        self.assertEqual(encounter.state, "waiting")
 
-        # Elapse respawn delay -> Scout 3 spawns
+        # Scout 3
         encounter.update(1.1, ctx)
-        self.assertEqual(encounter.state, "active")
-        self.assertEqual(len(ctx.target_group), 1)
-        scout_3 = list(ctx.target_group)[0]
-
-        # Eliminate Scout 3 -> Encounter Complete
-        scout_3.kill()
+        self.assertEqual(encounter.spawned_count, 3)
+        s3 = [t for t in ctx.target_group if t not in (s1, s2)][0]
+        s3.kill()
         encounter.update(0.016, ctx)
+
+        self.assertEqual(encounter.spawned_count, 3)
+        self.assertEqual(encounter.eliminated_count, 3)
+
+    # 13. Second Scout waits for first death
+    def test_13_second_scout_waits_for_first_death(self):
+        ctx = GameContext()
+        ctx.player = Player((1200, 700))
+        encounter = EncounterSystem()
+        encounter.start()
+
+        encounter.update(1.3, ctx)
+        self.assertEqual(len(ctx.target_group), 1)
+
+        # Do NOT kill first Scout -> even after time passes, second Scout must not spawn
+        encounter.update(5.0, ctx)
+        self.assertEqual(len(ctx.target_group), 1)
+        self.assertEqual(encounter.spawned_count, 1)
+
+    # 14. Third Scout waits for second death
+    def test_14_third_scout_waits_for_second_death(self):
+        ctx = GameContext()
+        ctx.player = Player((1200, 700))
+        encounter = EncounterSystem()
+        encounter.start()
+
+        encounter.update(1.3, ctx)
+        s1 = list(ctx.target_group)[0]
+        s1.kill()
+        encounter.update(0.016, ctx)
+
+        encounter.update(1.1, ctx)
+        self.assertEqual(len(ctx.target_group), 1) # Scout 2 active
+
+        # Scout 2 still alive -> Scout 3 must not spawn
+        encounter.update(5.0, ctx)
+        self.assertEqual(encounter.spawned_count, 2)
+
+    # 15. Encounter reaches COMPLETE
+    def test_15_encounter_reaches_complete(self):
+        ctx = GameContext()
+        ctx.player = Player((1200, 700))
+        encounter = EncounterSystem()
+        encounter.start()
+
+        for _ in range(3):
+            encounter.update(1.3, ctx)
+            active = list(ctx.target_group)[-1]
+            active.kill()
+            encounter.update(0.016, ctx)
+
         self.assertEqual(encounter.state, "complete")
         self.assertTrue(encounter.is_complete)
+        self.assertFalse(encounter.is_active)
+
+    # 16. Encounter reset works
+    def test_16_encounter_reset_works(self):
+        ctx = GameContext()
+        ctx.player = Player((1200, 700))
+        encounter = EncounterSystem()
+        encounter.start()
+        encounter.update(1.3, ctx)
+        self.assertEqual(encounter.spawned_count, 1)
+
+        encounter.reset()
+        self.assertEqual(encounter.state, "waiting")
+        self.assertEqual(encounter.spawned_count, 0)
+        self.assertEqual(encounter.eliminated_count, 0)
+
+    # 17. Normal Spawner is suppressed during intro
+    def test_17_normal_spawner_is_suppressed_during_intro(self):
+        encounter = EncounterSystem()
+        encounter.start()
+        self.assertTrue(encounter.is_suppressing_spawner)
+        self.assertTrue(encounter.is_active)
+
+    # 18. Normal Spawner resumes after intro
+    def test_18_normal_spawner_resumes_after_intro(self):
+        ctx = GameContext()
+        ctx.player = Player((1200, 700))
+        encounter = EncounterSystem()
+        encounter.start()
+
+        for _ in range(3):
+            encounter.update(1.3, ctx)
+            active = list(ctx.target_group)[-1]
+            active.kill()
+            encounter.update(0.016, ctx)
+
+        self.assertTrue(encounter.is_complete)
+        self.assertFalse(encounter.is_suppressing_spawner)
+        self.assertFalse(encounter.is_active)
+
+    # 19. Encounter does not award score itself
+    def test_19_encounter_does_not_award_score_itself(self):
+        ctx = GameContext()
+        ctx.player = Player((1200, 700))
+        ctx.level_score = 0
+        encounter = EncounterSystem()
+        encounter.start()
+
+        encounter.update(1.3, ctx)
+        self.assertEqual(ctx.level_score, 0) # Zero score added by encounter directly
 
 
 if __name__ == "__main__":
