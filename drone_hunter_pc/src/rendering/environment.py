@@ -79,20 +79,20 @@ class FactoryFloor:
         self.world_h = world_h
         self.assets = CyberFactoryAssetManager.get_instance()
 
-        # Load floor tile variations
+        # Load floor tile variations scaled to modular 90x60
         self.tiles = [
-            self.assets.get_image("floor/floor_01.png", (90, 77)),
-            self.assets.get_image("floor/floor_02.png", (90, 77)),
-            self.assets.get_image("floor/floor_03.png", (90, 77)),
-            self.assets.get_image("floor/floor_04.png", (90, 77)),
-            self.assets.get_image("floor/floor_05.png", (90, 77)),
-            self.assets.get_image("floor/floor_panel.png", (90, 75)),
-            self.assets.get_image("floor/floor_maintenance.png", (90, 75)),
+            self.assets.get_image("floor/floor_01.png", scale=(90, 60)),
+            self.assets.get_image("floor/floor_02.png", scale=(90, 60)),
+            self.assets.get_image("floor/floor_03.png", scale=(90, 60)),
+            self.assets.get_image("floor/floor_04.png", scale=(90, 60)),
+            self.assets.get_image("floor/floor_05.png", scale=(90, 60)),
+            self.assets.get_image("floor/floor_panel.png", scale=(90, 60)),
+            self.assets.get_image("floor/floor_maintenance.png", scale=(90, 60)),
         ]
-        self.tile_grate = self.assets.get_image("floor/floor_grate.png", (90, 75))
-        self.hazard_img = self.assets.get_image("hazards/hazard_stripe_01.png", (135, 70))
+        self.tile_grate = self.assets.get_image("floor/floor_grate.png", scale=(90, 60))
+        self.hazard_img = self.assets.get_image("hazards/hazard_stripe_01.png", scale=(135, 52))
 
-        self.tw, self.th = self.tiles[0].get_size()
+        self.tw, self.th = 90, 60
 
         # Discrete Assembly Corridor Hazard Stripes
         self.hazard_lines = [
