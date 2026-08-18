@@ -154,6 +154,22 @@ SCOUT_STRAFE_DURATION = 1.40
 SCOUT_CONTACT_COOLDOWN = 1.00
 
 # -----------------------------------------------------------------------------
+# Shooter Drone Specifications (Phase 2B Baseline)
+# -----------------------------------------------------------------------------
+SHOOTER_HP = 55
+SHOOTER_SPEED = 120.0
+SHOOTER_PREFERRED_DISTANCE = 470.0
+SHOOTER_MIN_DISTANCE = 300.0
+SHOOTER_MAX_DISTANCE = 700.0
+SHOOTER_SCORE = 250
+SHOOTER_SIZE = 38
+SHOOTER_PROJECTILE_DAMAGE = 12
+SHOOTER_PROJECTILE_SPEED = 340.0
+SHOOTER_FIRE_COOLDOWN = 1.50
+SHOOTER_TELEGRAPH_TIME = 0.50
+SHOOTER_REPOSITION_TIME = 0.90
+
+# -----------------------------------------------------------------------------
 # Campaign Sectors & Stages
 # -----------------------------------------------------------------------------
 SECTORS = [
