@@ -128,6 +128,8 @@ class Game:
         ctx.wave_manager = WaveManager(target_score, is_boss_stage=is_boss_stage)
         self.spawner.reset_for_stage(ctx.current_sector_idx * 3 + ctx.current_sub_level, ctx.current_sector_idx)
         self.encounter_system.reset()
+        if ctx.current_sector_idx == 1 and ctx.current_sub_level == 1:
+            self.encounter_system.start()
         self.background.set_sector(ctx.current_sector_idx)
 
     def save_progress(self):

@@ -36,7 +36,7 @@ class EncounterSystem:
         self.min_spawn_distance = 500.0
 
     def start(self):
-        """Starts or resets the encounter to initial waiting state."""
+        """Explicitly starts the encounter into WAITING state."""
         self.state = "waiting"
         self.spawned_count = 0
         self.eliminated_count = 0
@@ -44,7 +44,12 @@ class EncounterSystem:
         self.timer = self.config.get("spawn_delay", 1.2)
 
     def reset(self):
-        self.start()
+        """Resets the encounter back to IDLE state."""
+        self.state = "idle"
+        self.spawned_count = 0
+        self.eliminated_count = 0
+        self.active_enemy = None
+        self.timer = 0.0
 
     @property
     def is_active(self) -> bool:
@@ -79,13 +84,7 @@ class EncounterSystem:
 
     def update(self, dt: float, context):
         """Updates encounter progression, timing, and enemy lifecycle."""
-        if not self.enabled:
-            return
-
-        if self.state == "idle":
-            self.start()
-
-        if self.state == "complete":
+        if not self.enabled or self.state in ("idle", "complete"):
             return
 
         # Check status of currently active enemy
