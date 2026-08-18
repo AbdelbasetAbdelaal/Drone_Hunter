@@ -192,7 +192,14 @@ class Game:
 
                 if ctx.state == STATE_MENU:
                     if event.key in (pygame.K_SPACE, pygame.K_RETURN):
+                        self.reset_game()
+                        ctx.state = STATE_PLAYING
+                    elif event.key == pygame.K_m:
                         ctx.state = STATE_SECTOR_SELECT
+                    elif event.key == pygame.K_h:
+                        ctx.state = STATE_HANGAR
+                    elif event.key == pygame.K_q:
+                        self.running = False
 
                 elif ctx.state == STATE_SECTOR_SELECT:
                     if event.key == pygame.K_d:
@@ -290,11 +297,30 @@ class Game:
 
             elif event.type == pygame.MOUSEBUTTONDOWN:
                 mx, my = pygame.mouse.get_pos()
-                if ctx.state in (STATE_MENU, STATE_SECTOR_SELECT, STATE_HANGAR, STATE_VICTORY):
-                    exit_r = pygame.Rect(SCREEN_WIDTH - 140, SCREEN_HEIGHT - 55, 120, 40)
-                    if exit_r.collidepoint(mx, my): self.running = False
+                if ctx.state == STATE_MENU:
+                    btn_w, btn_h = 240, 44
+                    cx = self.win_w // 2 - btn_w // 2
+                    btn_y_start = self.win_h // 2 - 10
+                    gap = 14
+                    
+                    r_play = pygame.Rect(cx, btn_y_start, btn_w, btn_h)
+                    r_sec = pygame.Rect(cx, btn_y_start + (btn_h + gap), btn_w, btn_h)
+                    r_hangar = pygame.Rect(cx, btn_y_start + 2 * (btn_h + gap), btn_w, btn_h)
+                    r_exit = pygame.Rect(cx, btn_y_start + 3 * (btn_h + gap), btn_w, btn_h)
+                    
+                    if r_play.collidepoint(mx, my):
+                        self.reset_game()
+                        ctx.state = STATE_PLAYING
+                    elif r_sec.collidepoint(mx, my):
+                        ctx.state = STATE_SECTOR_SELECT
+                    elif r_hangar.collidepoint(mx, my):
+                        ctx.state = STATE_HANGAR
+                    elif r_exit.collidepoint(mx, my):
+                        self.running = False
 
-                if ctx.state == STATE_SECTOR_SELECT:
+                elif ctx.state == STATE_SECTOR_SELECT:
+                    exit_r = pygame.Rect(self.win_w - 140, self.win_h - 55, 120, 40)
+                    if exit_r.collidepoint(mx, my): self.running = False
                     diff_rect = pygame.Rect(480, 28, 220, 36)
                     if diff_rect.collidepoint(mx, my):
                         ctx.difficulty_mode = (ctx.difficulty_mode + 1) % 4
@@ -435,7 +461,7 @@ class Game:
         canvas.fill(COLOR_BG)
 
         if ctx.state == STATE_MENU:
-            self.background.draw(canvas)
+            self.background.draw_menu_backdrop(canvas)
             draw_main_menu(canvas)
 
         elif ctx.state == STATE_SECTOR_SELECT:

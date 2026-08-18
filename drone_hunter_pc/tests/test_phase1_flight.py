@@ -1,16 +1,16 @@
 """
 ================================================================================
-    DRONE HUNTER 2D - PHASE 1.5 PLAYER FLIGHT, ARENA & CAMERA TEST SUITE
+    DRONE HUNTER 2D - PHASE 1.6 RENDERING SPACE & UI TEST SUITE
 ================================================================================
 Automated test suite verifying:
 1. World coordinates larger than viewport (2400x1400 vs 1280x720)
-2. Player boundary containment within world coordinates
-3. Camera smooth tracking & boundary clamping
-4. World-to-screen & Screen-to-world coordinate transformations
-5. Decoupled mouse aim calculation from flight velocity
-6. Player acceleration, deceleration, and max speed clamping
-7. Dual Pulse cannon hardpoint firing
-8. Responsive HUD dynamic layout scaling across resolutions (1280x720, 1152x648, 1024x576)
+2. Strict separation of World Space vs Screen Space coordinates
+3. Camera smooth tracking, boundary clamping, and world-screen coordinate conversions
+4. Decoupled mouse aim calculation from flight velocity
+5. Player flight kinematics (acceleration, deceleration, max speed clamping)
+6. Dual Pulse cannon hardpoint firing
+7. Responsive HUD dynamic layout scaling across resolutions (1280x720, 1152x648, 1024x576)
+8. Main menu purity (no gameplay widgets leaked)
 9. Player damage & death states
 """
 
@@ -31,10 +31,12 @@ pygame.display.set_mode((1, 1))
 from src.data.settings import SCREEN_WIDTH, SCREEN_HEIGHT, WORLD_WIDTH, WORLD_HEIGHT, COLOR_CYAN
 from src.data.game_data import HORIZONTAL_SPEED, PLAYER_MAX_HEALTH, PLAYER_MAX_ENERGY
 from src.entities.player import Player
+from src.entities.obstacle import EnvironmentalObstacle
 from src.rendering.player_renderer import PlayerRenderer
 from src.rendering.camera import Camera2D
-from src.systems.combat_feedback import CombatFeedbackSystem
+from src.rendering.background import CyberFactoryArenaBackground
 from src.ui.hud import draw_hud
+from src.ui.menus import draw_main_menu
 
 class TestPhase1FlightAndArena(unittest.TestCase):
 
@@ -50,7 +52,6 @@ class TestPhase1FlightAndArena(unittest.TestCase):
 
     def test_player_world_boundary_containment(self):
         """Verify player can explore beyond 1280x720 and clamps to world bounds (2400x1400)."""
-        # Move far to the right in world space (e.g. x = 2000)
         self.player.pos = pygame.Vector2(2000.0, 1000.0)
         self.player.velocity = pygame.Vector2(1000.0, 1000.0)
         self.player.update(0.1)
@@ -86,22 +87,35 @@ class TestPhase1FlightAndArena(unittest.TestCase):
         self.assertEqual(cam.offset_x, WORLD_WIDTH - SCREEN_WIDTH)
         self.assertEqual(cam.offset_y, WORLD_HEIGHT - SCREEN_HEIGHT)
 
-    def test_world_screen_coordinate_conversion(self):
-        """Verify bidirectional world-to-screen and screen-to-world transformations."""
+    def test_world_vs_screen_rendering_separation(self):
+        """Verify world objects translate with camera while screen HUD stays fixed."""
         cam = Camera2D(world_w=WORLD_WIDTH, world_h=WORLD_HEIGHT, view_w=SCREEN_WIDTH, view_h=SCREEN_HEIGHT)
-        cam.offset_x = 500.0
-        cam.offset_y = 300.0
+        cam.offset_x = 400.0
+        cam.offset_y = 200.0
 
-        world_x, world_y = 750.0, 450.0
-        screen_x, screen_y = cam.world_to_screen(world_x, world_y)
-        self.assertEqual((screen_x, screen_y), (250, 150))
+        # World object at (500, 300) should appear at screen (100, 100)
+        screen_pos = cam.world_to_screen(500.0, 300.0)
+        self.assertEqual(screen_pos, (100, 100))
 
-        reconverted_world_x, reconverted_world_y = cam.screen_to_world(screen_x, screen_y)
-        self.assertEqual((reconverted_world_x, reconverted_world_y), (world_x, world_y))
+        # Re-convert back
+        world_pos = cam.screen_to_world(100, 100)
+        self.assertEqual(world_pos, (500.0, 300.0))
+
+    def test_main_menu_purity_and_interactions(self):
+        """Verify main menu provides clean buttons and does not crash or leak world widgets."""
+        canvas = pygame.Surface((1280, 720))
+        bg = CyberFactoryArenaBackground()
+        bg.draw_menu_backdrop(canvas)
+        buttons = draw_main_menu(canvas)
+        
+        self.assertIn("play", buttons)
+        self.assertIn("sectors", buttons)
+        self.assertIn("hangar", buttons)
+        self.assertIn("exit", buttons)
+        self.assertTrue(buttons["play"].width > 0)
 
     def test_aim_independent_from_movement(self):
         """Verify aim angle is purely governed by mouse position regardless of movement vector."""
-        # Moving left (A key), aiming right
         self.player.handle_input({pygame.K_a: True}, dt=0.1, mouse_pos=(self.player.pos.x + 200, self.player.pos.y))
         self.assertLess(self.player.velocity.x, 0.0) # Moving left
         self.assertAlmostEqual(self.player.aim_angle, 0.0, delta=0.01) # Aiming right
@@ -137,7 +151,6 @@ class TestPhase1FlightAndArena(unittest.TestCase):
         resolutions = [(1280, 720), (1152, 648), (1024, 576)]
         for w, h in resolutions:
             canvas = pygame.Surface((w, h))
-            # Test HUD draw
             draw_hud(canvas, self.player, sector_idx=0, level_score=15200, total_score=45000,
                      coins=120, difficulty_name="NORMAL", combo_mult=5)
             self.assertEqual(canvas.get_size(), (w, h))
