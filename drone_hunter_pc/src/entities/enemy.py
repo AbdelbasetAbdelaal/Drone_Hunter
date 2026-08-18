@@ -74,7 +74,7 @@ class Enemy(pygame.sprite.Sprite):
             self.dive_speed = base_speed
             self.projectile_speed = SHOOTER_PROJECTILE_SPEED
             self.projectile_damage = SHOOTER_PROJECTILE_DAMAGE
-            self.contact_damage = 10.0
+            self.contact_damage = 0.0
             self.color_outer = (239, 68, 68) # Industrial Crimson
             self.color_inner = COLOR_GOLD
 
