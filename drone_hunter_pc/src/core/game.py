@@ -7,6 +7,7 @@ transitions, subsystem updates, and rendering pipelines.
 """
 
 import sys
+import math
 import random
 import pygame
 from src.data.settings import (
@@ -351,15 +352,23 @@ class Game:
                 # 1. Player Input & Update
                 keys = pygame.key.get_pressed()
                 if ctx.player and ctx.player.alive:
-                    ctx.player.handle_input(keys, dt)
-                    self.particle_manager.spawn_drone_trail((ctx.player.pos.x - 22, ctx.player.pos.y))
+                    mx, my = pygame.mouse.get_pos()
+                    ctx.player.handle_input(keys, dt, mouse_pos=(mx, my))
+
+                    # Spawn particle trail when accelerating or high velocity
+                    if ctx.player.is_accelerating or ctx.player.velocity.length_squared() > 10000.0:
+                        cos_a = math.cos(ctx.player.aim_angle)
+                        sin_a = math.sin(ctx.player.aim_angle)
+                        rear_x = ctx.player.pos.x - cos_a * 18.0
+                        rear_y = ctx.player.pos.y - sin_a * 18.0
+                        self.particle_manager.spawn_drone_trail((rear_x, rear_y))
+
                     wm_bullets = ctx.player.update(dt, targets_group=ctx.target_group)
                     for wb in wm_bullets: ctx.bullet_group.add(wb)
 
                     # Player Weapon Shooting
                     mouse_pressed = pygame.mouse.get_pressed()
                     if mouse_pressed[0] and ctx.player.can_shoot():
-                        mx, my = pygame.mouse.get_pos()
                         fired_bullets = ctx.player.shoot((mx, my), level=ctx.current_sub_level, targets_group=ctx.target_group)
                         for b in fired_bullets: ctx.bullet_group.add(b)
                         

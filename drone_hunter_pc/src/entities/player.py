@@ -2,9 +2,9 @@
 ================================================================================
                     DRONE HUNTER 2D - PLAYER COMBAT DRONE
 ================================================================================
-Player combat drone entity featuring 2D kinematic flight physics, multi-weapon
-arsenal management, active tactical abilities (Overdrive, Cloak, EMP, Roll),
-unified shield hit absorption, and dynamic skin themes.
+Player combat drone entity featuring 2D kinematic flight physics, 360-degree
+mouse aiming, dual hardpoint weapon firing, active tactical abilities (Overdrive,
+Cloak, EMP, Roll), unified shield hit absorption, and dynamic skin themes.
 """
 
 import math
@@ -26,6 +26,7 @@ from src.data.game_data import (
 from src.entities.bullet import (
     Bullet, HomingMissile, PlasmaLaserBeam, TeslaArcBeam, ClusterTorpedo
 )
+from src.rendering.player_renderer import PlayerRenderer
 
 class WingmanDrone:
     """Autonomous escort mini-drone providing supportive auto-fire."""
@@ -48,8 +49,9 @@ class WingmanDrone:
 
         return bullets
 
-    def draw(self, canvas: pygame.Surface):
-        px, py = int(self.pos.x), int(self.pos.y)
+    def draw(self, canvas: pygame.Surface, camera_offset: tuple[float, float] = (0, 0)):
+        ox, oy = camera_offset
+        px, py = int(self.pos.x - ox), int(self.pos.y - oy)
         pygame.draw.circle(canvas, (15, 23, 42), (px, py), 9)
         pygame.draw.circle(canvas, COLOR_CYAN, (px, py), 9, 2)
         pygame.draw.circle(canvas, COLOR_WHITE, (px, py), 4)
@@ -59,11 +61,27 @@ class Player(pygame.sprite.Sprite):
     def __init__(self, pos: tuple[float, float] = (200, 360)):
         super().__init__()
         
-        # Position & Kinematics
+        # Position & Kinematic Flight Physics
         self.pos = pygame.Vector2(pos)
         self.velocity = pygame.Vector2(0, 0)
+        self.acceleration = 2800.0
+        self.drag = 9.0
+        self.max_speed = HORIZONTAL_SPEED
+        self.is_accelerating = False
+        
+        # Mouse Aiming & Orientation
+        self.aim_angle = 0.0
         self.facing_angle_deg = 0.0
         self.tilt_y = 0.0
+        
+        # Arena Boundaries
+        self.arena_width = SCREEN_WIDTH
+        self.arena_height = SCREEN_HEIGHT
+        
+        # Visual & Combat Effects
+        self.renderer = PlayerRenderer()
+        self.muzzle_flash_timer = 0.0
+        self.damage_flash_timer = 0.0
         
         # Hull & Energy
         self.max_health = PLAYER_MAX_HEALTH
@@ -72,7 +90,7 @@ class Player(pygame.sprite.Sprite):
         self.max_energy = PLAYER_MAX_ENERGY
         self.alive = True
 
-        # Shield Hit System (Unified authoritative integer hits)
+        # Shield Hit System
         self.shield_hits = 0
 
         # Ability Timers & Cooldowns
@@ -92,7 +110,7 @@ class Player(pygame.sprite.Sprite):
         self.overdrive_duration_max = OVERDRIVE_DURATION
         self.overdrive_cooldown_max = OVERDRIVE_COOLDOWN_MAX
 
-        # EMP Jammed Mechanic (Fixes Bug 4)
+        # EMP Jammed Mechanic
         self.emp_jammed_timer = 0.0
 
         # Combat & Upgrades
@@ -112,7 +130,7 @@ class Player(pygame.sprite.Sprite):
 
         # Aesthetics
         self.skin_theme = 0
-        self.base_image = pygame.Surface((64, 48), pygame.SRCALPHA)
+        self.base_image = pygame.Surface((64, 64), pygame.SRCALPHA)
         self.image = self.base_image.copy()
         self.rect = self.image.get_rect(center=pos)
         self.radius = 24
@@ -139,11 +157,20 @@ class Player(pygame.sprite.Sprite):
     @property
     def speed(self) -> float:
         boost = 1.40 if self.overdrive_timer > 0.0 else 1.0
-        return HORIZONTAL_SPEED * self.agility_mult * boost
+        return self.max_speed * self.agility_mult * boost
 
     def activate_shield(self, hits: int = 3):
         """Activates defensive energy shield for given hit charges."""
         self.shield_hits = max(self.shield_hits, hits)
+
+    def trigger_emp(self) -> bool:
+        """Triggers EMP blast if off cooldown and not jammed."""
+        if self.is_jammed:
+            return False
+        if self.emp_cooldown <= 0.0:
+            self.emp_cooldown = self.emp_cooldown_max
+            return True
+        return False
 
     def trigger_emp_jammed(self, duration: float = 3.0):
         """Jams player systems upon being hit by EMP Boss attack."""
@@ -170,7 +197,7 @@ class Player(pygame.sprite.Sprite):
             self.is_rolling = True
             self.roll_timer = ROLL_DURATION
             self.roll_cooldown = ROLL_COOLDOWN
-            self.velocity.x += dir_x * self.speed * ROLL_SPEED_BOOST
+            self.velocity.x += dir_x * (HORIZONTAL_SPEED * ROLL_SPEED_BOOST)
             return True
         return False
 
@@ -185,80 +212,76 @@ class Player(pygame.sprite.Sprite):
             return True
         return False
 
-    def trigger_emp(self) -> bool:
-        """Charges and fires EMP blast."""
-        if self.is_jammed:
-            return False
-        if self.emp_cooldown <= 0.0:
-            self.emp_cooldown = self.emp_cooldown_max
-            return True
-        return False
+    def cycle_weapon(self, direction: int = 1):
+        """Switches active primary weapon."""
+        if not self.available_weapons:
+            return
+        self.current_weapon_idx = (self.current_weapon_idx + direction) % len(self.available_weapons)
+        self.active_weapon = self.available_weapons[self.current_weapon_idx]
 
-    def trigger_overclock(self, duration: float = 6.0):
-        self.overclock_timer = duration
+    def set_weapon(self, weapon_name: str):
+        """Directly equips unlocked weapon by identifier."""
+        if weapon_name in self.available_weapons:
+            self.active_weapon = weapon_name
+            self.current_weapon_idx = self.available_weapons.index(weapon_name)
 
-    def cycle_weapon(self) -> str:
-        if len(self.available_weapons) > 0:
-            self.current_weapon_idx = (self.current_weapon_idx + 1) % len(self.available_weapons)
-            self.active_weapon = self.available_weapons[self.current_weapon_idx]
-        return self.active_weapon
-
-    def select_weapon(self, idx: int) -> str:
-        if 0 <= idx < len(self.available_weapons):
-            self.current_weapon_idx = idx
-            self.active_weapon = self.available_weapons[idx]
-        return self.active_weapon
-
-    def cycle_skin(self) -> int:
+    def cycle_skin(self):
+        """Cycles aesthetic drone chassis theme."""
         self.skin_theme = (self.skin_theme + 1) % len(DRONE_SKINS)
         self._render_drone_sprite()
-        return self.skin_theme
 
-    def spawn_wingman(self):
-        if len(self.wingmen) < 4:
-            count = len(self.wingmen)
-            offsets = [(-35, -35), (-35, 35), (-60, -55), (-60, 55)]
-            ox, oy = offsets[count]
-            self.wingmen.append(WingmanDrone(ox, oy))
+    def set_skin(self, index: int):
+        self.skin_theme = max(0, min(len(DRONE_SKINS) - 1, index))
+        self._render_drone_sprite()
 
-    def apply_shop_upgrades(self, upgrade_levels: dict[str, int]):
-        bat_lvl = upgrade_levels.get("battery", 0)
-        spd_lvl = upgrade_levels.get("speed", 0)
-        fr_lvl = upgrade_levels.get("fire_rate", 0)
-        emp_lvl = upgrade_levels.get("emp_recharge", 0)
-        wm_lvl = upgrade_levels.get("wingman", 0)
-        cloak_lvl = upgrade_levels.get("cloak", 0)
-        missile_lvl = upgrade_levels.get("missiles", 0)
-        beam_lvl = upgrade_levels.get("beam", 0)
-        tesla_lvl = upgrade_levels.get("tesla", 0)
-        cluster_lvl = upgrade_levels.get("cluster", 0)
-        od_lvl = upgrade_levels.get("overdrive", 0)
-
+    def apply_shop_upgrades(self, upgrades: dict):
+        """Applies persistent hangar upgrade statistics."""
+        bat_lvl = upgrades.get("battery", 0)
         self.max_health = PLAYER_MAX_HEALTH + (bat_lvl * 25.0)
         self.health = self.max_health
-        self.agility_mult = 1.0 + (spd_lvl * 0.15)
-        self.cooldown_mult = max(0.35, 1.0 - (fr_lvl * 0.12))
-        self.emp_cooldown_max = max(6.0, EMP_COOLDOWN_MAX - (emp_lvl * 2.5))
-        self.has_cloak_upgrade = (cloak_lvl > 0)
+
+        spd_lvl = upgrades.get("speed", 0)
+        self.agility_mult = 1.0 + (spd_lvl * 0.12)
+
+        fr_lvl = upgrades.get("fire_rate", 0)
+        self.cooldown_mult = max(0.50, 1.0 - (fr_lvl * 0.08))
+
+        emp_lvl = upgrades.get("emp_recharge", 0)
+        self.emp_cooldown_max = max(6.0, EMP_COOLDOWN_MAX - (emp_lvl * 1.5))
+
+        wm_lvl = upgrades.get("wingman", 0)
+        self.wingmen.clear()
+        if wm_lvl >= 1:
+            self.wingmen.append(WingmanDrone(-36, -34))
+        if wm_lvl >= 2:
+            self.wingmen.append(WingmanDrone(-36, 34))
+
+        clk_lvl = upgrades.get("cloak", 0)
+        self.has_cloak_upgrade = (clk_lvl > 0)
+
+        od_lvl = upgrades.get("overdrive", 0)
         self.overdrive_duration_max = OVERDRIVE_DURATION + (od_lvl * 1.5)
         self.overdrive_cooldown_max = max(12.0, OVERDRIVE_COOLDOWN_MAX - (od_lvl * 3.0))
 
-        self.available_weapons = [WEAPON_PULSE, WEAPON_SCATTER]
-        if missile_lvl > 0: self.available_weapons.append(WEAPON_MISSILE)
-        if beam_lvl > 0: self.available_weapons.append(WEAPON_BEAM)
-        if tesla_lvl > 0: self.available_weapons.append(WEAPON_TESLA)
-        if cluster_lvl > 0: self.available_weapons.append(WEAPON_CLUSTER)
-
-        self.wingmen.clear()
-        for _ in range(min(4, wm_lvl)):
-            self.spawn_wingman()
+        # Weapon unlocks
+        unlocked = [WEAPON_PULSE, WEAPON_SCATTER]
+        if upgrades.get("missiles", 0) > 0: unlocked.append(WEAPON_MISSILE)
+        if upgrades.get("beam", 0) > 0: unlocked.append(WEAPON_BEAM)
+        if upgrades.get("tesla", 0) > 0: unlocked.append(WEAPON_TESLA)
+        if upgrades.get("cluster", 0) > 0: unlocked.append(WEAPON_CLUSTER)
+        self.available_weapons = unlocked
+        if self.active_weapon not in self.available_weapons:
+            self.active_weapon = WEAPON_PULSE
+            self.current_weapon_idx = 0
 
         self._render_drone_sprite()
 
-    def take_damage(self, amount: float) -> bool:
+    def take_damage(self, amount: float, source: str = "bullet") -> bool:
         """Applies damage to shields and health hull. Returns True if destroyed."""
         if self.is_invulnerable:
             return False
+
+        self.damage_flash_timer = 0.16
 
         if self.shield_hits > 0:
             self.shield_hits -= 1
@@ -278,15 +301,15 @@ class Player(pygame.sprite.Sprite):
         return self.shoot_timer <= 0.0 and (self.energy >= cost or self.overdrive_timer > 0.0)
 
     def shoot(self, target_pos: tuple[float, float], level: int = 1, targets_group=None) -> list[pygame.sprite.Sprite]:
-        """Fires projectiles using authoritative balance values from WEAPON_DEFS."""
+        """Fires projectiles toward target position using authoritative balance values."""
         if not self.can_shoot():
             return []
 
         w_def = WEAPON_DEFS.get(self.active_weapon, {})
         base_cd = w_def.get("cooldown", 0.18)
         cost = w_def.get("energy_cost", 2.5)
-        dmg = int(w_def.get("damage", 25))
-        spd = float(w_def.get("speed", 850.0))
+        dmg = int(w_def.get("damage", 28))
+        spd = float(w_def.get("speed", 920.0))
         col = w_def.get("color", COLOR_CYAN)
 
         cd_scale = 0.50 if self.overdrive_timer > 0.0 else (0.65 if self.overclock_timer > 0.0 else 1.0)
@@ -295,12 +318,29 @@ class Player(pygame.sprite.Sprite):
         if self.overdrive_timer <= 0.0:
             self.energy = max(0.0, self.energy - cost)
 
+        # Update Aim Angle
+        cx, cy = self.pos.x, self.pos.y
+        self.aim_angle = math.atan2(target_pos[1] - cy, target_pos[0] - cx)
+        self.muzzle_flash_timer = 0.08
+
+        # Subtle Recoil Impulse
+        recoil_kick = 24.0
+        self.velocity.x -= math.cos(self.aim_angle) * recoil_kick
+        self.velocity.y -= math.sin(self.aim_angle) * recoil_kick
+
         bullets = []
-        cx, cy = self.rect.center
+        cos_a = math.cos(self.aim_angle)
+        sin_a = math.sin(self.aim_angle)
 
         if self.active_weapon == WEAPON_PULSE:
-            bullets.append(Bullet((cx, cy - 8), target_pos, speed=spd, damage=dmg, color=col))
-            bullets.append(Bullet((cx, cy + 8), target_pos, speed=spd, damage=dmg, color=col))
+            # Dual Hardpoint Muzzle Positions
+            m1_x = cx + (20 * cos_a) - (14 * sin_a)
+            m1_y = cy + (20 * sin_a) + (14 * cos_a)
+            m2_x = cx + (20 * cos_a) + (14 * sin_a)
+            m2_y = cy + (20 * sin_a) - (14 * cos_a)
+
+            bullets.append(Bullet((m1_x, m1_y), target_pos, speed=spd, damage=dmg, color=col))
+            bullets.append(Bullet((m2_x, m2_y), target_pos, speed=spd, damage=dmg, color=col))
             if self.overdrive_timer > 0.0:
                 od_dmg = int(dmg * 1.25)
                 bullets.append(Bullet((cx, cy), target_pos, angle_offset_deg=-12.0, speed=spd * 1.1, damage=od_dmg, color=COLOR_GOLD))
@@ -312,8 +352,8 @@ class Player(pygame.sprite.Sprite):
                 bullets.append(Bullet((cx, cy), target_pos, angle_offset_deg=ang, speed=spd, damage=dmg, color=col))
 
         elif self.active_weapon == WEAPON_MISSILE:
-            bullets.append(HomingMissile((cx, cy - 12), target_pos, damage=dmg, speed=spd))
-            bullets.append(HomingMissile((cx, cy + 12), target_pos, damage=dmg, speed=spd))
+            bullets.append(HomingMissile((cx - 12 * sin_a, cy + 12 * cos_a), target_pos, damage=dmg, speed=spd))
+            bullets.append(HomingMissile((cx + 12 * sin_a, cy - 12 * cos_a), target_pos, damage=dmg, speed=spd))
 
         elif self.active_weapon == WEAPON_BEAM:
             bullets.append(PlasmaLaserBeam((cx, cy), target_pos, damage=dmg, speed=spd))
@@ -328,8 +368,8 @@ class Player(pygame.sprite.Sprite):
 
         return bullets
 
-    def handle_input(self, keys, dt: float):
-        """Processes 2D flight control movement."""
+    def handle_input(self, keys, dt: float, mouse_pos: tuple[float, float] = None):
+        """Processes 360-degree vector flight kinematics and mouse aiming."""
         move_x = 0.0
         move_y = 0.0
 
@@ -346,45 +386,64 @@ class Player(pygame.sprite.Sprite):
         if _is_pressed(pygame.K_a) or _is_pressed(pygame.K_LEFT): move_x -= 1.0
         if _is_pressed(pygame.K_d) or _is_pressed(pygame.K_RIGHT): move_x += 1.0
 
-        target_vel_x = move_x * self.speed
-        target_vel_y = move_y * (VERTICAL_SPEED * self.agility_mult)
+        move_vec = pygame.Vector2(move_x, move_y)
+        if move_vec.length_squared() > 0.0:
+            move_vec = move_vec.normalize()
+            self.is_accelerating = True
+            self.velocity += move_vec * (self.acceleration * self.agility_mult) * dt
+        else:
+            self.is_accelerating = False
 
-        # Acceleration and friction
-        self.velocity.x += (target_vel_x - self.velocity.x) * min(1.0, FRICTION * dt)
-        self.velocity.y += (target_vel_y - self.velocity.y) * min(1.0, FRICTION * dt)
+        # Linear Inertial Drag & Deceleration
+        drag_damping = max(0.0, 1.0 - (self.drag * dt))
+        self.velocity *= drag_damping
 
-        # Tilt banking
+        # Clamp Max Speed
+        current_max = self.speed
+        if self.velocity.length() > current_max:
+            self.velocity.scale_to_length(current_max)
+
+        # Update Aim Direction from Mouse
+        if mouse_pos:
+            self.aim_angle = math.atan2(mouse_pos[1] - self.pos.y, mouse_pos[0] - self.pos.x)
+
+        # Visual Tilt Banking
         target_tilt = -18.0 if move_y < 0 else (18.0 if move_y > 0 else 0.0)
         self.tilt_y += (target_tilt - self.tilt_y) * 10.0 * dt
 
     def update(self, dt: float, targets_group=None) -> list[pygame.sprite.Sprite]:
-        # Position Update & Clamping
+        """Updates drone physics position, timers, and energy regeneration."""
+        # Position Update
         self.pos += self.velocity * dt
-        self.pos.x = max(35.0, min(SCREEN_WIDTH - 35.0, self.pos.x))
-        self.pos.y = max(35.0, min(SCREEN_HEIGHT - 35.0, self.pos.y))
+        
+        # Smooth Boundary Clamping
+        pad = 32.0
+        self.pos.x = max(pad, min(self.arena_width - pad, self.pos.x))
+        self.pos.y = max(pad, min(self.arena_height - pad, self.pos.y))
         self.rect.center = (round(self.pos.x), round(self.pos.y))
 
         # Energy Regeneration
         if self.energy < self.max_energy:
             self.energy = min(self.max_energy, self.energy + ENERGY_REGEN_RATE * dt)
 
-        # Timers
+        # Visual Flash Timers
+        if self.muzzle_flash_timer > 0:
+            self.muzzle_flash_timer = max(0.0, self.muzzle_flash_timer - dt)
+        if self.damage_flash_timer > 0:
+            self.damage_flash_timer = max(0.0, self.damage_flash_timer - dt)
+
+        # Ability Timers
         if self.shoot_timer > 0: self.shoot_timer -= dt
         if self.invulnerable_timer > 0: self.invulnerable_timer -= dt
         if self.overclock_timer > 0: self.overclock_timer -= dt
         if self.emp_jammed_timer > 0: self.emp_jammed_timer = max(0.0, self.emp_jammed_timer - dt)
         if self.emp_cooldown > 0: self.emp_cooldown = max(0.0, self.emp_cooldown - dt)
 
-        # Overdrive Timer
         if self.overdrive_timer > 0:
-            self.overdrive_timer -= dt
-            if self.overdrive_timer <= 0:
-                self.overdrive_timer = 0.0
-
+            self.overdrive_timer = max(0.0, self.overdrive_timer - dt)
         if self.overdrive_cooldown > 0:
             self.overdrive_cooldown = max(0.0, self.overdrive_cooldown - dt)
 
-        # Roll Timer
         if self.is_rolling:
             self.roll_timer -= dt
             if self.roll_timer <= 0:
@@ -392,7 +451,6 @@ class Player(pygame.sprite.Sprite):
         if self.roll_cooldown > 0:
             self.roll_cooldown = max(0.0, self.roll_cooldown - dt)
 
-        # Cloak Timer
         if self.is_cloaked:
             self.cloak_timer -= dt
             if self.cloak_timer <= 0:
@@ -408,35 +466,30 @@ class Player(pygame.sprite.Sprite):
 
         return wingman_bullets
 
-    def draw_wingmen(self, canvas: pygame.Surface):
+    def draw_wingmen(self, canvas: pygame.Surface, camera_offset: tuple[float, float] = (0, 0)):
         for wm in self.wingmen:
-            wm.draw(canvas)
+            wm.draw(canvas, camera_offset)
+
+    def draw(self, canvas: pygame.Surface, camera_offset: tuple[float, float] = (0, 0)):
+        """Renders player combat drone using dedicated PlayerRenderer."""
+        self.renderer.draw_player(canvas, self, camera_offset)
 
     def _render_drone_sprite(self):
-        skin = DRONE_SKINS[self.skin_theme]
-        body_col = skin["body_color"]
-        prim_col = skin["primary_color"]
-        glow_col = skin["glow_color"]
+        """Pre-renders base sprite for collision or group fallbacks."""
+        skin_idx = max(0, min(len(DRONE_SKINS) - 1, self.skin_theme)) if isinstance(self.skin_theme, int) else 0
+        skin = DRONE_SKINS[skin_idx]
+        body_col = skin.get("body_color", (15, 23, 42))
+        prim_col = skin.get("primary_color", COLOR_CYAN)
+        glow_col = skin.get("glow_color", COLOR_CYAN)
 
-        w, h = 64, 48
+        w, h = 64, 64
         surf = pygame.Surface((w, h), pygame.SRCALPHA)
+        center = (w // 2, h // 2)
 
-        # Quadcopter Arm Struts
-        pygame.draw.line(surf, (45, 55, 72), (12, 10), (52, 38), 4)
-        pygame.draw.line(surf, (45, 55, 72), (12, 38), (52, 10), 4)
-
-        # Rotors
-        for rx, ry in [(12, 10), (52, 10), (12, 38), (52, 38)]:
-            pygame.draw.circle(surf, glow_col, (rx, ry), 7, 2)
-            pygame.draw.circle(surf, COLOR_WHITE, (rx, ry), 3)
-
-        # Central Chassis & Cockpit Dome
-        chassis_points = [(18, 24), (28, 14), (46, 14), (56, 24), (46, 34), (28, 34)]
-        pygame.draw.polygon(surf, body_col, chassis_points)
-        pygame.draw.polygon(surf, prim_col, chassis_points, 2)
-
-        # Glowing Neon Canopy
-        pygame.draw.ellipse(surf, glow_col, (30, 20, 16, 8))
-        pygame.draw.ellipse(surf, COLOR_WHITE, (34, 22, 8, 4))
+        # Delta-wing silhouette facing right
+        pts = [(w - 8, h // 2), (12, 12), (16, h // 2), (12, h - 12)]
+        pygame.draw.polygon(surf, body_col, pts)
+        pygame.draw.polygon(surf, prim_col, pts, 2)
+        pygame.draw.circle(surf, glow_col, (center[0] + 4, center[1]), 5)
 
         self.image = surf

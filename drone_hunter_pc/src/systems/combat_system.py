@@ -15,13 +15,14 @@ from src.data.settings import (
     COLOR_NEON_RED, COLOR_TESLA
 )
 from src.data.game_data import TARGET_TYPE_SHIELD_DRONE
-from src.core.game_state import STATE_GAME_OVER
 from src.entities.bullet import TeslaArcBeam, ClusterTorpedo
 from src.entities.powerup import PowerupItem
+from src.systems.combat_feedback import CombatFeedbackSystem
 
 class CombatSystem:
     def __init__(self, context):
         self.context = context
+        self.feedback = CombatFeedbackSystem(context)
 
     def execute_emp_blast(self):
         """Executes player EMP Shockwave, clearing all screen bullets and damaging enemies."""

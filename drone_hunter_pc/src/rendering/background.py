@@ -110,8 +110,38 @@ class ParallaxBackground:
         # Scrolling Midground Structures
         self._draw_midground(surface)
 
+        # Tactical Arena Grid & Boundaries
+        self._draw_arena_boundaries(surface)
+
         # Ground Floor Layer
         self._draw_ground(surface)
+
+    def _draw_arena_boundaries(self, surface: pygame.Surface):
+        """Renders subtle combat arena tactical grid and perimeter barrier brackets."""
+        # Subtle tactical arena grid
+        grid_alpha = 18
+        grid_surf = pygame.Surface((SCREEN_WIDTH, SCREEN_HEIGHT), pygame.SRCALPHA)
+        for gx in range(0, SCREEN_WIDTH, 80):
+            pygame.draw.line(grid_surf, (14, 165, 233, grid_alpha), (gx, 0), (gx, SCREEN_HEIGHT), 1)
+        for gy in range(0, SCREEN_HEIGHT, 80):
+            pygame.draw.line(grid_surf, (14, 165, 233, grid_alpha), (0, gy), (SCREEN_WIDTH, gy), 1)
+        surface.blit(grid_surf, (0, 0))
+
+        # Arena Boundary Perimeter Barriers
+        pad = 20
+        c_len = 24
+        # Top-Left
+        pygame.draw.line(surface, (56, 189, 248), (pad, pad), (pad + c_len, pad), 2)
+        pygame.draw.line(surface, (56, 189, 248), (pad, pad), (pad, pad + c_len), 2)
+        # Top-Right
+        pygame.draw.line(surface, (56, 189, 248), (SCREEN_WIDTH - pad, pad), (SCREEN_WIDTH - pad - c_len, pad), 2)
+        pygame.draw.line(surface, (56, 189, 248), (SCREEN_WIDTH - pad, pad), (SCREEN_WIDTH - pad, pad + c_len), 2)
+        # Bottom-Left
+        pygame.draw.line(surface, (56, 189, 248), (pad, SCREEN_HEIGHT - pad), (pad + c_len, SCREEN_HEIGHT - pad), 2)
+        pygame.draw.line(surface, (56, 189, 248), (pad, SCREEN_HEIGHT - pad), (pad, SCREEN_HEIGHT - pad - c_len), 2)
+        # Bottom-Right
+        pygame.draw.line(surface, (56, 189, 248), (SCREEN_WIDTH - pad, SCREEN_HEIGHT - pad), (SCREEN_WIDTH - pad - c_len, SCREEN_HEIGHT - pad), 2)
+        pygame.draw.line(surface, (56, 189, 248), (SCREEN_WIDTH - pad, SCREEN_HEIGHT - pad), (SCREEN_WIDTH - pad, SCREEN_HEIGHT - pad - c_len), 2)
 
     def _draw_midground(self, surface: pygame.Surface):
         offset = int(self.city_scroll)

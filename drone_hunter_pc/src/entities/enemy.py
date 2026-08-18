@@ -126,6 +126,7 @@ class Enemy(pygame.sprite.Sprite):
         self.size = size
         self.speed = base_speed
         self.alive = True
+        self.hit_flash_timer = 0.0
 
         # Position Initialization
         start_y = random.randint(60, SCREEN_HEIGHT - 60)
@@ -168,6 +169,8 @@ class Enemy(pygame.sprite.Sprite):
     def update(self, dt: float, player_pos: tuple[float, float] = (200, 360),
                player_vel: tuple[float, float] = (0, 0), player_obj=None, target_group=None) -> list[EnemyBullet]:
         self.time_accum += dt
+        if self.hit_flash_timer > 0.0:
+            self.hit_flash_timer = max(0.0, self.hit_flash_timer - dt)
         new_bullets = []
 
         pred_aim_x = player_pos[0] + player_vel[0] * 0.35
@@ -287,5 +290,10 @@ class Enemy(pygame.sprite.Sprite):
             pygame.draw.circle(surf, (15, 23, 42), center, s // 2 - 2)
             pygame.draw.circle(surf, self.color_outer, center, s // 2 - 2, 2)
             pygame.draw.circle(surf, self.color_inner, center, max(3, s // 4))
+
+        if self.hit_flash_timer > 0.0:
+            flash_overlay = pygame.Surface((s, s), pygame.SRCALPHA)
+            flash_overlay.fill((255, 255, 255, 180))
+            surf.blit(flash_overlay, (0, 0), special_flags=pygame.BLEND_RGBA_ADD)
 
         self.image = surf

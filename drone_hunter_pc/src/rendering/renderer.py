@@ -56,7 +56,7 @@ class GameRenderer:
 
         # Layer 4: Player Drone & Wingmen
         if context.player:
-            self.canvas.blit(context.player.image, context.player.rect)
+            context.player.draw(self.canvas)
             context.player.draw_wingmen(self.canvas)
 
         # Layer 5: Particles, Weather & Floating Combat Text
