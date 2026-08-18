@@ -220,16 +220,34 @@ class Player(pygame.sprite.Sprite):
         self.current_weapon_idx = (self.current_weapon_idx + direction) % len(self.available_weapons)
         self.active_weapon = self.available_weapons[self.current_weapon_idx]
 
+    def select_weapon(self, index: int):
+        """Selects unlocked weapon by index."""
+        if self.available_weapons and 0 <= index < len(self.available_weapons):
+            self.current_weapon_idx = index
+            self.active_weapon = self.available_weapons[index]
+
     def set_weapon(self, weapon_name: str):
         """Directly equips unlocked weapon by identifier."""
         if weapon_name in self.available_weapons:
             self.active_weapon = weapon_name
             self.current_weapon_idx = self.available_weapons.index(weapon_name)
 
-    def cycle_skin(self):
+    def spawn_wingman(self):
+        """Spawns an escort wingman drone upon picking up a powerup (up to 2)."""
+        if len(self.wingmen) == 0:
+            self.wingmen.append(WingmanDrone(-42, -40))
+        elif len(self.wingmen) == 1:
+            self.wingmen.append(WingmanDrone(-42, 40))
+
+    def trigger_overclock(self, duration: float = 6.0):
+        """Triggers weapon overclock fire rate boost."""
+        self.overclock_timer = max(self.overclock_timer, duration)
+
+    def cycle_skin(self) -> int:
         """Cycles aesthetic drone chassis theme."""
         self.skin_theme = (self.skin_theme + 1) % len(DRONE_SKINS)
         self._render_drone_sprite()
+        return self.skin_theme
 
     def set_skin(self, index: int):
         self.skin_theme = max(0, min(len(DRONE_SKINS) - 1, index))

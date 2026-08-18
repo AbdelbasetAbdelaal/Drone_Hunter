@@ -155,6 +155,23 @@ class TestPhase1FlightAndArena(unittest.TestCase):
                      coins=120, difficulty_name="NORMAL", combo_mult=5)
             self.assertEqual(canvas.get_size(), (w, h))
 
+    def test_powerup_integration(self):
+        """Verify powerup methods like spawn_wingman, trigger_overclock, select_weapon."""
+        self.assertEqual(len(self.player.wingmen), 0)
+        self.player.spawn_wingman()
+        self.assertEqual(len(self.player.wingmen), 1)
+        self.player.spawn_wingman()
+        self.assertEqual(len(self.player.wingmen), 2)
+        # Cap at 2
+        self.player.spawn_wingman()
+        self.assertEqual(len(self.player.wingmen), 2)
+
+        self.player.trigger_overclock(5.0)
+        self.assertEqual(self.player.overclock_timer, 5.0)
+
+        self.player.select_weapon(1)
+        self.assertEqual(self.player.current_weapon_idx, 1)
+
     def test_damage_and_death_flow(self):
         """Verify damage and destruction states."""
         self.player.health = 40.0
