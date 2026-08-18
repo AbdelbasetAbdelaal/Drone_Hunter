@@ -17,6 +17,7 @@ from src.data.settings import (
 from src.data.game_data import TARGET_TYPE_SHIELD_DRONE
 from src.entities.bullet import TeslaArcBeam, ClusterTorpedo
 from src.entities.powerup import PowerupItem
+from src.core.game_state import STATE_GAME_OVER
 from src.systems.combat_feedback import CombatFeedbackSystem
 
 class CombatSystem:
@@ -145,13 +146,13 @@ class CombatSystem:
                 is_destroyed = player.take_damage(scaled_dmg)
 
                 if had_shield:
-                    ctx.audio_manager.play_hit()
-                    ctx.particle_manager.spawn_spark(player.rect.center, count=10, color=COLOR_SHIELD)
+                    if ctx.audio_manager: ctx.audio_manager.play_hit()
+                    if ctx.particle_manager: ctx.particle_manager.spawn_spark(player.rect.center, count=10, color=COLOR_SHIELD)
                 else:
                     ctx.trigger_shake(8.0, 0.25)
                     ctx.damage_flash_timer = 0.18
-                    ctx.audio_manager.play_explosion()
-                    ctx.particle_manager.spawn_explosion(player.rect.center, count=20, color=COLOR_CRIMSON)
+                    if ctx.audio_manager: ctx.audio_manager.play_explosion()
+                    if ctx.particle_manager: ctx.particle_manager.spawn_explosion(player.rect.center, count=20, color=COLOR_CRIMSON)
 
                 if is_destroyed:
                     player.kill()
@@ -164,7 +165,7 @@ class CombatSystem:
                 if hasattr(h, "gap_y"): # LaserGridFence
                     is_destroyed = player.take_damage(35.0 * dt)
                     ctx.trigger_shake(4.0, 0.1)
-                    ctx.particle_manager.spawn_spark(player.rect.center, count=4, color=COLOR_NEON_RED)
+                    if ctx.particle_manager: ctx.particle_manager.spawn_spark(player.rect.center, count=4, color=COLOR_NEON_RED)
                     if is_destroyed:
                         player.kill()
                         ctx.state = STATE_GAME_OVER
@@ -173,7 +174,7 @@ class CombatSystem:
         if player.alive:
             p_hits = pygame.sprite.spritecollide(player, ctx.powerup_group, True)
             for p in p_hits:
-                ctx.audio_manager.play_powerup()
+                if ctx.audio_manager: ctx.audio_manager.play_powerup()
                 if p.p_type == "battery":
                     player.health = min(player.max_health, player.health + 35.0)
                     player.energy = min(player.max_energy, player.energy + 25.0)

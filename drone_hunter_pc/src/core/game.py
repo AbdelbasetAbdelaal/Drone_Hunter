@@ -445,6 +445,10 @@ class Game:
                 # 4. Combat & Collision Resolution
                 self.combat_system.update_combat(dt)
 
+                # Check Player Death
+                if ctx.player and not ctx.player.alive and ctx.state == STATE_PLAYING:
+                    ctx.state = STATE_GAME_OVER
+
                 # 5. Check Stage Completion (Respects Boss Spawn & Elimination in Boss Stages)
                 if ctx.wave_manager.is_stage_complete(ctx.level_score, targets_group=ctx.target_group):
                     ctx.state = STATE_LEVEL_CLEAR

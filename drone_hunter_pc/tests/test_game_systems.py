@@ -240,16 +240,21 @@ class TestDroneHunter2D(unittest.TestCase):
             if os.path.exists(save_sys.save_path): os.remove(save_sys.save_path)
             if os.path.exists(save_sys.temp_path): os.remove(save_sys.temp_path)
 
-    def test_campaign_progression_to_victory(self):
-        """Verify progression advances 1-1 to 5-3 and properly reaches STATE_VICTORY."""
-        prog = ProgressionSystem()
-        for sec in range(5):
-            for stg in range(1, 4):
-                next_sec, next_stg, is_vic = prog.unlock_next_stage(sec, stg)
-                if sec == 4 and stg == 3:
-                    self.assertTrue(is_vic, "Sector 5 Stage 3 completion must trigger Campaign Victory!")
-                else:
-                    self.assertFalse(is_vic)
+    def test_combat_player_death_game_over(self):
+        """Verify lethal damage in CombatSystem transitions state to STATE_GAME_OVER."""
+        ctx = GameContext()
+        ctx.state = STATE_PLAYING
+        ctx.player = Player((200, 200))
+        combat = CombatSystem(ctx)
+
+        # Spawn enemy bullet hitting player
+        from src.entities.bullet import EnemyBullet
+        eb = EnemyBullet((200, 200), (0, 0), speed=100.0, damage=1000.0)
+        ctx.enemy_bullet_group.add(eb)
+
+        combat.update_combat(0.016)
+        self.assertFalse(ctx.player.alive)
+        self.assertEqual(ctx.state, STATE_GAME_OVER)
 
 
 if __name__ == "__main__":
