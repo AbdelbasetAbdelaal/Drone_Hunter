@@ -31,6 +31,7 @@ from src.entities.hazard import LaserGridFence, GravityAnomaly
 from src.systems.save_system import SaveSystem
 from src.systems.progression_system import ProgressionSystem
 from src.systems.spawn_system import Spawner, WaveManager
+from src.systems.encounter_system import EncounterSystem
 from src.systems.combat_system import CombatSystem
 from src.rendering.camera import Camera2D
 from src.rendering.background import ParallaxBackground
@@ -65,6 +66,7 @@ class Game:
         self.audio_manager = AudioManager()
         self.save_system = SaveSystem()
         self.spawner = Spawner()
+        self.encounter_system = EncounterSystem()
         self.combat_system = CombatSystem(self.context)
 
         # Inject references
@@ -72,6 +74,7 @@ class Game:
         self.context.audio_manager = self.audio_manager
         self.context.save_system = self.save_system
         self.context.background = self.background
+        self.context.encounter_system = self.encounter_system
 
         # Load Save Data
         saved_data = self.save_system.load()
@@ -124,6 +127,7 @@ class Game:
         is_boss_stage = (ctx.current_sub_level == 3)
         ctx.wave_manager = WaveManager(target_score, is_boss_stage=is_boss_stage)
         self.spawner.reset_for_stage(ctx.current_sector_idx * 3 + ctx.current_sub_level, ctx.current_sector_idx)
+        self.encounter_system.reset()
         self.background.set_sector(ctx.current_sector_idx)
 
     def save_progress(self):
@@ -410,8 +414,11 @@ class Game:
                     # Smooth Camera Tracking
                     self.camera.update((ctx.player.pos.x, ctx.player.pos.y), dt)
 
-                # 2. Spawner Update
-                self.spawner.update(dt, ctx)
+                # 2. Spawner / Controlled Encounter System Update
+                if ctx.current_sector_idx == 0 and ctx.current_sub_level == 1:
+                    self.encounter_system.update(dt, ctx)
+                else:
+                    self.spawner.update(dt, ctx)
 
                 # 3. Enemies & Projectiles (Scaled by bullet-time slowmo factor)
                 effective_enemy_dt = dt * ctx.time_scale
@@ -449,8 +456,10 @@ class Game:
                 if ctx.player and not ctx.player.alive and ctx.state == STATE_PLAYING:
                     ctx.state = STATE_GAME_OVER
 
-                # 5. Check Stage Completion (Respects Boss Spawn & Elimination in Boss Stages)
-                if ctx.wave_manager.is_stage_complete(ctx.level_score, targets_group=ctx.target_group):
+                # 5. Check Stage Completion (Controlled Encounter or Wave Target Score)
+                encounter_done = (ctx.current_sector_idx == 0 and ctx.current_sub_level == 1 and self.encounter_system.is_complete)
+                wave_done = ctx.wave_manager.is_stage_complete(ctx.level_score, targets_group=ctx.target_group)
+                if encounter_done or wave_done:
                     ctx.state = STATE_LEVEL_CLEAR
                     self.audio_manager.play_powerup()
                     self.save_progress()

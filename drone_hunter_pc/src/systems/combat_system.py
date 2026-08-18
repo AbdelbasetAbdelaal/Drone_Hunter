@@ -87,46 +87,47 @@ class CombatSystem:
                             break
                 if is_shielded:
                     dmg = max(4, dmg // 3)
-                    ctx.particle_manager.spawn_spark(target.rect.center, count=6, color=COLOR_SHIELD)
+                    if ctx.particle_manager: ctx.particle_manager.spawn_spark(target.rect.center, count=6, color=COLOR_SHIELD)
 
                 is_dead = target.take_damage(dmg, source="bullet")
 
                 # Tesla Arc Lightning Chain Reaction
                 if isinstance(b, TeslaArcBeam):
                     b.chained_targets.add(target)
-                    ctx.audio_manager.play_tesla()
+                    if ctx.audio_manager: ctx.audio_manager.play_tesla()
                     available = [t for t in ctx.target_group if t not in b.chained_targets and t.alive]
                     if available:
                         nearest_chain = sorted(available, key=lambda t: math.hypot(t.pos.x - target.pos.x, t.pos.y - target.pos.y))[:2]
                         for chained_enemy in nearest_chain:
                             b.chained_targets.add(chained_enemy)
                             chained_dead = chained_enemy.take_damage(dmg // 2, source="tesla")
-                            ctx.particle_manager.spawn_lightning_arc(target.rect.center, chained_enemy.rect.center, COLOR_TESLA)
-                            ctx.particle_manager.spawn_spark(chained_enemy.rect.center, count=6, color=COLOR_TESLA)
+                            if ctx.particle_manager:
+                                ctx.particle_manager.spawn_lightning_arc(target.rect.center, chained_enemy.rect.center, COLOR_TESLA)
+                                ctx.particle_manager.spawn_spark(chained_enemy.rect.center, count=6, color=COLOR_TESLA)
                             if chained_dead:
-                                ctx.audio_manager.play_explosion()
+                                if ctx.audio_manager: ctx.audio_manager.play_explosion()
                                 earned = ctx.add_score(chained_enemy.score_value)
-                                ctx.particle_manager.spawn_floating_text(chained_enemy.rect.center, f"+{earned}", COLOR_GOLD, 20)
+                                if ctx.particle_manager: ctx.particle_manager.spawn_floating_text(chained_enemy.rect.center, f"+{earned}", COLOR_GOLD, 20)
 
                 if not getattr(b, "is_piercing", False):
                     b.kill()
 
-                ctx.particle_manager.spawn_spark(b.rect.center, count=8, color=COLOR_CYAN)
-                ctx.audio_manager.play_hit()
+                if ctx.particle_manager: ctx.particle_manager.spawn_spark(b.rect.center, count=8, color=COLOR_CYAN)
+                if ctx.audio_manager: ctx.audio_manager.play_hit()
 
                 if is_dead:
-                    ctx.audio_manager.play_explosion()
+                    if ctx.audio_manager: ctx.audio_manager.play_explosion()
                     ctx.trigger_shake(6.0, 0.2)
                     earned_pts = ctx.add_score(target.score_value)
 
                     # Death Explosion Particles
-                    if getattr(target, "is_boss", False):
-                        ctx.particle_manager.spawn_boss_explosion(target.rect.center)
-                        ctx.trigger_shake(14.0, 0.6)
-                    else:
-                        ctx.particle_manager.spawn_enemy_death(target.rect.center, target.color)
-
-                    ctx.particle_manager.spawn_floating_text(target.rect.center, f"+{earned_pts}", COLOR_GOLD, 20)
+                    if ctx.particle_manager:
+                        if getattr(target, "is_boss", False):
+                            ctx.particle_manager.spawn_boss_explosion(target.rect.center)
+                            ctx.trigger_shake(14.0, 0.6)
+                        else:
+                            ctx.particle_manager.spawn_enemy_death(target.rect.center, target.color)
+                        ctx.particle_manager.spawn_floating_text(target.rect.center, f"+{earned_pts}", COLOR_GOLD, 20)
 
                     # Power-up drop roll with difficulty drop rate scaling
                     drop_rate = ctx.difficulty_data.get("powerup_drop_rate", 0.30)
@@ -157,6 +158,30 @@ class CombatSystem:
                 if is_destroyed:
                     player.kill()
                     ctx.state = STATE_GAME_OVER
+
+        # 3B. Hostile Enemies vs Player Drone (Contact Damage with Cooldown)
+        if player.alive and not player.is_invulnerable and not player.is_cloaked:
+            c_hits = pygame.sprite.spritecollide(player, ctx.target_group, False)
+            for enemy in c_hits:
+                if getattr(enemy, "alive", True) and getattr(enemy, "contact_cooldown_timer", 0.0) <= 0.0:
+                    c_dmg = getattr(enemy, "contact_damage", 20.0)
+                    enemy.contact_cooldown_timer = 1.0 # 1.0s contact cooldown per enemy
+
+                    had_shield = player.shield_hits > 0
+                    is_destroyed = player.take_damage(c_dmg)
+
+                    if had_shield:
+                        if ctx.audio_manager: ctx.audio_manager.play_hit()
+                        if ctx.particle_manager: ctx.particle_manager.spawn_spark(player.rect.center, count=12, color=COLOR_SHIELD)
+                    else:
+                        ctx.trigger_shake(9.0, 0.25)
+                        ctx.damage_flash_timer = 0.18
+                        if ctx.audio_manager: ctx.audio_manager.play_hit()
+                        if ctx.particle_manager: ctx.particle_manager.spawn_spark(player.rect.center, count=15, color=COLOR_CRIMSON)
+
+                    if is_destroyed:
+                        player.kill()
+                        ctx.state = STATE_GAME_OVER
 
         # 4. Hazards vs Player
         if player.alive and not player.is_cloaked:

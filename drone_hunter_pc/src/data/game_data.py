@@ -118,6 +118,7 @@ WEAPON_DEFS = {
 # -----------------------------------------------------------------------------
 # Enemy & Boss Type Identifiers
 # -----------------------------------------------------------------------------
+TARGET_TYPE_SCOUT = "scout"                       # Phase 2A Scout Drone (Mobile Melee Pressure)
 TARGET_TYPE_STANDARD = "standard"
 TARGET_TYPE_FAST = "fast"
 TARGET_TYPE_ARMORED = "armored"
@@ -136,6 +137,21 @@ TARGET_TYPE_TITAN_MECH = "titan_mech"             # Colossus Titan Mech (Sector 
 
 TARGET_SPEED = 140.0
 ENEMY_BULLET_SPEED = 340.0
+
+# -----------------------------------------------------------------------------
+# Scout Drone Specifications (Phase 2A Baseline)
+# -----------------------------------------------------------------------------
+SCOUT_HP = 30
+SCOUT_SPEED = 210.0
+SCOUT_DIVE_SPEED = 410.0
+SCOUT_CONTACT_DAMAGE = 22.0
+SCOUT_SCORE = 150
+SCOUT_SIZE = 32
+SCOUT_TELEGRAPH_TIME = 0.45
+SCOUT_DIVE_DURATION = 0.55
+SCOUT_RECOVER_TIME = 0.75
+SCOUT_STRAFE_DURATION = 1.40
+SCOUT_CONTACT_COOLDOWN = 1.00
 
 # -----------------------------------------------------------------------------
 # Campaign Sectors & Stages
