@@ -290,6 +290,24 @@ class TestPhase2AScoutAndEncounter(unittest.TestCase):
         self.assertEqual(game.encounter_system.state, "waiting")
         self.assertTrue(game.encounter_system.is_active)
 
+    def test_sector_1_stage_1_starts_exactly_once(self):
+        """Verify that repeated game updates do not re-trigger start()."""
+        game = Game()
+        ctx = game.context
+        ctx.current_sector_idx = 1
+        ctx.current_sub_level = 1
+        game.reset_game()
+        self.assertEqual(game.encounter_system.state, "idle")
+
+        ctx.state = STATE_PLAYING
+        game.update(0.016)
+        self.assertEqual(game.encounter_system.state, "waiting")
+
+        # Subsequent frames must continue timer rather than re-calling start()
+        t_before = game.encounter_system.timer
+        game.update(0.016)
+        self.assertLess(game.encounter_system.timer, t_before)
+
     def test_encounter_suppresses_normal_spawner(self):
         """While encounter is WAITING or ACTIVE, is_suppressing_spawner is True."""
         encounter = EncounterSystem()
