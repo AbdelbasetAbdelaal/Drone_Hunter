@@ -95,19 +95,19 @@ python drone_hunter_mobile/main.py
 Drone_Hunter/
 ├── README.md                     # Main project documentation
 ├── drone_hunter_pc/              # PC Edition (Desktop-optimized)
-│   ├── main.py                   # Game loop, state manager, input handling
-│   ├── save_data_pc.json         # Persistent save data (coins, unlocks, upgrades)
+│   ├── main.py                   # Clean entry point
+│   ├── save_data_pc.json         # Persistent atomic save data (coins, unlocks, upgrades)
+│   ├── tests/                    # Automated unit, integration & runtime smoke tests
+│   │   ├── test_game_systems.py
+│   │   └── test_runtime_smoke.py
 │   └── src/
-│       ├── settings.py           # Game constants, physics, colors, weapon defs
-│       ├── player.py             # Player drone physics, skins, weapons, abilities
-│       ├── target.py             # Enemy AI, Boss mechanics, Spawner, Wave manager
-│       ├── bullet.py             # Weapon projectiles, Tesla arcs, Cluster bombs
-│       ├── ui.py                 # Holographic HUD, Radar minimap, Hangar shop UI
-│       ├── audio.py              # Procedural sound synthesizer & synthwave audio
-│       ├── particles.py          # Particle systems, Screen Shake, weather effects
-│       ├── background.py         # Multi-layer parallax scrolling backgrounds
-│       ├── obstacle.py           # Environmental hazards (Asteroids, Sea mines, Barrels)
-│       └── hazard.py             # Laser grid fences & Gravity anomalies
+│       ├── core/                 # Engine loop, State machine, Context container, Clock
+│       ├── data/                 # Display settings, authoritative weapon/sector catalogs
+│       ├── entities/             # 2D Player, enemies, bosses, bullets, powerups, obstacles, hazards
+│       ├── systems/              # Combat collisions, wave manager, save/load, difficulty, progression
+│       ├── rendering/            # Parallax backgrounds, particle engine, scanline renderer
+│       ├── ui/                   # HUD, minimap, hangar upgrade store, menus, font manager
+│       └── audio/                # Sound synthesis & audio cache manager
 └── drone_hunter_mobile/          # Mobile Edition (Touch controls, Android APK build)
     ├── main.py                   # Mobile game loop with touch input overlay
     ├── buildozer.spec            # Android APK build configuration
