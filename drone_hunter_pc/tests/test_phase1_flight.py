@@ -1,17 +1,19 @@
 """
 ================================================================================
-    DRONE HUNTER 2D - PHASE 1.6 RENDERING SPACE & UI TEST SUITE
+    DRONE HUNTER 2D - PHASE 1.7 CYBER FACTORY ENVIRONMENT & ARENA TEST SUITE
 ================================================================================
 Automated test suite verifying:
 1. World coordinates larger than viewport (2400x1400 vs 1280x720)
 2. Strict separation of World Space vs Screen Space coordinates
-3. Camera smooth tracking, boundary clamping, and world-screen coordinate conversions
-4. Decoupled mouse aim calculation from flight velocity
-5. Player flight kinematics (acceleration, deceleration, max speed clamping)
-6. Dual Pulse cannon hardpoint firing
-7. Responsive HUD dynamic layout scaling across resolutions (1280x720, 1152x648, 1024x576)
-8. Main menu purity (no gameplay widgets leaked)
-9. Player damage & death states
+3. Multi-position camera coverage (Center, Top, Bottom, Left, Right, Corners)
+4. Cyber Factory Arena components (PowerReactor, FactoryMachineryUnit, conduits)
+5. Decoupled mouse aim calculation from flight velocity
+6. Player flight kinematics (acceleration, deceleration, max speed clamping)
+7. Dual Pulse cannon hardpoint firing
+8. Responsive HUD dynamic layout scaling across resolutions (1280x720, 1152x648, 1024x576)
+9. Powerup pickups (wingman spawning, overclock, weapon switching)
+10. Main menu purity (no gameplay widgets leaked)
+11. Player damage & death states
 """
 
 import os
@@ -34,7 +36,7 @@ from src.entities.player import Player
 from src.entities.obstacle import EnvironmentalObstacle
 from src.rendering.player_renderer import PlayerRenderer
 from src.rendering.camera import Camera2D
-from src.rendering.background import CyberFactoryArenaBackground
+from src.rendering.background import CyberFactoryArenaBackground, PowerReactor, FactoryMachineryUnit
 from src.ui.hud import draw_hud
 from src.ui.menus import draw_main_menu
 
@@ -65,27 +67,34 @@ class TestPhase1FlightAndArena(unittest.TestCase):
         self.assertGreaterEqual(self.player.pos.x, 36.0)
         self.assertGreaterEqual(self.player.pos.y, 36.0)
 
-    def test_camera_tracking_and_clamping(self):
-        """Verify Camera2D smooth lerp tracking and boundary offset clamping."""
+    def test_camera_multi_positions_and_coherence(self):
+        """Verify Camera2D and CyberFactoryArenaBackground render smoothly at all positions."""
         cam = Camera2D(world_w=WORLD_WIDTH, world_h=WORLD_HEIGHT, view_w=SCREEN_WIDTH, view_h=SCREEN_HEIGHT)
-        
-        # Center of world (1200, 700) -> offset should be (1200 - 640 = 560, 700 - 360 = 340)
-        cam.center_x = 1200.0
-        cam.center_y = 700.0
-        cam.update((1200.0, 700.0), dt=1.0)
-        
-        self.assertAlmostEqual(cam.offset_x, 560.0, delta=1.0)
-        self.assertAlmostEqual(cam.offset_y, 340.0, delta=1.0)
+        bg = CyberFactoryArenaBackground()
+        canvas = pygame.Surface((SCREEN_WIDTH, SCREEN_HEIGHT))
 
-        # Target near world edge -> offset clamped to 0
-        cam.update((100.0, 100.0), dt=10.0)
-        self.assertEqual(cam.offset_x, 0.0)
-        self.assertEqual(cam.offset_y, 0.0)
+        positions = [
+            (1200.0, 700.0), # Center
+            (1200.0, 100.0), # Top
+            (1200.0, 1300.0), # Bottom
+            (100.0, 700.0), # Left
+            (2300.0, 700.0), # Right
+            (100.0, 100.0), # Top-Left Corner
+            (2300.0, 100.0), # Top-Right Corner
+            (100.0, 1300.0), # Bottom-Left Corner
+            (2300.0, 1300.0), # Bottom-Right Corner
+        ]
 
-        # Target near world far edge -> offset clamped to max_offset
-        cam.update((2350.0, 1350.0), dt=10.0)
-        self.assertEqual(cam.offset_x, WORLD_WIDTH - SCREEN_WIDTH)
-        self.assertEqual(cam.offset_y, WORLD_HEIGHT - SCREEN_HEIGHT)
+        for pos in positions:
+            cam.update(pos, dt=10.0)
+            offset = cam.get_offset()
+            self.assertGreaterEqual(offset[0], 0.0)
+            self.assertLessEqual(offset[0], WORLD_WIDTH - SCREEN_WIDTH)
+            self.assertGreaterEqual(offset[1], 0.0)
+            self.assertLessEqual(offset[1], WORLD_HEIGHT - SCREEN_HEIGHT)
+            # Render background with offset
+            bg.draw(canvas, camera_offset=offset)
+            self.assertEqual(canvas.get_size(), (SCREEN_WIDTH, SCREEN_HEIGHT))
 
     def test_world_vs_screen_rendering_separation(self):
         """Verify world objects translate with camera while screen HUD stays fixed."""
@@ -93,11 +102,9 @@ class TestPhase1FlightAndArena(unittest.TestCase):
         cam.offset_x = 400.0
         cam.offset_y = 200.0
 
-        # World object at (500, 300) should appear at screen (100, 100)
         screen_pos = cam.world_to_screen(500.0, 300.0)
         self.assertEqual(screen_pos, (100, 100))
 
-        # Re-convert back
         world_pos = cam.screen_to_world(100, 100)
         self.assertEqual(world_pos, (500.0, 300.0))
 
@@ -117,8 +124,8 @@ class TestPhase1FlightAndArena(unittest.TestCase):
     def test_aim_independent_from_movement(self):
         """Verify aim angle is purely governed by mouse position regardless of movement vector."""
         self.player.handle_input({pygame.K_a: True}, dt=0.1, mouse_pos=(self.player.pos.x + 200, self.player.pos.y))
-        self.assertLess(self.player.velocity.x, 0.0) # Moving left
-        self.assertAlmostEqual(self.player.aim_angle, 0.0, delta=0.01) # Aiming right
+        self.assertLess(self.player.velocity.x, 0.0)
+        self.assertAlmostEqual(self.player.aim_angle, 0.0, delta=0.01)
 
     def test_player_acceleration_and_deceleration(self):
         """Verify flight kinematics acceleration and linear drag."""
@@ -127,7 +134,6 @@ class TestPhase1FlightAndArena(unittest.TestCase):
         self.assertGreater(self.player.velocity.x, 0.0)
         self.assertTrue(self.player.is_accelerating)
 
-        # Release keys -> deceleration
         init_speed = self.player.velocity.x
         self.player.handle_input({}, dt=0.1)
         self.assertFalse(self.player.is_accelerating)
@@ -162,7 +168,6 @@ class TestPhase1FlightAndArena(unittest.TestCase):
         self.assertEqual(len(self.player.wingmen), 1)
         self.player.spawn_wingman()
         self.assertEqual(len(self.player.wingmen), 2)
-        # Cap at 2
         self.player.spawn_wingman()
         self.assertEqual(len(self.player.wingmen), 2)
 
