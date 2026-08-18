@@ -121,12 +121,17 @@ class FactoryFloor:
                     col_idx = (gx // self.tw)
                     row_idx = (gy // self.th)
 
-                    # Deterministic drainage grates
-                    if (col_idx + row_idx * 3) % 11 == 0:
+                    # Cohesive, quiet industrial foundation (predominantly clean slate plates)
+                    # Grates and maintenance panels clustered along dedicated service corridors
+                    is_service_duct = (col_idx % 8 == 0) or (row_idx % 10 == 0)
+                    if is_service_duct and ((col_idx + row_idx) % 3 == 0):
                         surface.blit(self.tile_grate, (sx, sy))
+                    elif is_service_duct:
+                        surface.blit(self.tiles[5], (sx, sy)) # floor_panel
                     else:
-                        variant_idx = (col_idx * 3 + row_idx * 7) % len(self.tiles)
-                        surface.blit(self.tiles[variant_idx], (sx, sy))
+                        # Solid calm plates with subtle tone variation
+                        base_idx = (col_idx // 2 + row_idx // 2) % 2 # floor_01 / floor_02
+                        surface.blit(self.tiles[base_idx], (sx, sy))
 
         # 3. Discrete Assembly Line Hazard Stripes
         hw, hh = self.hazard_img.get_size()
