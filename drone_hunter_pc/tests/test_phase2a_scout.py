@@ -251,19 +251,42 @@ class TestPhase2AScoutAndEncounter(unittest.TestCase):
     # ==========================================================================
     # GAME INTEGRATION & SECTOR TRIGGER TESTS
     # ==========================================================================
-    def test_sector_0_stage_1_does_not_start_scout_encounter(self):
-        """Sector 0 Stage 1 should keep EncounterSystem in IDLE."""
+    def test_reset_does_not_start_encounter(self):
+        """Game.reset_game() must leave encounter in IDLE."""
         game = Game()
-        game.start_stage(0, 1)
+        game.reset_game()
+        self.assertEqual(game.encounter_system.state, "idle")
+        self.assertFalse(game.encounter_system.is_active)
 
+    def test_sector_0_stage_1_does_not_start_scout_encounter(self):
+        """Sector 0 Stage 1 should keep EncounterSystem in IDLE even after game updates."""
+        game = Game()
+        ctx = game.context
+        ctx.current_sector_idx = 0
+        ctx.current_sub_level = 1
+        game.reset_game()
+        self.assertEqual(game.encounter_system.state, "idle")
+
+        ctx.state = STATE_PLAYING
+        game.update(0.016)
         self.assertEqual(game.encounter_system.state, "idle")
         self.assertFalse(game.encounter_system.is_active)
 
     def test_sector_1_stage_1_does_start_scout_encounter(self):
-        """Cyber Factory Sector 1 Stage 1 explicitly starts EncounterSystem in WAITING."""
+        """Cyber Factory Sector 1 Stage 1 is IDLE after reset, and starts WAITING on game update."""
         game = Game()
-        game.start_stage(1, 1)
+        ctx = game.context
+        ctx.current_sector_idx = 1
+        ctx.current_sub_level = 1
+        game.reset_game()
 
+        # After reset_game, state must be IDLE
+        self.assertEqual(game.encounter_system.state, "idle")
+        self.assertFalse(game.encounter_system.is_active)
+
+        # After Game update in STATE_PLAYING, Game explicitly starts it -> WAITING
+        ctx.state = STATE_PLAYING
+        game.update(0.016)
         self.assertEqual(game.encounter_system.state, "waiting")
         self.assertTrue(game.encounter_system.is_active)
 

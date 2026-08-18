@@ -131,17 +131,13 @@ class Game:
         self.background.set_sector(ctx.current_sector_idx)
 
     def start_stage(self, sector_idx: int = None, stage_idx: int = None):
-        """Prepares and launches a gameplay stage, explicitly starting encounters where defined."""
+        """Prepares and launches a gameplay stage."""
         ctx = self.context
         if sector_idx is not None: ctx.current_sector_idx = sector_idx
         if stage_idx is not None: ctx.current_sub_level = stage_idx
 
         self.reset_game()
         ctx.state = STATE_PLAYING
-
-        # Explicitly start the intro Scout encounter only for Cyber Factory Sector 1 Stage 1
-        if ctx.current_sector_idx == 1 and ctx.current_sub_level == 1:
-            self.encounter_system.start()
 
     def save_progress(self):
         ctx = self.context
@@ -419,11 +415,18 @@ class Game:
                     self.camera.update((ctx.player.pos.x, ctx.player.pos.y), dt)
 
                 # 2. Spawner / Controlled Encounter System Update (Cyber Factory Sector 1 / Stage 1)
-                if ctx.current_sector_idx == 1 and ctx.current_sub_level == 1 and self.encounter_system.is_active:
-                    # Suppress legacy random wave spawning during intro Scout encounter
-                    self.encounter_system.update(dt, ctx)
+                if ctx.current_sector_idx == 1 and ctx.current_sub_level == 1:
+                    if self.encounter_system.state == "idle":
+                        self.encounter_system.start()
+
+                    if self.encounter_system.is_active:
+                        # Suppress legacy random wave spawning during intro Scout encounter
+                        self.encounter_system.update(dt, ctx)
+                    else:
+                        # Normal spawner resumes once encounter completes
+                        self.spawner.update(dt, ctx)
                 else:
-                    # Normal spawner runs once encounter completes or in other stages
+                    # Normal spawner runs in other sectors and stages
                     self.spawner.update(dt, ctx)
 
                 # 3. Enemies & Projectiles (Scaled by bullet-time slowmo factor)
