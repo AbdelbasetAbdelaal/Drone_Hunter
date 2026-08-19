@@ -103,7 +103,6 @@ class EncounterSystem:
         """Explicitly starts the encounter into WAITING state."""
         if config is not None:
             self.set_encounter(config)
-            return
             
         self.state = "waiting"
         self.spawned_count = 0

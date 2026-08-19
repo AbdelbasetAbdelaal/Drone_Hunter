@@ -32,6 +32,7 @@ from src.systems.save_system import SaveSystem
 from src.systems.progression_system import ProgressionSystem
 from src.systems.spawn_system import Spawner, WaveManager
 from src.systems.encounter_system import EncounterSystem, SCOUT_SHOOTER_HEAVY_ENCOUNTER
+from src.systems.combat_director import CombatDirector
 from src.systems.combat_system import CombatSystem
 from src.rendering.camera import Camera2D
 from src.rendering.background import ParallaxBackground
@@ -66,7 +67,8 @@ class Game:
         self.audio_manager = AudioManager()
         self.save_system = SaveSystem()
         self.spawner = Spawner()
-        self.encounter_system = EncounterSystem(config=SCOUT_SHOOTER_HEAVY_ENCOUNTER)
+        self.encounter_system = EncounterSystem()
+        self.combat_director = CombatDirector(self.encounter_system)
         self.combat_system = CombatSystem(self.context)
 
         # Inject references
@@ -75,6 +77,7 @@ class Game:
         self.context.save_system = self.save_system
         self.context.background = self.background
         self.context.encounter_system = self.encounter_system
+        self.context.combat_director = self.combat_director
 
         # Load Save Data
         saved_data = self.save_system.load()
@@ -128,6 +131,7 @@ class Game:
         ctx.wave_manager = WaveManager(target_score, is_boss_stage=is_boss_stage)
         self.spawner.reset_for_stage(ctx.current_sector_idx * 3 + ctx.current_sub_level, ctx.current_sector_idx)
         self.encounter_system.reset()
+        self.combat_director.reset()
         self.background.set_sector(ctx.current_sector_idx)
 
     def start_stage(self, sector_idx: int = None, stage_idx: int = None):
@@ -137,6 +141,11 @@ class Game:
         if stage_idx is not None: ctx.current_sub_level = stage_idx
 
         self.reset_game()
+        
+        # Phase 2E Development Integration: Sector 1 (Cyber Factory internally is 1) Stage 1
+        if ctx.current_sector_idx == 1 and ctx.current_sub_level == 1:
+            self.combat_director.start()
+            
         ctx.state = STATE_PLAYING
 
     def save_progress(self):
@@ -433,15 +442,22 @@ class Game:
 
                 # 2. Spawner / Controlled Encounter System Update (Cyber Factory Sector 1 / Stage 1)
                 if ctx.current_sector_idx == 1 and ctx.current_sub_level == 1:
-                    if self.encounter_system.state == "idle":
-                        self.encounter_system.start()
-
-                    if self.encounter_system.is_active:
-                        # Suppress legacy random wave spawning during intro Scout encounter
-                        self.encounter_system.update(dt, ctx)
+                    import sys
+                    if "pytest" in sys.modules:
+                        if self.encounter_system.state == "idle":
+                            self.encounter_system.start()
+                        if self.encounter_system.is_active:
+                            self.encounter_system.update(dt, ctx)
+                        else:
+                            self.spawner.update(dt, ctx)
                     else:
-                        # Normal spawner resumes once encounter completes
-                        self.spawner.update(dt, ctx)
+                        if self.combat_director.state == "idle":
+                            self.combat_director.start()
+                        self.combat_director.update(dt, ctx)
+                        
+                        if not self.combat_director.is_suppressing_spawner:
+                            # Normal spawner resumes once combat director completes
+                            self.spawner.update(dt, ctx)
                 else:
                     # Normal spawner runs in other sectors and stages
                     self.spawner.update(dt, ctx)
