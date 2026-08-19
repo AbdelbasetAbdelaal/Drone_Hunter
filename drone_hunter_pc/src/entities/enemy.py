@@ -196,8 +196,9 @@ class Enemy(pygame.sprite.Sprite):
         self.sniper_aim_timer = random.uniform(1.5, 3.0)
         self.is_aiming = False
 
-        self._base_surf = pygame.Surface((self.size, self.size), pygame.SRCALPHA)
-        self.image = pygame.Surface((self.size, self.size), pygame.SRCALPHA)
+        surf_size = 48 if enemy_type == TARGET_TYPE_SCOUT else self.size
+        self._base_surf = pygame.Surface((surf_size, surf_size), pygame.SRCALPHA)
+        self.image = pygame.Surface((surf_size, surf_size), pygame.SRCALPHA)
         self.rect = self.image.get_rect(center=self.pos)
         self.radius = self.size // 2
 
@@ -541,27 +542,25 @@ class Enemy(pygame.sprite.Sprite):
         center = (s // 2, s // 2)
 
         if self.enemy_type == TARGET_TYPE_SCOUT:
-            # High-speed aerodynamic delta-wing
-            points = [
-                (s - 2, s // 2),
-                (2, 2),
-                (8, s // 2),
-                (2, s - 2)
-            ]
-            pygame.draw.polygon(surf, self.color_outer, points)
-            pygame.draw.polygon(surf, self.color_inner, [
-                (s - 8, s // 2),
-                (6, 6),
-                (10, s // 2),
-                (6, s - 6)
-            ])
-            pygame.draw.circle(surf, COLOR_WHITE, (s // 2, s // 2), 3)
+            from src.rendering.sprite_manager import get_sprite_manager
+            sm = get_sprite_manager()
+            
+            # Determine visual state
+            if self.hit_flash_timer > 0:
+                state = "hit"
+            elif self.ai_state == "dive":
+                state = "attack"
+            elif self.ai_state in ("approach", "strafe", "recover"):
+                state = "move"
+            else:
+                state = "idle"
+                
+            scout_surf = sm.get_scout_sprite(state=state, target_size=(44, 40))
+            surf.blit(scout_surf, (2, 4))
 
             if self.ai_state == "telegraph":
                 alpha = int(140 + 100 * math.sin(self.state_timer * 22.0))
-                glow_s = pygame.Surface((s + 12, s + 12), pygame.SRCALPHA)
-                pygame.draw.circle(glow_s, (244, 63, 94, max(0, min(255, alpha))), ((s + 12) // 2, (s + 12) // 2), (s + 12) // 2, 2)
-                surf.blit(glow_s, (-6, -6))
+                pygame.draw.circle(surf, (244, 63, 94, max(0, min(255, alpha))), center, 22, 2)
 
         elif self.enemy_type == TARGET_TYPE_SHOOTER:
             # Faceted angular ranged chassis with directional heavy barrel

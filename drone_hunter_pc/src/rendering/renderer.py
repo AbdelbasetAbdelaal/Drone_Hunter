@@ -13,12 +13,14 @@ from src.data.settings import (
     SCREEN_WIDTH, SCREEN_HEIGHT, COLOR_CYAN, COLOR_GOLD, COLOR_CRIMSON,
     COLOR_NEON_RED, COLOR_SHIELD, COLOR_WHITE
 )
-from src.data.game_data import TARGET_TYPE_SHIELD_DRONE, TARGET_TYPE_SNIPER, TARGET_TYPE_EMP_DISRUPTER
+from src.data.game_data import TARGET_TYPE_SHIELD_DRONE, TARGET_TYPE_SNIPER, TARGET_TYPE_EMP_DISRUPTER, TARGET_TYPE_SCOUT
 from src.core.game_state import STATE_PLAYING, STATE_PAUSED, STATE_LEVEL_CLEAR, STATE_GAME_OVER
+from src.rendering.sprite_manager import get_sprite_manager
 
 class GameRenderer:
     def __init__(self):
         self.canvas = pygame.Surface((SCREEN_WIDTH, SCREEN_HEIGHT))
+        self.sprite_manager = get_sprite_manager()
 
         # PERF: Pre-allocated reusable surfaces to eliminate per-frame SRCALPHA allocations
         self._shield_aura_surf = pygame.Surface((340, 340), pygame.SRCALPHA)
@@ -64,6 +66,13 @@ class GameRenderer:
                     pygame.draw.circle(self._emp_surf, (255, 255, 255, 180), t_screen, emp_r, 1)
                     self.canvas.blit(self._emp_surf, (0, 0))
 
+        # Layer 3: Grounded Entity Drop Shadows
+        for t in context.target_group:
+            if getattr(t, "enemy_type", "") == TARGET_TYPE_SCOUT:
+                sh_surf = self.sprite_manager.get_scout_shadow(target_size=(36, 22))
+                sh_rect = sh_surf.get_rect(center=(int(round(t.pos.x - ox + 4)), int(round(t.pos.y - oy + 8))))
+                self.canvas.blit(sh_surf, sh_rect)
+
         # Helper to blit sprite groups with camera offset
         def _draw_group_with_camera(group):
             for spr in group:
@@ -72,7 +81,7 @@ class GameRenderer:
                 if -spr.rect.width <= sx <= vw + spr.rect.width and -spr.rect.height <= sy <= vh + spr.rect.height:
                     self.canvas.blit(spr.image, (sx, sy))
 
-        # Layer 3: Sprite Entities
+        # Layer 4: Sprite Entities
         _draw_group_with_camera(context.target_group)
         _draw_group_with_camera(context.obstacle_group)
         _draw_group_with_camera(context.hazard_group)

@@ -126,6 +126,63 @@ class SpriteManager:
         self._rotated_cache[cache_key] = rotated
         return rotated
 
+    def get_scout_sprite(self, state: str = 'idle', target_size: tuple[int, int] = (52, 46)) -> pygame.Surface:
+        """Returns cached, scaled 2D Scout drone sprite."""
+        cache_key = ('scout', state, target_size)
+        if cache_key in self._skin_cache:
+            return self._skin_cache[cache_key]
+
+        raw = self._load_raw_image(f'enemies/scout/scout_{state}.png')
+        if raw is None:
+            raw = self._load_raw_image('enemies/scout/scout_idle.png')
+        if raw is None:
+            raw = self._load_raw_image('enemies/scout/scout_base.png')
+
+        if raw is None:
+            fallback = pygame.Surface(target_size, pygame.SRCALPHA)
+            pygame.draw.polygon(fallback, (244, 63, 94), [
+                (target_size[0] - 2, target_size[1] // 2),
+                (2, 2),
+                (8, target_size[1] // 2),
+                (2, target_size[1] - 2)
+            ])
+            self._skin_cache[cache_key] = fallback
+            return fallback
+
+        scaled = pygame.transform.smoothscale(raw, target_size)
+        self._skin_cache[cache_key] = scaled
+        return scaled
+
+    def get_rotated_scout_sprite(self, state: str = 'idle', angle_deg: float = 0.0, target_size: tuple[int, int] = (52, 46)) -> pygame.Surface:
+        """Returns pre-cached, rotated Scout sprite (quantized to 2 deg)."""
+        quantized_angle = int(round(angle_deg / 2.0)) * 2 % 360
+        cache_key = ('scout_rot', state, target_size, quantized_angle)
+
+        if cache_key in self._rotated_cache:
+            return self._rotated_cache[cache_key]
+
+        base_sprite = self.get_scout_sprite(state=state, target_size=target_size)
+        rotated = pygame.transform.rotate(base_sprite, quantized_angle)
+        self._rotated_cache[cache_key] = rotated
+        return rotated
+
+    def get_scout_shadow(self, target_size: tuple[int, int] = (44, 30)) -> pygame.Surface:
+        """Returns pre-cached 2D drop shadow for Scout."""
+        if ('scout_shadow', target_size) in self._shadow_cache:
+            return self._shadow_cache[('scout_shadow', target_size)]
+
+        raw = self._load_raw_image('shadows/scout_shadow.png')
+        if raw is None:
+            shadow = pygame.Surface(target_size, pygame.SRCALPHA)
+            pygame.draw.ellipse(shadow, (0, 0, 0, 85), (0, 0, target_size[0], target_size[1]))
+            self._shadow_cache[('scout_shadow', target_size)] = shadow
+            return shadow
+
+        shadow = pygame.transform.smoothscale(raw, target_size)
+        shadow.set_alpha(100)
+        self._shadow_cache[('scout_shadow', target_size)] = shadow
+        return shadow
+
 
 _sprite_manager = None
 

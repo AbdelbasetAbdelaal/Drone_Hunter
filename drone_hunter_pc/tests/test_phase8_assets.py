@@ -133,5 +133,50 @@ class TestPhase8PlayerVisualOverhaul(unittest.TestCase):
         game.render()
         self.assertTrue(game.context.player.alive)
 
+    def test_scout_assets_exist_and_clean(self):
+        base_dir = self.sm.base_dir
+        scout_files = [
+            'enemies/scout/scout_idle.png',
+            'enemies/scout/scout_base.png',
+            'enemies/scout/scout_move.png',
+            'enemies/scout/scout_attack.png',
+            'enemies/scout/scout_hit.png',
+            'shadows/scout_shadow.png',
+        ]
+        for rel_path in scout_files:
+            full_path = os.path.join(base_dir, rel_path)
+            self.assertTrue(os.path.exists(full_path), f'Missing scout asset: {rel_path}')
+            im = Image.open(full_path).convert('RGBA')
+            arr = np.array(im)
+            alpha = arr[:, :, 3]
+            h, w = alpha.shape
+            self.assertGreaterEqual(w, 20)
+            self.assertGreaterEqual(h, 20)
+            corners = [int(alpha[0, 0]), int(alpha[0, w - 1]), int(alpha[h - 1, 0]), int(alpha[h - 1, w - 1])]
+            for c in corners:
+                self.assertEqual(c, 0, f'{rel_path} corner not transparent')
+
+    def test_scout_rotation_and_shadow_cache(self):
+        s1 = self.sm.get_rotated_scout_sprite(state='idle', angle_deg=90.0, target_size=(52, 46))
+        s2 = self.sm.get_rotated_scout_sprite(state='idle', angle_deg=90.0, target_size=(52, 46))
+        self.assertIs(s1, s2)
+
+        sh1 = self.sm.get_scout_shadow(target_size=(36, 22))
+        sh2 = self.sm.get_scout_shadow(target_size=(36, 22))
+        self.assertIs(sh1, sh2)
+
+    def test_scout_enemy_rendering_states(self):
+        from src.entities.enemy import Scout
+        scout = Scout(pos=(400, 300))
+        for state in ['approach', 'strafe', 'telegraph', 'dive', 'recover']:
+            scout.ai_state = state
+            scout.state_timer = 0.5
+            scout._render_sprite()
+            self.assertIsNotNone(scout.image)
+
+        scout.hit_flash_timer = 0.1
+        scout._render_sprite()
+        self.assertIsNotNone(scout.image)
+
 if __name__ == '__main__':
     unittest.main()
