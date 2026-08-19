@@ -79,6 +79,11 @@ class CombatDirector:
             
             # Check for completion
             if self.encounter_system.is_complete:
+                # Award progression scrap for completing an encounter
+                from src.data.game_data import REWARD_ENCOUNTER, REWARD_COMPOSITION
+                is_full_composition = (self.encounters[self.encounter_index] == SCOUT_SHOOTER_HEAVY_ENCOUNTER)
+                ctx.scrap += REWARD_COMPOSITION if is_full_composition else REWARD_ENCOUNTER
+                
                 self.encounter_index += 1
                 if self.encounter_index < len(self.encounters):
                     self.state = "relief"

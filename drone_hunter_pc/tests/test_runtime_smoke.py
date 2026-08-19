@@ -41,7 +41,7 @@ def run_runtime_smoke():
     # 2. State: Sector Select -> Hangar
     print("Testing State: Sector Select -> Hangar (Purchasing upgrades)")
     ctx.state = STATE_HANGAR
-    ctx.coins = 5000
+    ctx.scrap = 5000
     game.buy_upgrade("battery")
     game.buy_upgrade("overdrive")
     game.buy_upgrade("missiles")

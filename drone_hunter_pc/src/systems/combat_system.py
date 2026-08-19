@@ -107,6 +107,15 @@ class CombatSystem:
                             if chained_dead:
                                 if ctx.audio_manager: ctx.audio_manager.play_explosion()
                                 earned = ctx.add_score(chained_enemy.score_value)
+                                
+                                from src.data.game_data import TARGET_TYPE_SCOUT, TARGET_TYPE_SHOOTER, TARGET_TYPE_HEAVY, REWARD_SCOUT, REWARD_SHOOTER, REWARD_HEAVY
+                                if chained_enemy.enemy_type == TARGET_TYPE_SCOUT:
+                                    ctx.scrap += REWARD_SCOUT
+                                elif chained_enemy.enemy_type == TARGET_TYPE_SHOOTER:
+                                    ctx.scrap += REWARD_SHOOTER
+                                elif chained_enemy.enemy_type == TARGET_TYPE_HEAVY:
+                                    ctx.scrap += REWARD_HEAVY
+
                                 if ctx.particle_manager: ctx.particle_manager.spawn_floating_text(chained_enemy.rect.center, f"+{earned}", COLOR_GOLD, 20)
 
                 if not getattr(b, "is_piercing", False):
@@ -119,6 +128,15 @@ class CombatSystem:
                     if ctx.audio_manager: ctx.audio_manager.play_explosion()
                     ctx.trigger_shake(6.0, 0.2)
                     earned_pts = ctx.add_score(target.score_value)
+                    
+                    from src.data.game_data import TARGET_TYPE_SCOUT, TARGET_TYPE_SHOOTER, TARGET_TYPE_HEAVY, REWARD_SCOUT, REWARD_SHOOTER, REWARD_HEAVY
+                    if target.enemy_type == TARGET_TYPE_SCOUT:
+                        ctx.scrap += REWARD_SCOUT
+                    elif target.enemy_type == TARGET_TYPE_SHOOTER:
+                        ctx.scrap += REWARD_SHOOTER
+                    elif target.enemy_type == TARGET_TYPE_HEAVY:
+                        ctx.scrap += REWARD_HEAVY
+
 
                     # Death Explosion Particles
                     if ctx.particle_manager:

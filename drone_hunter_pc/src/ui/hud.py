@@ -17,7 +17,7 @@ from src.data.game_data import WEAPON_DEFS
 from src.ui.font_manager import font_hud, font_card, font_banner
 
 def draw_hud(canvas: pygame.Surface, player, sector_idx: int = 0, level_score: int = 0, total_score: int = 0,
-             coins: int = 0, difficulty_name: str = "NORMAL", combo_mult: int = 1, show_crt: bool = False,
+             scrap: int = 0, difficulty_name: str = "NORMAL", combo_mult: int = 1, show_crt: bool = False,
              current_wave: int = 1, sub_level: int = 1):
     """Renders clean, responsive screen-space tactical HUD."""
     vw, vh = canvas.get_size()

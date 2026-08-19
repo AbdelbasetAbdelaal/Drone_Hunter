@@ -87,8 +87,9 @@ class Player(pygame.sprite.Sprite):
         # Hull & Energy
         self.max_health = PLAYER_MAX_HEALTH
         self.health = PLAYER_MAX_HEALTH
-        self.energy = PLAYER_MAX_ENERGY
         self.max_energy = PLAYER_MAX_ENERGY
+        self.energy = PLAYER_MAX_ENERGY
+        self.weapon_effectiveness = 1.0
         self.alive = True
 
         # Shield Hit System
@@ -324,7 +325,7 @@ class Player(pygame.sprite.Sprite):
         w_def = WEAPON_DEFS.get(self.active_weapon, {})
         base_cd = w_def.get("cooldown", 0.18)
         cost = w_def.get("energy_cost", 0.0)
-        dmg = int(w_def.get("damage", 12))
+        dmg = int(w_def.get("damage", 12) * self.weapon_effectiveness)
         spd = float(w_def.get("speed", 650.0))
         col = w_def.get("color", COLOR_CYAN)
         proj_count = w_def.get("projectiles_per_shot", 1)

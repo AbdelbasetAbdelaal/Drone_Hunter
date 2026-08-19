@@ -150,7 +150,7 @@ class TestDroneHunter2D(unittest.TestCase):
         # Verify HUD renders jammed banner without error
         from src.ui.hud import draw_hud
         test_surf = pygame.Surface((SCREEN_WIDTH, SCREEN_HEIGHT))
-        draw_hud(test_surf, p, sector_idx=2, level_score=1000, total_score=2000, coins=100, difficulty_name="NORMAL")
+        draw_hud(test_surf, p, sector_idx=2, level_score=1000, total_score=2000, scrap=100, difficulty_name="NORMAL")
 
         # After jammed duration expires, player recovers
         p.update(3.5)
@@ -222,7 +222,7 @@ class TestDroneHunter2D(unittest.TestCase):
         try:
             upgrades = {"battery": 2, "overdrive": 1, "speed": 3}
             sectors = [True, True, False, False, False]
-            self.assertTrue(save_sys.save(coins=350, highscore=8500, upgrades=upgrades, sectors=sectors))
+            self.assertTrue(save_sys.save(scrap=0, coins=350, highscore=8500, upgrades=upgrades, sectors=sectors))
 
             loaded = save_sys.load()
             self.assertEqual(loaded["coins"], 350)

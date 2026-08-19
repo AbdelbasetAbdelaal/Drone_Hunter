@@ -81,6 +81,7 @@ class Game:
 
         # Load Save Data
         saved_data = self.save_system.load()
+        self.context.scrap = saved_data.get("scrap", 0)
         self.context.coins = saved_data["coins"]
         self.context.highscore = saved_data["highscore"]
         self.context.upgrade_levels = saved_data["upgrades"]
@@ -120,6 +121,7 @@ class Game:
 
         ctx.player = Player((WORLD_WIDTH // 2, WORLD_HEIGHT // 2))
         ctx.player.apply_shop_upgrades(ctx.upgrade_levels)
+        self.progression.apply_to_player(ctx, ctx.player)
         ctx.player_group.add(ctx.player)
         self.camera.center_x = float(ctx.player.pos.x)
         self.camera.center_y = float(ctx.player.pos.y)
@@ -151,6 +153,7 @@ class Game:
     def save_progress(self):
         ctx = self.context
         self.save_system.save(
+            scrap=ctx.scrap,
             coins=ctx.coins,
             highscore=ctx.highscore,
             upgrades=ctx.upgrade_levels,
@@ -175,6 +178,19 @@ class Game:
 
     def buy_upgrade(self, upgrade_id: str) -> bool:
         ctx = self.context
+        
+        # Phase 4 Upgrades
+        if upgrade_id in ("hull", "energy", "weapon", "mobility"):
+            if self.progression.purchase_upgrade(ctx, upgrade_id):
+                self.audio_manager.play_buy()
+                self.save_progress()
+                if ctx.player:
+                    ctx.player.apply_shop_upgrades(ctx.upgrade_levels)
+                    self.progression.apply_to_player(ctx, ctx.player)
+                return True
+            return False
+            
+        # Legacy Phase 1 Upgrades
         if upgrade_id not in UPGRADES:
             return False
         info = UPGRADES[upgrade_id]
@@ -187,6 +203,7 @@ class Game:
             self.save_progress()
             if ctx.player:
                 ctx.player.apply_shop_upgrades(ctx.upgrade_levels)
+                self.progression.apply_to_player(ctx, ctx.player)
             return True
         return False
 
@@ -355,7 +372,7 @@ class Game:
                                 break
 
                 elif ctx.state == STATE_HANGAR:
-                    exit_r, skin_r, item_rects = draw_hangar_shop_ui(self.renderer.canvas, ctx.coins, ctx.current_sector_idx, ctx.upgrade_levels)
+                    exit_r, skin_r, item_rects = draw_hangar_shop_ui(self.renderer.canvas, ctx.scrap, ctx.current_sector_idx, ctx.upgrade_levels)
                     if skin_r.collidepoint(mx, my) and ctx.player:
                         ctx.player.cycle_skin()
                     for upg_id, upg_r in item_rects.items():
@@ -519,7 +536,7 @@ class Game:
             draw_sector_select_ui(canvas, ctx.unlocked_sectors, ctx.coins, ctx.difficulty_mode, ctx.unlocked_stages)
 
         elif ctx.state == STATE_HANGAR:
-            draw_hangar_shop_ui(canvas, ctx.coins, ctx.current_sector_idx, ctx.upgrade_levels)
+            draw_hangar_shop_ui(canvas, ctx.scrap, ctx.current_sector_idx, ctx.upgrade_levels)
 
         elif ctx.state == STATE_VICTORY:
             draw_campaign_victory_ui(canvas, ctx.total_score, ctx.highscore, ctx.coins)
@@ -531,7 +548,7 @@ class Game:
             # Draw Clean Minimal HUD
             draw_hud(
                 canvas, ctx.player, ctx.current_sector_idx, ctx.level_score,
-                ctx.total_score, ctx.coins, DIFFICULTY_NAMES[ctx.difficulty_mode],
+                ctx.total_score, ctx.scrap, DIFFICULTY_NAMES[ctx.difficulty_mode],
                 combo_mult=ctx.combo_count, show_crt=ctx.show_crt,
                 current_wave=ctx.current_wave, sub_level=ctx.current_sub_level
             )

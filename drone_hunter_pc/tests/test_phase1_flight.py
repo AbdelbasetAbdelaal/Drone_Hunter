@@ -158,7 +158,7 @@ class TestPhase1FlightAndArena(unittest.TestCase):
         for w, h in resolutions:
             canvas = pygame.Surface((w, h))
             draw_hud(canvas, self.player, sector_idx=0, level_score=15200, total_score=45000,
-                     coins=120, difficulty_name="NORMAL", combo_mult=5)
+                     scrap=120, difficulty_name="NORMAL", combo_mult=5)
             self.assertEqual(canvas.get_size(), (w, h))
 
     def test_powerup_integration(self):

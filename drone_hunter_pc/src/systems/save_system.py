@@ -23,9 +23,11 @@ class SaveSystem:
 
     def get_default_save_data(self) -> dict:
         return {
-            "coins": 0,
+            "scrap": 0,
+            "coins": 0, # Legacy
             "highscore": 0,
             "upgrades": {
+                "hull": 1, "energy": 1, "weapon": 1, "mobility": 1,
                 "battery": 0, "speed": 0, "fire_rate": 0, "emp_recharge": 0,
                 "wingman": 0, "cloak": 0, "missiles": 0, "beam": 0,
                 "tesla": 0, "cluster": 0, "overdrive": 0
@@ -47,7 +49,8 @@ class SaveSystem:
             with open(self.save_path, "r", encoding="utf-8") as f:
                 data = json.load(f)
 
-            coins = max(0, int(data.get("coins", defaults["coins"])))
+            legacy_coins = max(0, int(data.get("coins", defaults["coins"])))
+            scrap = max(0, int(data.get("scrap", legacy_coins)))
             highscore = max(0, int(data.get("highscore", defaults["highscore"])))
             
             # Merge upgrades dictionary with defaults
@@ -75,7 +78,8 @@ class SaveSystem:
             difficulty_mode = int(data.get("difficulty_mode", 1)) % 4
 
             return {
-                "coins": coins,
+                "scrap": scrap,
+                "coins": legacy_coins,
                 "highscore": highscore,
                 "upgrades": upgrades,
                 "sectors": sectors,
@@ -91,12 +95,13 @@ class SaveSystem:
             logging.error(f"Unexpected error loading save data: {e}. Using safe defaults.")
             return defaults
 
-    def save(self, coins: int, highscore: int, upgrades: dict, sectors: list, show_crt: bool = False, stages: list = None, difficulty_mode: int = 1) -> bool:
+    def save(self, scrap: int, coins: int, highscore: int, upgrades: dict, sectors: list, show_crt: bool = False, stages: list = None, difficulty_mode: int = 1) -> bool:
         """Atomically saves game data using a temporary write & replace pattern."""
         if stages is None:
             stages = [True] + [False] * 14
 
         save_dict = {
+            "scrap": max(0, int(scrap)),
             "coins": max(0, int(coins)),
             "highscore": max(0, int(highscore)),
             "upgrades": upgrades,

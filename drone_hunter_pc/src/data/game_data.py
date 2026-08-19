@@ -154,6 +154,23 @@ HEAVY_PRESSURE_DISTANCE = 300.0
 HEAVY_TELEGRAPH_TIME = 0.65
 
 # -----------------------------------------------------------------------------
+# Phase 4 Player Progression & Rewards
+# -----------------------------------------------------------------------------
+REWARD_SCOUT = 25
+REWARD_SHOOTER = 40
+REWARD_HEAVY = 75
+REWARD_ENCOUNTER = 100
+REWARD_COMPOSITION = 150
+
+UPGRADE_COSTS = {
+    1: 500,   # Level 1 -> 2
+    2: 1000,  # Level 2 -> 3
+    3: 1750,  # Level 3 -> 4
+    4: 2750   # Level 4 -> 5
+}
+MAX_UPGRADE_LEVEL = 5
+
+# -----------------------------------------------------------------------------
 # Campaign Sectors & Stages
 # -----------------------------------------------------------------------------
 SECTORS = [

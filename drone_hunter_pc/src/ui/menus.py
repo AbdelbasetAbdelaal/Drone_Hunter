@@ -88,7 +88,7 @@ def draw_main_menu(canvas: pygame.Surface) -> dict[str, pygame.Rect]:
     return buttons
 
 
-def draw_sector_select_ui(canvas: pygame.Surface, unlocked_sectors: list[bool], coins: int,
+def draw_sector_select_ui(canvas: pygame.Surface, unlocked_sectors: list[bool], scrap: int,
                           difficulty_mode: int = 1, unlocked_stages: list[bool] = None):
     """Renders sector campaign select map with difficulty toggles."""
     if unlocked_stages is None:
@@ -114,7 +114,7 @@ def draw_sector_select_ui(canvas: pygame.Surface, unlocked_sectors: list[bool], 
     t_diff = font_card.render(f"DIFFICULTY: {diff_name}", True, diff_col)
     canvas.blit(t_diff, t_diff.get_rect(center=diff_rect.center))
 
-    coin_hdr = font_banner.render(f"SCRAP: ${coins}", True, COLOR_GOLD)
+    coin_hdr = font_banner.render(f"SCRAP: ${scrap}", True, COLOR_GOLD)
     canvas.blit(coin_hdr, (vw - 240, 32))
 
     # Sector Cards
@@ -256,14 +256,14 @@ def draw_game_over_ui(canvas: pygame.Surface, score: int, highscore: int):
     canvas.blit(t_re, t_re.get_rect(center=(vw // 2, vh // 2 + 70)))
 
 
-def draw_campaign_victory_ui(canvas: pygame.Surface, score: int, highscore: int, coins: int):
+def draw_campaign_victory_ui(canvas: pygame.Surface, score: int, highscore: int, scrap: int):
     """Renders full campaign champion victory screen."""
     vw, vh = canvas.get_size()
     canvas.fill((10, 15, 26))
 
     t_vic = font_title.render("CAMPAIGN COMPLETE", True, COLOR_GOLD)
     t_sub = font_banner.render("SUPREME CITADEL LIBERATED - DRONE HUNTER CHAMPION", True, COLOR_CYAN)
-    t_stats = font_hud.render(f"TOTAL SCORE: {score:,}  |  HIGHSCORE: {highscore:,}  |  SCRAP: ${coins}", True, COLOR_WHITE)
+    t_stats = font_hud.render(f"TOTAL SCORE: {score:,}  |  HIGHSCORE: {highscore:,}  |  SCRAP: ${scrap}", True, COLOR_WHITE)
     t_re = font_hud.render("PRESS [SPACE / ENTER] FOR SECTOR MAP  |  [Q] EXIT", True, COLOR_EMERALD)
 
     canvas.blit(t_vic, t_vic.get_rect(center=(vw // 2, vh // 2 - 80)))

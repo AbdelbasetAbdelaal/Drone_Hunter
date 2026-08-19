@@ -39,9 +39,11 @@ class GameContext:
         self.player = None
 
         # Progression & Save Data
-        self.coins: int = 0
+        self.scrap: int = 0
+        self.coins: int = 0 # Legacy
         self.highscore: int = 0
         self.upgrade_levels: Dict[str, int] = {
+            "hull": 1, "energy": 1, "weapon": 1, "mobility": 1,
             "battery": 0, "speed": 0, "fire_rate": 0, "emp_recharge": 0,
             "wingman": 0, "cloak": 0, "missiles": 0, "beam": 0,
             "tesla": 0, "cluster": 0, "overdrive": 0

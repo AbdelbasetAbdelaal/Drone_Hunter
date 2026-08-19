@@ -63,3 +63,51 @@ class ProgressionSystem:
                 self.unlocked_stages[flat_idx] = True
 
         return next_sector_idx, next_sub_level, is_campaign_victory
+
+    # -------------------------------------------------------------------------
+    # Phase 4 Player Progression
+    # -------------------------------------------------------------------------
+    def add_scrap(self, ctx, amount: int):
+        """Adds scrap to the active context."""
+        ctx.scrap += max(0, amount)
+
+    def purchase_upgrade(self, ctx, category: str) -> bool:
+        """Attempts to purchase an upgrade. Returns True if successful."""
+        from src.data.game_data import UPGRADE_COSTS, MAX_UPGRADE_LEVEL
+        
+        current_level = ctx.upgrade_levels.get(category, 1)
+        if current_level >= MAX_UPGRADE_LEVEL:
+            return False
+            
+        cost = UPGRADE_COSTS.get(current_level, 999999)
+        if ctx.scrap >= cost:
+            ctx.scrap -= cost
+            ctx.upgrade_levels[category] = current_level + 1
+            return True
+        return False
+
+    def apply_to_player(self, ctx, player):
+        """Applies Phase 4 upgrades to the player."""
+        # 1. HULL
+        # Level 1: 225, Level 2: 250, Level 3: 275, Level 4: 300, Level 5: 325
+        hull_level = ctx.upgrade_levels.get("hull", 1)
+        player.max_health = 225.0 + ((hull_level - 1) * 25.0)
+        # Safely clamp current health so it doesn't exceed new max
+        player.health = min(player.health, player.max_health)
+        
+        # 2. ENERGY
+        # Level 1: 100, Level 2: 115, Level 3: 130, Level 4: 145, Level 5: 160
+        energy_level = ctx.upgrade_levels.get("energy", 1)
+        player.max_energy = 100.0 + ((energy_level - 1) * 15.0)
+        player.energy = min(player.energy, player.max_energy)
+        
+        # 3. WEAPON SYSTEM (Multipliers applied when shooting)
+        # Level 1: 1.0, Level 2: 1.05, Level 3: 1.10, Level 4: 1.15, Level 5: 1.20
+        weapon_level = ctx.upgrade_levels.get("weapon", 1)
+        player.weapon_effectiveness = 1.0 + ((weapon_level - 1) * 0.05)
+        
+        # 4. MOBILITY (Speed Multiplier)
+        # Level 1: 1.0, Level 2: 1.05, Level 3: 1.10, Level 4: 1.15, Level 5: 1.20
+        mobility_level = ctx.upgrade_levels.get("mobility", 1)
+        # Apply to base speed (base speed is 180.0 usually, wait, HORIZONTAL_SPEED is 220 in Phase 1, actually I will just set max_speed to 220.0 multiplied by mobility)
+        player.max_speed = 220.0 * (1.0 + ((mobility_level - 1) * 0.05))
