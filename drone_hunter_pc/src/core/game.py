@@ -21,7 +21,8 @@ from src.data.game_data import (
 from src.core.game_state import (
     GameState, STATE_MENU, STATE_SECTOR_SELECT, STATE_HANGAR, STATE_PLAYING,
     STATE_PAUSED, STATE_LEVEL_CLEAR, STATE_GAME_OVER, STATE_VICTORY,
-    STATE_MISSION_BRIEFING, STATE_MISSION_COMPLETE, STATE_MISSION_FAILED, GameState
+    STATE_MISSION_BRIEFING, STATE_MISSION_COMPLETE, STATE_MISSION_FAILED,
+    STATE_SETTINGS
 )
 from src.core.game_context import GameContext
 from src.core.clock import GameClock
@@ -48,7 +49,9 @@ from src.ui.hud import (
     draw_boss_intro_warning
 )
 from src.ui.menus import (
-    draw_main_menu, draw_sector_select_ui, draw_pause_settings_ui, draw_mission_select_ui, draw_mission_briefing, draw_mission_complete, draw_mission_failed,
+    draw_main_menu, draw_sector_select_ui, draw_pause_settings_ui,
+    draw_mission_select_ui, draw_mission_briefing, draw_mission_complete,
+    draw_mission_failed, draw_settings_menu_ui,
     draw_level_clear_ui, draw_game_over_ui, draw_campaign_victory_ui
 )
 from src.ui.hangar import draw_hangar_shop_ui
@@ -79,6 +82,7 @@ class Game:
         self.mission_system = MissionSystem()
         self.boss_system = BossSystem()
         self.pending_mission_id = 'S1_M1'
+        self.previous_state = STATE_MENU
         self.ui_rects_cache = {}
         self.combat_system = CombatSystem(self.context)
 
@@ -290,37 +294,56 @@ class Game:
                     ctx.show_crt = not ctx.show_crt
                     self.save_progress()
 
-                if event.key == pygame.K_q and ctx.state in (STATE_MENU, STATE_SECTOR_SELECT, STATE_HANGAR, STATE_VICTORY):
-                    self.running = False
-
                 if ctx.state == STATE_MENU:
-                    if event.key == pygame.K_SPACE:
+                    if event.key in (pygame.K_SPACE, pygame.K_RETURN):
                         ctx.state = STATE_SECTOR_SELECT
                         self.audio_manager.play_powerup()
-                elif ctx.state == STATE_SECTOR_SELECT:
-                    if event.key == pygame.K_ESCAPE:
-                        ctx.state = STATE_MENU
-                elif ctx.state == STATE_MISSION_BRIEFING:
-                    if event.key == pygame.K_SPACE:
-                        self.start_phase5_mission(self.pending_mission_id)
-                    elif event.key == pygame.K_ESCAPE:
-                        ctx.state = STATE_SECTOR_SELECT
-                elif ctx.state == STATE_HANGAR:
+                    elif event.key == pygame.K_h:
+                        self.previous_state = STATE_MENU
+                        ctx.state = STATE_HANGAR
+                    elif event.key == pygame.K_s:
+                        self.previous_state = STATE_MENU
+                        ctx.state = STATE_SETTINGS
+                    elif event.key in (pygame.K_q, pygame.K_ESCAPE):
+                        self.running = False
 
-                    if event.key == pygame.K_1: self.buy_upgrade("battery")
-                    elif event.key == pygame.K_2: self.buy_upgrade("speed")
-                    elif event.key == pygame.K_3: self.buy_upgrade("fire_rate")
-                    elif event.key == pygame.K_4: self.buy_upgrade("emp_recharge")
-                    elif event.key == pygame.K_5: self.buy_upgrade("wingman")
-                    elif event.key == pygame.K_6: self.buy_upgrade("cloak")
-                    elif event.key == pygame.K_7: self.buy_upgrade("missiles")
-                    elif event.key == pygame.K_8: self.buy_upgrade("beam")
-                    elif event.key == pygame.K_9: self.buy_upgrade("tesla")
-                    elif event.key in (pygame.K_0, pygame.K_KP0): self.buy_upgrade("cluster")
-                    elif event.key in (pygame.K_u, pygame.K_o): self.buy_upgrade("overdrive")
-                    elif event.key == pygame.K_c and ctx.player: ctx.player.cycle_skin()
-                    elif event.key in (pygame.K_m, pygame.K_ESCAPE, pygame.K_SPACE, pygame.K_RETURN):
+                elif ctx.state == STATE_SETTINGS:
+                    if event.key in (pygame.K_ESCAPE, pygame.K_b, pygame.K_BACKSPACE):
+                        ctx.state = self.previous_state or STATE_SECTOR_SELECT
+
+                elif ctx.state == STATE_SECTOR_SELECT:
+                    if event.key in (pygame.K_ESCAPE, pygame.K_b, pygame.K_BACKSPACE):
+                        ctx.state = STATE_MENU
+                    elif event.key == pygame.K_h:
+                        self.previous_state = STATE_SECTOR_SELECT
+                        ctx.state = STATE_HANGAR
+                    elif event.key == pygame.K_s:
+                        self.previous_state = STATE_SECTOR_SELECT
+                        ctx.state = STATE_SETTINGS
+                    elif event.key == pygame.K_q:
+                        self.running = False
+
+                elif ctx.state == STATE_MISSION_BRIEFING:
+                    if event.key in (pygame.K_SPACE, pygame.K_RETURN):
+                        self.start_phase5_mission(self.pending_mission_id)
+                    elif event.key in (pygame.K_ESCAPE, pygame.K_b, pygame.K_BACKSPACE, pygame.K_m):
                         ctx.state = STATE_SECTOR_SELECT
+                    elif event.key == pygame.K_q:
+                        self.running = False
+
+                elif ctx.state == STATE_HANGAR:
+                    if event.key in (pygame.K_1, pygame.K_KP1): self.buy_upgrade("hull")
+                    elif event.key in (pygame.K_2, pygame.K_KP2): self.buy_upgrade("energy")
+                    elif event.key in (pygame.K_3, pygame.K_KP3): self.buy_upgrade("weapon")
+                    elif event.key in (pygame.K_4, pygame.K_KP4): self.buy_upgrade("mobility")
+                    elif event.key == pygame.K_c and ctx.player: ctx.player.cycle_skin()
+                    elif event.key == pygame.K_s:
+                        self.previous_state = STATE_HANGAR
+                        ctx.state = STATE_SETTINGS
+                    elif event.key in (pygame.K_m, pygame.K_ESCAPE, pygame.K_b, pygame.K_BACKSPACE):
+                        ctx.state = self.previous_state or STATE_SECTOR_SELECT
+                    elif event.key == pygame.K_q:
+                        self.running = False
 
                 elif ctx.state == STATE_PLAYING:
                     if event.key in (pygame.K_p, pygame.K_ESCAPE, pygame.K_SPACE):
@@ -356,6 +379,7 @@ class Game:
                     elif event.key == pygame.K_m:
                         ctx.state = STATE_SECTOR_SELECT
                     elif event.key == pygame.K_h:
+                        self.previous_state = STATE_SECTOR_SELECT
                         ctx.state = STATE_HANGAR
                     elif event.key == pygame.K_q:
                         self.running = False
@@ -365,6 +389,7 @@ class Game:
                         self.mission_system.active_mission_id = None
                         ctx.state = STATE_SECTOR_SELECT
                     elif event.key == pygame.K_h:
+                        self.previous_state = STATE_SECTOR_SELECT
                         ctx.state = STATE_HANGAR
                     elif event.key == pygame.K_q:
                         self.running = False
@@ -391,6 +416,7 @@ class Game:
                         self.mission_system.active_mission_id = None
                         ctx.state = STATE_SECTOR_SELECT
                     elif event.key == pygame.K_h:
+                        self.previous_state = STATE_SECTOR_SELECT
                         ctx.state = STATE_HANGAR
 
                 elif ctx.state == STATE_MISSION_FAILED:
@@ -400,6 +426,7 @@ class Game:
                         self.mission_system.active_mission_id = None
                         ctx.state = STATE_SECTOR_SELECT
                     elif event.key == pygame.K_h:
+                        self.previous_state = STATE_SECTOR_SELECT
                         ctx.state = STATE_HANGAR
                     elif event.key == pygame.K_q:
                         self.running = False
@@ -412,48 +439,113 @@ class Game:
 
             elif event.type == pygame.MOUSEBUTTONDOWN:
                 mx, my = self.get_canvas_mouse_pos(getattr(event, "pos", None))
-                if ctx.state == STATE_MENU:
-                    buttons = draw_main_menu(self.renderer.canvas)
-                    if buttons['play'].collidepoint(mx, my): ctx.state = STATE_SECTOR_SELECT
-                    elif buttons['hangar'].collidepoint(mx, my): ctx.state = STATE_HANGAR
-                    elif buttons['exit'].collidepoint(mx, my): self.running = False
-                elif ctx.state == STATE_SECTOR_SELECT:
-                    if hasattr(self, 'ui_rects_cache') and self.ui_rects_cache:
-                        if self.ui_rects_cache.get("exit") and self.ui_rects_cache["exit"].collidepoint(mx, my): ctx.state = STATE_MENU
-                        if self.ui_rects_cache.get("diff_rect") and self.ui_rects_cache["diff_rect"].collidepoint(mx, my): ctx.difficulty_mode = (ctx.difficulty_mode + 1) % 4
-                        if "sectors" in self.ui_rects_cache:
-                            for s_id, rect in self.ui_rects_cache["sectors"].items():
-                                if rect.collidepoint(mx, my): ctx.missions["current_sector"] = s_id
-                        if "missions" in self.ui_rects_cache:
-                            for m_id, rect in self.ui_rects_cache["missions"].items():
-                                if rect.collidepoint(mx, my):
-                                    st = self.mission_system.get_mission_state(ctx, m_id)
-                                    if st != "locked":
-                                        self.pending_mission_id = m_id
-                                        ctx.state = STATE_MISSION_BRIEFING
-                elif ctx.state == STATE_MISSION_BRIEFING:
-                    if hasattr(self, 'ui_rects_cache') and self.ui_rects_cache:
-                        if self.ui_rects_cache.get("exit") and self.ui_rects_cache["exit"].collidepoint(mx, my): ctx.state = STATE_SECTOR_SELECT
-                        elif self.ui_rects_cache.get("start") and self.ui_rects_cache["start"].collidepoint(mx, my): self.start_phase5_mission(self.pending_mission_id)
-                elif ctx.state == STATE_HANGAR:
+                cache = getattr(self, 'ui_rects_cache', {}) or {}
 
-                    exit_r, skin_r, item_rects = draw_hangar_shop_ui(self.renderer.canvas, ctx.scrap, ctx.current_sector_idx, ctx.upgrade_levels)
-                    if skin_r.collidepoint(mx, my) and ctx.player:
-                        ctx.player.cycle_skin()
-                    for upg_id, upg_r in item_rects.items():
-                        if upg_r.collidepoint(mx, my):
-                            self.buy_upgrade(upg_id)
-                            break
+                if ctx.state == STATE_MENU:
+                    if cache.get('play') and cache['play'].collidepoint(mx, my):
+                        ctx.state = STATE_SECTOR_SELECT
+                        self.audio_manager.play_powerup()
+                    elif cache.get('hangar') and cache['hangar'].collidepoint(mx, my):
+                        self.previous_state = STATE_MENU
+                        ctx.state = STATE_HANGAR
+                    elif cache.get('settings') and cache['settings'].collidepoint(mx, my):
+                        self.previous_state = STATE_MENU
+                        ctx.state = STATE_SETTINGS
+                    elif cache.get('exit') and cache['exit'].collidepoint(mx, my):
+                        self.running = False
+
+                elif ctx.state == STATE_SETTINGS:
+                    if cache.get('fullscreen') and cache['fullscreen'].collidepoint(mx, my):
+                        self.renderer.toggle_fullscreen()
+                    elif cache.get('crt') and cache['crt'].collidepoint(mx, my):
+                        ctx.show_crt = not ctx.show_crt
+                        self.save_progress()
+                    elif cache.get('sfx') and cache['sfx'].collidepoint(mx, my):
+                        self.audio_manager.sound_enabled = not self.audio_manager.sound_enabled
+                    elif cache.get('diff') and cache['diff'].collidepoint(mx, my):
+                        ctx.difficulty_mode = (ctx.difficulty_mode + 1) % 4
+                        self.save_progress()
+                    elif cache.get('reset') and cache['reset'].collidepoint(mx, my):
+                        ctx.scrap = 0
+                        ctx.upgrade_levels = {"hull": 1, "energy": 1, "weapon": 1, "mobility": 1}
+                        ctx.missions["unlocked"] = ["S1_M1"]
+                        ctx.missions["completed"] = []
+                        ctx.sector_progress = {"unlocked": [1], "completed": []}
+                        ctx.bosses_defeated = []
+                        ctx.campaign_completed = False
+                        self.save_progress()
+                    elif cache.get('back') and cache['back'].collidepoint(mx, my):
+                        ctx.state = self.previous_state or STATE_SECTOR_SELECT
+
+                elif ctx.state == STATE_SECTOR_SELECT:
+                    if cache.get("back") and cache["back"].collidepoint(mx, my):
+                        ctx.state = STATE_MENU
+                    elif cache.get("hangar") and cache["hangar"].collidepoint(mx, my):
+                        self.previous_state = STATE_SECTOR_SELECT
+                        ctx.state = STATE_HANGAR
+                    elif cache.get("settings") and cache["settings"].collidepoint(mx, my):
+                        self.previous_state = STATE_SECTOR_SELECT
+                        ctx.state = STATE_SETTINGS
+                    elif cache.get("exit") and cache["exit"].collidepoint(mx, my):
+                        self.running = False
+                    elif cache.get("diff_rect") and cache["diff_rect"].collidepoint(mx, my):
+                        ctx.difficulty_mode = (ctx.difficulty_mode + 1) % 4
+                        self.save_progress()
+                    if "sectors" in cache:
+                        for s_id, rect in cache["sectors"].items():
+                            if rect.collidepoint(mx, my):
+                                ctx.missions["current_sector"] = s_id
+                    if "missions" in cache:
+                        for m_id, rect in cache["missions"].items():
+                            if rect.collidepoint(mx, my):
+                                st = self.mission_system.get_mission_state(ctx, m_id)
+                                if st != "locked":
+                                    self.pending_mission_id = m_id
+                                    ctx.state = STATE_MISSION_BRIEFING
+
+                elif ctx.state == STATE_MISSION_BRIEFING:
+                    if cache.get("back") and cache["back"].collidepoint(mx, my):
+                        ctx.state = STATE_SECTOR_SELECT
+                    elif cache.get("start") and cache["start"].collidepoint(mx, my):
+                        self.start_phase5_mission(self.pending_mission_id)
+                    elif cache.get("exit") and cache["exit"].collidepoint(mx, my):
+                        self.running = False
+
+                elif ctx.state == STATE_HANGAR:
+                    if cache.get("back") and cache["back"].collidepoint(mx, my):
+                        ctx.state = self.previous_state or STATE_SECTOR_SELECT
+                    elif cache.get("skin") and cache["skin"].collidepoint(mx, my):
+                        if ctx.player:
+                            ctx.player.cycle_skin()
+                    elif cache.get("settings") and cache["settings"].collidepoint(mx, my):
+                        self.previous_state = STATE_HANGAR
+                        ctx.state = STATE_SETTINGS
+                    elif cache.get("exit") and cache["exit"].collidepoint(mx, my):
+                        self.running = False
+                    if "upgrades" in cache:
+                        for upg_id, upg_r in cache["upgrades"].items():
+                            if upg_r.collidepoint(mx, my):
+                                self.buy_upgrade(upg_id)
+                                break
 
                 elif ctx.state == STATE_PAUSED:
                     pause_btns = draw_pause_settings_ui(self.renderer.canvas, ctx.difficulty_mode, ctx.show_crt, self.audio_manager.sound_enabled)
-                    if pause_btns["diff"].collidepoint(mx, my): ctx.difficulty_mode = (ctx.difficulty_mode + 1) % 4
-                    elif pause_btns["crt"].collidepoint(mx, my): ctx.show_crt = not ctx.show_crt; self.save_progress()
-                    elif pause_btns["sfx"].collidepoint(mx, my): self.audio_manager.sound_enabled = not self.audio_manager.sound_enabled
-                    elif pause_btns["resume"].collidepoint(mx, my): ctx.state = STATE_PLAYING
-                    elif pause_btns["hangar"].collidepoint(mx, my): ctx.state = STATE_HANGAR
-                    elif pause_btns["map"].collidepoint(mx, my): ctx.state = STATE_SECTOR_SELECT
-                    elif pause_btns["exit"].collidepoint(mx, my): self.running = False
+                    if pause_btns["diff"].collidepoint(mx, my):
+                        ctx.difficulty_mode = (ctx.difficulty_mode + 1) % 4
+                    elif pause_btns["crt"].collidepoint(mx, my):
+                        ctx.show_crt = not ctx.show_crt
+                        self.save_progress()
+                    elif pause_btns["sfx"].collidepoint(mx, my):
+                        self.audio_manager.sound_enabled = not self.audio_manager.sound_enabled
+                    elif pause_btns["resume"].collidepoint(mx, my):
+                        ctx.state = STATE_PLAYING
+                    elif pause_btns["hangar"].collidepoint(mx, my):
+                        self.previous_state = STATE_SECTOR_SELECT
+                        ctx.state = STATE_HANGAR
+                    elif pause_btns["map"].collidepoint(mx, my):
+                        ctx.state = STATE_SECTOR_SELECT
+                    elif pause_btns["exit"].collidepoint(mx, my):
+                        self.running = False
 
                 elif ctx.state == STATE_PLAYING:
                     if event.button == 1 and ctx.player and ctx.player.can_shoot():
@@ -607,15 +699,22 @@ class Game:
 
         if ctx.state == STATE_MENU:
             self.background.draw_menu_backdrop(canvas)
-            draw_main_menu(canvas, mouse_pos=canvas_m_pos)
+            self.ui_rects_cache = draw_main_menu(canvas, mouse_pos=canvas_m_pos)
+
+        elif ctx.state == STATE_SETTINGS:
+            self.ui_rects_cache = draw_settings_menu_ui(
+                canvas, ctx.difficulty_mode, ctx.show_crt,
+                self.audio_manager.sound_enabled, mouse_pos=canvas_m_pos
+            )
 
         elif ctx.state == STATE_SECTOR_SELECT:
             self.ui_rects_cache = draw_mission_select_ui(canvas, ctx, ctx.scrap, mouse_pos=canvas_m_pos)
+
         elif ctx.state == STATE_MISSION_BRIEFING:
             self.ui_rects_cache = draw_mission_briefing(canvas, get_mission_data(self.pending_mission_id), ctx.scrap, mouse_pos=canvas_m_pos)
-        elif ctx.state == STATE_HANGAR:
 
-            draw_hangar_shop_ui(canvas, ctx.scrap, ctx.current_sector_idx, ctx.upgrade_levels, mouse_pos=canvas_m_pos)
+        elif ctx.state == STATE_HANGAR:
+            self.ui_rects_cache = draw_hangar_shop_ui(canvas, ctx.scrap, ctx.current_sector_idx, ctx.upgrade_levels, mouse_pos=canvas_m_pos)
 
         elif ctx.state == STATE_VICTORY:
             draw_campaign_victory_ui(

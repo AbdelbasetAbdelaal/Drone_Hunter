@@ -1,4 +1,4 @@
-﻿"""
+"""
 ================================================================================
                     DRONE HUNTER 2D - PHASE 7 RELEASE QA SUITE
 ================================================================================
@@ -28,7 +28,8 @@ from src.core.game import Game
 from src.core.game_state import (
     STATE_MENU, STATE_SECTOR_SELECT, STATE_MISSION_BRIEFING,
     STATE_PLAYING, STATE_PAUSED, STATE_MISSION_COMPLETE,
-    STATE_MISSION_FAILED, STATE_VICTORY, STATE_HANGAR
+    STATE_MISSION_FAILED, STATE_VICTORY, STATE_HANGAR,
+    STATE_SETTINGS
 )
 from src.data.mission_data import (
     SECTORS_PHASE5, get_mission_data, get_missions_for_sector,
@@ -259,6 +260,92 @@ class TestPhase7Release(unittest.TestCase):
         finally:
             if os.path.exists(save_sys.save_path):
                 os.remove(save_sys.save_path)
+
+    # -------------------------------------------------------------------------
+    # 10. Universal Back Navigation Across All UI Screens
+    # -------------------------------------------------------------------------
+    def test_universal_back_navigation(self):
+        """Verify back navigation returns cleanly to previous screens."""
+        ctx = self.game.context
+
+        # 1. Sector Select -> Main Menu
+        ctx.state = STATE_SECTOR_SELECT
+        self.game.render()
+        self.assertIn("back", self.game.ui_rects_cache)
+        back_rect = self.game.ui_rects_cache["back"]
+        self.assertIsNotNone(back_rect)
+        # Simulate click on back button
+        fake_event = pygame.event.Event(pygame.MOUSEBUTTONDOWN, {"pos": back_rect.center, "button": 1})
+        pygame.event.post(fake_event)
+        self.game.handle_events()
+        self.assertEqual(ctx.state, STATE_MENU)
+
+        # 2. Hangar -> Sector Select
+        self.game.previous_state = STATE_SECTOR_SELECT
+        ctx.state = STATE_HANGAR
+        self.game.render()
+        self.assertIn("back", self.game.ui_rects_cache)
+        back_rect = self.game.ui_rects_cache["back"]
+        fake_event = pygame.event.Event(pygame.MOUSEBUTTONDOWN, {"pos": back_rect.center, "button": 1})
+        pygame.event.post(fake_event)
+        self.game.handle_events()
+        self.assertEqual(ctx.state, STATE_SECTOR_SELECT)
+
+        # 3. Mission Briefing -> Sector Map
+        ctx.state = STATE_MISSION_BRIEFING
+        self.game.pending_mission_id = "S1_M1"
+        self.game.render()
+        self.assertIn("back", self.game.ui_rects_cache)
+        back_rect = self.game.ui_rects_cache["back"]
+        fake_event = pygame.event.Event(pygame.MOUSEBUTTONDOWN, {"pos": back_rect.center, "button": 1})
+        pygame.event.post(fake_event)
+        self.game.handle_events()
+        self.assertEqual(ctx.state, STATE_SECTOR_SELECT)
+
+    # -------------------------------------------------------------------------
+    # 11. Dedicated Settings Menu Integrity
+    # -------------------------------------------------------------------------
+    def test_dedicated_settings_menu_navigation_and_options(self):
+        """Verify dedicated settings page navigation, options toggling, and return state."""
+        ctx = self.game.context
+        self.game.previous_state = STATE_SECTOR_SELECT
+        ctx.state = STATE_SETTINGS
+        self.game.render()
+
+        cache = self.game.ui_rects_cache
+        self.assertIn("diff", cache)
+        self.assertIn("crt", cache)
+        self.assertIn("sfx", cache)
+        self.assertIn("back", cache)
+
+        # Test difficulty cycle via click
+        initial_diff = ctx.difficulty_mode
+        fake_event = pygame.event.Event(pygame.MOUSEBUTTONDOWN, {"pos": cache["diff"].center, "button": 1})
+        pygame.event.post(fake_event)
+        self.game.handle_events()
+        self.assertEqual(ctx.difficulty_mode, (initial_diff + 1) % 4)
+
+        # Test back button returns to previous state
+        fake_event2 = pygame.event.Event(pygame.MOUSEBUTTONDOWN, {"pos": cache["back"].center, "button": 1})
+        pygame.event.post(fake_event2)
+        self.game.handle_events()
+        self.assertEqual(ctx.state, STATE_SECTOR_SELECT)
+
+    # -------------------------------------------------------------------------
+    # 12. Exit Button Hitboxes & Reliability
+    # -------------------------------------------------------------------------
+    def test_exit_buttons_reliability(self):
+        """Verify exit button is valid, non-zero area across all menu pages."""
+        ctx = self.game.context
+
+        for state in [STATE_MENU, STATE_SECTOR_SELECT, STATE_HANGAR, STATE_MISSION_BRIEFING]:
+            ctx.state = state
+            self.game.render()
+            cache = self.game.ui_rects_cache
+            self.assertIn("exit", cache, f"Exit button missing in {state}")
+            exit_r = cache["exit"]
+            self.assertIsNotNone(exit_r, f"Exit rect is None in {state}")
+            self.assertGreater(exit_r.width * exit_r.height, 0, f"Exit rect empty in {state}")
 
 
 if __name__ == "__main__":

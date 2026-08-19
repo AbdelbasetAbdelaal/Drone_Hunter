@@ -24,7 +24,12 @@ def safe_create_font(name: str, size: int, bold: bool = False) -> pygame.font.Fo
     ensure_font_init()
     cache_key = (name, size, bold)
     if cache_key in _font_cache:
-        return _font_cache[cache_key]
+        try:
+            # Check font validity in case pygame.font was restarted
+            _font_cache[cache_key].get_height()
+            return _font_cache[cache_key]
+        except Exception:
+            _font_cache.pop(cache_key, None)
 
     try:
         font = pygame.font.SysFont(name, size, bold=bold)
@@ -71,5 +76,7 @@ font_title = _LazyFont("Impact", 52)
 font_header = _LazyFont("Impact", 42)
 font_banner = _LazyFont("Verdana", 22, bold=True)
 font_card = _LazyFont("Segoe UI", 16, bold=True)
+font_button = _LazyFont("Segoe UI", 15, bold=True)
+font_sub = _LazyFont("Segoe UI", 13, bold=True)
 font_hud = _LazyFont("Consolas", 18, bold=True)
 font_gameover = _LazyFont("Impact", 54)

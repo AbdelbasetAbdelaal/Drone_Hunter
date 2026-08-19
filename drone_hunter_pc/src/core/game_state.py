@@ -20,6 +20,7 @@ class GameState(Enum):
     MISSION_BRIEFING = "mission_briefing"
     MISSION_COMPLETE = "mission_complete"
     MISSION_FAILED = "mission_failed"
+    SETTINGS = "settings"
 
 # String constants for compatibility
 STATE_MENU = GameState.MAIN_MENU.value
@@ -33,3 +34,4 @@ STATE_VICTORY = GameState.VICTORY.value
 STATE_MISSION_BRIEFING = GameState.MISSION_BRIEFING.value
 STATE_MISSION_COMPLETE = GameState.MISSION_COMPLETE.value
 STATE_MISSION_FAILED = GameState.MISSION_FAILED.value
+STATE_SETTINGS = GameState.SETTINGS.value
