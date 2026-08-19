@@ -1,6 +1,6 @@
 {
-  "scrap": 11065,
-  "coins": 15965,
+  "scrap": 18870,
+  "coins": 22467,
   "highscore": 332770,
   "upgrades": {
     "hull": 3,
@@ -44,19 +44,41 @@
     false
   ],
   "missions": {
-    "current_sector": 1,
-    "current_mission": 1,
-    "completed": [],
+    "current_sector": 2,
+    "current_mission": 3,
+    "completed": [
+      "S1_M1",
+      "S1_M2",
+      "S1_M3",
+      "S1_M4",
+      "S1_M5",
+      "S2_M1",
+      "S2_M2"
+    ],
     "unlocked": [
-      "S1_M1"
+      "S1_M1",
+      "S1_M2",
+      "S1_M3",
+      "S1_M4",
+      "S1_M5",
+      "S2_M1",
+      "S2_M2",
+      "S2_M3"
     ]
   },
   "sector_progress": {
-    "completed": [],
-    "unlocked": [
+    "completed": [
       1
+    ],
+    "unlocked": [
+      1,
+      2
     ]
   },
+  "bosses_defeated": [
+    "assembly_warden"
+  ],
+  "campaign_completed": false,
   "show_crt": false,
   "difficulty_mode": 1
 }
