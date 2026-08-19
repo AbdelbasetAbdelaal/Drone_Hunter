@@ -12,10 +12,11 @@ crash_log*.txt
 .pytest_cache/
 .coverage
 
-# Temporary files
-*.tmp
+# Runtime / user data files (generated at runtime, not source)
+save_data_*.json
 test_*_save.json
 test_*.json
+*.tmp
 
 # Distribution / packaging
 build/

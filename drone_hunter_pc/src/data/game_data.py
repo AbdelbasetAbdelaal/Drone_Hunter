@@ -88,9 +88,19 @@ WEAPON_DEFS = {
 # -----------------------------------------------------------------------------
 # Enemy & Boss Type Identifiers
 # -----------------------------------------------------------------------------
+# Active Phase 8 combat entities (fully integrated with 2D sprite rendering & AI)
 TARGET_TYPE_SCOUT = "scout"                       # Phase 2A Scout Drone (Mobile Melee Pressure)
 TARGET_TYPE_SHOOTER = "shooter"                   # Phase 2B Shooter Drone (Positioning Pressure)
 TARGET_TYPE_HEAVY = "heavy"                       # Phase 2C Heavy Drone (Target Prioritization Pressure)
+TARGET_TYPE_SHIELD_DRONE = "shield_drone"         # Phase 2D Shield Support Drone (Defense Aura)
+
+# Active Phase 6 Boss Identifiers (refer to boss_data.py for full specifications)
+TARGET_TYPE_BOSS = "boss"                         # Sky Dreadnought / Assembly Warden (Sector 1)
+TARGET_TYPE_STEALTH_MIRAGE = "stealth_mirage"     # Stealth Mirage / Core Executor (Sector 2)
+TARGET_TYPE_EMP_DISRUPTER = "emp_disrupter"       # EMP Disrupter / Reactor Titan (Sector 3)
+TARGET_TYPE_TITAN_MECH = "titan_mech"             # Colossus Titan Mech (Sector 5)
+
+# Legacy enemy identifiers (preserved for backwards-compatibility)
 TARGET_TYPE_STANDARD = "standard"
 TARGET_TYPE_FAST = "fast"
 TARGET_TYPE_ARMORED = "armored"
@@ -98,13 +108,7 @@ TARGET_TYPE_TURRET = "turret"
 TARGET_TYPE_VEHICLE = "vehicle"
 TARGET_TYPE_CHASER = "chaser"
 TARGET_TYPE_SWARM = "swarm"
-TARGET_TYPE_SHIELD_DRONE = "shield_drone"
 TARGET_TYPE_SNIPER = "sniper"
-
-TARGET_TYPE_BOSS = "boss"                         # Sky Dreadnought (Sector 1)
-TARGET_TYPE_STEALTH_MIRAGE = "stealth_mirage"     # Stealth Mirage (Sector 2)
-TARGET_TYPE_EMP_DISRUPTER = "emp_disrupter"       # EMP Disrupter (Sector 3)
-TARGET_TYPE_TITAN_MECH = "titan_mech"             # Colossus Titan Mech (Sector 5)
 
 TARGET_SPEED = 140.0
 ENEMY_BULLET_SPEED = 340.0
@@ -171,7 +175,10 @@ UPGRADE_COSTS = {
 MAX_UPGRADE_LEVEL = 5
 
 # -----------------------------------------------------------------------------
-# Campaign Sectors & Stages
+# Campaign Sectors & Stages (Legacy Stage-Based Mode)
+# NOTE: The authoritative 25-mission Campaign is defined in src.data.mission_data
+# (SECTORS_PHASE5 and MISSIONS). This catalog is retained for background/weather
+# theme lookups and backward compatibility.
 # -----------------------------------------------------------------------------
 SECTORS = [
     {

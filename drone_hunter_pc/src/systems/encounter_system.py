@@ -1,10 +1,20 @@
 """
 ================================================================================
-                DRONE HUNTER 2D - ENCOUNTER SYSTEM (PHASE 2A & 2B)
+          DRONE HUNTER 2D - ENCOUNTER SYSTEM (Phase 2A–2D & Phase 8)
 ================================================================================
 Lightweight data-driven encounter director managing structured combat tests
 and sequential enemy wave introductions with safe world-space spawn placement.
-Supports Scout Recon Encounter (Phase 2A) and Shooter Positioning Encounter (Phase 2B).
+
+Supports:
+  - Phase 2A: Scout Recon Encounter (legacy dict config)
+  - Phase 2B: Shooter Positioning Encounter (legacy dict config)
+  - Phase 2C: Heavy Target Priority Encounter (legacy dict config)
+  - Phase 2D: Mixed 2-4 enemy compositions (list-based)
+  - Phase 8:  9 expanded tactical wave compositions used across all 25 missions
+
+Config formats:
+  dict  (_is_legacy = True)  → single enemy_type with count, spawn/respawn delay
+  list  (_is_legacy = False) → ordered sequence of TARGET_TYPE strings, 1 per spawn slot
 """
 
 import math
@@ -17,7 +27,10 @@ from src.data.game_data import (
 )
 from src.entities.enemy import Enemy
 
-# Default Phase 2A Scout Introduction Encounter
+# =============================================================================
+# LEGACY DICT-BASED ENCOUNTERS (Phase 2A / 2B / 2C intro encounters)
+# Used by: CombatDirector default fallback, save_system, progression_system
+# =============================================================================
 SCOUT_INTRO_ENCOUNTER = {
     "name": "Scout Recon Encounter",
     "enemy_type": TARGET_TYPE_SCOUT,
@@ -26,7 +39,6 @@ SCOUT_INTRO_ENCOUNTER = {
     "respawn_delay": 1.0,
 }
 
-# Phase 2B Shooter Introduction Encounter
 SHOOTER_INTRO_ENCOUNTER = {
     "name": "Shooter Positioning Encounter",
     "enemy_type": TARGET_TYPE_SHOOTER,
@@ -35,7 +47,6 @@ SHOOTER_INTRO_ENCOUNTER = {
     "respawn_delay": 1.0,
 }
 
-# Phase 2C Heavy Introduction Encounter
 HEAVY_INTRO_ENCOUNTER = {
     "name": "Heavy Target Priority Encounter",
     "enemy_type": TARGET_TYPE_HEAVY,
@@ -44,8 +55,11 @@ HEAVY_INTRO_ENCOUNTER = {
     "respawn_delay": 1.0,
 }
 
-
-# Phase 2D Encounter Compositions
+# =============================================================================
+# PHASE 2D LIST-BASED COMPOSITIONS (mixed 2–4 enemy encounters)
+# Used by: CombatDirector default sequence, test_phase2d_encounters,
+#          test_phase2e_combat_director, test_phase4_progression
+# =============================================================================
 SCOUT_SHOOTER_ENCOUNTER = [
     TARGET_TYPE_SCOUT,
     TARGET_TYPE_SHOOTER
@@ -67,18 +81,22 @@ SCOUT_SHOOTER_HEAVY_ENCOUNTER = [
     TARGET_TYPE_SCOUT
 ]
 
-# Phase 8 Expanded Multi-Wave Tactical Compositions
-WAVE_SCOUTS_PATROL = [TARGET_TYPE_SCOUT, TARGET_TYPE_SCOUT, TARGET_TYPE_SCOUT]
-WAVE_SCOUTS_ASSAULT = [TARGET_TYPE_SCOUT, TARGET_TYPE_SCOUT, TARGET_TYPE_SCOUT, TARGET_TYPE_SCOUT]
-WAVE_SCOUTS_SWARM = [TARGET_TYPE_SCOUT, TARGET_TYPE_SCOUT, TARGET_TYPE_SCOUT, TARGET_TYPE_SCOUT, TARGET_TYPE_SCOUT]
+# =============================================================================
+# PHASE 8 EXPANDED TACTICAL WAVE COMPOSITIONS
+# Used by: all 25 campaign missions in mission_data.py
+# Each list entry is spawned sequentially (1 enemy per second)
+# =============================================================================
+WAVE_SCOUTS_PATROL      = [TARGET_TYPE_SCOUT, TARGET_TYPE_SCOUT, TARGET_TYPE_SCOUT]
+WAVE_SCOUTS_ASSAULT     = [TARGET_TYPE_SCOUT, TARGET_TYPE_SCOUT, TARGET_TYPE_SCOUT, TARGET_TYPE_SCOUT]
+WAVE_SCOUTS_SWARM       = [TARGET_TYPE_SCOUT, TARGET_TYPE_SCOUT, TARGET_TYPE_SCOUT, TARGET_TYPE_SCOUT, TARGET_TYPE_SCOUT]
 
-WAVE_SHOOTERS_PAIR = [TARGET_TYPE_SHOOTER, TARGET_TYPE_SCOUT, TARGET_TYPE_SHOOTER]
-WAVE_SHOOTERS_SQUAD = [TARGET_TYPE_SCOUT, TARGET_TYPE_SHOOTER, TARGET_TYPE_SCOUT, TARGET_TYPE_SHOOTER, TARGET_TYPE_SCOUT]
+WAVE_SHOOTERS_PAIR      = [TARGET_TYPE_SHOOTER, TARGET_TYPE_SCOUT, TARGET_TYPE_SHOOTER]
+WAVE_SHOOTERS_SQUAD     = [TARGET_TYPE_SCOUT, TARGET_TYPE_SHOOTER, TARGET_TYPE_SCOUT, TARGET_TYPE_SHOOTER, TARGET_TYPE_SCOUT]
 
-WAVE_HEAVY_ESCORT = [TARGET_TYPE_SCOUT, TARGET_TYPE_HEAVY, TARGET_TYPE_SCOUT, TARGET_TYPE_SHOOTER]
-WAVE_HEAVY_BATTLEGROUP = [TARGET_TYPE_SCOUT, TARGET_TYPE_HEAVY, TARGET_TYPE_SHOOTER, TARGET_TYPE_HEAVY, TARGET_TYPE_SCOUT]
+WAVE_HEAVY_ESCORT       = [TARGET_TYPE_SCOUT, TARGET_TYPE_HEAVY, TARGET_TYPE_SCOUT, TARGET_TYPE_SHOOTER]
+WAVE_HEAVY_BATTLEGROUP  = [TARGET_TYPE_SCOUT, TARGET_TYPE_HEAVY, TARGET_TYPE_SHOOTER, TARGET_TYPE_HEAVY, TARGET_TYPE_SCOUT]
 
-WAVE_SHIELD_VANGUARD = [TARGET_TYPE_SCOUT, TARGET_TYPE_SHIELD_DRONE, TARGET_TYPE_SHOOTER, TARGET_TYPE_SCOUT]
+WAVE_SHIELD_VANGUARD    = [TARGET_TYPE_SCOUT, TARGET_TYPE_SHIELD_DRONE, TARGET_TYPE_SHOOTER, TARGET_TYPE_SCOUT]
 WAVE_ELITE_STRIKE_FORCE = [TARGET_TYPE_SHIELD_DRONE, TARGET_TYPE_HEAVY, TARGET_TYPE_SHOOTER, TARGET_TYPE_SHOOTER, TARGET_TYPE_SCOUT]
 
 
