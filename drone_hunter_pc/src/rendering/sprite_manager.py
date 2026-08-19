@@ -120,6 +120,19 @@ class SpriteManager:
         self._rotated_cache[cache_key] = rotated
         return rotated
 
+    def get_rotated_player_sprite(self, state: str = 'idle', skin_idx: int = 0, angle_deg: float = 0.0, target_size: tuple[int, int] = (68, 58)) -> pygame.Surface:
+        """Returns pre-cached, rotated, skin-tinted player sprite (quantized to 2 deg)."""
+        quantized_angle = int(round(angle_deg / 2.0)) * 2 % 360
+        cache_key = (state, skin_idx, target_size, quantized_angle)
+
+        if cache_key in self._rotated_cache:
+            return self._rotated_cache[cache_key]
+
+        base_sprite = self.get_player_sprite(state=state, skin_idx=skin_idx, target_size=target_size)
+        rotated = pygame.transform.rotate(base_sprite, quantized_angle)
+        self._rotated_cache[cache_key] = rotated
+        return rotated
+
 
 _sprite_manager = None
 
