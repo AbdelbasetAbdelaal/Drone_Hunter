@@ -45,43 +45,112 @@ HEAVY_INTRO_ENCOUNTER = {
 }
 
 
+# Phase 2D Encounter Compositions
+SCOUT_SHOOTER_ENCOUNTER = {
+    "name": "Scout & Shooter Encounter",
+    "sequence": [
+        {"enemy_type": TARGET_TYPE_SCOUT, "delay": 1.5, "wait_for_death": False},
+        {"enemy_type": TARGET_TYPE_SHOOTER, "delay": 1.5, "wait_for_death": False}
+    ]
+}
+
+SCOUT_HEAVY_ENCOUNTER = {
+    "name": "Scout & Heavy Encounter",
+    "sequence": [
+        {"enemy_type": TARGET_TYPE_HEAVY, "delay": 1.5, "wait_for_death": False},
+        {"enemy_type": TARGET_TYPE_SCOUT, "delay": 1.5, "wait_for_death": False}
+    ]
+}
+
+SHOOTER_HEAVY_ENCOUNTER = {
+    "name": "Shooter & Heavy Encounter",
+    "sequence": [
+        {"enemy_type": TARGET_TYPE_HEAVY, "delay": 1.5, "wait_for_death": False},
+        {"enemy_type": TARGET_TYPE_SHOOTER, "delay": 1.5, "wait_for_death": False}
+    ]
+}
+
+SCOUT_SHOOTER_HEAVY_ENCOUNTER = {
+    "name": "Full Composition Encounter",
+    "sequence": [
+        {"enemy_type": TARGET_TYPE_HEAVY, "delay": 1.5, "wait_for_death": False},
+        {"enemy_type": TARGET_TYPE_SHOOTER, "delay": 1.0, "wait_for_death": False},
+        {"enemy_type": TARGET_TYPE_SCOUT, "delay": 1.0, "wait_for_death": False}
+    ]
+}
+
+
 class EncounterSystem:
-    """Manages deterministic sequential encounters with spawn suppression."""
+    """Manages deterministic sequential and simultaneous encounters."""
     def __init__(self, config: dict = None, enabled: bool = True):
         self.config = config if config is not None else SCOUT_INTRO_ENCOUNTER
         self.enabled = enabled
-        self.state = "idle" # idle, waiting, active, complete
-        self.total_count = self.config.get("count", 3)
+        self.state = "idle" # idle, spawning, active, complete
+        
+        # Legacy tracking for tests/backwards compatibility
+        self.total_count = self.config.get("count", len(self.config.get("sequence", [])))
         self.spawned_count = 0
         self.eliminated_count = 0
-        self.active_enemy = None
+        self.active_enemy = None # Legacy reference
+        
+        # New sequence tracking
+        self._sequence = []
+        self.active_enemies = []
+        self.spawn_index = 0
         self.timer = 0.0
         self.min_spawn_distance = 500.0
 
     def set_encounter(self, config: dict):
         """Swaps the active encounter configuration and resets state."""
         self.config = config
-        self.total_count = self.config.get("count", 1)
+        self.total_count = self.config.get("count", len(self.config.get("sequence", [])))
         self.reset()
 
     def start(self, config: dict = None):
         """Explicitly starts the encounter into WAITING state."""
         if config is not None:
             self.config = config
-            self.total_count = self.config.get("count", 1)
+            self.total_count = self.config.get("count", len(self.config.get("sequence", [])))
+        
         self.state = "waiting"
+        self.spawn_index = 0
         self.spawned_count = 0
         self.eliminated_count = 0
         self.active_enemy = None
-        self.timer = self.config.get("spawn_delay", 1.5)
+        self.active_enemies = []
+        
+        # Build sequence list
+        if "sequence" not in self.config:
+            # Build legacy sequential list
+            count = self.config.get("count", 1)
+            e_type = self.config.get("enemy_type", TARGET_TYPE_SHOOTER)
+            delay = self.config.get("spawn_delay", 1.5)
+            r_delay = self.config.get("respawn_delay", 1.0)
+            self._sequence = []
+            for i in range(count):
+                self._sequence.append({
+                    "enemy_type": e_type,
+                    "delay": delay if i == 0 else r_delay,
+                    "wait_for_death": True
+                })
+        else:
+            self._sequence = self.config["sequence"]
+            
+        if self._sequence:
+            self.timer = self._sequence[0].get("delay", 1.0)
+        else:
+            self.state = "complete"
 
     def reset(self):
         """Resets the encounter back to IDLE state."""
         self.state = "idle"
+        self.spawn_index = 0
         self.spawned_count = 0
         self.eliminated_count = 0
         self.active_enemy = None
+        self.active_enemies = []
         self.timer = 0.0
+        self._sequence = []
 
     @property
     def is_active(self) -> bool:
@@ -120,6 +189,16 @@ class EncounterSystem:
         fallback_y = 120.0 if py > WORLD_HEIGHT // 2 else WORLD_HEIGHT - 120.0
         return (fallback_x, fallback_y)
 
+    def _clean_active_enemies(self, ctx):
+        """Removes dead enemies from active_enemies tracking array."""
+        alive = []
+        for e in self.active_enemies:
+            if e.alive and e in ctx.target_group:
+                alive.append(e)
+            else:
+                self.eliminated_count += 1
+        self.active_enemies = alive
+
     def update(self, dt: float, ctx) -> bool:
         """Updates encounter progression timer and triggers enemy spawns."""
         if not self.enabled or self.state not in ("waiting", "active"):
@@ -127,31 +206,38 @@ class EncounterSystem:
 
         p_pos = (ctx.player.pos.x, ctx.player.pos.y) if ctx.player else (WORLD_WIDTH // 2, WORLD_HEIGHT // 2)
 
+        self._clean_active_enemies(ctx)
+
         if self.state == "waiting":
             self.timer -= dt
             if self.timer <= 0:
-                if self.spawned_count < self.total_count:
-                    # Spawn next enemy in sequence
-                    spawn_pos = self._find_spawn_position(p_pos)
-                    enemy_type = self.config.get("enemy_type", TARGET_TYPE_SHOOTER)
-                    enemy = Enemy(enemy_type=enemy_type, pos=spawn_pos, sector_idx=ctx.current_sector_idx)
-                    ctx.target_group.add(enemy)
-
-                    self.active_enemy = enemy
-                    self.spawned_count += 1
+                current_step = self._sequence[self.spawn_index]
+                
+                # Spawn enemy
+                spawn_pos = self._find_spawn_position(p_pos)
+                enemy_type = current_step.get("enemy_type", TARGET_TYPE_SHOOTER)
+                enemy = Enemy(enemy_type=enemy_type, pos=spawn_pos, sector_idx=ctx.current_sector_idx)
+                ctx.target_group.add(enemy)
+                
+                self.active_enemies.append(enemy)
+                self.active_enemy = enemy # Legacy fallback
+                self.spawned_count += 1
+                self.spawn_index += 1
+                
+                if current_step.get("wait_for_death", False):
+                    self.state = "active"
+                elif self.spawn_index >= len(self._sequence):
                     self.state = "active"
                 else:
-                    self.state = "complete"
+                    # Still waiting for next spawn
+                    self.timer = self._sequence[self.spawn_index].get("delay", 1.0)
 
         elif self.state == "active":
-            # Check if current active enemy is eliminated
-            if self.active_enemy is None or not self.active_enemy.alive or self.active_enemy not in ctx.target_group:
-                self.eliminated_count += 1
-                self.active_enemy = None
-
-                if self.spawned_count < self.total_count:
+            if len(self.active_enemies) == 0:
+                # All dead
+                if self.spawn_index < len(self._sequence):
                     self.state = "waiting"
-                    self.timer = self.config.get("respawn_delay", 1.0)
+                    self.timer = self._sequence[self.spawn_index].get("delay", 1.0)
                 else:
                     self.state = "complete"
 

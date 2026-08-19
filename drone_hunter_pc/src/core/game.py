@@ -31,7 +31,7 @@ from src.entities.hazard import LaserGridFence, GravityAnomaly
 from src.systems.save_system import SaveSystem
 from src.systems.progression_system import ProgressionSystem
 from src.systems.spawn_system import Spawner, WaveManager
-from src.systems.encounter_system import EncounterSystem, HEAVY_INTRO_ENCOUNTER
+from src.systems.encounter_system import EncounterSystem, SCOUT_SHOOTER_HEAVY_ENCOUNTER
 from src.systems.combat_system import CombatSystem
 from src.rendering.camera import Camera2D
 from src.rendering.background import ParallaxBackground
@@ -66,7 +66,7 @@ class Game:
         self.audio_manager = AudioManager()
         self.save_system = SaveSystem()
         self.spawner = Spawner()
-        self.encounter_system = EncounterSystem(config=HEAVY_INTRO_ENCOUNTER)
+        self.encounter_system = EncounterSystem(config=SCOUT_SHOOTER_HEAVY_ENCOUNTER)
         self.combat_system = CombatSystem(self.context)
 
         # Inject references
