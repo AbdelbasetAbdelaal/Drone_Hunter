@@ -1,12 +1,12 @@
 {
-  "scrap": 14345,
+  "scrap": 12345,
   "coins": 15574,
   "highscore": 332770,
   "upgrades": {
-    "hull": 1,
-    "energy": 1,
-    "weapon": 1,
-    "mobility": 1,
+    "hull": 2,
+    "energy": 2,
+    "weapon": 2,
+    "mobility": 2,
     "battery": 5,
     "speed": 5,
     "fire_rate": 5,
@@ -43,6 +43,20 @@
     false,
     false
   ],
+  "missions": {
+    "current_sector": 1,
+    "current_mission": 1,
+    "completed": [],
+    "unlocked": [
+      "S1_M1"
+    ]
+  },
+  "sector_progress": {
+    "completed": [],
+    "unlocked": [
+      1
+    ]
+  },
   "show_crt": false,
   "difficulty_mode": 1
 }

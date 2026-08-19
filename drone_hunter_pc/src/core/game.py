@@ -347,41 +347,28 @@ class Game:
             elif event.type == pygame.MOUSEBUTTONDOWN:
                 mx, my = self.get_canvas_mouse_pos(getattr(event, "pos", None))
                 if ctx.state == STATE_MENU:
-                    btn_w, btn_h = 240, 44
-                    cx = SCREEN_WIDTH // 2 - btn_w // 2
-                    btn_y_start = SCREEN_HEIGHT // 2 - 10
-                    gap = 14
-                    
-                    r_play = pygame.Rect(cx, btn_y_start, btn_w, btn_h)
-                    r_sec = pygame.Rect(cx, btn_y_start + (btn_h + gap), btn_w, btn_h)
-                    r_hangar = pygame.Rect(cx, btn_y_start + 2 * (btn_h + gap), btn_w, btn_h)
-                    r_exit = pygame.Rect(cx, btn_y_start + 3 * (btn_h + gap), btn_w, btn_h)
-                    
-                    if r_play.collidepoint(mx, my):
-                        self.start_stage()
-                    elif r_sec.collidepoint(mx, my):
-                        ctx.state = STATE_SECTOR_SELECT
-                    elif r_hangar.collidepoint(mx, my):
-                        ctx.state = STATE_HANGAR
-                    elif r_exit.collidepoint(mx, my):
-                        self.running = False
-
+                    buttons = draw_main_menu(self.renderer.canvas)
+                    if buttons['play'].collidepoint(mx, my): ctx.state = STATE_SECTOR_SELECT
+                    elif buttons['hangar'].collidepoint(mx, my): ctx.state = STATE_HANGAR
+                    elif buttons['exit'].collidepoint(mx, my): self.running = False
                 elif ctx.state == STATE_SECTOR_SELECT:
-                    diff_rect, exit_r, stage_buttons = draw_sector_select_ui(
-                        self.renderer.canvas, ctx.unlocked_sectors, ctx.coins,
-                        ctx.difficulty_mode, ctx.unlocked_stages
-                    )
-                    if exit_r.collidepoint(mx, my):
-                        self.running = False
-                    elif diff_rect.collidepoint(mx, my):
-                        ctx.difficulty_mode = (ctx.difficulty_mode + 1) % 4
-                    else:
-                        for stg_rect, sec_idx, stg_num, is_unlocked in stage_buttons:
-                            if stg_rect.collidepoint(mx, my) and is_unlocked:
-                                self.start_stage(sec_idx, stg_num)
-                                break
-
+                    if hasattr(self, 'ui_rects_cache') and self.ui_rects_cache:
+                        if self.ui_rects_cache.get("exit") and self.ui_rects_cache["exit"].collidepoint(mx, my): ctx.state = STATE_MENU
+                        if self.ui_rects_cache.get("diff_rect") and self.ui_rects_cache["diff_rect"].collidepoint(mx, my): ctx.difficulty_mode = (ctx.difficulty_mode + 1) % 4
+                        if "sectors" in self.ui_rects_cache:
+                            for s_id, rect in self.ui_rects_cache["sectors"].items():
+                                if rect.collidepoint(mx, my): ctx.missions["current_sector"] = s_id
+                        if "missions" in self.ui_rects_cache:
+                            for m_id, rect in self.ui_rects_cache["missions"].items():
+                                if rect.collidepoint(mx, my):
+                                    self.pending_mission_id = m_id
+                                    ctx.state = STATE_MISSION_BRIEFING
+                elif ctx.state == STATE_MISSION_BRIEFING:
+                    if hasattr(self, 'ui_rects_cache') and self.ui_rects_cache:
+                        if self.ui_rects_cache.get("exit") and self.ui_rects_cache["exit"].collidepoint(mx, my): ctx.state = STATE_SECTOR_SELECT
+                        elif self.ui_rects_cache.get("start") and self.ui_rects_cache["start"].collidepoint(mx, my): self.start_phase5_mission(self.pending_mission_id)
                 elif ctx.state == STATE_HANGAR:
+
                     exit_r, skin_r, item_rects = draw_hangar_shop_ui(self.renderer.canvas, ctx.scrap, ctx.current_sector_idx, ctx.upgrade_levels)
                     if skin_r.collidepoint(mx, my) and ctx.player:
                         ctx.player.cycle_skin()
