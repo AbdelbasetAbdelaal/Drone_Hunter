@@ -12,7 +12,7 @@ from src.data.settings import (
     COLOR_WHITE, COLOR_HUD
 )
 from src.data.game_data import UPGRADE_COSTS, MAX_UPGRADE_LEVEL
-from src.ui.font_manager import font_title, font_banner, font_card
+from src.ui.font_manager import font_title, font_header, font_banner, font_card
 from src.ui.menus import draw_exit_button
 
 def draw_hangar_shop_ui(canvas: pygame.Surface, scrap: int, current_sector_idx: int, upgrade_levels: dict[str, int]) -> tuple[pygame.Rect, pygame.Rect, dict]:
@@ -22,7 +22,7 @@ def draw_hangar_shop_ui(canvas: pygame.Surface, scrap: int, current_sector_idx: 
     pygame.draw.rect(canvas, (15, 23, 42), header_rect, border_radius=6)
     pygame.draw.rect(canvas, COLOR_CYAN, header_rect, 2, border_radius=6)
     
-    t_hdr = font_title.render("DRONE HANGAR & UPGRADE BAY", True, COLOR_CYAN)
+    t_hdr = font_header.render("DRONE HANGAR & UPGRADE BAY", True, COLOR_CYAN)
     scrap_hdr = font_banner.render(f"SCRAP: {scrap:,}", True, COLOR_GOLD)
     canvas.blit(t_hdr, (48, 18))
     canvas.blit(scrap_hdr, (SCREEN_WIDTH - 300, 28))

@@ -68,6 +68,7 @@ class _LazyFont:
 
 # Lazy Font Singletons
 font_title = _LazyFont("Impact", 52)
+font_header = _LazyFont("Impact", 42)
 font_banner = _LazyFont("Verdana", 22, bold=True)
 font_card = _LazyFont("Segoe UI", 16, bold=True)
 font_hud = _LazyFont("Consolas", 18, bold=True)
