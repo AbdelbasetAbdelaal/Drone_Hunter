@@ -338,6 +338,20 @@ class Game:
                         if ctx.state == STATE_LEVEL_CLEAR: self.start_next_stage()
                         else: self.start_stage()
 
+                elif ctx.state == STATE_MISSION_COMPLETE:
+                    if event.key in (pygame.K_SPACE, pygame.K_RETURN, pygame.K_m):
+                        self.mission_system.active_mission_id = None
+                        ctx.state = STATE_SECTOR_SELECT
+
+                elif ctx.state == STATE_MISSION_FAILED:
+                    if event.key in (pygame.K_SPACE, pygame.K_RETURN):
+                        self.start_phase5_mission(self.mission_system.active_mission_id or self.pending_mission_id)
+                    elif event.key == pygame.K_m:
+                        self.mission_system.active_mission_id = None
+                        ctx.state = STATE_SECTOR_SELECT
+                    elif event.key == pygame.K_q:
+                        self.running = False
+
             elif event.type == pygame.MOUSEWHEEL and ctx.state == STATE_PLAYING and ctx.player:
                 if event.y > 0: ctx.player.cycle_weapon()
                 elif event.y < 0:

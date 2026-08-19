@@ -1,12 +1,12 @@
 {
-  "scrap": 12345,
-  "coins": 15574,
+  "scrap": 8345,
+  "coins": 15661,
   "highscore": 332770,
   "upgrades": {
-    "hull": 2,
-    "energy": 2,
-    "weapon": 2,
-    "mobility": 2,
+    "hull": 3,
+    "energy": 3,
+    "weapon": 3,
+    "mobility": 3,
     "battery": 5,
     "speed": 5,
     "fire_rate": 5,

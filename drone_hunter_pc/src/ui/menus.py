@@ -248,7 +248,7 @@ def draw_mission_complete(canvas: pygame.Surface, mission_data: dict, was_first_
         t_rep = font_banner.render("Replay Complete (Gameplay Only - No Duplicate Reward)", True, COLOR_TEXT_DIM)
         canvas.blit(t_rep, t_rep.get_rect(center=(vw // 2, vh // 2 - 20)))
 
-    t_cont = font_hud.render("PRESS [SPACE / ENTER] TO CONTINUE", True, COLOR_WHITE)
+    t_cont = font_hud.render("[SPACE / ENTER] => SECTOR MAP", True, COLOR_WHITE)
     canvas.blit(t_cont, t_cont.get_rect(center=(vw // 2, vh // 2 + 80)))
 
 def draw_mission_failed(canvas: pygame.Surface, scrap: int):
