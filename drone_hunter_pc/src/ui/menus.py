@@ -109,18 +109,32 @@ def draw_mission_select_ui(canvas: pygame.Surface, ctx, scrap: int) -> dict:
             
         t_col = COLOR_WHITE if is_unlocked else (75, 85, 99)
         t_mark = "> " if is_selected else "  "
-        s_text = font_card.render(f"{t_mark}SECTOR {s_id}: {sec['name']}", True, t_col)
-        canvas.blit(s_text, (55, sy + 15))
         
+        # Status label with reserved right-side area
         if is_completed:
-            lk = font_card.render("[COMPLETED]", True, COLOR_EMERALD)
-            canvas.blit(lk, (s_rect.right - lk.get_width() - 10, sy + 15))
+            status_text = "[COMPLETED]"
+            status_col = COLOR_EMERALD
         elif is_unlocked:
-            lk = font_card.render("[AVAILABLE]", True, COLOR_CYAN)
-            canvas.blit(lk, (s_rect.right - lk.get_width() - 10, sy + 15))
+            status_text = "[AVAILABLE]"
+            status_col = COLOR_CYAN
         else:
-            lk = font_card.render("[LOCKED]", True, (150, 50, 50))
-            canvas.blit(lk, (s_rect.right - lk.get_width() - 10, sy + 15))
+            status_text = "[LOCKED]"
+            status_col = (150, 50, 50)
+        
+        lk = font_card.render(status_text, True, status_col)
+        status_x = s_rect.right - lk.get_width() - 10
+        canvas.blit(lk, (status_x, sy + 15))
+        
+        # Sector name constrained to reserved status area
+        prefix = f"{t_mark}SECTOR {s_id}: "
+        prefix_width = font_card._get().size(prefix)[0]
+        max_name_width = status_x - 55 - 6 - prefix_width
+        raw_name = sec['name']
+        name_font = font_card._get()
+        while name_font.size(raw_name)[0] > max_name_width and len(raw_name) > 0:
+            raw_name = raw_name[:-1]
+        s_text = font_card.render(f"{prefix}{raw_name}", True, t_col)
+        canvas.blit(s_text, (55, sy + 15))
             
         if is_unlocked:
             interactive_rects["sectors"][s_id] = s_rect
@@ -196,8 +210,9 @@ def draw_mission_briefing(canvas: pygame.Surface, mission_data: dict, scrap: int
     canvas.blit(m_text, m_text.get_rect(center=(vw // 2, box_rect.top + 115)))
     
     diff_val = mission_data.get("difficulty", 1)
-    diff_stars = "* " * diff_val
-    d_text = font_card.render(f"DIFFICULTY: {diff_stars.strip()}", True, COLOR_CRIMSON)
+    diff_names = {1: "EASY", 2: "NORMAL", 3: "HARD", 4: "VERY HARD", 5: "EXTREME"}
+    diff_label = diff_names.get(diff_val, "NORMAL")
+    d_text = font_card.render(f"DIFFICULTY: {diff_label} [{diff_val}/5]", True, COLOR_CRIMSON)
     canvas.blit(d_text, d_text.get_rect(center=(vw // 2, box_rect.top + 160)))
     
     obj_str = mission_data["objective"].replace("_", " ").upper()
