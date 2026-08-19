@@ -533,6 +533,8 @@ class Game:
                 combo_mult=ctx.combo_count, show_crt=ctx.show_crt,
                 current_wave=ctx.current_wave, sub_level=ctx.current_sub_level
             )
+            
+            draw_radar_minimap(canvas, ctx.player, ctx.target_group)
 
             # Boss Health Bar
             boss_entity = next((t for t in ctx.target_group if getattr(t, "is_boss", False) and t.alive), None)

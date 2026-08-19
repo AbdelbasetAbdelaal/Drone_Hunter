@@ -73,19 +73,24 @@ def draw_hud(canvas: pygame.Surface, player, sector_idx: int = 0, level_score: i
             canvas.blit(jam_banner, (vw // 2 - jam_banner.get_width() // 2, 70))
 
     # =========================================================================
-    # 2. TOP-RIGHT: Score & Compact Combo Tag
+    # 2. TOP-RIGHT: Level, Score & Compact Combo Tag
     # =========================================================================
+    level_str = f"SECTOR {sector_idx + 1} - LEVEL {sub_level}"
+    lbl_level = font_card.render(level_str, True, COLOR_CYAN)
+    level_x = vw - margin_x - lbl_level.get_width()
+    canvas.blit(lbl_level, (level_x, margin_y))
+
     score_str = f"SCORE: {level_score:,}"
     lbl_score = font_hud.render(score_str, True, COLOR_WHITE)
     score_x = vw - margin_x - lbl_score.get_width()
-    canvas.blit(lbl_score, (score_x, margin_y))
+    canvas.blit(lbl_score, (score_x, margin_y + 20))
 
     # Compact Combo Streak Badge
     if combo_mult > 1:
         combo_txt = f"COMBO x{combo_mult}"
         lbl_combo = font_card.render(combo_txt, True, COLOR_GOLD)
         combo_w = lbl_combo.get_width() + 12
-        combo_rect = pygame.Rect(score_x - combo_w - 10, margin_y + 2, combo_w, 20)
+        combo_rect = pygame.Rect(score_x - combo_w - 10, margin_y + 22, combo_w, 20)
         pygame.draw.rect(canvas, (245, 158, 11, 40), combo_rect, border_radius=4)
         pygame.draw.rect(canvas, COLOR_GOLD, combo_rect, 1, border_radius=4)
         canvas.blit(lbl_combo, (combo_rect.left + 6, combo_rect.top + 3))
@@ -163,5 +168,51 @@ def draw_combo_banner(canvas: pygame.Surface, combo_count: int, combo_timer: flo
 
 
 def draw_radar_minimap(canvas: pygame.Surface, player, targets_group, wingmen_group=None):
-    """Stub for backwards compatibility."""
-    pass
+    """Draws a radar minimap showing the player and enemies."""
+    if not player or not player.alive:
+        return
+        
+    vw, vh = canvas.get_size()
+    radar_radius = 60
+    radar_x = vw - radar_radius - 24
+    radar_y = 120 + radar_radius  # Below score
+    
+    # Draw radar background (using alpha surface for transparency)
+    radar_surface = pygame.Surface((radar_radius * 2, radar_radius * 2), pygame.SRCALPHA)
+    pygame.draw.circle(radar_surface, (15, 23, 42, 180), (radar_radius, radar_radius), radar_radius)
+    pygame.draw.circle(radar_surface, COLOR_CYAN, (radar_radius, radar_radius), radar_radius, 1)
+    
+    # Crosshairs
+    pygame.draw.line(radar_surface, (51, 65, 85, 150), (0, radar_radius), (radar_radius * 2, radar_radius))
+    pygame.draw.line(radar_surface, (51, 65, 85, 150), (radar_radius, 0), (radar_radius, radar_radius * 2))
+    
+    # Player dot
+    pygame.draw.circle(radar_surface, COLOR_EMERALD, (radar_radius, radar_radius), 3)
+    
+    # Scale: 60 pixels = 1200 world units -> scale = 0.05
+    radar_scale = 0.05
+    max_dist = radar_radius / radar_scale
+    
+    for enemy in targets_group:
+        if not getattr(enemy, 'alive', False):
+            continue
+            
+        dx = enemy.pos.x - player.pos.x
+        dy = enemy.pos.y - player.pos.y
+        dist = math.hypot(dx, dy)
+        
+        if dist > 0:
+            if dist > max_dist:
+                dx = (dx / dist) * max_dist
+                dy = (dy / dist) * max_dist
+                
+            px = radar_radius + int(dx * radar_scale)
+            py = radar_radius + int(dy * radar_scale)
+            
+            color = getattr(enemy, 'color_outer', COLOR_CRIMSON)
+            if dist > max_dist:
+                pygame.draw.circle(radar_surface, color, (px, py), 2)
+            else:
+                pygame.draw.circle(radar_surface, color, (px, py), 3)
+                
+    canvas.blit(radar_surface, (radar_x - radar_radius, radar_y - radar_radius))
