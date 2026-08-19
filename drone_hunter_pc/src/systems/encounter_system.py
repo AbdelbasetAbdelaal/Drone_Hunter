@@ -22,7 +22,7 @@ SCOUT_INTRO_ENCOUNTER = {
     "name": "Scout Recon Encounter",
     "enemy_type": TARGET_TYPE_SCOUT,
     "count": 3,
-    "spawn_delay": 1.2,
+    "spawn_delay": 0.5,
     "respawn_delay": 1.0,
 }
 
@@ -111,9 +111,9 @@ class EncounterSystem:
         self.active_enemies = []
         
         if self._is_legacy:
-            self.timer = self.config.get("spawn_delay", 1.5)
+            self.timer = self.config.get("spawn_delay", 0.5)
         else:
-            self.timer = 1.5 # Fixed 1.5s initial delay for compositions
+            self.timer = 0.5 # fixed 0.5s initial delay for compositions
 
     def reset(self):
         """Resets the encounter back to IDLE state."""

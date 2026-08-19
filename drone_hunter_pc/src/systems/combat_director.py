@@ -32,8 +32,8 @@ class CombatDirector:
         self.loop_encounters = False
         
         # Pacing Config
-        self.intro_delay = 1.5
-        self.relief_after_encounter = 2.5
+        self.intro_delay = 0.5
+        self.relief_after_encounter = 2.0
 
     def set_mission_sequence(self, sequence: list, loop: bool = False):
         """Phase 5: Sets the exact sequence to run, and whether to loop it."""

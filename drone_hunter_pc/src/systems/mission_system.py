@@ -54,6 +54,9 @@ class MissionSystem:
             director.set_mission_sequence(seq, loop=True)
         else:
             director.set_mission_sequence(seq, loop=False)
+            
+        # Start the director
+        director.start()
 
     def update(self, dt: float, ctx: GameContext, director: CombatDirector) -> bool:
         """

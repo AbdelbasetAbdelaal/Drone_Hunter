@@ -166,8 +166,8 @@ class TestPhase2AScoutAndEncounter(unittest.TestCase):
         encounter = EncounterSystem()
         encounter.start()
 
-        # Under initial delay (1.2s): no spawn
-        encounter.update(0.6, ctx)
+        # Under initial delay (0.5s): no spawn
+        encounter.update(0.3, ctx)
         self.assertEqual(len(ctx.target_group), 0)
         self.assertEqual(encounter.state, "waiting")
 

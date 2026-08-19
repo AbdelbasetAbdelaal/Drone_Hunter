@@ -49,14 +49,14 @@ class TestPhase2ECombatDirector:
     def test_sequence_and_pacing(self):
         self.director.start()
         
-        # 1. INTRO DELAY
+        # 1. INTRO DELAY (now 0.5s)
         assert self.director.state == "intro"
         assert self.director.is_suppressing_spawner is True
-        self._fast_forward(1.0)
+        self._fast_forward(0.3)
         assert self.director.state == "intro" # still intro
         
         # Fast forward past intro
-        self._fast_forward(0.6) # total 1.6s > 1.5s
+        self._fast_forward(0.3) # total 0.6s > 0.5s
         
         # 2. ENCOUNTER 1 (Scout)
         assert self.director.state == "encounter"
@@ -64,8 +64,8 @@ class TestPhase2ECombatDirector:
         assert self.director.encounter_index == 0
         assert self.director.is_suppressing_spawner is True
         
-        # Wait for enemy to spawn (Scout Intro has 1.5s delay)
-        self._fast_forward(1.6)
+        # Wait for enemy to spawn (Scout now has 0.5s delay)
+        self._fast_forward(0.6)
         assert len(self.ctx.target_group) == 1
         self._kill_all_enemies()
         # count=3 for scout intro
