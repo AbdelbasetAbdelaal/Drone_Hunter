@@ -175,6 +175,10 @@ class ParticleManager:
     def spawn_shockwave(self, pos: tuple[float, float], max_r: int = 500, color: tuple[int, int, int] = (250, 204, 21)):
         self.spawn_explosion(pos, count=35, color=color)
 
+    def spawn_barrel_roll_rings(self, pos: tuple[float, float], radius: int = 40, color: tuple[int, int, int] = COLOR_CYAN):
+        self.spawn_shockwave(pos, max_r=radius * 3, color=color)
+        self.spawn_spark(pos, count=12, color=color)
+
     def spawn_floating_text(self, pos: tuple[float, float], text: str, color: tuple[int, int, int] = COLOR_GOLD, font_size: int = 18):
         self.floating_texts.add(FloatingText(pos, text, color, font_size))
 

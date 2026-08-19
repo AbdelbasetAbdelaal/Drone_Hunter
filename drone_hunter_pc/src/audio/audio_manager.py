@@ -81,9 +81,11 @@ class AudioManager:
     def play_explosion(self): self._play_cached("explosion", 50)
     def play_mine_explosion(self): self._play_cached("explosion", 50)
     def play_hit(self): self._play_cached("hit", 30)
+    def play_player_hit(self): self._play_cached("hit", 30)
     def play_emp(self): self._play_cached("emp", 100)
     def play_powerup(self): self._play_cached("powerup", 60)
     def play_roll(self): self._play_cached("roll", 80)
+    def play_whoosh(self): self._play_cached("roll", 80)
     def play_cloak(self): self._play_cached("cloak", 80)
     def play_buy(self): self._play_cached("buy", 60)
     def play_sector_ambient(self, sector_idx: int): pass
