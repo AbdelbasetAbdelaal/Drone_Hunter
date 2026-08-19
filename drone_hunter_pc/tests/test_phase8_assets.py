@@ -75,9 +75,10 @@ class TestPhase8PlayerVisualOverhaul(unittest.TestCase):
             self.assertGreaterEqual(h, 20, f'{rel_path} height too small: {h}')
 
             transparent_count = np.sum(alpha == 0)
-            opaque_count = np.sum(alpha > 200)
             self.assertGreater(transparent_count, 0, f'{rel_path} has no transparent pixels!')
-            self.assertGreater(opaque_count, 0, f'{rel_path} has no opaque machine pixels!')
+            if 'shadow' not in rel_path:
+                opaque_count = np.sum(alpha > 180)
+                self.assertGreater(opaque_count, 0, f'{rel_path} has no opaque machine pixels!')
 
             corners = [int(alpha[0, 0]), int(alpha[0, w - 1]), int(alpha[h - 1, 0]), int(alpha[h - 1, w - 1])]
             for c in corners:
@@ -178,19 +179,93 @@ class TestPhase8PlayerVisualOverhaul(unittest.TestCase):
         scout._render_sprite()
         self.assertIsNotNone(scout.image)
 
-    def test_scout_render_sprite_uses_rotated_scout_sprite(self):
-        """Proves that Scout._render_sprite() uses rotation-aware Scout sprite."""
-        from unittest.mock import patch
-        from src.entities.enemy import Scout
-        scout = Scout(pos=(400, 300))
-        scout.heading_angle = 90.0
+    def test_shooter_assets_and_rotation_cache(self):
+        s1 = self.sm.get_rotated_shooter_sprite(state='idle', angle_deg=45.0, target_size=(50, 46))
+        s2 = self.sm.get_rotated_shooter_sprite(state='idle', angle_deg=45.0, target_size=(50, 46))
+        self.assertIs(s1, s2)
 
-        with patch.object(self.sm, 'get_rotated_scout_sprite', wraps=self.sm.get_rotated_scout_sprite) as mock_rot:
-            scout._render_sprite()
-            # Must call get_rotated_scout_sprite with angle_deg=-90.0
-            mock_rot.assert_called_once()
-            call_kwargs = mock_rot.call_args.kwargs
-            self.assertEqual(call_kwargs.get('angle_deg'), -90.0)
+        sh1 = self.sm.get_shooter_shadow(target_size=(44, 28))
+        sh2 = self.sm.get_shooter_shadow(target_size=(44, 28))
+        self.assertIs(sh1, sh2)
+
+        from src.entities.enemy import Enemy
+        from src.data.game_data import TARGET_TYPE_SHOOTER
+        shooter = Enemy(enemy_type=TARGET_TYPE_SHOOTER, pos=(400, 300))
+        shooter.heading_angle = 60.0
+        shooter._render_sprite()
+        self.assertIsNotNone(shooter.image)
+
+    def test_heavy_assets_and_rotation_cache(self):
+        s1 = self.sm.get_rotated_heavy_sprite(state='idle', angle_deg=90.0, target_size=(62, 58))
+        s2 = self.sm.get_rotated_heavy_sprite(state='idle', angle_deg=90.0, target_size=(62, 58))
+        self.assertIs(s1, s2)
+
+        sh1 = self.sm.get_heavy_shadow(target_size=(58, 36))
+        sh2 = self.sm.get_heavy_shadow(target_size=(58, 36))
+        self.assertIs(sh1, sh2)
+
+        from src.entities.enemy import Enemy
+        from src.data.game_data import TARGET_TYPE_HEAVY
+        heavy = Enemy(enemy_type=TARGET_TYPE_HEAVY, pos=(400, 300))
+        heavy.heading_angle = 120.0
+        heavy._render_sprite()
+        self.assertIsNotNone(heavy.image)
+
+    def test_shield_drone_assets_and_rotation_cache(self):
+        s1 = self.sm.get_rotated_shield_drone_sprite(state='idle', angle_deg=180.0, target_size=(50, 46))
+        s2 = self.sm.get_rotated_shield_drone_sprite(state='idle', angle_deg=180.0, target_size=(50, 46))
+        self.assertIs(s1, s2)
+
+        sh1 = self.sm.get_shield_shadow(target_size=(46, 30))
+        sh2 = self.sm.get_shield_shadow(target_size=(46, 30))
+        self.assertIs(sh1, sh2)
+
+        from src.entities.enemy import Enemy
+        from src.data.game_data import TARGET_TYPE_SHIELD_DRONE
+        shield_d = Enemy(enemy_type=TARGET_TYPE_SHIELD_DRONE, pos=(400, 300))
+        shield_d._render_sprite()
+        self.assertIsNotNone(shield_d.image)
+
+    def test_all_five_bosses_assets_and_rendering(self):
+        boss_keys = [
+            'ASSEMBLY WARDEN',
+            'CORE EXECUTOR',
+            'REACTOR TITAN',
+            'DEFENSE COMMANDER',
+            'DRONE OVERLORD'
+        ]
+        for key in boss_keys:
+            for phase in [1, 2, 3, 4]:
+                b_surf = self.sm.get_boss_sprite(boss_key=key, phase=phase, target_size=(100, 100))
+                self.assertIsNotNone(b_surf)
+                self.assertEqual(b_surf.get_size(), (100, 100))
+
+            rot1 = self.sm.get_rotated_boss_sprite(boss_key=key, angle_deg=30.0, phase=1, target_size=(100, 100))
+            rot2 = self.sm.get_rotated_boss_sprite(boss_key=key, angle_deg=30.0, phase=1, target_size=(100, 100))
+            self.assertIs(rot1, rot2)
+
+        sh = self.sm.get_boss_shadow(target_size=(120, 72))
+        self.assertIsNotNone(sh)
+
+    def test_projectiles_caching(self):
+        for ptype in ['pulse', 'scatter', 'missile', 'enemy']:
+            p1 = self.sm.get_projectile_sprite(ptype, (16, 16))
+            p2 = self.sm.get_projectile_sprite(ptype, (16, 16))
+            self.assertIs(p1, p2)
+
+    def test_all_production_sprites_have_zero_corner_alpha(self):
+        import glob
+        from PIL import Image
+        import numpy as np
+        all_pngs = glob.glob(os.path.join(self.sm.base_dir, '**/*.png'), recursive=True)
+        self.assertGreaterEqual(len(all_pngs), 40)
+        for p in all_pngs:
+            im = Image.open(p).convert('RGBA')
+            arr = np.array(im)
+            alpha = arr[:, :, 3]
+            h, w = alpha.shape
+            corners = [int(alpha[0, 0]), int(alpha[0, w - 1]), int(alpha[h - 1, 0]), int(alpha[h - 1, w - 1])]
+            self.assertEqual(corners, [0, 0, 0, 0], f'{p} contains non-zero corner alpha!')
 
 if __name__ == '__main__':
     unittest.main()

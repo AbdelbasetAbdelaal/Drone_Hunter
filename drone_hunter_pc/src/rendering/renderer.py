@@ -13,7 +13,10 @@ from src.data.settings import (
     SCREEN_WIDTH, SCREEN_HEIGHT, COLOR_CYAN, COLOR_GOLD, COLOR_CRIMSON,
     COLOR_NEON_RED, COLOR_SHIELD, COLOR_WHITE
 )
-from src.data.game_data import TARGET_TYPE_SHIELD_DRONE, TARGET_TYPE_SNIPER, TARGET_TYPE_EMP_DISRUPTER, TARGET_TYPE_SCOUT
+from src.data.game_data import (
+    TARGET_TYPE_SHIELD_DRONE, TARGET_TYPE_SNIPER, TARGET_TYPE_EMP_DISRUPTER,
+    TARGET_TYPE_SCOUT, TARGET_TYPE_SHOOTER, TARGET_TYPE_HEAVY, TARGET_TYPE_ARMORED
+)
 from src.core.game_state import STATE_PLAYING, STATE_PAUSED, STATE_LEVEL_CLEAR, STATE_GAME_OVER
 from src.rendering.sprite_manager import get_sprite_manager
 
@@ -68,9 +71,27 @@ class GameRenderer:
 
         # Layer 3: Grounded Entity Drop Shadows
         for t in context.target_group:
-            if getattr(t, "enemy_type", "") == TARGET_TYPE_SCOUT:
+            etype = getattr(t, "enemy_type", "")
+            is_boss = getattr(t, "is_boss", False)
+            if is_boss:
+                sh_surf = self.sprite_manager.get_boss_shadow(target_size=(120, 72))
+                sh_rect = sh_surf.get_rect(center=(int(round(t.pos.x - ox + 8)), int(round(t.pos.y - oy + 18))))
+                self.canvas.blit(sh_surf, sh_rect)
+            elif etype == TARGET_TYPE_SCOUT:
                 sh_surf = self.sprite_manager.get_scout_shadow(target_size=(36, 22))
                 sh_rect = sh_surf.get_rect(center=(int(round(t.pos.x - ox + 4)), int(round(t.pos.y - oy + 8))))
+                self.canvas.blit(sh_surf, sh_rect)
+            elif etype == TARGET_TYPE_SHOOTER:
+                sh_surf = self.sprite_manager.get_shooter_shadow(target_size=(44, 28))
+                sh_rect = sh_surf.get_rect(center=(int(round(t.pos.x - ox + 4)), int(round(t.pos.y - oy + 10))))
+                self.canvas.blit(sh_surf, sh_rect)
+            elif etype in (TARGET_TYPE_HEAVY, TARGET_TYPE_ARMORED):
+                sh_surf = self.sprite_manager.get_heavy_shadow(target_size=(58, 36))
+                sh_rect = sh_surf.get_rect(center=(int(round(t.pos.x - ox + 6)), int(round(t.pos.y - oy + 12))))
+                self.canvas.blit(sh_surf, sh_rect)
+            elif etype == TARGET_TYPE_SHIELD_DRONE:
+                sh_surf = self.sprite_manager.get_shield_shadow(target_size=(46, 30))
+                sh_rect = sh_surf.get_rect(center=(int(round(t.pos.x - ox + 4)), int(round(t.pos.y - oy + 10))))
                 self.canvas.blit(sh_surf, sh_rect)
 
         # Helper to blit sprite groups with camera offset

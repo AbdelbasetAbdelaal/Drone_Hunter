@@ -473,107 +473,13 @@ class SectorBoss(pygame.sprite.Sprite):
         center = (s // 2, s // 2)
         half = s // 2
 
-        # Draw Boss Specific Chassis
-        if self.boss_id == BOSS_ASSEMBLY_WARDEN:
-            # Heavy Delta-Warden Fortress
-            pts = [
-                (s - 6, half),
-                (half - 10, 8),
-                (8, 16),
-                (18, half),
-                (8, s - 16),
-                (half - 10, s - 8)
-            ]
-            pygame.draw.polygon(surf, self.color_outer, pts)
-            pygame.draw.polygon(surf, (71, 85, 105), pts, 3)
-            # Core Reactor
-            pygame.draw.circle(surf, self.color_inner, (half + 8, half), 14)
-            pygame.draw.circle(surf, COLOR_WHITE, (half + 8, half), 6)
-            # Side Gun Pods
-            pygame.draw.rect(surf, (51, 65, 85), (half - 12, 14, 20, 8), border_radius=2)
-            pygame.draw.rect(surf, (51, 65, 85), (half - 12, s - 22, 20, 8), border_radius=2)
+        from src.rendering.sprite_manager import get_sprite_manager
+        sm = get_sprite_manager()
 
-        elif self.boss_id == BOSS_CORE_EXECUTOR:
-            # Heavy Octagonal Core Platform
-            oct_pts = [
-                (s - 8, half),
-                (s - 20, 10),
-                (20, 10),
-                (8, half),
-                (20, s - 10),
-                (s - 20, s - 10)
-            ]
-            pygame.draw.polygon(surf, self.color_outer, oct_pts)
-            pygame.draw.polygon(surf, (148, 163, 184), oct_pts, 3)
-            # Central Overclock Core
-            core_col = (255, 255, 255) if not self.is_shielded else COLOR_CYAN
-            pygame.draw.circle(surf, (30, 41, 59), (half, half), 20)
-            pygame.draw.circle(surf, core_col, (half, half), 12)
-            # Heavy Dual Forward Cannons
-            pygame.draw.rect(surf, COLOR_WHITE, (s - 14, half - 10, 12, 6), border_radius=1)
-            pygame.draw.rect(surf, COLOR_WHITE, (s - 14, half + 4, 12, 6), border_radius=1)
-
-        elif self.boss_id == BOSS_REACTOR_TITAN:
-            # Reactor Titan Plasma Machine
-            hex_pts = [
-                (s - 10, half),
-                (s - 24, 12),
-                (24, 12),
-                (10, half),
-                (24, s - 12),
-                (s - 24, s - 12)
-            ]
-            pygame.draw.polygon(surf, self.color_outer, hex_pts)
-            pygame.draw.polygon(surf, (192, 132, 252), hex_pts, 3)
-            # Reactor Pulsing Core
-            core_r = 16 if self.current_phase_idx < 2 else 20
-            pygame.draw.circle(surf, self.color_inner, (half, half), core_r)
-            pygame.draw.circle(surf, COLOR_WHITE, (half, half), 8)
-            # Cooling Vents
-            for y_off in [-20, 0, 20]:
-                pygame.draw.line(surf, (51, 65, 85), (half - 15, half + y_off), (half - 5, half + y_off), 3)
-
-        elif self.boss_id == BOSS_DEFENSE_COMMANDER:
-            # Advanced Defense Grid Platform
-            pts = [
-                (s - 6, half),
-                (half + 12, 14),
-                (14, 20),
-                (24, half),
-                (14, s - 20),
-                (half + 12, s - 14)
-            ]
-            pygame.draw.polygon(surf, self.color_outer, pts)
-            pygame.draw.polygon(surf, (56, 189, 248), pts, 3)
-            # Command Sensor Array
-            pygame.draw.circle(surf, self.color_inner, (half + 6, half), 15)
-            pygame.draw.circle(surf, COLOR_WHITE, (half + 6, half), 7)
-            # Defense Grid Antennas
-            pygame.draw.line(surf, (226, 232, 240), (half, 10), (half + 14, 2), 2)
-            pygame.draw.line(surf, (226, 232, 240), (half, s - 10), (half + 14, s - 2), 2)
-
-        else:  # DRONE OVERLORD (FINAL BOSS)
-            # Supreme Heavy Command Dreadnought (130x130)
-            pts = [
-                (s - 4, half),
-                (s - 26, 10),
-                (half - 10, 10),
-                (14, 26),
-                (26, half),
-                (14, s - 26),
-                (half - 10, s - 10),
-                (s - 26, s - 10)
-            ]
-            pygame.draw.polygon(surf, self.color_outer, pts)
-            pygame.draw.polygon(surf, (239, 68, 68), pts, 4)
-            # Overlord Menacing Core
-            core_r = 18 if self.current_phase_idx < 3 else 24
-            pygame.draw.circle(surf, self.color_inner, (half + 6, half), core_r)
-            pygame.draw.circle(surf, COLOR_WHITE, (half + 6, half), 9)
-            # Triple Forward Heavy Rail-Batteries
-            pygame.draw.rect(surf, (239, 68, 68), (s - 16, half - 18, 14, 6), border_radius=1)
-            pygame.draw.rect(surf, COLOR_WHITE, (s - 10, half - 3, 10, 6), border_radius=1)
-            pygame.draw.rect(surf, (239, 68, 68), (s - 16, half + 12, 14, 6), border_radius=1)
+        # Render 2D Production Boss Chassis with Phase Damage Overlays
+        boss_phase = self.current_phase_idx + 1
+        boss_surf = sm.get_boss_sprite(self.boss_id, phase=boss_phase, target_size=(s, s))
+        surf.blit(boss_surf, (0, 0))
 
         # Shield Bubble Aura if Shielded
         if self.is_shielded:

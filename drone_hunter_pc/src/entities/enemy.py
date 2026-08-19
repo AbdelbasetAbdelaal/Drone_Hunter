@@ -571,109 +571,78 @@ class Enemy(pygame.sprite.Sprite):
             self._sprite_dirty = False
 
         elif self.enemy_type == TARGET_TYPE_SHOOTER:
-            # Faceted angular ranged chassis with directional heavy barrel
-            half = s // 2
-            points = [
-                (s - 2, half),
-                (half + 4, 3),
-                (3, 7),
-                (7, half),
-                (3, s - 7),
-                (half + 4, s - 3)
-            ]
-            pygame.draw.polygon(surf, self.color_outer, points)
-            # Inner armor plate & sensor optic
-            pygame.draw.polygon(surf, (185, 28, 28), [
-                (s - 8, half),
-                (half + 2, 7),
-                (8, 10),
-                (10, half),
-                (8, s - 10),
-                (half + 2, s - 7)
-            ])
-            pygame.draw.circle(surf, self.color_inner, (half, half), 4)
-            # Heavy forward collimator / gun muzzle
-            pygame.draw.rect(surf, COLOR_WHITE, (s - 8, half - 2, 8, 4), border_radius=1)
+            from src.rendering.sprite_manager import get_sprite_manager
+            sm = get_sprite_manager()
+            
+            # Determine visual state
+            if self.hit_flash_timer > 0:
+                state = "hit"
+            elif self.ai_state == "telegraph":
+                state = "attack"
+            elif self.ai_state in ("approach", "reposition", "strafe"):
+                state = "move"
+            else:
+                state = "idle"
+                
+            rotated_shooter = sm.get_rotated_shooter_sprite(state=state, angle_deg=-self.heading_angle, target_size=(50, 46))
+            rot_rect = rotated_shooter.get_rect(center=center)
 
-            # World-space telegraph feedback: charging aura & forward aiming indicator
             if self.ai_state == "telegraph":
+                surf.blit(rotated_shooter, rot_rect)
                 charge_alpha = int(160 + 95 * math.sin(self.state_timer * 26.0))
                 charge_r = max(2, int(6 * (self.state_timer / SHOOTER_TELEGRAPH_TIME)))
-                pygame.draw.circle(surf, (255, 200, 50, max(0, min(255, charge_alpha))), (s - 4, half), charge_r, 2)
+                pygame.draw.circle(surf, (255, 200, 50, max(0, min(255, charge_alpha))), (center[0] + 16, center[1]), charge_r, 2)
+                self.image = surf.copy()
+            else:
+                self.image = rotated_shooter
+
+            self._cached_angle = self.heading_angle
+            self._sprite_dirty = False
 
         elif self.enemy_type in (TARGET_TYPE_HEAVY, TARGET_TYPE_ARMORED):
-            # Heavy Armored Juggernaut Chassis (58x58)
-            half = s // 2
-            # Outer Heavy Armor Hull (Reinforced Octagonal Bevel)
-            oct_points = [
-                (s - 4, half),
-                (s - 12, 4),
-                (12, 4),
-                (4, half - 10),
-                (4, half + 10),
-                (12, s - 4),
-                (s - 12, s - 4)
-            ]
-            pygame.draw.polygon(surf, (71, 85, 105), oct_points) # Dark Slate Armor
-            pygame.draw.polygon(surf, (148, 163, 184), oct_points, 2) # Titanium Trim
+            from src.rendering.sprite_manager import get_sprite_manager
+            sm = get_sprite_manager()
+            
+            # Determine visual state
+            if self.hit_flash_timer > 0:
+                state = "hit"
+            elif self.ai_state == "pressure":
+                state = "attack"
+            elif self.ai_state in ("approach", "strafe", "advance"):
+                state = "move"
+            else:
+                state = "idle"
+                
+            rotated_heavy = sm.get_rotated_heavy_sprite(state=state, angle_deg=-self.heading_angle, target_size=(62, 58))
+            rot_rect = rotated_heavy.get_rect(center=center)
 
-            # Reinforced Front Ramming Wedge & Armor Mantlet
-            wedge_points = [
-                (s - 6, half),
-                (s - 18, 12),
-                (half - 2, 12),
-                (half + 4, half),
-                (half - 2, s - 12),
-                (s - 18, s - 12)
-            ]
-            pygame.draw.polygon(surf, (51, 65, 85), wedge_points)
-            pygame.draw.polygon(surf, (203, 213, 225), wedge_points, 2)
-
-            # Hydraulic Side Thrusters / Heat Exhausts
-            pygame.draw.rect(surf, (30, 41, 59), (8, 8, 8, 12), border_radius=2)
-            pygame.draw.rect(surf, (30, 41, 59), (8, s - 20, 8, 12), border_radius=2)
-
-            # Center Warning Reactor Core
-            core_col = (245, 158, 11) if self.ai_state != "pressure" else (239, 68, 68)
-            core_r = 7 if self.ai_state != "pressure" else int(8 + 2 * math.sin(self.state_timer * 18.0))
-            pygame.draw.circle(surf, core_col, (half - 4, half), core_r)
-            pygame.draw.circle(surf, COLOR_WHITE, (half - 4, half), 3)
-
-            # Visual aggression telegraph in PRESSURE state
             if self.ai_state == "pressure":
+                surf.blit(rotated_heavy, rot_rect)
                 glow_alpha = int(150 + 90 * math.sin(self.state_timer * 20.0))
-                p_surf = pygame.Surface((s + 12, s + 12), pygame.SRCALPHA)
-                pygame.draw.circle(p_surf, (245, 158, 11, max(0, min(255, glow_alpha))), ((s + 12) // 2, (s + 12) // 2), (s + 12) // 2, 2)
-                surf.blit(p_surf, (-6, -6))
+                pygame.draw.circle(surf, (245, 158, 11, max(0, min(255, glow_alpha))), center, s // 2 - 4, 2)
+                self.image = surf.copy()
+            else:
+                self.image = rotated_heavy
 
-        elif self.enemy_type == TARGET_TYPE_FAST:
-            points = [(s, s // 2), (0, 0), (s // 3, s // 2), (0, s)]
-            pygame.draw.polygon(surf, self.color_outer, points)
-            pygame.draw.circle(surf, self.color_inner, center, 3)
-
-        elif self.enemy_type == TARGET_TYPE_TURRET:
-            pygame.draw.rect(surf, self.color_outer, (2, 2, s - 4, s - 4), border_radius=4)
-            pygame.draw.circle(surf, self.color_inner, center, s // 3)
-            pygame.draw.rect(surf, COLOR_WHITE, (s // 2 - 2, 0, 4, s // 2))
-
-        elif self.enemy_type == TARGET_TYPE_VEHICLE:
-            pygame.draw.rect(surf, self.color_outer, (0, 4, s, s - 8), border_radius=6)
-            pygame.draw.circle(surf, self.color_inner, center, 5)
-
-        elif self.enemy_type == TARGET_TYPE_CHASER:
-            pygame.draw.polygon(surf, self.color_outer, [(s, s // 2), (0, 2), (0, s - 2)])
-            pygame.draw.circle(surf, self.color_inner, (s // 3, s // 2), 4)
-
-        elif self.enemy_type == TARGET_TYPE_SWARM:
-            pygame.draw.circle(surf, self.color_outer, center, s // 2)
-            pygame.draw.circle(surf, self.color_inner, center, s // 4)
+            self._cached_angle = self.heading_angle
+            self._sprite_dirty = False
 
         elif self.enemy_type == TARGET_TYPE_SHIELD_DRONE:
-            pygame.draw.circle(surf, self.color_outer, center, s // 2 - 2)
-            pygame.draw.circle(surf, self.color_inner, center, 4)
-            # Rotating energy shield arc
-            arc_rect = pygame.Rect(0, 0, s, s)
-            pygame.draw.arc(surf, COLOR_CYAN, arc_rect, self.shield_angle, self.shield_angle + 2.0, 3)
+            from src.rendering.sprite_manager import get_sprite_manager
+            sm = get_sprite_manager()
+            
+            # Determine visual state
+            state = "hit" if self.hit_flash_timer > 0 else "idle"
+            rotated_shield = sm.get_rotated_shield_drone_sprite(state=state, angle_deg=-self.heading_angle, target_size=(50, 46))
+            rot_rect = rotated_shield.get_rect(center=center)
+            surf.blit(rotated_shield, rot_rect)
+
+            # Rotating energy shield arc around physical nodes
+            arc_rect = pygame.Rect(4, 4, s - 8, s - 8)
+            pygame.draw.arc(surf, COLOR_CYAN, arc_rect, self.shield_angle, self.shield_angle + 2.2, 3)
+            self.image = surf.copy()
+            self._cached_angle = self.heading_angle
+            self._sprite_dirty = False
 
         elif self.enemy_type == TARGET_TYPE_SNIPER:
             pygame.draw.polygon(surf, self.color_outer, [(s, s // 2), (0, 4), (s // 4, s // 2), (0, s - 4)])
