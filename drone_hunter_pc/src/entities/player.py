@@ -492,20 +492,6 @@ class Player(pygame.sprite.Sprite):
 
     def _render_drone_sprite(self):
         """Pre-renders base sprite for collision or group fallbacks."""
-        skin_idx = max(0, min(len(DRONE_SKINS) - 1, self.skin_theme)) if isinstance(self.skin_theme, int) else 0
-        skin = DRONE_SKINS[skin_idx]
-        body_col = skin.get("body_color", (15, 23, 42))
-        prim_col = skin.get("primary_color", COLOR_CYAN)
-        glow_col = skin.get("glow_color", COLOR_CYAN)
-
-        w, h = 80, 80
-        surf = pygame.Surface((w, h), pygame.SRCALPHA)
-        center = (w // 2, h // 2)
-
-        # Delta-wing silhouette facing right
-        pts = [(w - 8, h // 2), (14, 14), (20, h // 2), (14, h - 14)]
-        pygame.draw.polygon(surf, body_col, pts)
-        pygame.draw.polygon(surf, prim_col, pts, 2)
-        pygame.draw.circle(surf, glow_col, (center[0] + 6, center[1]), 6)
-
-        self.image = surf
+        from src.rendering.sprite_manager import get_sprite_manager
+        sm = get_sprite_manager()
+        self.image = sm.get_player_sprite(state="idle", skin_idx=self.skin_theme, target_size=(68, 58))
