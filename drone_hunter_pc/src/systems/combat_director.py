@@ -19,7 +19,7 @@ class CombatDirector:
         self.pressure_level = 0
         self.timer = 0.0
         
-        # Phase 2E Development Sequence
+        # Default sequence (Legacy Phase 2E compatibility)
         self.encounters = [
             SCOUT_INTRO_ENCOUNTER,
             SHOOTER_INTRO_ENCOUNTER,
@@ -29,10 +29,17 @@ class CombatDirector:
             SHOOTER_HEAVY_ENCOUNTER,
             SCOUT_SHOOTER_HEAVY_ENCOUNTER
         ]
+        self.loop_encounters = False
         
         # Pacing Config
         self.intro_delay = 1.5
         self.relief_after_encounter = 2.5
+
+    def set_mission_sequence(self, sequence: list, loop: bool = False):
+        """Phase 5: Sets the exact sequence to run, and whether to loop it."""
+        self.encounters = sequence
+        self.loop_encounters = loop
+        self.reset()
 
     def reset(self):
         """Resets the director back to initial state."""
@@ -55,13 +62,21 @@ class CombatDirector:
 
     def _start_next_encounter(self):
         """Advances sequence and pushes config to EncounterSystem."""
+        if len(self.encounters) == 0:
+            self.state = "complete"
+            return
+            
         if self.encounter_index < len(self.encounters):
             self.pressure_level = self.encounter_index + 1
             config = self.encounters[self.encounter_index]
             self.encounter_system.start(config)
             self.state = "encounter"
         else:
-            self.state = "complete"
+            if self.loop_encounters:
+                self.encounter_index = 0
+                self._start_next_encounter()
+            else:
+                self.state = "complete"
 
     def update(self, dt: float, ctx):
         """Ticks pacing timers and delegates to EncounterSystem."""
@@ -85,7 +100,7 @@ class CombatDirector:
                 ctx.scrap += REWARD_COMPOSITION if is_full_composition else REWARD_ENCOUNTER
                 
                 self.encounter_index += 1
-                if self.encounter_index < len(self.encounters):
+                if self.encounter_index < len(self.encounters) or self.loop_encounters:
                     self.state = "relief"
                     self.timer = self.relief_after_encounter
                 else:

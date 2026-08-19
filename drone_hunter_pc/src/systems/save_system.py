@@ -34,6 +34,16 @@ class SaveSystem:
             },
             "sectors": [True, False, False, False, False],
             "stages": [True] + [False] * 14,
+            "missions": {
+                "current_sector": 1,
+                "current_mission": 1,
+                "completed": [],
+                "unlocked": ["S1_M1"]
+            },
+            "sector_progress": {
+                "completed": [],
+                "unlocked": [1]
+            },
             "show_crt": False,
             "difficulty_mode": 1
         }
@@ -62,17 +72,20 @@ class SaveSystem:
                         try: upgrades[k] = max(0, int(v))
                         except (ValueError, TypeError): pass
 
-            # Validate sectors list
+            # Validate sectors list (Legacy)
             sectors = list(data.get("sectors", defaults["sectors"]))
             while len(sectors) < len(SECTORS):
                 sectors.append(False)
             sectors[0] = True # First sector is always unlocked
 
-            # Validate stages list (15 stages across 5 sectors)
+            # Validate stages list (15 stages across 5 sectors - Legacy)
             stages = list(data.get("stages", defaults["stages"]))
             while len(stages) < 15:
                 stages.append(False)
             stages[0] = True # First stage is always unlocked
+
+            missions = data.get("missions", defaults["missions"])
+            sector_progress = data.get("sector_progress", defaults["sector_progress"])
 
             show_crt = bool(data.get("show_crt", False))
             difficulty_mode = int(data.get("difficulty_mode", 1)) % 4
@@ -84,6 +97,8 @@ class SaveSystem:
                 "upgrades": upgrades,
                 "sectors": sectors,
                 "stages": stages,
+                "missions": missions,
+                "sector_progress": sector_progress,
                 "show_crt": show_crt,
                 "difficulty_mode": difficulty_mode
             }
@@ -95,10 +110,16 @@ class SaveSystem:
             logging.error(f"Unexpected error loading save data: {e}. Using safe defaults.")
             return defaults
 
-    def save(self, scrap: int, coins: int, highscore: int, upgrades: dict, sectors: list, show_crt: bool = False, stages: list = None, difficulty_mode: int = 1) -> bool:
+    def save(self, scrap: int, coins: int, highscore: int, upgrades: dict, sectors: list, 
+             show_crt: bool = False, stages: list = None, difficulty_mode: int = 1,
+             missions: dict = None, sector_progress: dict = None) -> bool:
         """Atomically saves game data using a temporary write & replace pattern."""
         if stages is None:
             stages = [True] + [False] * 14
+        
+        defaults = self.get_default_save_data()
+        if missions is None: missions = defaults["missions"]
+        if sector_progress is None: sector_progress = defaults["sector_progress"]
 
         save_dict = {
             "scrap": max(0, int(scrap)),
@@ -107,6 +128,8 @@ class SaveSystem:
             "upgrades": upgrades,
             "sectors": sectors,
             "stages": stages,
+            "missions": missions,
+            "sector_progress": sector_progress,
             "show_crt": bool(show_crt),
             "difficulty_mode": int(difficulty_mode)
         }

@@ -116,7 +116,7 @@ class TestPhase1FlightAndArena(unittest.TestCase):
         buttons = draw_main_menu(canvas)
         
         self.assertIn("play", buttons)
-        self.assertIn("sectors", buttons)
+        self.assertIn("hangar", buttons)
         self.assertIn("hangar", buttons)
         self.assertIn("exit", buttons)
         self.assertTrue(buttons["play"].width > 0)

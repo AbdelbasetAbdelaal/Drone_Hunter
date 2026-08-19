@@ -21,7 +21,7 @@ from src.data.game_data import (
 from src.core.game_state import (
     GameState, STATE_MENU, STATE_SECTOR_SELECT, STATE_HANGAR, STATE_PLAYING,
     STATE_PAUSED, STATE_LEVEL_CLEAR, STATE_GAME_OVER, STATE_VICTORY,
-    STATE_MISSION_BRIEFING, STATE_MISSION_COMPLETE, STATE_MISSION_FAILED, GameState
+    STATE_MISSION_BRIEFING, STATE_MISSION_COMPLETE, STATE_MISSION_FAILED
 )
 from src.core.game_context import GameContext
 from src.core.clock import GameClock
@@ -35,7 +35,6 @@ from src.systems.spawn_system import Spawner, WaveManager
 from src.systems.encounter_system import EncounterSystem, SCOUT_SHOOTER_HEAVY_ENCOUNTER
 from src.systems.combat_director import CombatDirector
 from src.systems.mission_system import MissionSystem
-from src.data.mission_data import get_mission_data
 from src.systems.combat_system import CombatSystem
 from src.rendering.camera import Camera2D
 from src.rendering.background import ParallaxBackground
@@ -46,7 +45,7 @@ from src.ui.hud import (
     draw_hud, draw_boss_health_bar, draw_radar_minimap, draw_combo_banner
 )
 from src.ui.menus import (
-    draw_sector_select_ui, draw_pause_settings_ui, draw_mission_select_ui, draw_mission_briefing, draw_mission_complete, draw_mission_failed,
+    draw_main_menu, draw_sector_select_ui, draw_pause_settings_ui, draw_mission_select_ui, draw_mission_briefing, draw_mission_complete, draw_mission_failed,
     draw_level_clear_ui, draw_game_over_ui, draw_campaign_victory_ui
 )
 from src.ui.hangar import draw_hangar_shop_ui
@@ -73,8 +72,6 @@ class Game:
         self.encounter_system = EncounterSystem()
         self.combat_director = CombatDirector(self.encounter_system)
         self.mission_system = MissionSystem()
-        self.pending_mission_id = 'S1_M1'
-        self.ui_rects_cache = {}
         self.combat_system = CombatSystem(self.context)
 
         # Inject references
@@ -104,23 +101,6 @@ class Game:
         self.camera = Camera2D(world_w=WORLD_WIDTH, world_h=WORLD_HEIGHT, view_w=SCREEN_WIDTH, view_h=SCREEN_HEIGHT)
         self.running = True
         self.reset_game()
-
-    def start_phase5_mission(self, mission_id):
-        self.context.state = STATE_PLAYING
-        self.context.target_group.empty()
-        self.context.bullet_group.empty()
-        self.context.enemy_bullet_group.empty()
-        self.context.obstacle_group.empty()
-        self.context.hazard_group.empty()
-        self.context.powerup_group.empty()
-        self.context.combo_count = 1
-        self.context.combo_timer = 0.0
-        self.mission_system.start_mission(self.context, mission_id, self.combat_director)
-        if self.context.player:
-            self.context.player.pos.update(self.win_w // 2, self.win_h // 2 + 100)
-            self.context.player.health = self.context.player.max_health
-            self.context.player.energy = self.context.player.max_energy
-            self.context.player.velocity.update(0,0)
 
     def reset_game(self):
         """Initializes or resets player, spawner, and stage wave tracking."""
@@ -263,19 +243,32 @@ class Game:
                     self.running = False
 
                 if ctx.state == STATE_MENU:
-                    if event.key == pygame.K_SPACE:
+                    if event.key in (pygame.K_SPACE, pygame.K_RETURN):
+                        self.start_stage()
+                    elif event.key == pygame.K_m:
                         ctx.state = STATE_SECTOR_SELECT
-                        self.audio_manager.play_powerup()
-                elif ctx.state == STATE_SECTOR_SELECT:
-                    if event.key == pygame.K_ESCAPE:
-                        ctx.state = STATE_MENU
-                elif ctx.state == STATE_MISSION_BRIEFING:
-                    if event.key == pygame.K_SPACE:
-                        self.start_phase5_mission(self.pending_mission_id)
-                    elif event.key == pygame.K_ESCAPE:
-                        ctx.state = STATE_SECTOR_SELECT
-                elif ctx.state == STATE_HANGAR:
+                    elif event.key == pygame.K_h:
+                        ctx.state = STATE_HANGAR
+                    elif event.key == pygame.K_q:
+                        self.running = False
 
+                elif ctx.state == STATE_SECTOR_SELECT:
+                    if event.key == pygame.K_d:
+                        ctx.difficulty_mode = (ctx.difficulty_mode + 1) % 4
+                    elif event.key in (pygame.K_1, pygame.K_KP1) and self.progression.is_stage_unlocked(0, 1):
+                        self.start_stage(0, 1)
+                    elif event.key in (pygame.K_2, pygame.K_KP2) and self.progression.is_stage_unlocked(1, 1):
+                        self.start_stage(1, 1)
+                    elif event.key in (pygame.K_3, pygame.K_KP3) and self.progression.is_stage_unlocked(2, 1):
+                        self.start_stage(2, 1)
+                    elif event.key in (pygame.K_4, pygame.K_KP4) and self.progression.is_stage_unlocked(3, 1):
+                        self.start_stage(3, 1)
+                    elif event.key in (pygame.K_5, pygame.K_KP5) and self.progression.is_stage_unlocked(4, 1):
+                        self.start_stage(4, 1)
+                    elif event.key in (pygame.K_SPACE, pygame.K_h):
+                        ctx.state = STATE_HANGAR
+
+                elif ctx.state == STATE_HANGAR:
                     if event.key == pygame.K_1: self.buy_upgrade("battery")
                     elif event.key == pygame.K_2: self.buy_upgrade("speed")
                     elif event.key == pygame.K_3: self.buy_upgrade("fire_rate")
@@ -467,27 +460,27 @@ class Game:
                     # Smooth Camera Tracking
                     self.camera.update((ctx.player.pos.x, ctx.player.pos.y), dt)
 
-                # 2. Phase 5 Mission System overrides Spawner
-                if self.mission_system.active_mission_id is not None:
-                    self.combat_director.update(dt, ctx)
-                    if self.mission_system.update(dt, ctx, self.combat_director):
-                        if self.mission_system.is_mission_success:
-                            ctx.state = STATE_MISSION_COMPLETE
-                            self.audio_manager.play_powerup()
-                            self.save_progress()
-                else:
-                    if ctx.current_sector_idx == 1 and ctx.current_sub_level == 1:
-                        import sys
-                        if "pytest" in sys.modules:
-                            if self.encounter_system.state == "idle": self.encounter_system.start()
-                            if self.encounter_system.is_active: self.encounter_system.update(dt, ctx)
-                            else: self.spawner.update(dt, ctx)
+                # 2. Spawner / Controlled Encounter System Update (Cyber Factory Sector 1 / Stage 1)
+                if ctx.current_sector_idx == 1 and ctx.current_sub_level == 1:
+                    import sys
+                    if "pytest" in sys.modules:
+                        if self.encounter_system.state == "idle":
+                            self.encounter_system.start()
+                        if self.encounter_system.is_active:
+                            self.encounter_system.update(dt, ctx)
                         else:
-                            if self.combat_director.state == "idle": self.combat_director.start()
-                            self.combat_director.update(dt, ctx)
-                            if not self.combat_director.is_suppressing_spawner: self.spawner.update(dt, ctx)
+                            self.spawner.update(dt, ctx)
                     else:
-                        self.spawner.update(dt, ctx)
+                        if self.combat_director.state == "idle":
+                            self.combat_director.start()
+                        self.combat_director.update(dt, ctx)
+                        
+                        if not self.combat_director.is_suppressing_spawner:
+                            # Normal spawner resumes once combat director completes
+                            self.spawner.update(dt, ctx)
+                else:
+                    # Normal spawner runs in other sectors and stages
+                    self.spawner.update(dt, ctx)
 
                 # 3. Enemies & Projectiles (Scaled by bullet-time slowmo factor)
                 effective_enemy_dt = dt * ctx.time_scale
@@ -525,11 +518,7 @@ class Game:
 
                 # Check Player Death
                 if ctx.player and not ctx.player.alive and ctx.state == STATE_PLAYING:
-                    if self.mission_system.active_mission_id is not None:
-                        self.mission_system.trigger_failure()
-                        ctx.state = STATE_MISSION_FAILED
-                    else:
-                        ctx.state = STATE_GAME_OVER
+                    ctx.state = STATE_GAME_OVER
 
                 # 5. Check Stage Completion (Respects Wave Target Score & Boss Elimination)
                 if ctx.wave_manager.is_stage_complete(ctx.level_score, targets_group=ctx.target_group):
@@ -547,17 +536,15 @@ class Game:
             draw_main_menu(canvas)
 
         elif ctx.state == STATE_SECTOR_SELECT:
-            self.ui_rects_cache = draw_mission_select_ui(canvas, ctx, ctx.scrap)
-        elif ctx.state == STATE_MISSION_BRIEFING:
-            self.ui_rects_cache = draw_mission_briefing(canvas, get_mission_data(self.pending_mission_id), ctx.scrap)
-        elif ctx.state == STATE_HANGAR:
+            draw_sector_select_ui(canvas, ctx.unlocked_sectors, ctx.coins, ctx.difficulty_mode, ctx.unlocked_stages)
 
+        elif ctx.state == STATE_HANGAR:
             draw_hangar_shop_ui(canvas, ctx.scrap, ctx.current_sector_idx, ctx.upgrade_levels)
 
         elif ctx.state == STATE_VICTORY:
             draw_campaign_victory_ui(canvas, ctx.total_score, ctx.highscore, ctx.coins)
 
-        elif ctx.state in (STATE_PLAYING, STATE_PAUSED, STATE_LEVEL_CLEAR, STATE_GAME_OVER, STATE_MISSION_COMPLETE, STATE_MISSION_FAILED):
+        elif ctx.state in (STATE_PLAYING, STATE_PAUSED, STATE_LEVEL_CLEAR, STATE_GAME_OVER):
             camera_offset = self.camera.get_offset()
             self.renderer.render_gameplay(ctx, self.background, self.particle_manager, camera_offset=camera_offset)
             
@@ -584,11 +571,6 @@ class Game:
                 draw_level_clear_ui(canvas, ctx.current_sector_idx, ctx.current_sub_level)
             elif ctx.state == STATE_GAME_OVER:
                 draw_game_over_ui(canvas, ctx.total_score, ctx.highscore)
-            elif ctx.state == STATE_MISSION_COMPLETE:
-                is_sec = (self.mission_system.active_mission_data["mission_number"] == 5)
-                draw_mission_complete(canvas, self.mission_system.active_mission_data, self.mission_system.is_mission_success, is_sec)
-            elif ctx.state == STATE_MISSION_FAILED:
-                draw_mission_failed(canvas, ctx.scrap)
 
         self.renderer.present(self.screen, ctx, self.win_w, self.win_h)
 

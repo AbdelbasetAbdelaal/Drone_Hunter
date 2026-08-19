@@ -50,6 +50,19 @@ class GameContext:
         }
         self.unlocked_sectors: List[bool] = [True, False, False, False, False]
         self.unlocked_stages: List[bool] = [True] + [False] * 14
+        
+        # Phase 5 progression
+        self.missions = {
+            "current_sector": 1,
+            "current_mission": 1,
+            "completed": [],
+            "unlocked": ["S1_M1"]
+        }
+        self.sector_progress = {
+            "completed": [],
+            "unlocked": [1]
+        }
+        
         self.show_crt: bool = False
 
         # Gameplay & Difficulty State

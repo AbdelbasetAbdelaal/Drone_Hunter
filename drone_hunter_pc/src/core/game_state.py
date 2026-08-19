@@ -16,6 +16,10 @@ class GameState(Enum):
     LEVEL_CLEAR = "level_clear"
     GAME_OVER = "game_over"
     VICTORY = "victory"
+    # Phase 5 Additions
+    MISSION_BRIEFING = "mission_briefing"
+    MISSION_COMPLETE = "mission_complete"
+    MISSION_FAILED = "mission_failed"
 
 # String constants for compatibility
 STATE_MENU = GameState.MAIN_MENU.value
@@ -26,3 +30,6 @@ STATE_PAUSED = GameState.PAUSED.value
 STATE_LEVEL_CLEAR = GameState.LEVEL_CLEAR.value
 STATE_GAME_OVER = GameState.GAME_OVER.value
 STATE_VICTORY = GameState.VICTORY.value
+STATE_MISSION_BRIEFING = GameState.MISSION_BRIEFING.value
+STATE_MISSION_COMPLETE = GameState.MISSION_COMPLETE.value
+STATE_MISSION_FAILED = GameState.MISSION_FAILED.value
