@@ -99,12 +99,17 @@ Drone_Hunter/
 │   ├── save_data_pc.json         # Persistent atomic save data (coins, unlocks, upgrades)
 │   ├── tests/                    # Automated unit, integration & runtime smoke tests
 │   │   ├── test_game_systems.py
+│   │   ├── test_phase1_flight.py
+│   │   ├── test_phase2a_scout.py
+│   │   ├── test_phase2b_shooter.py
+│   │   ├── test_phase2c_heavy.py
+│   │   ├── test_phase2d_encounters.py
 │   │   └── test_runtime_smoke.py
 │   └── src/
 │       ├── core/                 # Engine loop, State machine, Context container, Clock
 │       ├── data/                 # Display settings, authoritative weapon/sector catalogs
 │       ├── entities/             # 2D Player, enemies, bosses, bullets, powerups, obstacles, hazards
-│       ├── systems/              # Combat collisions, wave manager, save/load, difficulty, progression
+│       ├── systems/              # Combat collisions, encounters, spawn/wave manager, save/load
 │       ├── rendering/            # Parallax backgrounds, particle engine, scanline renderer
 │       ├── ui/                   # HUD, minimap, hangar upgrade store, menus, font manager
 │       └── audio/                # Sound synthesis & audio cache manager

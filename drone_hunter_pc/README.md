@@ -31,7 +31,13 @@ drone_hunter_pc/
 ├── main.py                     # Minimal startup script (42 lines)
 ├── save_data_pc.json           # Atomic persistent progress data
 ├── tests/
-│   └── test_game_systems.py    # Automated test suite (9 test suites)
+│   ├── test_game_systems.py    # Automated test suite
+│   ├── test_phase1_flight.py   # Flight physics tests
+│   ├── test_phase2a_scout.py   # Scout enemy & encounter tests
+│   ├── test_phase2b_shooter.py # Shooter enemy & positioning tests
+│   ├── test_phase2c_heavy.py   # Heavy enemy & priority tests
+│   ├── test_phase2d_encounters.py # Composition tests
+│   └── test_runtime_smoke.py   # 120-frame runtime stability test
 └── src/
     ├── core/                   # Game engine, State Machine, Context, Clock
     │   ├── game.py
@@ -52,6 +58,7 @@ drone_hunter_pc/
     ├── systems/                # Core Gameplay Systems
     │   ├── combat_system.py
     │   ├── spawn_system.py
+    │   ├── encounter_system.py # Deterministic multi-threat compositions
     │   ├── progression_system.py
     │   ├── difficulty_system.py
     │   └── save_system.py
