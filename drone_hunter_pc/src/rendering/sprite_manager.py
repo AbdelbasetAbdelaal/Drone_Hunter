@@ -54,15 +54,19 @@ class SpriteManager:
     def _preload_player_assets(self):
         for state in ['idle', 'move', 'fire', 'hit', 'destroy', 'bank_left', 'bank_right']:
             self._load_raw_image(f'player/player_{state}.png')
+        for s_idx in range(5):
+            self._load_raw_image(f'player/chassis_{s_idx}.png')
         self._load_raw_image('shadows/player_shadow.png')
         self._load_raw_image('vfx/engine_flame.png')
 
-    def get_player_sprite(self, state: str = 'idle', skin_idx: int = 0, target_size: tuple[int, int] = (64, 56)) -> pygame.Surface:
+    def get_player_sprite(self, state: str = 'idle', skin_idx: int = 0, target_size: tuple[int, int] = (94, 80)) -> pygame.Surface:
         cache_key = (state, skin_idx, target_size)
         if cache_key in self._skin_cache:
             return self._skin_cache[cache_key]
 
-        raw = self._load_raw_image(f'player/player_{state}.png')
+        raw = self._load_raw_image(f'player/chassis_{skin_idx}.png')
+        if raw is None:
+            raw = self._load_raw_image(f'player/player_{state}.png')
         if raw is None:
             raw = self._load_raw_image('player/player_idle.png')
 
@@ -78,17 +82,6 @@ class SpriteManager:
             return fallback
 
         scaled = pygame.transform.smoothscale(raw, target_size)
-
-        if skin_idx > 0:
-            tinted = scaled.copy()
-            tint_color = COLOR_CRIMSON if skin_idx == 1 else (
-                COLOR_GOLD if skin_idx == 2 else COLOR_EMERALD
-            )
-            overlay = pygame.Surface(target_size, pygame.SRCALPHA)
-            overlay.fill((tint_color[0], tint_color[1], tint_color[2], 90))
-            tinted.blit(overlay, (0, 0), special_flags=pygame.BLEND_RGBA_MULT)
-            scaled = tinted
-
         self._skin_cache[cache_key] = scaled
         return scaled
 

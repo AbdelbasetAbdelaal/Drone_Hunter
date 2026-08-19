@@ -66,8 +66,8 @@ class PlayerRenderer:
         total_rot_deg = -math.degrees(player.aim_angle) + (tilt_y * 0.35)
 
         # 2. 2D Entity Drop Shadow (Grounded to World Floor - Position/Scale Only, No Rotation)
-        shadow_surf = self.sprite_manager.get_player_shadow(target_size=(58, 38))
-        shadow_rect = shadow_surf.get_rect(center=(int(round(screen_x + 6)), int(round(screen_y + 12))))
+        shadow_surf = self.sprite_manager.get_player_shadow(target_size=(80, 52))
+        shadow_rect = shadow_surf.get_rect(center=(int(round(screen_x + 8)), int(round(screen_y + 16))))
         canvas.blit(shadow_surf, shadow_rect)
 
         # 3. Directional Ion Exhaust Flames (Speed/Acceleration Reactive)
@@ -79,55 +79,55 @@ class PlayerRenderer:
         right_x, right_y = -sin_a, cos_a
 
         if is_accelerating:
-            flame_len = 16.0 + (speed_ratio * 24.0) + random.uniform(-2.0, 2.0)
+            flame_len = 18.0 + (speed_ratio * 28.0) + random.uniform(-2.0, 2.0)
             core_len = flame_len * 0.60
         elif speed_ratio > 0.30:
-            flame_len = 9.0 + (speed_ratio * 14.0)
+            flame_len = 12.0 + (speed_ratio * 16.0)
             core_len = flame_len * 0.55
         else:
-            flame_len = 5.0 + math.sin(pygame.time.get_ticks() * 0.012) * 2.0
+            flame_len = 6.0 + math.sin(pygame.time.get_ticks() * 0.012) * 2.5
             core_len = flame_len * 0.50
 
         flame_color = (255, 204, 21) if player.overdrive_timer > 0 else (
             (56, 189, 248) if speed_ratio > 0.4 else glow_color
         )
 
-        for side in [-13.0, 13.0]:
+        for side in [-16.0, 16.0]:
             # Nozzle origin position
-            noz_x = screen_x - (fwd_x * 20.0) + (right_x * side)
-            noz_y = screen_y - (fwd_y * 20.0) + (right_y * side)
+            noz_x = screen_x - (fwd_x * 24.0) + (right_x * side)
+            noz_y = screen_y - (fwd_y * 24.0) + (right_y * side)
             
             # Outer flame triangle
             tip_x = noz_x - (fwd_x * flame_len)
             tip_y = noz_y - (fwd_y * flame_len)
-            base_l_x = noz_x + (right_x * 4.0)
-            base_l_y = noz_y + (right_y * 4.0)
-            base_r_x = noz_x - (right_x * 4.0)
-            base_r_y = noz_y - (right_y * 4.0)
+            base_l_x = noz_x + (right_x * 5.0)
+            base_l_y = noz_y + (right_y * 5.0)
+            base_r_x = noz_x - (right_x * 5.0)
+            base_r_y = noz_y - (right_y * 5.0)
             pygame.draw.polygon(canvas, flame_color, [(base_l_x, base_l_y), (base_r_x, base_r_y), (tip_x, tip_y)])
 
             # Inner white flame core
             core_tip_x = noz_x - (fwd_x * core_len)
             core_tip_y = noz_y - (fwd_y * core_len)
-            c_base_l_x = noz_x + (right_x * 2.0)
-            c_base_l_y = noz_y + (right_y * 2.0)
-            c_base_r_x = noz_x - (right_x * 2.0)
-            c_base_r_y = noz_y - (right_y * 2.0)
+            c_base_l_x = noz_x + (right_x * 2.5)
+            c_base_l_y = noz_y + (right_y * 2.5)
+            c_base_r_x = noz_x - (right_x * 2.5)
+            c_base_r_y = noz_y - (right_y * 2.5)
             pygame.draw.polygon(canvas, COLOR_WHITE, [(c_base_l_x, c_base_l_y), (c_base_r_x, c_base_r_y), (core_tip_x, core_tip_y)])
 
         # 4. Render Pre-Cached Rotated Mechanical Drone Chassis (Zero Per-Frame Rotations)
         rotated_drone = self.sprite_manager.get_rotated_player_sprite(
-            state=state, skin_idx=skin_idx, angle_deg=total_rot_deg, target_size=(68, 58)
+            state=state, skin_idx=skin_idx, angle_deg=total_rot_deg, target_size=(94, 80)
         )
         rot_rect = rotated_drone.get_rect(center=(int(round(screen_x)), int(round(screen_y))))
         canvas.blit(rotated_drone, rot_rect)
 
         # 5. Muzzle Flash Flares at Dual Weapon Hardpoints
         if player.muzzle_flash_timer > 0:
-            flash_rad = int(7 + (player.muzzle_flash_timer * 30.0))
-            for side in [-16.0, 16.0]:
-                gun_x = screen_x + (fwd_x * 24.0) + (right_x * side)
-                gun_y = screen_y + (fwd_y * 24.0) + (right_y * side)
+            flash_rad = int(8 + (player.muzzle_flash_timer * 35.0))
+            for side in [-20.0, 20.0]:
+                gun_x = screen_x + (fwd_x * 28.0) + (right_x * side)
+                gun_y = screen_y + (fwd_y * 28.0) + (right_y * side)
                 pygame.draw.circle(canvas, (255, 255, 255), (int(gun_x), int(gun_y)), flash_rad)
                 pygame.draw.circle(canvas, primary_color, (int(gun_x), int(gun_y)), flash_rad + 2, 1)
 
