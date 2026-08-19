@@ -29,7 +29,7 @@ class MissionSystem:
         self.state: str = STATE_AVAILABLE # state of the current mission tracking
         self.is_mission_success: bool = False
 
-    def start_mission(self, ctx: GameContext, mission_id: str, director: CombatDirector):
+    def start_mission(self, ctx: GameContext, mission_id: str, director: CombatDirector, boss_system=None):
         """Initializes a mission, configuring the director and setting objectives."""
         self.active_mission_data = get_mission_data(mission_id)
         if not self.active_mission_data:
@@ -43,6 +43,9 @@ class MissionSystem:
         ctx.missions["current_sector"] = self.active_mission_data["sector_id"]
         ctx.missions["current_mission"] = self.active_mission_data["mission_number"]
         
+        if boss_system:
+            boss_system.reset()
+
         # Configure Objective
         obj = self.active_mission_data["objective"]
         if obj == OBJECTIVE_SURVIVE:
@@ -58,13 +61,27 @@ class MissionSystem:
         # Start the director
         director.start()
 
-    def update(self, dt: float, ctx: GameContext, director: CombatDirector) -> bool:
+    def update(self, dt: float, ctx: GameContext, director: CombatDirector, boss_system=None) -> bool:
         """
         Updates objective logic.
         Returns True if the mission just completed this frame.
         """
         if self.state != STATE_ACTIVE or not self.active_mission_data:
             return False
+
+        # Phase 6: Boss Encounter Flow for Mission 5
+        if boss_system and boss_system.has_boss_for_mission(self.active_mission_id):
+            if boss_system.state == "idle":
+                # Prelude encounters run first; when complete, trigger boss intro
+                if director.state == "complete":
+                    boss_system.start_boss_for_mission(self.active_mission_id, ctx)
+                return False
+            else:
+                boss_done = boss_system.update(dt, ctx)
+                if boss_done:
+                    self._trigger_success(ctx)
+                    return True
+                return False
 
         obj = self.active_mission_data["objective"]
         
@@ -126,6 +143,9 @@ class MissionSystem:
                         next_mission = f"S{next_sector}_M1"
                         if next_mission not in ctx.missions["unlocked"]:
                             ctx.missions["unlocked"].append(next_mission)
+                    else:
+                        # Final Boss (Sector 5 Mission 5) defeated -> Campaign Complete!
+                        ctx.campaign_completed = True
 
     def trigger_failure(self):
         """Handles player death without granting completion rewards."""

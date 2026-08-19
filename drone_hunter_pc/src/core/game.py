@@ -35,6 +35,7 @@ from src.systems.spawn_system import Spawner, WaveManager
 from src.systems.encounter_system import EncounterSystem, SCOUT_SHOOTER_HEAVY_ENCOUNTER
 from src.systems.combat_director import CombatDirector
 from src.systems.mission_system import MissionSystem
+from src.systems.boss_system import BossSystem
 from src.data.mission_data import get_mission_data
 from src.systems.combat_system import CombatSystem
 from src.rendering.camera import Camera2D
@@ -43,7 +44,8 @@ from src.rendering.particles import ParticleManager
 from src.rendering.renderer import GameRenderer
 from src.audio.audio_manager import AudioManager
 from src.ui.hud import (
-    draw_hud, draw_boss_health_bar, draw_radar_minimap, draw_combo_banner
+    draw_hud, draw_boss_health_bar, draw_radar_minimap, draw_combo_banner,
+    draw_boss_intro_warning
 )
 from src.ui.menus import (
     draw_main_menu, draw_sector_select_ui, draw_pause_settings_ui, draw_mission_select_ui, draw_mission_briefing, draw_mission_complete, draw_mission_failed,
@@ -75,6 +77,7 @@ class Game:
         self.encounter_system = EncounterSystem()
         self.combat_director = CombatDirector(self.encounter_system)
         self.mission_system = MissionSystem()
+        self.boss_system = BossSystem()
         self.pending_mission_id = 'S1_M1'
         self.ui_rects_cache = {}
         self.combat_system = CombatSystem(self.context)
@@ -86,6 +89,7 @@ class Game:
         self.context.background = self.background
         self.context.encounter_system = self.encounter_system
         self.context.combat_director = self.combat_director
+        self.context.boss_system = self.boss_system
 
         # Load Save Data
         saved_data = self.save_system.load()
@@ -95,6 +99,8 @@ class Game:
         self.context.upgrade_levels = saved_data["upgrades"]
         self.context.unlocked_sectors = saved_data["sectors"]
         self.context.unlocked_stages = saved_data["stages"]
+        self.context.bosses_defeated = saved_data.get("bosses_defeated", [])
+        self.context.campaign_completed = saved_data.get("campaign_completed", False)
         self.context.show_crt = saved_data["show_crt"]
         self.context.difficulty_mode = saved_data["difficulty_mode"]
 
@@ -136,7 +142,7 @@ class Game:
         self.context.powerup_group.empty()
         self.context.combo_count = 1
         self.context.combo_timer = 0.0
-        self.mission_system.start_mission(self.context, mission_id, self.combat_director)
+        self.mission_system.start_mission(self.context, mission_id, self.combat_director, self.boss_system)
         if self.context.player:
             self.context.player.pos.update(self.win_w // 2, self.win_h // 2 + 100)
             self.context.player.health = self.context.player.max_health
@@ -204,7 +210,11 @@ class Game:
             sectors=ctx.unlocked_sectors,
             show_crt=ctx.show_crt,
             stages=ctx.unlocked_stages,
-            difficulty_mode=ctx.difficulty_mode
+            difficulty_mode=ctx.difficulty_mode,
+            missions=ctx.missions,
+            sector_progress=ctx.sector_progress,
+            bosses_defeated=getattr(ctx, "bosses_defeated", []),
+            campaign_completed=getattr(ctx, "campaign_completed", False)
         )
 
     def start_next_stage(self):
@@ -348,11 +358,13 @@ class Game:
                     elif event.key == pygame.K_q: self.running = False
 
                 elif ctx.state == STATE_VICTORY:
-                    if event.key in (pygame.K_SPACE, pygame.K_RETURN):
-                        ctx.difficulty_mode = DIFFICULTY_NIGHTMARE
-                        self.start_stage(4, 3)
-                    elif event.key == pygame.K_m: ctx.state = STATE_SECTOR_SELECT
-                    elif event.key == pygame.K_h: ctx.state = STATE_HANGAR
+                    if event.key in (pygame.K_SPACE, pygame.K_RETURN, pygame.K_m):
+                        self.mission_system.active_mission_id = None
+                        ctx.state = STATE_SECTOR_SELECT
+                    elif event.key == pygame.K_h:
+                        ctx.state = STATE_HANGAR
+                    elif event.key == pygame.K_q:
+                        self.running = False
 
                 elif ctx.state in (STATE_GAME_OVER, STATE_LEVEL_CLEAR):
                     if event.key in (pygame.K_SPACE, pygame.K_RETURN):
@@ -396,8 +408,10 @@ class Game:
                         if "missions" in self.ui_rects_cache:
                             for m_id, rect in self.ui_rects_cache["missions"].items():
                                 if rect.collidepoint(mx, my):
-                                    self.pending_mission_id = m_id
-                                    ctx.state = STATE_MISSION_BRIEFING
+                                    st = self.mission_system.get_mission_state(ctx, m_id)
+                                    if st != "locked":
+                                        self.pending_mission_id = m_id
+                                        ctx.state = STATE_MISSION_BRIEFING
                 elif ctx.state == STATE_MISSION_BRIEFING:
                     if hasattr(self, 'ui_rects_cache') and self.ui_rects_cache:
                         if self.ui_rects_cache.get("exit") and self.ui_rects_cache["exit"].collidepoint(mx, my): ctx.state = STATE_SECTOR_SELECT
@@ -489,18 +503,21 @@ class Game:
                     # Smooth Camera Tracking
                     self.camera.update((ctx.player.pos.x, ctx.player.pos.y), dt)
 
-                # 2. Phase 5 Mission System overrides Spawner
+                # 2. Phase 5 & 6 Mission System & Boss Orchestration overrides Spawner
                 if self.mission_system.active_mission_id is not None:
                     self.combat_director.update(dt, ctx)
-                    mission_done = self.mission_system.update(dt, ctx, self.combat_director)
+                    mission_done = self.mission_system.update(dt, ctx, self.combat_director, self.boss_system)
                     if mission_done:
                         if self.mission_system.is_mission_success:
-                            ctx.state = STATE_MISSION_COMPLETE
+                            if getattr(ctx, "campaign_completed", False) and self.mission_system.active_mission_id == "S5_M5":
+                                ctx.state = STATE_VICTORY
+                            else:
+                                ctx.state = STATE_MISSION_COMPLETE
                             self.audio_manager.play_powerup()
                             self.save_progress()
                         else:
                             ctx.state = STATE_MISSION_FAILED
-                    if ctx.state in (STATE_MISSION_COMPLETE, STATE_MISSION_FAILED):
+                    if ctx.state in (STATE_MISSION_COMPLETE, STATE_MISSION_FAILED, STATE_VICTORY):
                         return
                 else:
                     if ctx.current_sector_idx == 1 and ctx.current_sub_level == 1:
@@ -537,12 +554,8 @@ class Game:
                 for b in list(ctx.bullet_group):
                     if isinstance(b, ClusterTorpedo):
                         bomblets = b.update(dt)
-                        if bomblets:
-                            self.audio_manager.play_cluster()
-                            self.particle_manager.spawn_cluster_explosion(b.pos)
-                            ctx.trigger_shake(8.0, 0.25)
-                            for bb in bomblets: ctx.bullet_group.add(bb)
-                    elif hasattr(b, 'turn_rate'): # Check if it's a homing missile
+                        for bomb in bomblets: ctx.bullet_group.add(bomb)
+                    elif hasattr(b, "update") and "target_group" in b.update.__code__.co_varnames:
                         b.update(dt, target_group=ctx.target_group)
                     else:
                         b.update(dt)
@@ -584,7 +597,14 @@ class Game:
             draw_hangar_shop_ui(canvas, ctx.scrap, ctx.current_sector_idx, ctx.upgrade_levels)
 
         elif ctx.state == STATE_VICTORY:
-            draw_campaign_victory_ui(canvas, ctx.total_score, ctx.highscore, ctx.coins)
+            draw_campaign_victory_ui(
+                canvas,
+                total_score=ctx.total_score,
+                highscore=ctx.highscore,
+                scrap=ctx.scrap,
+                bosses_count=len(getattr(ctx, "bosses_defeated", [])),
+                missions_count=len(ctx.missions.get("completed", []))
+            )
 
         elif ctx.state in (STATE_PLAYING, STATE_PAUSED, STATE_LEVEL_CLEAR, STATE_GAME_OVER, STATE_MISSION_COMPLETE, STATE_MISSION_FAILED):
             camera_offset = self.camera.get_offset()
@@ -600,7 +620,10 @@ class Game:
             
             draw_radar_minimap(canvas, ctx.player, ctx.target_group)
 
-            # Boss Health Bar
+            # Boss Health Bar & Intro Warning
+            if hasattr(self, "boss_system") and self.boss_system.is_intro_active and self.boss_system.active_boss_def:
+                draw_boss_intro_warning(canvas, self.boss_system.active_boss_def.name, self.boss_system.intro_timer)
+
             boss_entity = next((t for t in ctx.target_group if getattr(t, "is_boss", False) and t.alive), None)
             if boss_entity:
                 draw_boss_health_bar(canvas, boss_entity)

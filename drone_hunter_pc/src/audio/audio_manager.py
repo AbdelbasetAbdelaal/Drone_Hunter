@@ -88,4 +88,6 @@ class AudioManager:
     def play_whoosh(self): self._play_cached("roll", 80)
     def play_cloak(self): self._play_cached("cloak", 80)
     def play_buy(self): self._play_cached("buy", 60)
+    def play_boss_alert(self): self._play_cached("emp", 200)
+    def play_boss_death(self): self._play_cached("explosion", 200)
     def play_sector_ambient(self, sector_idx: int): pass

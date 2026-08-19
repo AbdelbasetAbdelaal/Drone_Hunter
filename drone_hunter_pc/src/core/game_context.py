@@ -63,6 +63,10 @@ class GameContext:
             "unlocked": [1]
         }
         
+        # Phase 6 Boss & Endgame State
+        self.bosses_defeated: List[str] = []
+        self.campaign_completed: bool = False
+        
         self.show_crt: bool = False
 
         # Gameplay & Difficulty State

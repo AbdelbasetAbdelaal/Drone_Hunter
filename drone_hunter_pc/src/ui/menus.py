@@ -330,8 +330,42 @@ def draw_pause_settings_ui(canvas: pygame.Surface, difficulty_mode: int, show_cr
         "exit": pygame.Rect(vw - 140, vh - 55, 120, 38)
     }
 
+def draw_campaign_victory_ui(canvas: pygame.Surface, total_score: int = 0, highscore: int = 0, scrap: int = 0, bosses_count: int = 5, missions_count: int = 25):
+    """Renders Phase 6 Campaign Complete end-game screen."""
+    vw, vh = canvas.get_size()
+    canvas.fill((5, 10, 20))
+    
+    # Outer Frame
+    frame_rect = pygame.Rect(60, 40, vw - 120, vh - 80)
+    pygame.draw.rect(canvas, (15, 23, 42), frame_rect, border_radius=10)
+    pygame.draw.rect(canvas, COLOR_GOLD, frame_rect, 2, border_radius=10)
+    
+    # Header
+    t_title = font_title.render("CAMPAIGN COMPLETE", True, COLOR_GOLD)
+    t_sub = font_banner.render("DRONE HUNTER - ALL SECTORS CLEARED", True, COLOR_CYAN)
+    canvas.blit(t_title, t_title.get_rect(center=(vw // 2, frame_rect.top + 50)))
+    canvas.blit(t_sub, t_sub.get_rect(center=(vw // 2, frame_rect.top + 95)))
+    
+    # Stats Grid
+    sy = frame_rect.top + 160
+    stats = [
+        ("FINAL SCORE:", f"{total_score:,}", COLOR_WHITE),
+        ("SCRAP EARNED:", f"{scrap:,} SCRAP", COLOR_GOLD),
+        ("BOSSES DEFEATED:", f"{bosses_count} / 5 MAJOR COMMAND UNITS", COLOR_CRIMSON),
+        ("MISSIONS COMPLETED:", f"{missions_count} / 25 SECTOR MISSIONS", COLOR_EMERALD),
+    ]
+    for label, val, col in stats:
+        t_lbl = font_banner.render(label, True, (148, 163, 184))
+        t_val = font_banner.render(val, True, col)
+        canvas.blit(t_lbl, (vw // 2 - 240, sy))
+        canvas.blit(t_val, (vw // 2 + 30, sy))
+        sy += 45
+        
+    # Navigation Actions
+    t_nav = font_hud.render("PRESS [SPACE / ENTER] TO RETURN TO SECTOR MAP  |  [H] HANGAR  |  [Q] QUIT", True, COLOR_WHITE)
+    canvas.blit(t_nav, t_nav.get_rect(center=(vw // 2, frame_rect.bottom - 45)))
+
 # Keep these empty or refactor legacy tests out if they call them
 def draw_sector_select_ui(*args, **kwargs): return {}, pygame.Rect(0,0,0,0), []
 def draw_level_clear_ui(*args, **kwargs): pass
 def draw_game_over_ui(*args, **kwargs): pass
-def draw_campaign_victory_ui(*args, **kwargs): pass

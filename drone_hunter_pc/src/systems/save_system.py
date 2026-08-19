@@ -44,6 +44,8 @@ class SaveSystem:
                 "completed": [],
                 "unlocked": [1]
             },
+            "bosses_defeated": [],
+            "campaign_completed": False,
             "show_crt": False,
             "difficulty_mode": 1
         }
@@ -86,6 +88,8 @@ class SaveSystem:
 
             missions = data.get("missions", defaults["missions"])
             sector_progress = data.get("sector_progress", defaults["sector_progress"])
+            bosses_defeated = list(data.get("bosses_defeated", defaults["bosses_defeated"]))
+            campaign_completed = bool(data.get("campaign_completed", defaults["campaign_completed"]))
 
             show_crt = bool(data.get("show_crt", False))
             difficulty_mode = int(data.get("difficulty_mode", 1)) % 4
@@ -99,6 +103,8 @@ class SaveSystem:
                 "stages": stages,
                 "missions": missions,
                 "sector_progress": sector_progress,
+                "bosses_defeated": bosses_defeated,
+                "campaign_completed": campaign_completed,
                 "show_crt": show_crt,
                 "difficulty_mode": difficulty_mode
             }
@@ -112,7 +118,8 @@ class SaveSystem:
 
     def save(self, scrap: int, coins: int, highscore: int, upgrades: dict, sectors: list, 
              show_crt: bool = False, stages: list = None, difficulty_mode: int = 1,
-             missions: dict = None, sector_progress: dict = None) -> bool:
+             missions: dict = None, sector_progress: dict = None,
+             bosses_defeated: list = None, campaign_completed: bool = False) -> bool:
         """Atomically saves game data using a temporary write & replace pattern."""
         if stages is None:
             stages = [True] + [False] * 14
@@ -120,6 +127,7 @@ class SaveSystem:
         defaults = self.get_default_save_data()
         if missions is None: missions = defaults["missions"]
         if sector_progress is None: sector_progress = defaults["sector_progress"]
+        if bosses_defeated is None: bosses_defeated = defaults["bosses_defeated"]
 
         save_dict = {
             "scrap": max(0, int(scrap)),
@@ -130,6 +138,8 @@ class SaveSystem:
             "stages": stages,
             "missions": missions,
             "sector_progress": sector_progress,
+            "bosses_defeated": bosses_defeated,
+            "campaign_completed": bool(campaign_completed),
             "show_crt": bool(show_crt),
             "difficulty_mode": int(difficulty_mode)
         }

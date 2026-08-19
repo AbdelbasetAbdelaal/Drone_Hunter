@@ -162,24 +162,75 @@ def draw_hud(canvas: pygame.Surface, player, sector_idx: int = 0, level_score: i
             start_y -= (wpn_h + 4)
 
 
+def draw_boss_intro_warning(canvas: pygame.Surface, boss_name: str, timer: float = 2.0):
+    """Renders high-visibility tactical warning banner when a Boss enters arena."""
+    vw, vh = canvas.get_size()
+    
+    # Flashing warning alpha
+    pulse = math.sin(pygame.time.get_ticks() * 0.015)
+    banner_alpha = int(180 + 75 * pulse)
+    
+    banner_w = min(680, vw - 80)
+    banner_h = 100
+    banner_rect = pygame.Rect(vw // 2 - banner_w // 2, vh // 3 - banner_h // 2, banner_w, banner_h)
+    
+    # Dark panel with crimson border
+    pygame.draw.rect(canvas, (15, 5, 10, banner_alpha), banner_rect, border_radius=8)
+    pygame.draw.rect(canvas, COLOR_CRIMSON, banner_rect, 2, border_radius=8)
+    
+    # Text readouts (ASCII-safe)
+    t_warn = font_card.render(">>> WARNING: HOSTILE COMMAND UNIT DETECTED <<<", True, COLOR_CRIMSON)
+    t_name = font_banner.render(f"[ {boss_name.upper()} ]", True, COLOR_GOLD)
+    t_sub = font_card.render("TACTICAL ENGAGEMENT IMMINENT", True, COLOR_WHITE)
+    
+    canvas.blit(t_warn, t_warn.get_rect(center=(vw // 2, banner_rect.top + 22)))
+    canvas.blit(t_name, t_name.get_rect(center=(vw // 2, banner_rect.top + 50)))
+    canvas.blit(t_sub, t_sub.get_rect(center=(vw // 2, banner_rect.top + 78)))
+
+
 def draw_boss_health_bar(canvas: pygame.Surface, boss_target):
-    """Renders Boss Health Bar centered dynamically at top of viewport."""
-    if not boss_target or not boss_target.alive:
+    """Renders Phase 6 Boss Health Bar with phase badge and shield status."""
+    if not boss_target or not getattr(boss_target, "alive", False):
         return
     vw, vh = canvas.get_size()
-    hp_pct = max(0.0, min(1.0, boss_target.hp / max(1, boss_target.max_hp)))
-    bar_w = min(440, vw - 120)
-    bar_rect = pygame.Rect(vw // 2 - bar_w // 2, 52, bar_w, 18)
+    max_hp = max(1, getattr(boss_target, "max_hp", 100))
+    hp = max(0, getattr(boss_target, "hp", 0))
+    hp_pct = max(0.0, min(1.0, hp / max_hp))
     
-    pygame.draw.rect(canvas, (15, 23, 42, 240), bar_rect, border_radius=4)
+    bar_w = min(500, vw - 120)
+    bar_h = 18
+    bx = vw // 2 - bar_w // 2
+    by = 48
+    bar_rect = pygame.Rect(bx, by, bar_w, bar_h)
+    
+    # Boss Name Header
+    boss_name = getattr(boss_target, "boss_name", getattr(boss_target, "enemy_type", "BOSS")).replace("_", " ").upper()
+    phase_str = getattr(boss_target, "current_phase_name", f"PHASE {getattr(boss_target, 'current_phase_number', 1)}")
+    
+    # Outer Background
+    pygame.draw.rect(canvas, (10, 15, 26, 230), (bx - 10, by - 24, bar_w + 20, bar_h + 32), border_radius=6)
+    pygame.draw.rect(canvas, (30, 45, 65), (bx - 10, by - 24, bar_w + 20, bar_h + 32), 1, border_radius=6)
+    
+    # Title & Phase text
+    t_hdr = font_card.render(boss_name, True, COLOR_CRIMSON)
+    t_phase = font_card.render(f"[{phase_str}]", True, COLOR_GOLD)
+    canvas.blit(t_hdr, (bx, by - 21))
+    canvas.blit(t_phase, (bx + bar_w - t_phase.get_width(), by - 21))
+    
+    # Health Fill
+    pygame.draw.rect(canvas, (20, 25, 35), bar_rect, border_radius=4)
     fill_w = int(round(bar_w * hp_pct))
     if fill_w > 0:
-        pygame.draw.rect(canvas, COLOR_CRIMSON, (bar_rect.left, bar_rect.top, fill_w, 18), border_radius=4)
+        bar_col = COLOR_CRIMSON if hp_pct <= 0.35 else (COLOR_GOLD if hp_pct <= 0.70 else COLOR_EMERALD)
+        pygame.draw.rect(canvas, bar_col, (bx, by, fill_w, bar_h), border_radius=4)
     pygame.draw.rect(canvas, COLOR_WHITE, bar_rect, 1, border_radius=4)
     
-    boss_name = getattr(boss_target, "enemy_type", "BOSS").replace("_", " ").upper()
-    lbl = font_card.render(f"⚠️ {boss_name}: {int(hp_pct * 100)}%", True, COLOR_WHITE)
-    canvas.blit(lbl, lbl.get_rect(center=bar_rect.center))
+    # Numeric Readout & Shield Status
+    hp_text = f"{int(hp)} / {int(max_hp)}"
+    if getattr(boss_target, "is_shielded", False):
+        hp_text += " [SHIELD ACTIVE]"
+    t_hp = font_card.render(hp_text, True, COLOR_WHITE)
+    canvas.blit(t_hp, t_hp.get_rect(center=bar_rect.center))
 
 
 def draw_combo_banner(canvas: pygame.Surface, combo_count: int, combo_timer: float):
