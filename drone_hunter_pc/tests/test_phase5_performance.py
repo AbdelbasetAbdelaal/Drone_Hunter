@@ -10,6 +10,7 @@ Tests for the runtime stability fixes:
 5. Entity group reset
 6. Shield lookup correctness
 7. Mission progression preservation
+8. LightningArc lifecycle
 """
 
 import os
@@ -27,6 +28,8 @@ pygame.display.set_mode((1, 1))
 
 from src.entities.enemy import Enemy, Scout, Shooter, Heavy
 from src.entities.bullet import HomingMissile, Bullet, ClusterTorpedo, ClusterBomblet
+from src.rendering.particles import LightningArc
+from src.rendering.particles import LightningArc
 from src.systems.mission_system import MissionSystem, STATE_ACTIVE, STATE_COMPLETED
 from src.systems.combat_director import CombatDirector
 from src.systems.encounter_system import EncounterSystem, SCOUT_INTRO_ENCOUNTER
@@ -254,6 +257,70 @@ class TestMissionProgression(unittest.TestCase):
         mission_sys.start_mission(ctx, "S1_M1", director)
         mission_sys._trigger_success(ctx)
         self.assertEqual(ctx.scrap, first_scrap)
+
+
+class TestLightningArcLifecycle(unittest.TestCase):
+    """Test LightningArc lifetime is managed exactly once by update(), not draw()."""
+
+    def test_draw_does_not_mutate_lifetime(self):
+        arc = LightningArc((0, 0), (100, 100))
+        initial_lifetime = arc.lifetime
+        surf = pygame.Surface((200, 200))
+        arc.draw(surf, (0, 0))
+        self.assertEqual(arc.lifetime, initial_lifetime)
+
+    def test_update_decrements_lifetime(self):
+        arc = LightningArc((0, 0), (100, 100))
+        self.assertEqual(arc.lifetime, 0.18)
+        alive = arc.update(0.05)
+        self.assertTrue(alive)
+        self.assertAlmostEqual(arc.lifetime, 0.13, places=5)
+
+    def test_update_kills_when_lifetime_expires(self):
+        arc = LightningArc((0, 0), (100, 100))
+        alive = arc.update(0.25)
+        self.assertFalse(alive)
+        self.assertLessEqual(arc.lifetime, 0.0)
+
+    def test_lifetime_decremented_exactly_once_per_update(self):
+        arc = LightningArc((0, 0), (100, 100))
+        arc.update(0.05)
+        expected = 0.13
+        self.assertAlmostEqual(arc.lifetime, expected, places=5)
+        arc.draw(pygame.Surface((200, 200)), (0, 0))
+        self.assertAlmostEqual(arc.lifetime, expected, places=5)
+
+
+class TestLightningArcLifecycle(unittest.TestCase):
+    """Test LightningArc lifetime is managed exactly once by update(), not draw()."""
+
+    def test_draw_does_not_mutate_lifetime(self):
+        arc = LightningArc((0, 0), (100, 100))
+        initial_lifetime = arc.lifetime
+        surf = pygame.Surface((200, 200))
+        arc.draw(surf, (0, 0))
+        self.assertEqual(arc.lifetime, initial_lifetime)
+
+    def test_update_decrements_lifetime(self):
+        arc = LightningArc((0, 0), (100, 100))
+        self.assertEqual(arc.lifetime, 0.18)
+        alive = arc.update(0.05)
+        self.assertTrue(alive)
+        self.assertAlmostEqual(arc.lifetime, 0.13, places=5)
+
+    def test_update_kills_when_lifetime_expires(self):
+        arc = LightningArc((0, 0), (100, 100))
+        alive = arc.update(0.25)
+        self.assertFalse(alive)
+        self.assertLessEqual(arc.lifetime, 0.0)
+
+    def test_lifetime_decremented_exactly_once_per_update(self):
+        arc = LightningArc((0, 0), (100, 100))
+        arc.update(0.05)
+        expected = 0.13
+        self.assertAlmostEqual(arc.lifetime, expected, places=5)
+        arc.draw(pygame.Surface((200, 200)), (0, 0))
+        self.assertAlmostEqual(arc.lifetime, expected, places=5)
 
 
 if __name__ == '__main__':

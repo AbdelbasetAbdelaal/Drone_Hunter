@@ -112,6 +112,9 @@ class Game:
                 "frames": 0,
                 "fps_sum": 0.0,
                 "frame_ms_sum": 0.0,
+                "max_frame_ms": 0.0,
+                "max_update_ms": 0.0,
+                "max_render_ms": 0.0,
                 "last_print": 0.0,
                 "sections": {},
                 "counts": {
@@ -637,7 +640,16 @@ class Game:
                 t3 = _time.perf_counter()
                 prof["frames"] += 1
                 prof["fps_sum"] += self.clock.get_fps()
-                prof["frame_ms_sum"] += self.clock.raw_dt * 1000.0
+                frame_ms = self.clock.raw_dt * 1000.0
+                prof["frame_ms_sum"] += frame_ms
+                if frame_ms > prof["max_frame_ms"]:
+                    prof["max_frame_ms"] = frame_ms
+                update_ms = (t2 - t1) * 1000.0
+                render_ms = (t3 - t2) * 1000.0
+                if update_ms > prof["max_update_ms"]:
+                    prof["max_update_ms"] = update_ms
+                if render_ms > prof["max_render_ms"]:
+                    prof["max_render_ms"] = render_ms
                 prof["counts"]["enemies"] = max(prof["counts"]["enemies"], len(self.context.target_group))
                 prof["counts"]["player_bullets"] = max(prof["counts"]["player_bullets"], len(self.context.bullet_group))
                 prof["counts"]["enemy_bullets"] = max(prof["counts"]["enemy_bullets"], len(self.context.enemy_bullet_group))
@@ -647,13 +659,14 @@ class Game:
                 prof["states"]["mission_state"] = self.mission_system.state
                 prof["states"]["director_state"] = self.combat_director.state
                 prof["states"]["encounter_state"] = self.encounter_system.state
-                for name, ms in [("handle_events", (t1-t0)*1000), ("update", (t2-t1)*1000), ("render", (t3-t2)*1000)]:
+                for name, ms in [("handle_events", (t1-t0)*1000), ("update", update_ms), ("render", render_ms)]:
                     prof["sections"][name] = prof["sections"].get(name, 0.0) + ms
                 if self.clock.raw_dt + prof["last_print"] >= 1.0:
                     prof["last_print"] = 0.0
                     fps = prof["fps_sum"] / max(1, prof["frames"])
                     frame_ms = prof["frame_ms_sum"] / max(1, prof["frames"])
                     print(f"[PROF] FPS:{fps:.1f} FRAME_MS:{frame_ms:.1f} "
+                          f"MAX_FRAME:{prof['max_frame_ms']:.1f} MAX_UPD:{prof['max_update_ms']:.1f} MAX_RND:{prof['max_render_ms']:.1f} "
                           f"ENEMIES:{prof['counts']['enemies']} PBULLETS:{prof['counts']['player_bullets']} "
                           f"EBULLETS:{prof['counts']['enemy_bullets']} PARTICLES:{prof['counts']['particles']} "
                           f"TEXT:{prof['counts']['floating_text']} ARCS:{prof['counts']['lightning_arcs']} "
@@ -669,6 +682,7 @@ class Game:
             fps = prof["fps_sum"] / prof["frames"]
             frame_ms = prof["frame_ms_sum"] / prof["frames"]
             print(f"[PROF FINAL] FPS:{fps:.1f} FRAME_MS:{frame_ms:.2f} "
+                  f"MAX_FRAME:{prof['max_frame_ms']:.2f} MAX_UPD:{prof['max_update_ms']:.2f} MAX_RND:{prof['max_render_ms']:.2f} "
                   f"ENEMIES:{prof['counts']['enemies']} PBULLETS:{prof['counts']['player_bullets']} "
                   f"EBULLETS:{prof['counts']['enemy_bullets']} PARTICLES:{prof['counts']['particles']}")
             for name, total in prof["sections"].items():

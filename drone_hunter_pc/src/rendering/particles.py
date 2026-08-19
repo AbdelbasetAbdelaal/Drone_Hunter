@@ -108,10 +108,6 @@ class LightningArc:
         return self.lifetime > 0
 
     def draw(self, surface: pygame.Surface, camera_offset: tuple[float, float] = (0.0, 0.0)):
-        self.lifetime -= dt
-        return self.lifetime > 0
-
-    def draw(self, surface: pygame.Surface, camera_offset: tuple[float, float] = (0.0, 0.0)):
         if len(self.points) > 1:
             ox, oy = camera_offset
             screen_pts = [(int(round(p.x - ox)), int(round(p.y - oy))) for p in self.points]

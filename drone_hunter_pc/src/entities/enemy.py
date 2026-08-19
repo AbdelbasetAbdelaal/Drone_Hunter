@@ -206,7 +206,6 @@ class Enemy(pygame.sprite.Sprite):
         self._last_ai_state = None       # track last rendered ai_state
         self._last_hit_flash = False     # track hit flash state
         self._last_is_aiming = False     # track sniper aim state
-        self._cached_rotated_surf = None # cached rotated image
         self._cached_angle = None        # angle corresponding to cached rotation
         self._sprite_dirty = True        # force rebuild on first frame
         self._heading_threshold = 3.0   # degrees threshold before re-rotating
