@@ -265,6 +265,7 @@ class EnemyBullet(pygame.sprite.Sprite):
         super().__init__()
         self.damage = damage
         self.speed = speed
+        self.lifetime = 6.0
         
         self.original_image = pygame.Surface((16, 6), pygame.SRCALPHA)
         pygame.draw.rect(self.original_image, COLOR_CRIMSON, (0, 0, 16, 6), border_radius=3)
@@ -284,6 +285,11 @@ class EnemyBullet(pygame.sprite.Sprite):
         self.radius = 7
 
     def update(self, dt: float):
+        self.lifetime -= dt
+        if self.lifetime <= 0:
+            self.kill()
+            return
+
         self.pos.x += math.cos(self.angle_rad) * self.speed * dt
         self.pos.y += math.sin(self.angle_rad) * self.speed * dt
         self.rect.center = (round(self.pos.x), round(self.pos.y))
@@ -299,6 +305,7 @@ class EnemySniperBeam(pygame.sprite.Sprite):
         super().__init__()
         self.damage = damage
         self.speed = speed
+        self.lifetime = 3.0
         
         self.original_image = pygame.Surface((36, 6), pygame.SRCALPHA)
         pygame.draw.rect(self.original_image, COLOR_NEON_RED, (0, 0, 36, 6), border_radius=3)
@@ -315,6 +322,11 @@ class EnemySniperBeam(pygame.sprite.Sprite):
         self.radius = 8
 
     def update(self, dt: float):
+        self.lifetime -= dt
+        if self.lifetime <= 0:
+            self.kill()
+            return
+
         self.pos.x += math.cos(self.angle_rad) * self.speed * dt
         self.pos.y += math.sin(self.angle_rad) * self.speed * dt
         self.rect.center = (round(self.pos.x), round(self.pos.y))

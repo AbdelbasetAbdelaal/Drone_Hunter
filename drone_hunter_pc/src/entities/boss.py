@@ -87,6 +87,7 @@ class SectorBoss(pygame.sprite.Sprite):
         self.attack_cooldowns: dict[int, float] = {}
         self.attack_telegraph_timers: dict[int, float] = {}
         self.active_attacks: set[int] = set()
+        self.active_projectiles: List[EnemyBullet] = []
 
         # Telegraph visual state
         self.telegraph_active = False
@@ -122,15 +123,16 @@ class SectorBoss(pygame.sprite.Sprite):
         self.movement_speed = self.current_phase.speed
         self.armor = self.current_phase.armor
         self.is_shielded = self.current_phase.has_shield
-        self.shield_timer = self.current_phase.shield_duration
+        self.shield_timer = max(0.0, self.current_phase.shield_duration)
 
-        # Reset attack timers
+        # Reset attack timers with positive staggered delays to prevent burst spam
         self.attack_cooldowns.clear()
         self.attack_telegraph_timers.clear()
         self.active_attacks.clear()
+        self.telegraph_active = False
         for a_idx, atk in enumerate(self.current_phase.attacks):
-            # Stagger initial cooldowns slightly so all attacks don't fire at once
-            self.attack_cooldowns[a_idx] = atk.cooldown * (0.3 + 0.3 * a_idx)
+            # Stagger initial cooldowns safely
+            self.attack_cooldowns[a_idx] = max(0.4, atk.cooldown * (0.35 + 0.3 * a_idx))
 
         # Reset reinforcement timer
         if self.current_phase.reinforcements:
@@ -208,6 +210,9 @@ class SectorBoss(pygame.sprite.Sprite):
         # Check phase transitions on update as well (e.g. when hp modified directly)
         self._check_phase_transitions()
 
+        # Clean tracked active projectiles (only retain alive ones)
+        self.active_projectiles = [b for b in self.active_projectiles if getattr(b, "alive", False)]
+
         self.time_accum += dt
         if self.hit_flash_timer > 0:
             self.hit_flash_timer -= dt
@@ -226,6 +231,7 @@ class SectorBoss(pygame.sprite.Sprite):
             self.shield_angle += 3.0 * dt
             if self.shield_timer <= 0:
                 self.is_shielded = False
+                self.shield_timer = 0.0
 
         # Phase transition grace period timer
         if self.phase_transitioning:
@@ -300,13 +306,16 @@ class SectorBoss(pygame.sprite.Sprite):
         self.pos.y = max(arena_min_y, min(arena_max_y, self.pos.y))
 
     def _update_attacks(self, dt: float, player_pos: tuple[float, float], player_vel: tuple[float, float]) -> list[EnemyBullet]:
-        """Ticking attack cooldowns, telegraphing, and executing attack patterns."""
+        """Ticking attack cooldowns, telegraphing, and executing attack patterns with active projectile caps."""
         spawned: List[EnemyBullet] = []
         cx, cy = self.rect.center
         pred_player = (
             player_pos[0] + player_vel[0] * 0.35,
             player_pos[1] + player_vel[1] * 0.35
         )
+
+        max_cap = self.definition.max_projectiles
+        available_capacity = max(0, max_cap - len(self.active_projectiles))
 
         for a_idx, atk in enumerate(self.current_phase.attacks):
             if a_idx not in self.attack_cooldowns:
@@ -320,12 +329,16 @@ class SectorBoss(pygame.sprite.Sprite):
                 self.telegraph_type = atk.attack_type
                 self.telegraph_timer = atk.telegraph_time
 
-            # Fire attack when cooldown expires
+            # Fire attack once when cooldown expires
             if self.attack_cooldowns[a_idx] <= 0:
                 self.attack_cooldowns[a_idx] = atk.cooldown
                 self.telegraph_active = False
-                fired_bullets = self._execute_attack_pattern(atk, (cx, cy), pred_player)
-                spawned.extend(fired_bullets)
+                if available_capacity > 0:
+                    fired_bullets = self._execute_attack_pattern(atk, (cx, cy), pred_player)
+                    allowed = fired_bullets[:available_capacity]
+                    self.active_projectiles.extend(allowed)
+                    spawned.extend(allowed)
+                    available_capacity -= len(allowed)
 
         return spawned
 

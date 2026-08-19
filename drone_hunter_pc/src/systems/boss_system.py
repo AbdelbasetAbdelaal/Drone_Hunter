@@ -156,13 +156,16 @@ class BossSystem:
         # ---------------------------------------------------------------------
         if self.state == STATE_DEFEATED:
             self.death_timer -= dt
+            self.death_explosion_timer -= dt
             
-            # Continuous death explosions
-            if ctx.particle_manager and self.active_boss:
-                bx = self.active_boss.pos.x + random.uniform(-40, 40)
-                by = self.active_boss.pos.y + random.uniform(-40, 40)
-                ctx.particle_manager.spawn_explosion((bx, by), count=12, color=self.active_boss_def.color_inner)
-                ctx.trigger_shake(6.0, 0.1)
+            # Rate-limited death explosions (prevent particle runaway)
+            if self.death_explosion_timer <= 0:
+                self.death_explosion_timer = 0.15
+                if ctx.particle_manager and self.active_boss:
+                    bx = self.active_boss.pos.x + random.uniform(-40, 40)
+                    by = self.active_boss.pos.y + random.uniform(-40, 40)
+                    ctx.particle_manager.spawn_explosion((bx, by), count=8, color=self.active_boss_def.color_inner)
+                    ctx.trigger_shake(5.0, 0.1)
 
             if self.death_timer <= 0:
                 self.state = STATE_COMPLETE
@@ -186,7 +189,7 @@ class BossSystem:
         boss_def = self.active_boss_def
         pos = self.active_boss.pos if self.active_boss else (WORLD_WIDTH // 2, WORLD_HEIGHT // 2)
 
-        # Huge explosion FX
+        # Bounded explosion FX
         if ctx.particle_manager:
             ctx.particle_manager.spawn_boss_explosion(pos)
             ctx.particle_manager.spawn_floating_text(pos, f"BOSS DEFEATED! +{boss_def.reward_score}", COLOR_GOLD, 28)
@@ -216,10 +219,15 @@ class BossSystem:
 
     def _spawn_reinforcements(self, enemy_types: List[str], ctx: GameContext):
         """Spawns reinforcement enemies around the boss within arena limits."""
-        if not self.active_boss:
+        if not self.active_boss or not self.active_boss_def:
             return
 
-        for etype in enemy_types:
+        max_limit = self.active_boss_def.max_reinforcements
+        available_slots = max(0, max_limit - len(self.active_reinforcements))
+        if available_slots <= 0:
+            return
+
+        for etype in enemy_types[:available_slots]:
             ang = random.uniform(0, 2 * math.pi)
             dist = random.uniform(120.0, 220.0)
             sx = max(100.0, min(WORLD_WIDTH - 100.0, self.active_boss.pos.x + math.cos(ang) * dist))
@@ -230,7 +238,7 @@ class BossSystem:
             self.active_reinforcements.append(enemy)
 
             if ctx.particle_manager:
-                ctx.particle_manager.spawn_spark((sx, sy), count=10, color=COLOR_CYAN)
+                ctx.particle_manager.spawn_spark((sx, sy), count=8, color=COLOR_CYAN)
 
     def reset(self):
         """Resets the BossSystem completely back to IDLE."""
@@ -240,5 +248,6 @@ class BossSystem:
         self.active_reinforcements.clear()
         self.intro_timer = 0.0
         self.death_timer = 0.0
+        self.death_explosion_timer = 0.0
         self.rewards_granted = False
         self.is_final_boss = False

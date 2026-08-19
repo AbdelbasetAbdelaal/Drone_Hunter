@@ -191,20 +191,44 @@ class TestPhase6Bosses(unittest.TestCase):
         self.assertEqual(len(bullets_next), 0, "Boss must reset attack cooldown after firing!")
 
     # -------------------------------------------------------------------------
-    # 8. Boss Projectile Limits
+    # 8. Boss Active Projectile Limit & Cleanup
     # -------------------------------------------------------------------------
-    def test_boss_projectile_limits(self):
-        """Verify boss attack patterns emit a bounded number of projectiles."""
-        for b_def in [ASSEMBLY_WARDEN_CONFIG, CORE_EXECUTOR_CONFIG, DRONE_OVERLORD_CONFIG]:
-            boss = SectorBoss(b_def)
-            for phase_idx in range(len(b_def.phases)):
-                boss._apply_phase(phase_idx)
-                for atk in b_def.phases[phase_idx].attacks:
-                    bullets = boss._execute_attack_pattern(atk, (1000, 500), (500, 360))
-                    self.assertLessEqual(
-                        len(bullets), b_def.max_projectiles,
-                        f"Attack {atk.attack_type} exceeded max_projectiles limit {b_def.max_projectiles}!"
-                    )
+    def test_active_boss_projectile_cap(self):
+        """Verify boss active projectiles never exceed max_projectiles at runtime."""
+        boss = SectorBoss(ASSEMBLY_WARDEN_CONFIG)
+        max_allowed = ASSEMBLY_WARDEN_CONFIG.max_projectiles
+        
+        # Advance time over 20 seconds, firing repeatedly
+        all_fired = []
+        for _ in range(50):
+            bullets = boss.update(0.5, player_pos=(500, 360))
+            all_fired.extend(bullets)
+            self.assertLessEqual(
+                len(boss.active_projectiles), max_allowed,
+                f"Active boss projectiles ({len(boss.active_projectiles)}) exceeded cap {max_allowed}!"
+            )
+
+    def test_projectile_cleanup_frees_capacity(self):
+        """Verify killing active boss projectiles frees up capacity for new attacks."""
+        boss = SectorBoss(ASSEMBLY_WARDEN_CONFIG)
+        max_allowed = ASSEMBLY_WARDEN_CONFIG.max_projectiles
+        
+        # Fire until capped
+        for _ in range(10):
+            boss.update(1.5, player_pos=(500, 360))
+
+        initial_count = len(boss.active_projectiles)
+        self.assertGreater(initial_count, 0)
+
+        # Kill all current active projectiles
+        for b in list(boss.active_projectiles):
+            b.kill()
+
+        # Update boss past longest attack cooldown
+        new_bullets = boss.update(4.0, player_pos=(500, 360))
+        # After killing old bullets, active list is cleaned and capacity is restored
+        self.assertLessEqual(len(boss.active_projectiles), max_allowed)
+        self.assertGreater(len(new_bullets), 0, "Boss should be able to fire again once dead bullets are cleaned!")
 
     # -------------------------------------------------------------------------
     # 9. Reinforcement Limits
@@ -474,6 +498,61 @@ class TestPhase6Bosses(unittest.TestCase):
 
         # Scrap should not duplicate the sector bonus
         self.assertEqual(self.ctx.scrap, 1000, "One-time mission and sector bonuses must not be granted repeatedly on replay!")
+
+    # -------------------------------------------------------------------------
+    # 21. SPACE Key During Gameplay Does NOT Reset Campaign
+    # -------------------------------------------------------------------------
+    def test_space_key_during_gameplay_does_not_reset_campaign(self):
+        """Verify pressing SPACE during gameplay pauses/resumes and never resets campaign."""
+        from src.core.game import Game
+        game = Game()
+        game.context.scrap = 3500
+        game.context.upgrade_levels["hull"] = 3
+        game.context.missions["completed"] = ["S1_M1", "S1_M2", "S1_M3"]
+        game.context.state = STATE_PLAYING
+        game.mission_system.active_mission_id = "S1_M4"
+
+        # Simulate KEYDOWN SPACE event
+        event = pygame.event.Event(pygame.KEYDOWN, {"key": pygame.K_SPACE})
+        pygame.event.post(event)
+        game.handle_events()
+
+        # State should safely become STATE_PAUSED, NOT reset!
+        from src.core.game_state import STATE_PAUSED
+        self.assertEqual(game.context.state, STATE_PAUSED)
+        self.assertEqual(game.context.scrap, 3500, "Scrap must not be reset by SPACE key!")
+        self.assertEqual(game.context.upgrade_levels["hull"], 3, "Upgrades must not be reset by SPACE key!")
+        self.assertEqual(game.context.missions["completed"], ["S1_M1", "S1_M2", "S1_M3"])
+
+        # Press SPACE again in PAUSED -> resumes STATE_PLAYING
+        event2 = pygame.event.Event(pygame.KEYDOWN, {"key": pygame.K_SPACE})
+        pygame.event.post(event2)
+        game.handle_events()
+        self.assertEqual(game.context.state, STATE_PLAYING)
+
+    # -------------------------------------------------------------------------
+    # 22. Mission Restart Preserves Progression
+    # -------------------------------------------------------------------------
+    def test_mission_restart_preserves_progression(self):
+        """Verify retrying/restarting a mission never wipes scrap, upgrades, or unlocked sectors."""
+        from src.core.game import Game
+        game = Game()
+        game.context.scrap = 4200
+        game.context.upgrade_levels = {"hull": 2, "energy": 2, "weapon": 2, "mobility": 1}
+        game.context.unlocked_sectors = [True, True, False, False, False]
+        game.context.missions = {
+            "current_sector": 2,
+            "unlocked": ["S1_M1", "S1_M2", "S1_M3", "S1_M4", "S1_M5", "S2_M1"],
+            "completed": ["S1_M1", "S1_M2", "S1_M3", "S1_M4", "S1_M5"]
+        }
+        game.context.bosses_defeated = [BOSS_ASSEMBLY_WARDEN]
+
+        # Trigger mission failure and restart
+        game.start_phase5_mission("S2_M1")
+        self.assertEqual(game.context.scrap, 4200)
+        self.assertEqual(game.context.upgrade_levels["hull"], 2)
+        self.assertEqual(game.context.bosses_defeated, [BOSS_ASSEMBLY_WARDEN])
+        self.assertIn("S2_M1", game.context.missions["unlocked"])
 
 
 if __name__ == "__main__":

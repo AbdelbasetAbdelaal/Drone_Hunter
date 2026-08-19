@@ -89,6 +89,7 @@ class Game:
         self.context.background = self.background
         self.context.encounter_system = self.encounter_system
         self.context.combat_director = self.combat_director
+        self.context.mission_system = self.mission_system
         self.context.boss_system = self.boss_system
 
         # Load Save Data
@@ -319,12 +320,11 @@ class Game:
                     elif event.key in (pygame.K_0, pygame.K_KP0): self.buy_upgrade("cluster")
                     elif event.key in (pygame.K_u, pygame.K_o): self.buy_upgrade("overdrive")
                     elif event.key == pygame.K_c and ctx.player: ctx.player.cycle_skin()
-                    elif event.key == pygame.K_m: ctx.state = STATE_SECTOR_SELECT
-                    elif event.key in (pygame.K_SPACE, pygame.K_RETURN):
-                        self.start_stage()
+                    elif event.key in (pygame.K_m, pygame.K_ESCAPE, pygame.K_SPACE, pygame.K_RETURN):
+                        ctx.state = STATE_SECTOR_SELECT
 
                 elif ctx.state == STATE_PLAYING:
-                    if event.key in (pygame.K_p, pygame.K_ESCAPE):
+                    if event.key in (pygame.K_p, pygame.K_ESCAPE, pygame.K_SPACE):
                         ctx.state = STATE_PAUSED
                     elif event.key == pygame.K_e:
                         self.combat_system.execute_emp_blast()
@@ -352,10 +352,14 @@ class Game:
                     elif event.key == pygame.K_TAB and ctx.player: ctx.player.cycle_weapon()
 
                 elif ctx.state == STATE_PAUSED:
-                    if event.key in (pygame.K_p, pygame.K_SPACE): ctx.state = STATE_PLAYING
-                    elif event.key == pygame.K_m: ctx.state = STATE_SECTOR_SELECT
-                    elif event.key == pygame.K_h: ctx.state = STATE_HANGAR
-                    elif event.key == pygame.K_q: self.running = False
+                    if event.key in (pygame.K_p, pygame.K_SPACE, pygame.K_ESCAPE):
+                        ctx.state = STATE_PLAYING
+                    elif event.key == pygame.K_m:
+                        ctx.state = STATE_SECTOR_SELECT
+                    elif event.key == pygame.K_h:
+                        ctx.state = STATE_HANGAR
+                    elif event.key == pygame.K_q:
+                        self.running = False
 
                 elif ctx.state == STATE_VICTORY:
                     if event.key in (pygame.K_SPACE, pygame.K_RETURN, pygame.K_m):
@@ -366,22 +370,38 @@ class Game:
                     elif event.key == pygame.K_q:
                         self.running = False
 
-                elif ctx.state in (STATE_GAME_OVER, STATE_LEVEL_CLEAR):
+                elif ctx.state == STATE_GAME_OVER:
                     if event.key in (pygame.K_SPACE, pygame.K_RETURN):
-                        if ctx.state == STATE_LEVEL_CLEAR: self.start_next_stage()
-                        else: self.start_stage()
+                        if self.pending_mission_id:
+                            self.start_phase5_mission(self.pending_mission_id)
+                        else:
+                            ctx.state = STATE_SECTOR_SELECT
+                    elif event.key in (pygame.K_m, pygame.K_ESCAPE):
+                        ctx.state = STATE_SECTOR_SELECT
+                    elif event.key == pygame.K_q:
+                        self.running = False
+
+                elif ctx.state == STATE_LEVEL_CLEAR:
+                    if event.key in (pygame.K_SPACE, pygame.K_RETURN):
+                        self.start_next_stage()
+                    elif event.key in (pygame.K_m, pygame.K_ESCAPE):
+                        ctx.state = STATE_SECTOR_SELECT
 
                 elif ctx.state == STATE_MISSION_COMPLETE:
                     if event.key in (pygame.K_SPACE, pygame.K_RETURN, pygame.K_m):
                         self.mission_system.active_mission_id = None
                         ctx.state = STATE_SECTOR_SELECT
+                    elif event.key == pygame.K_h:
+                        ctx.state = STATE_HANGAR
 
                 elif ctx.state == STATE_MISSION_FAILED:
                     if event.key in (pygame.K_SPACE, pygame.K_RETURN):
                         self.start_phase5_mission(self.mission_system.active_mission_id or self.pending_mission_id)
-                    elif event.key == pygame.K_m:
+                    elif event.key in (pygame.K_m, pygame.K_ESCAPE):
                         self.mission_system.active_mission_id = None
                         ctx.state = STATE_SECTOR_SELECT
+                    elif event.key == pygame.K_h:
+                        ctx.state = STATE_HANGAR
                     elif event.key == pygame.K_q:
                         self.running = False
 
@@ -573,11 +593,12 @@ class Game:
                     if ctx.state in (STATE_MISSION_COMPLETE, STATE_MISSION_FAILED, STATE_GAME_OVER):
                         return
 
-                # 5. Check Stage Completion (Respects Wave Target Score & Boss Elimination)
-                if ctx.wave_manager.is_stage_complete(ctx.level_score, targets_group=ctx.target_group):
-                    ctx.state = STATE_LEVEL_CLEAR
-                    self.audio_manager.play_powerup()
-                    self.save_progress()
+                # 5. Check Legacy Stage Completion (Only in legacy mode without active mission)
+                if self.mission_system.active_mission_id is None:
+                    if ctx.wave_manager.is_stage_complete(ctx.level_score, targets_group=ctx.target_group):
+                        ctx.state = STATE_LEVEL_CLEAR
+                        self.audio_manager.play_powerup()
+                        self.save_progress()
 
     def render(self):
         ctx = self.context
@@ -688,13 +709,13 @@ class Game:
                     prof["last_print"] = 0.0
                     fps = prof["fps_sum"] / max(1, prof["frames"])
                     frame_ms = prof["frame_ms_sum"] / max(1, prof["frames"])
-                    print(f"[PROF] FPS:{fps:.1f} FRAME_MS:{frame_ms:.1f} "
-                          f"MAX_FRAME:{prof['max_frame_ms']:.1f} MAX_UPD:{prof['max_update_ms']:.1f} MAX_RND:{prof['max_render_ms']:.1f} "
-                          f"ENEMIES:{prof['counts']['enemies']} PBULLETS:{prof['counts']['player_bullets']} "
-                          f"EBULLETS:{prof['counts']['enemy_bullets']} PARTICLES:{prof['counts']['particles']} "
-                          f"TEXT:{prof['counts']['floating_text']} ARCS:{prof['counts']['lightning_arcs']} "
-                          f"MISSION:{prof['states']['mission_state']} DIR:{prof['states']['director_state']} "
-                          f"ENC:{prof['states']['encounter_state']}")
+                    boss_proj = len(self.boss_system.active_boss.active_projectiles) if (self.boss_system.active_boss and hasattr(self.boss_system.active_boss, 'active_projectiles')) else 0
+                    boss_ph = self.boss_system.active_boss.current_phase_number if self.boss_system.active_boss else 0
+                    print(f"[PROF] FPS:{fps:.1f} FRAME_MS:{frame_ms:.1f} MAX_FRAME_MS:{prof['max_frame_ms']:.1f} "
+                          f"ENEMIES:{len(self.context.target_group)} BOSS_PROJECTILES:{boss_proj} "
+                          f"ENEMY_PROJECTILES:{len(self.context.enemy_bullet_group)} PARTICLES:{len(self.particle_manager.particles)} "
+                          f"FLOATING_TEXT:{len(self.particle_manager.floating_texts)} LIGHTNING_ARCS:{len(self.particle_manager.lightning_arcs)} "
+                          f"BOSS_STATE:{self.boss_system.state} BOSS_PHASE:{boss_ph} MISSION_STATE:{self.mission_system.state}")
                     for name, total in prof["sections"].items():
                         print(f"  {name}: {total/prof['frames']:.2f}ms avg")
                 else:
@@ -705,7 +726,7 @@ class Game:
             fps = prof["fps_sum"] / prof["frames"]
             frame_ms = prof["frame_ms_sum"] / prof["frames"]
             print(f"[PROF FINAL] FPS:{fps:.1f} FRAME_MS:{frame_ms:.2f} "
-                  f"MAX_FRAME:{prof['max_frame_ms']:.2f} MAX_UPD:{prof['max_update_ms']:.2f} MAX_RND:{prof['max_render_ms']:.2f} "
+                  f"MAX_FRAME_MS:{prof['max_frame_ms']:.2f} MAX_UPD:{prof['max_update_ms']:.2f} MAX_RND:{prof['max_render_ms']:.2f} "
                   f"ENEMIES:{prof['counts']['enemies']} PBULLETS:{prof['counts']['player_bullets']} "
                   f"EBULLETS:{prof['counts']['enemy_bullets']} PARTICLES:{prof['counts']['particles']}")
             for name, total in prof["sections"].items():
