@@ -46,7 +46,7 @@ from src.ui.hud import (
     draw_hud, draw_boss_health_bar, draw_radar_minimap, draw_combo_banner
 )
 from src.ui.menus import (
-    draw_sector_select_ui, draw_pause_settings_ui, draw_mission_select_ui, draw_mission_briefing, draw_mission_complete, draw_mission_failed,
+    draw_main_menu, draw_sector_select_ui, draw_pause_settings_ui, draw_mission_select_ui, draw_mission_briefing, draw_mission_complete, draw_mission_failed,
     draw_level_clear_ui, draw_game_over_ui, draw_campaign_victory_ui
 )
 from src.ui.hangar import draw_hangar_shop_ui
