@@ -91,17 +91,7 @@ class LightningArc:
         self.max_lifetime = 0.18
         self.points = self._generate_points()
 
-    def _generate_points() -> list[tuple[float, float]]:
-        # Points generated in world space
-        return []
-
-    def __init__(self, start_pos: tuple[float, float], end_pos: tuple[float, float], color: tuple[int, int, int] = COLOR_TESLA):
-        self.start = pygame.Vector2(start_pos)
-        self.end = pygame.Vector2(end_pos)
-        self.color = color
-        self.lifetime = 0.18
-        self.max_lifetime = 0.18
-        
+    def _generate_points(self) -> list[tuple[float, float]]:
         pts = [self.start]
         dist = (self.end - self.start).length()
         segs = max(3, int(dist / 28.0))
@@ -111,9 +101,13 @@ class LightningArc:
             offset = pygame.Vector2(random.uniform(-14.0, 14.0), random.uniform(-14.0, 14.0))
             pts.append(inter + offset)
         pts.append(self.end)
-        self.points = pts
+        return pts
 
     def update(self, dt: float) -> bool:
+        self.lifetime -= dt
+        return self.lifetime > 0
+
+    def draw(self, surface: pygame.Surface, camera_offset: tuple[float, float] = (0.0, 0.0)):
         self.lifetime -= dt
         return self.lifetime > 0
 

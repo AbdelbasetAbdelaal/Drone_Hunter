@@ -63,6 +63,8 @@ class HomingMissile(pygame.sprite.Sprite):
         self.damage = damage
         self.speed = speed
         self.turn_rate = 7.5
+        self.max_lifetime = 12.0
+        self.lifetime = self.max_lifetime
         
         self.original_image = pygame.Surface((28, 10), pygame.SRCALPHA)
         pygame.draw.polygon(self.original_image, COLOR_MISSILE, [(28, 5), (0, 0), (4, 5), (0, 10)])
@@ -76,17 +78,35 @@ class HomingMissile(pygame.sprite.Sprite):
         self.rect = self.image.get_rect(center=start_pos)
         self.radius = 12
 
+        self._cached_target = None
+        self._last_rendered_angle = self.angle_rad
+        self._angle_render_threshold = math.radians(2.5)
+
     def update(self, dt: float, target_group=None):
+        self.lifetime -= dt
+        if self.lifetime <= 0:
+            self._cached_target = None
+            self.kill()
+            return
+
         if target_group and len(target_group) > 0:
-            nearest = min(target_group, key=lambda t: (t.rect.centerx - self.pos.x)**2 + (t.rect.centery - self.pos.y)**2)
+            # PERF: Reuse cached target if still alive and in group
+            if self._cached_target is None or not self._cached_target.alive or self._cached_target not in target_group:
+                # Full scan only when target is lost
+                self._cached_target = min(target_group, key=lambda t: (t.rect.centerx - self.pos.x)**2 + (t.rect.centery - self.pos.y)**2)
+
+            nearest = self._cached_target
             tx, ty = nearest.rect.center
             desired_ang = math.atan2(ty - self.pos.y, tx - self.pos.x)
             
             diff = (desired_ang - self.angle_rad + math.pi) % (2 * math.pi) - math.pi
             self.angle_rad += max(-self.turn_rate * dt, min(self.turn_rate * dt, diff))
             
-            self.image = pygame.transform.rotate(self.original_image, math.degrees(-self.angle_rad))
-            self.rect = self.image.get_rect(center=self.rect.center)
+            # PERF: Only rotate sprite when heading meaningfully changes
+            if abs(self.angle_rad - self._last_rendered_angle) >= self._angle_render_threshold:
+                self.image = pygame.transform.rotate(self.original_image, math.degrees(-self.angle_rad))
+                self.rect = self.image.get_rect(center=self.rect.center)
+                self._last_rendered_angle = self.angle_rad
 
         self.pos.x += math.cos(self.angle_rad) * self.speed * dt
         self.pos.y += math.sin(self.angle_rad) * self.speed * dt
@@ -94,6 +114,7 @@ class HomingMissile(pygame.sprite.Sprite):
 
         if (self.rect.right < -80 or self.rect.left > WORLD_WIDTH + 80 or
             self.rect.bottom < -80 or self.rect.top > WORLD_HEIGHT + 80):
+            self._cached_target = None
             self.kill()
 
 

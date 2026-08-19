@@ -155,12 +155,8 @@ def draw_hud(canvas: pygame.Surface, player, sector_idx: int = 0, level_score: i
             wpn_x = vw - margin_x - wpn_w
             
             wpn_rect = pygame.Rect(wpn_x, start_y, wpn_w, wpn_h)
-            
-            # Create alpha surface for background
-            surf = pygame.Surface((wpn_w, wpn_h), pygame.SRCALPHA)
-            pygame.draw.rect(surf, bg_col, (0, 0, wpn_w, wpn_h), border_radius=5)
-            pygame.draw.rect(surf, box_border, (0, 0, wpn_w, wpn_h), 1, border_radius=5)
-            canvas.blit(surf, (wpn_x, start_y))
+            pygame.draw.rect(canvas, bg_col, wpn_rect, border_radius=5)
+            pygame.draw.rect(canvas, box_border, wpn_rect, 1, border_radius=5)
             canvas.blit(lbl_wpn, (wpn_x + 8, start_y + 5))
             
             start_y -= (wpn_h + 4)
@@ -199,19 +195,17 @@ def draw_radar_minimap(canvas: pygame.Surface, player, targets_group, wingmen_gr
     vw, vh = canvas.get_size()
     radar_radius = 60
     radar_x = vw - radar_radius - 24
-    radar_y = 120 + radar_radius  # Below score
+    radar_y = 120 + radar_radius
     
-    # Draw radar background (using alpha surface for transparency)
-    radar_surface = pygame.Surface((radar_radius * 2, radar_radius * 2), pygame.SRCALPHA)
-    pygame.draw.circle(radar_surface, (15, 23, 42, 180), (radar_radius, radar_radius), radar_radius)
-    pygame.draw.circle(radar_surface, COLOR_CYAN, (radar_radius, radar_radius), radar_radius, 1)
+    if not hasattr(draw_radar_minimap, "_radar_bg"):
+        draw_radar_minimap._radar_bg = pygame.Surface((radar_radius * 2, radar_radius * 2), pygame.SRCALPHA)
+        pygame.draw.circle(draw_radar_minimap._radar_bg, (15, 23, 42, 180), (radar_radius, radar_radius), radar_radius)
+        pygame.draw.circle(draw_radar_minimap._radar_bg, COLOR_CYAN, (radar_radius, radar_radius), radar_radius, 1)
+        pygame.draw.line(draw_radar_minimap._radar_bg, (51, 65, 85, 150), (0, radar_radius), (radar_radius * 2, radar_radius))
+        pygame.draw.line(draw_radar_minimap._radar_bg, (51, 65, 85, 150), (radar_radius, 0), (radar_radius, radar_radius * 2))
+        pygame.draw.circle(draw_radar_minimap._radar_bg, COLOR_EMERALD, (radar_radius, radar_radius), 3)
     
-    # Crosshairs
-    pygame.draw.line(radar_surface, (51, 65, 85, 150), (0, radar_radius), (radar_radius * 2, radar_radius))
-    pygame.draw.line(radar_surface, (51, 65, 85, 150), (radar_radius, 0), (radar_radius, radar_radius * 2))
-    
-    # Player dot
-    pygame.draw.circle(radar_surface, COLOR_EMERALD, (radar_radius, radar_radius), 3)
+    radar_surface = draw_radar_minimap._radar_bg.copy()
     
     # Scale: 60 pixels = 1200 world units -> scale = 0.05
     radar_scale = 0.05

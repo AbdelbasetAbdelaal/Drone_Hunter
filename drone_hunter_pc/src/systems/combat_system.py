@@ -73,18 +73,20 @@ class CombatSystem:
                     ctx.particle_manager.spawn_explosion(obs.rect.center, count=35, color=(239, 68, 68))
 
         # 2. Player Bullets vs Hostile Enemies
+        # PERF: Build shield-drone list once per frame, not once per bullet-hit
+        shield_drones = [t for t in ctx.target_group if getattr(t, "enemy_type", "") == TARGET_TYPE_SHIELD_DRONE]
+
         for b in list(ctx.bullet_group):
             hits = pygame.sprite.spritecollide(b, ctx.target_group, False)
             for target in hits:
                 dmg = getattr(b, "damage", 25)
 
-                # Check if protected by nearby Shield Drone
+                # PERF: Check shield protection using pre-built list (O(shield_drones) not O(all_targets))
                 is_shielded = False
-                for ally in ctx.target_group:
-                    if getattr(ally, "enemy_type", "") == TARGET_TYPE_SHIELD_DRONE and ally != target:
-                        if math.hypot(target.pos.x - ally.pos.x, target.pos.y - ally.pos.y) <= 160.0:
-                            is_shielded = True
-                            break
+                for ally in shield_drones:
+                    if ally != target and math.hypot(target.pos.x - ally.pos.x, target.pos.y - ally.pos.y) <= 160.0:
+                        is_shielded = True
+                        break
                 if is_shielded:
                     dmg = max(4, dmg // 3)
                     if ctx.particle_manager: ctx.particle_manager.spawn_spark(target.rect.center, count=6, color=COLOR_SHIELD)

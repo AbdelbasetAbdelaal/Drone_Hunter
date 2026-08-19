@@ -147,9 +147,13 @@ class PowerReactor:
     def __init__(self, pos: tuple[float, float]):
         self.pos = pygame.Vector2(pos)
         self.assets = CyberFactoryAssetManager.get_instance()
-        # Scale to a balanced landmark size that does not dominate the viewport
         self.reactor_img = self.assets.get_image("reactors/reactor_01.png", scale=(160, 180))
         self.rw, self.rh = self.reactor_img.get_size()
+        aura_r = 34
+        self._aura_surf = pygame.Surface((aura_r * 2 + 6, aura_r * 2 + 6), pygame.SRCALPHA)
+        self._aura_r = aura_r
+        self._aura_cx = aura_r + 3
+        self._aura_cy = aura_r + 3
 
     def draw(self, surface: pygame.Surface, camera_offset: tuple[float, float], time_accum: float):
         ox, oy = camera_offset
@@ -163,16 +167,14 @@ class PowerReactor:
         if not (-self.rw <= rx <= vw and -self.rh <= ry <= vh):
             return
 
-        # 1. Main Transparent Reactor Sprite
         surface.blit(self.reactor_img, (rx, ry))
 
-        # 2. Subtle Cyan Energy Aura Pulse
         pulse_a = int(110 + 35 * math.sin(time_accum * 4.0))
-        aura_r = 34
-        aura_surf = pygame.Surface((aura_r * 2 + 6, aura_r * 2 + 6), pygame.SRCALPHA)
-        pygame.draw.circle(aura_surf, (14, 165, 233, pulse_a // 3), (aura_r + 3, aura_r + 3), aura_r)
-        pygame.draw.circle(aura_surf, (56, 189, 248, pulse_a), (aura_r + 3, aura_r + 3), int(aura_r * 0.70), 2)
-        surface.blit(aura_surf, (cx - aura_r - 3, cy - aura_r - 3))
+        aura_surf = self._aura_surf
+        aura_surf.fill((0, 0, 0, 0))
+        pygame.draw.circle(aura_surf, (14, 165, 233, pulse_a // 3), (self._aura_cx, self._aura_cy), self._aura_r)
+        pygame.draw.circle(aura_surf, (56, 189, 248, pulse_a), (self._aura_cx, self._aura_cy), int(self._aura_r * 0.70), 2)
+        surface.blit(aura_surf, (cx - self._aura_cx, cy - self._aura_cy))
 
         if DEBUG_ASSET_LABELS:
             from src.ui.font_manager import font_card
@@ -321,20 +323,15 @@ class CyberFactoryEnvironment:
         # 1. Floor System with Multi-Tile Variation
         self.floor = FactoryFloor(world_w, world_h)
 
-        # 2. Central Power Reactor Landmark (~160x180px, well proportioned)
+        # 2. Central Power Reactor Landmark
         self.reactor = PowerReactor((world_w // 2, world_h // 2))
 
-        # 3. Factory Machinery (Spaced generously for dogfighting maneuverability: 65-70% open space)
+        # 3. Factory Machinery
         self.machinery = [
-            # North Turbines (Upper Combat Belt - wide clearance)
             FactoryMachineryUnit((520, 160), mtype="turbine", label="TURBINE-N1"),
             FactoryMachineryUnit((1720, 160), mtype="turbine", label="TURBINE-N2"),
-
-            # South Generators (Lower Combat Belt)
             FactoryMachineryUnit((520, 1100), mtype="generator", label="GEN-S1"),
             FactoryMachineryUnit((1720, 1100), mtype="generator", label="GEN-S2"),
-
-            # Flanking Power Stations
             FactoryMachineryUnit((160, 580), mtype="generator", label="GEN-WEST"),
             FactoryMachineryUnit((2080, 580), mtype="generator", label="GEN-EAST"),
         ]
@@ -350,7 +347,7 @@ class CyberFactoryEnvironment:
         # 5. Pipe Network
         self.pipes = PipeNetwork()
 
-        # 6. Tactical Energy Barriers (Unobtrusive & scalable)
+        # 6. Tactical Energy Barriers
         self.barriers = [
             EnergyBarrier((760, 680)),
             EnergyBarrier((1520, 680)),
@@ -359,13 +356,16 @@ class CyberFactoryEnvironment:
         # 7. Cargo Crates
         self.crates = CrateCluster()
 
-        # 8. Border Spawn Airlocks (4 Perimeter Gates)
+        # 8. Border Spawn Airlocks
         self.spawn_airlocks = [
             (world_w // 2 - 90, 20, 180, 24, "NORTH AIRLOCK"),
             (world_w // 2 - 90, world_h - 44, 180, 24, "SOUTH AIRLOCK"),
             (20, world_h // 2 - 90, 24, 180, "WEST AIRLOCK"),
             (world_w - 44, world_h // 2 - 90, 24, 180, "EAST AIRLOCK"),
         ]
+
+        # PERF: Pre-allocate reusable barrier line surface
+        self._barrier_surf = pygame.Surface((SCREEN_WIDTH, SCREEN_HEIGHT), pygame.SRCALPHA)
 
     def update(self, dt: float):
         self.time_accum += dt
@@ -415,7 +415,8 @@ class CyberFactoryEnvironment:
         bx2, by2 = int(round((self.world_w - pad) - ox)), int(round((self.world_h - pad) - oy))
 
         b_alpha = int(140 + 40 * math.sin(self.time_accum * 4.0))
-        barrier_surf = pygame.Surface((vw, vh), pygame.SRCALPHA)
+        barrier_surf = self._barrier_surf
+        barrier_surf.fill((0, 0, 0, 0))
         b_col = (14, 165, 233, b_alpha)
 
         if 0 <= bx1 <= vw:

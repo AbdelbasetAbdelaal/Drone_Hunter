@@ -196,9 +196,20 @@ class Enemy(pygame.sprite.Sprite):
         self.sniper_aim_timer = random.uniform(1.5, 3.0)
         self.is_aiming = False
 
+        self._base_surf = pygame.Surface((self.size, self.size), pygame.SRCALPHA)
         self.image = pygame.Surface((self.size, self.size), pygame.SRCALPHA)
         self.rect = self.image.get_rect(center=self.pos)
         self.radius = self.size // 2
+
+        # PERF: Sprite rebuild tracking — only rebuild when visual state changes
+        self._last_heading_angle = None  # track last rendered angle
+        self._last_ai_state = None       # track last rendered ai_state
+        self._last_hit_flash = False     # track hit flash state
+        self._last_is_aiming = False     # track sniper aim state
+        self._cached_rotated_surf = None # cached rotated image
+        self._cached_angle = None        # angle corresponding to cached rotation
+        self._sprite_dirty = True        # force rebuild on first frame
+        self._heading_threshold = 3.0   # degrees threshold before re-rotating
         self._render_sprite()
 
     @property
@@ -504,12 +515,30 @@ class Enemy(pygame.sprite.Sprite):
                 new_bullets.append(EnemyBullet((cx, cy), pred_aim, speed=bullet_speed + 90, angle_offset_deg=0.0))
                 new_bullets.append(EnemyBullet((cx, cy), pred_aim, speed=bullet_speed + 70, angle_offset_deg=12.0))
 
-        self._render_sprite()
+        # PERF: Determine if sprite needs rebuild
+        current_hit = self.hit_flash_timer > 0
+        heading_changed = (
+            self._last_heading_angle is None or
+            abs(self.heading_angle - self._last_heading_angle) >= self._heading_threshold
+        )
+        state_changed = self.ai_state != self._last_ai_state
+        flash_changed = current_hit != self._last_hit_flash
+        aim_changed = self.is_aiming != self._last_is_aiming
+
+        if self._sprite_dirty or state_changed or flash_changed or aim_changed or heading_changed:
+            self._render_sprite()
+            self._last_heading_angle = self.heading_angle
+            self._last_ai_state = self.ai_state
+            self._last_hit_flash = current_hit
+            self._last_is_aiming = self.is_aiming
+            self._sprite_dirty = False
+
         return new_bullets
 
     def _render_sprite(self):
         s = self.size
-        surf = pygame.Surface((s, s), pygame.SRCALPHA)
+        self._base_surf.fill((0, 0, 0, 0))
+        surf = self._base_surf
         center = (s // 2, s // 2)
 
         if self.enemy_type == TARGET_TYPE_SCOUT:
@@ -533,15 +562,7 @@ class Enemy(pygame.sprite.Sprite):
                 alpha = int(140 + 100 * math.sin(self.state_timer * 22.0))
                 glow_s = pygame.Surface((s + 12, s + 12), pygame.SRCALPHA)
                 pygame.draw.circle(glow_s, (244, 63, 94, max(0, min(255, alpha))), ((s + 12) // 2, (s + 12) // 2), (s + 12) // 2, 2)
-                surf = pygame.transform.rotate(surf, -self.heading_angle)
-                self.image = surf
-                self.rect = self.image.get_rect(center=self.rect.center)
-                return
-
-            rotated = pygame.transform.rotate(surf, -self.heading_angle)
-            self.image = rotated
-            self.rect = self.image.get_rect(center=self.rect.center)
-            return
+                surf.blit(glow_s, (-6, -6))
 
         elif self.enemy_type == TARGET_TYPE_SHOOTER:
             # Faceted angular ranged chassis with directional heavy barrel
@@ -573,11 +594,6 @@ class Enemy(pygame.sprite.Sprite):
                 charge_alpha = int(160 + 95 * math.sin(self.state_timer * 26.0))
                 charge_r = max(2, int(6 * (self.state_timer / SHOOTER_TELEGRAPH_TIME)))
                 pygame.draw.circle(surf, (255, 200, 50, max(0, min(255, charge_alpha))), (s - 4, half), charge_r, 2)
-
-            rotated = pygame.transform.rotate(surf, -self.heading_angle)
-            self.image = rotated
-            self.rect = self.image.get_rect(center=self.rect.center)
-            return
 
         elif self.enemy_type in (TARGET_TYPE_HEAVY, TARGET_TYPE_ARMORED):
             # Heavy Armored Juggernaut Chassis (58x58)
@@ -624,11 +640,6 @@ class Enemy(pygame.sprite.Sprite):
                 pygame.draw.circle(p_surf, (245, 158, 11, max(0, min(255, glow_alpha))), ((s + 12) // 2, (s + 12) // 2), (s + 12) // 2, 2)
                 surf.blit(p_surf, (-6, -6))
 
-            rotated = pygame.transform.rotate(surf, -self.heading_angle)
-            self.image = rotated
-            self.rect = self.image.get_rect(center=self.rect.center)
-            return
-
         elif self.enemy_type == TARGET_TYPE_FAST:
             points = [(s, s // 2), (0, 0), (s // 3, s // 2), (0, s)]
             pygame.draw.polygon(surf, self.color_outer, points)
@@ -672,7 +683,17 @@ class Enemy(pygame.sprite.Sprite):
         if self.hit_flash_timer > 0:
             surf.fill((255, 255, 255, 160), special_flags=pygame.BLEND_RGBA_ADD)
 
-        self.image = surf
+        # PERF: Only rotate when heading meaningfully changes
+        angle_changed = (
+            self._cached_angle is None or
+            abs(self.heading_angle - self._cached_angle) >= self._heading_threshold
+        )
+
+        if angle_changed or self._sprite_dirty:
+            self.image = pygame.transform.rotate(self._base_surf, -self.heading_angle)
+            self._cached_angle = self.heading_angle
+            self._sprite_dirty = False
+
         self.rect = self.image.get_rect(center=self.rect.center)
 
 

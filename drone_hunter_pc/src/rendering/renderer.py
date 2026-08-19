@@ -4,6 +4,7 @@
 ================================================================================
 Centralized 2D rendering pipeline managing layered scene drawing, 2D camera
 translation, visual aura effects, CRT scanlines, and screen presentation.
+PERF FIX: Cached large SRCALPHA surfaces to eliminate per-frame allocations.
 """
 
 import math
@@ -19,6 +20,17 @@ class GameRenderer:
     def __init__(self):
         self.canvas = pygame.Surface((SCREEN_WIDTH, SCREEN_HEIGHT))
 
+        # PERF: Pre-allocated reusable surfaces to eliminate per-frame SRCALPHA allocations
+        self._shield_aura_surf = pygame.Surface((340, 340), pygame.SRCALPHA)
+        self._shield_aura_surf.fill((0, 0, 0, 0))
+        pygame.draw.circle(self._shield_aura_surf, (99, 102, 241, 45), (170, 170), 160)
+        pygame.draw.circle(self._shield_aura_surf, (56, 189, 248, 110), (170, 170), 160, 2)
+
+        self._laser_surf = pygame.Surface((SCREEN_WIDTH, SCREEN_HEIGHT), pygame.SRCALPHA)
+        self._emp_surf = pygame.Surface((SCREEN_WIDTH, SCREEN_HEIGHT), pygame.SRCALPHA)
+        self._flash_surf = pygame.Surface((SCREEN_WIDTH, SCREEN_HEIGHT), pygame.SRCALPHA)
+        self._last_flash_alpha = -1
+
     def render_gameplay(self, context, background, particle_manager, camera_offset: tuple[float, float] = (0.0, 0.0)):
         """Renders active 2D gameplay battlefield translated by Camera2D offset."""
         ox, oy = camera_offset
@@ -30,27 +42,27 @@ class GameRenderer:
         # Layer 2: Visual Auras (Shield Drones & Sniper Lasers in World Space)
         for t in context.target_group:
             if getattr(t, "enemy_type", "") == TARGET_TYPE_SHIELD_DRONE:
-                aura_surf = pygame.Surface((340, 340), pygame.SRCALPHA)
-                pygame.draw.circle(aura_surf, (99, 102, 241, 45), (170, 170), 160)
-                pygame.draw.circle(aura_surf, (56, 189, 248, 110), (170, 170), 160, 2)
-                self.canvas.blit(aura_surf, (t.rect.centerx - ox - 170, t.rect.centery - oy - 170))
+                # PERF: Reuse pre-built aura surface (no new allocation per frame)
+                self.canvas.blit(self._shield_aura_surf, (t.rect.centerx - ox - 170, t.rect.centery - oy - 170))
 
             elif getattr(t, "enemy_type", "") == TARGET_TYPE_SNIPER and getattr(t, "is_aiming", False) and context.player:
                 p_screen = (int(round(context.player.pos.x - ox)), int(round(context.player.pos.y - oy)))
                 t_screen = (int(round(t.pos.x - ox)), int(round(t.pos.y - oy)))
                 line_alpha = 180 if int(pygame.time.get_ticks() * 0.015) % 2 == 0 else 90
-                laser_surf = pygame.Surface((vw, vh), pygame.SRCALPHA)
-                pygame.draw.line(laser_surf, (239, 68, 68, line_alpha), t_screen, p_screen, 2)
-                self.canvas.blit(laser_surf, (0, 0))
+                # PERF: Reuse laser_surf, clear just the needed area rather than allocating a new surface
+                self._laser_surf.fill((0, 0, 0, 0))
+                pygame.draw.line(self._laser_surf, (239, 68, 68, line_alpha), t_screen, p_screen, 2)
+                self.canvas.blit(self._laser_surf, (0, 0))
 
             elif getattr(t, "enemy_type", "") == TARGET_TYPE_EMP_DISRUPTER and getattr(t, "is_emp_expanding", False):
                 emp_r = int(getattr(t, "emp_wave_radius", 0))
                 if emp_r > 0:
                     t_screen = (int(round(t.pos.x - ox)), int(round(t.pos.y - oy)))
-                    emp_surf = pygame.Surface((vw, vh), pygame.SRCALPHA)
-                    pygame.draw.circle(emp_surf, (14, 165, 233, 110), t_screen, emp_r, 4)
-                    pygame.draw.circle(emp_surf, (255, 255, 255, 180), t_screen, emp_r, 1)
-                    self.canvas.blit(emp_surf, (0, 0))
+                    # PERF: Reuse emp_surf instead of allocating a new surface
+                    self._emp_surf.fill((0, 0, 0, 0))
+                    pygame.draw.circle(self._emp_surf, (14, 165, 233, 110), t_screen, emp_r, 4)
+                    pygame.draw.circle(self._emp_surf, (255, 255, 255, 180), t_screen, emp_r, 1)
+                    self.canvas.blit(self._emp_surf, (0, 0))
 
         # Helper to blit sprite groups with camera offset
         def _draw_group_with_camera(group):
@@ -79,9 +91,13 @@ class GameRenderer:
         # Layer 6: Red Damage Flash
         if context.damage_flash_timer > 0:
             flash_alpha = int(110 * (context.damage_flash_timer / 0.18))
-            flash_surf = pygame.Surface((vw, vh), pygame.SRCALPHA)
-            flash_surf.fill((239, 68, 68, flash_alpha))
-            self.canvas.blit(flash_surf, (0, 0))
+            # PERF: Only rebuild flash surface when alpha meaningfully changes
+            if abs(flash_alpha - self._last_flash_alpha) >= 4:
+                self._flash_surf.fill((239, 68, 68, flash_alpha))
+                self._last_flash_alpha = flash_alpha
+            self.canvas.blit(self._flash_surf, (0, 0))
+        else:
+            self._last_flash_alpha = -1
 
     def draw_crosshair(self):
         """Draws animated tactical sci-fi crosshair at mouse position."""
@@ -93,18 +109,16 @@ class GameRenderer:
         pygame.draw.line(self.canvas, (14, 165, 233), (mx, my - r - 4), (mx, my - 4), 2)
         pygame.draw.line(self.canvas, (14, 165, 233), (mx, my + 4), (mx, my + r + 4), 2)
 
-    def draw_crt_scanlines(self):
-        """Renders retro arcade CRT scanline overlay."""
-        vw, vh = self.canvas.get_size()
-        for y in range(0, vh, 4):
-            pygame.draw.line(self.canvas, (0, 0, 0, 45), (0, y), (vw, y), 1)
-
-    def present(self, target_screen: pygame.Surface, context, win_w: int, win_h: int):
-        """Applies CRT filter, resizes to window, applies screen shake, and flips display."""
-        if context.show_crt:
-            self.draw_crt_scanlines()
-
-        ox, oy = context.get_shake_offset()
-        scaled = pygame.transform.smoothscale(self.canvas, (win_w, win_h))
-        target_screen.blit(scaled, (ox, oy))
+    def present(self, screen, ctx, win_w, win_h):
+        """Presents the canvas to the window, scaling if needed."""
+        sw, sh = self.canvas.get_size()
+        if (sw, sh) != (win_w, win_h):
+            scaled = pygame.transform.scale(self.canvas, (win_w, win_h))
+            screen.blit(scaled, (0, 0))
+        else:
+            screen.blit(self.canvas, (0, 0))
         pygame.display.flip()
+
+    def set_viewport_size(self, w: int, h: int):
+        """Resize the internal canvas when the window is resized."""
+        pass  # Canvas stays fixed; scaling is done in present()

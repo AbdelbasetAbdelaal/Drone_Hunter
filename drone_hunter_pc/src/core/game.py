@@ -52,6 +52,8 @@ from src.ui.menus import (
 from src.ui.hangar import draw_hangar_shop_ui
 
 class Game:
+    DEBUG_PROFILE = False
+
     def __init__(self):
         pygame.init()
         pygame.font.init()
@@ -104,6 +106,22 @@ class Game:
         self.camera = Camera2D(world_w=WORLD_WIDTH, world_h=WORLD_HEIGHT, view_w=SCREEN_WIDTH, view_h=SCREEN_HEIGHT)
         self.running = True
         self.reset_game()
+
+        if Game.DEBUG_PROFILE:
+            self._prof = {
+                "frames": 0,
+                "fps_sum": 0.0,
+                "frame_ms_sum": 0.0,
+                "last_print": 0.0,
+                "sections": {},
+                "counts": {
+                    "enemies": 0, "player_bullets": 0, "enemy_bullets": 0,
+                    "particles": 0, "floating_text": 0, "lightning_arcs": 0,
+                },
+                "states": {
+                    "mission_state": "", "director_state": "", "encounter_state": "",
+                },
+            }
 
     def start_phase5_mission(self, mission_id):
         self.context.state = STATE_PLAYING
@@ -471,11 +489,16 @@ class Game:
                 # 2. Phase 5 Mission System overrides Spawner
                 if self.mission_system.active_mission_id is not None:
                     self.combat_director.update(dt, ctx)
-                    if self.mission_system.update(dt, ctx, self.combat_director):
+                    mission_done = self.mission_system.update(dt, ctx, self.combat_director)
+                    if mission_done:
                         if self.mission_system.is_mission_success:
                             ctx.state = STATE_MISSION_COMPLETE
                             self.audio_manager.play_powerup()
                             self.save_progress()
+                        else:
+                            ctx.state = STATE_MISSION_FAILED
+                    if ctx.state in (STATE_MISSION_COMPLETE, STATE_MISSION_FAILED):
+                        return
                 else:
                     if ctx.current_sector_idx == 1 and ctx.current_sub_level == 1:
                         import sys
@@ -531,6 +554,8 @@ class Game:
                         ctx.state = STATE_MISSION_FAILED
                     else:
                         ctx.state = STATE_GAME_OVER
+                    if ctx.state in (STATE_MISSION_COMPLETE, STATE_MISSION_FAILED, STATE_GAME_OVER):
+                        return
 
                 # 5. Check Stage Completion (Respects Wave Target Score & Boss Elimination)
                 if ctx.wave_manager.is_stage_complete(ctx.level_score, targets_group=ctx.target_group):
@@ -595,12 +620,58 @@ class Game:
 
     def run(self):
         """Starts main application loop."""
+        import time as _time
+        prof = getattr(self, "_prof", None)
         while self.running:
             dt = self.clock.tick()
+            if prof:
+                t0 = _time.perf_counter()
             self.handle_events()
+            if prof:
+                t1 = _time.perf_counter()
             self.update(dt)
+            if prof:
+                t2 = _time.perf_counter()
             self.render()
+            if prof:
+                t3 = _time.perf_counter()
+                prof["frames"] += 1
+                prof["fps_sum"] += self.clock.get_fps()
+                prof["frame_ms_sum"] += self.clock.raw_dt * 1000.0
+                prof["counts"]["enemies"] = max(prof["counts"]["enemies"], len(self.context.target_group))
+                prof["counts"]["player_bullets"] = max(prof["counts"]["player_bullets"], len(self.context.bullet_group))
+                prof["counts"]["enemy_bullets"] = max(prof["counts"]["enemy_bullets"], len(self.context.enemy_bullet_group))
+                prof["counts"]["particles"] = max(prof["counts"]["particles"], len(self.particle_manager.particles))
+                prof["counts"]["floating_text"] = max(prof["counts"]["floating_text"], len(self.particle_manager.floating_texts))
+                prof["counts"]["lightning_arcs"] = max(prof["counts"]["lightning_arcs"], len(self.particle_manager.lightning_arcs))
+                prof["states"]["mission_state"] = self.mission_system.state
+                prof["states"]["director_state"] = self.combat_director.state
+                prof["states"]["encounter_state"] = self.encounter_system.state
+                for name, ms in [("handle_events", (t1-t0)*1000), ("update", (t2-t1)*1000), ("render", (t3-t2)*1000)]:
+                    prof["sections"][name] = prof["sections"].get(name, 0.0) + ms
+                if self.clock.raw_dt + prof["last_print"] >= 1.0:
+                    prof["last_print"] = 0.0
+                    fps = prof["fps_sum"] / max(1, prof["frames"])
+                    frame_ms = prof["frame_ms_sum"] / max(1, prof["frames"])
+                    print(f"[PROF] FPS:{fps:.1f} FRAME_MS:{frame_ms:.1f} "
+                          f"ENEMIES:{prof['counts']['enemies']} PBULLETS:{prof['counts']['player_bullets']} "
+                          f"EBULLETS:{prof['counts']['enemy_bullets']} PARTICLES:{prof['counts']['particles']} "
+                          f"TEXT:{prof['counts']['floating_text']} ARCS:{prof['counts']['lightning_arcs']} "
+                          f"MISSION:{prof['states']['mission_state']} DIR:{prof['states']['director_state']} "
+                          f"ENC:{prof['states']['encounter_state']}")
+                    for name, total in prof["sections"].items():
+                        print(f"  {name}: {total/prof['frames']:.2f}ms avg")
+                else:
+                    prof["last_print"] += self.clock.raw_dt
 
         self.save_progress()
+        if prof and prof["frames"] > 0:
+            fps = prof["fps_sum"] / prof["frames"]
+            frame_ms = prof["frame_ms_sum"] / prof["frames"]
+            print(f"[PROF FINAL] FPS:{fps:.1f} FRAME_MS:{frame_ms:.2f} "
+                  f"ENEMIES:{prof['counts']['enemies']} PBULLETS:{prof['counts']['player_bullets']} "
+                  f"EBULLETS:{prof['counts']['enemy_bullets']} PARTICLES:{prof['counts']['particles']}")
+            for name, total in prof["sections"].items():
+                print(f"  {name}: {total/prof['frames']:.2f}ms avg")
         pygame.quit()
         sys.exit()

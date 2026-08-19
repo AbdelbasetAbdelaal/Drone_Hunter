@@ -18,6 +18,10 @@ from src.data.game_data import DRONE_SKINS
 class PlayerRenderer:
     def __init__(self):
         self.idle_bob_timer = 0.0
+        self._drone_surf = pygame.Surface((128, 128), pygame.SRCALPHA)
+        self._flash_overlay = pygame.Surface((128, 128), pygame.SRCALPHA)
+        self._shield_surf = pygame.Surface((104, 104), pygame.SRCALPHA)
+        self._od_surf = pygame.Surface((110, 110), pygame.SRCALPHA)
 
     def draw_player(self, canvas: pygame.Surface, player, camera_offset: tuple[float, float] = (0.0, 0.0)):
         """Renders high-presence combat drone with camera offset translation."""
@@ -28,7 +32,6 @@ class PlayerRenderer:
         screen_x = player.pos.x - ox
         screen_y = player.pos.y - oy
 
-        # Retrieve skin palette with high-visibility contrast
         skin_idx = max(0, min(len(DRONE_SKINS) - 1, player.skin_theme)) if isinstance(player.skin_theme, int) else 0
         skin = DRONE_SKINS[skin_idx]
         body_color = (36, 48, 68) if skin_idx == 0 else skin.get("body_color", (36, 48, 68))
@@ -36,23 +39,22 @@ class PlayerRenderer:
         accent_color = skin.get("accent_color", (226, 232, 240))
         glow_color = skin.get("glow_color", (56, 189, 248))
 
-        # 1. Surface Dimensions (128x128 for 70px+ combat silhouette)
         surf_size = 128
         half_s = surf_size // 2
-        drone_surf = pygame.Surface((surf_size, surf_size), pygame.SRCALPHA)
+        drone_surf = self._drone_surf
+        drone_surf.fill((0, 0, 0, 0))
 
         current_speed = player.velocity.length()
         speed_ratio = min(1.0, current_speed / max(1.0, player.speed))
         is_accelerating = getattr(player, "is_accelerating", False)
 
-        # 2. Dynamic Reactive Ion Thruster Plumes
         if is_accelerating:
             flame_len = 18.0 + (speed_ratio * 30.0) + random.uniform(-2.0, 3.0)
             core_len = flame_len * 0.65
-        elif speed_ratio > 0.30: # Gliding at speed
+        elif speed_ratio > 0.30:
             flame_len = 12.0 + (speed_ratio * 18.0)
             core_len = flame_len * 0.55
-        else: # Idle engine glow
+        else:
             flame_len = 6.0 + math.sin(pygame.time.get_ticks() * 0.01) * 2.0
             core_len = flame_len * 0.50
 
@@ -60,7 +62,6 @@ class PlayerRenderer:
             (56, 189, 248) if speed_ratio > 0.4 else glow_color
         )
 
-        # Dual Thruster Nozzle Plumes
         for noz_y in [half_s - 12, half_s + 12]:
             outer_poly = [
                 (half_s - 20, noz_y - 6),
@@ -75,25 +76,22 @@ class PlayerRenderer:
             ]
             pygame.draw.polygon(drone_surf, COLOR_WHITE, inner_poly)
 
-        # 3. High-Presence Swept Delta-Wing Drone Chassis (~70px wide silhouette)
         chassis_points = [
-            (half_s + 36, half_s),         # Forward nose tip
-            (half_s + 18, half_s - 16),    # Front-right wing root
-            (half_s - 8, half_s - 32),     # Right wingtip (70px wingspan)
-            (half_s - 20, half_s - 22),    # Right wing trailing edge
-            (half_s - 16, half_s - 12),    # Right thruster shroud
-            (half_s - 20, half_s),         # Rear central fuselage notch
-            (half_s - 16, half_s + 12),    # Left thruster shroud
-            (half_s - 20, half_s + 22),    # Left wing trailing edge
-            (half_s - 8, half_s + 32),     # Left wingtip
-            (half_s + 18, half_s + 16),    # Front-left wing root
+            (half_s + 36, half_s),
+            (half_s + 18, half_s - 16),
+            (half_s - 8, half_s - 32),
+            (half_s - 20, half_s - 22),
+            (half_s - 16, half_s - 12),
+            (half_s - 20, half_s),
+            (half_s - 16, half_s + 12),
+            (half_s - 20, half_s + 22),
+            (half_s - 8, half_s + 32),
+            (half_s + 18, half_s + 16),
         ]
 
-        # Draw Solid Heavy Titanium Armor Body & Vibrant Outline
         pygame.draw.polygon(drone_surf, body_color, chassis_points)
         pygame.draw.polygon(drone_surf, primary_color, chassis_points, 3)
 
-        # Inner Wing Armor Plates & Highlights
         inner_plates = [
             (half_s + 16, half_s),
             (half_s - 2, half_s - 18),
@@ -105,13 +103,11 @@ class PlayerRenderer:
         pygame.draw.polygon(drone_surf, (22, 30, 44), inner_plates)
         pygame.draw.polygon(drone_surf, accent_color, inner_plates, 1)
 
-        # 4. Wing Hardpoint Weapon Barrels (Twin Heavy Pulse Cannons)
         for canon_y in [half_s - 18, half_s + 18]:
             pygame.draw.line(drone_surf, (15, 23, 42), (half_s + 4, canon_y), (half_s + 28, canon_y), 5)
             pygame.draw.line(drone_surf, primary_color, (half_s + 4, canon_y), (half_s + 28, canon_y), 2)
             pygame.draw.circle(drone_surf, COLOR_WHITE, (half_s + 28, canon_y), 2)
 
-        # 5. Cockpit Visor & Cyber Core
         cockpit_points = [
             (half_s + 22, half_s),
             (half_s + 6, half_s - 8),
@@ -124,41 +120,36 @@ class PlayerRenderer:
         pygame.draw.polygon(drone_surf, glow_color, cockpit_points, 2)
         pygame.draw.ellipse(drone_surf, COLOR_WHITE, (half_s + 8, half_s - 2, 8, 4))
 
-        # 6. Muzzle Flash Rendering
         if player.muzzle_flash_timer > 0:
             flash_rad = int(10 + (player.muzzle_flash_timer * 40.0))
             for flash_y in [half_s - 18, half_s + 18]:
                 pygame.draw.circle(drone_surf, (255, 255, 255, 240), (half_s + 30, flash_y), flash_rad)
                 pygame.draw.circle(drone_surf, primary_color, (half_s + 30, flash_y), flash_rad + 3, 2)
 
-        # 7. Apply Damage Flash Overlay
         if player.damage_flash_timer > 0:
-            flash_overlay = pygame.Surface((surf_size, surf_size), pygame.SRCALPHA)
-            flash_overlay.fill((255, 255, 255, 180))
-            drone_surf.blit(flash_overlay, (0, 0), special_flags=pygame.BLEND_RGBA_ADD)
+            self._flash_overlay.fill((255, 255, 255, 180))
+            drone_surf.blit(self._flash_overlay, (0, 0), special_flags=pygame.BLEND_RGBA_ADD)
 
-        # 8. Rotate Drone by Aim Angle + Lateral Tilt
         total_rot_deg = -math.degrees(player.aim_angle) + (getattr(player, "tilt_y", 0.0) * 0.35)
         rotated_surf = pygame.transform.rotate(drone_surf, total_rot_deg)
         rot_rect = rotated_surf.get_rect(center=(int(round(screen_x)), int(round(screen_y))))
 
-        # 9. Blit Rotated Drone Chassis
         canvas.blit(rotated_surf, rot_rect)
 
-        # 10. Protective Energy Shield Bubble Shimmer
         if player.shield_hits > 0:
             shield_r = 46
-            shield_surf = pygame.Surface((shield_r * 2 + 6, shield_r * 2 + 6), pygame.SRCALPHA)
+            shield_surf = self._shield_surf
+            shield_surf.fill((0, 0, 0, 0))
             shimmer_alpha = int(120 + 45 * math.sin(pygame.time.get_ticks() * 0.008))
             pygame.draw.circle(shield_surf, (6, 182, 212, shimmer_alpha // 3), (shield_r + 3, shield_r + 3), shield_r)
             pygame.draw.circle(shield_surf, (56, 189, 248, shimmer_alpha), (shield_r + 3, shield_r + 3), shield_r, 2)
             pygame.draw.circle(shield_surf, (255, 255, 255, shimmer_alpha // 2), (shield_r + 3, shield_r + 3), shield_r - 4, 1)
             canvas.blit(shield_surf, (int(round(screen_x)) - shield_r - 3, int(round(screen_y)) - shield_r - 3))
 
-        # 11. Overdrive Hyper-Aura
         if player.overdrive_timer > 0:
             od_r = 52
-            od_surf = pygame.Surface((od_r * 2 + 6, od_r * 2 + 6), pygame.SRCALPHA)
+            od_surf = self._od_surf
+            od_surf.fill((0, 0, 0, 0))
             pulse_a = int(140 + 55 * math.cos(pygame.time.get_ticks() * 0.02))
             pygame.draw.circle(od_surf, (245, 158, 11, pulse_a // 3), (od_r + 3, od_r + 3), od_r)
             pygame.draw.circle(od_surf, (255, 204, 21, pulse_a), (od_r + 3, od_r + 3), od_r, 2)
