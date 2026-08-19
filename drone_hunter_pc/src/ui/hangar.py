@@ -90,7 +90,7 @@ def draw_hangar_shop_ui(canvas: pygame.Surface, scrap: int, current_sector_idx: 
             pygame.draw.rect(canvas, fill_col, (cx + card_w - bar_w - 14, cy + 42, fill_w, 12), border_radius=3)
 
     # Skin Theme Selector Button
-    skin_btn_rect = pygame.Rect(SCREEN_WIDTH - 240, SCREEN_HEIGHT - 60, 220, 40)
+    skin_btn_rect = pygame.Rect(SCREEN_WIDTH - 380, SCREEN_HEIGHT - 60, 220, 40)
     hov_s = skin_btn_rect.collidepoint(mx, my)
     pygame.draw.rect(canvas, (16, 185, 129) if hov_s else (30, 41, 59), skin_btn_rect, border_radius=8)
     pygame.draw.rect(canvas, COLOR_WHITE if hov_s else COLOR_EMERALD, skin_btn_rect, 2, border_radius=8)

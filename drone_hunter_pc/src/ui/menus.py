@@ -34,7 +34,7 @@ def draw_main_menu(canvas: pygame.Surface) -> list[pygame.Rect]:
     sub = font_banner.render("PRESS SPACE TO DEPLOY", True, COLOR_EMERALD)
     canvas.blit(sub, sub.get_rect(center=(vw // 2, vh // 2 - 20)))
 
-    btn_labels = ["DEPLOY", "HANGAR", "SETTINGS", "QUIT"]
+    btn_labels = ["DEPLOY", "HANGAR", "QUIT"]
     buttons = []
     by = vh // 2 + 50
     mx, my = pygame.mouse.get_pos()
@@ -52,8 +52,7 @@ def draw_main_menu(canvas: pygame.Surface) -> list[pygame.Rect]:
     return {
         'play': buttons[0],
         'hangar': buttons[1],
-        'settings': buttons[2],
-        'exit': buttons[3]
+        'exit': buttons[2]
     }
 
 def draw_mission_select_ui(canvas: pygame.Surface, ctx, scrap: int) -> dict:
@@ -191,8 +190,9 @@ def draw_mission_briefing(canvas: pygame.Surface, mission_data: dict, scrap: int
     canvas.blit(s_text, s_text.get_rect(center=(vw // 2, box_rect.top + 80)))
     canvas.blit(m_text, m_text.get_rect(center=(vw // 2, box_rect.top + 115)))
     
-    diff_stars = "★" * mission_data.get("difficulty", 1)
-    d_text = font_card.render(f"DIFFICULTY: {diff_stars}", True, COLOR_CRIMSON)
+    diff_val = mission_data.get("difficulty", 1)
+    diff_stars = "* " * diff_val
+    d_text = font_card.render(f"DIFFICULTY: {diff_stars.strip()}", True, COLOR_CRIMSON)
     canvas.blit(d_text, d_text.get_rect(center=(vw // 2, box_rect.top + 160)))
     
     obj_str = mission_data["objective"].replace("_", " ").upper()
