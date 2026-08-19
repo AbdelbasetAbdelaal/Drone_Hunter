@@ -11,7 +11,10 @@ import math
 import random
 import pygame
 from src.data.settings import WORLD_WIDTH, WORLD_HEIGHT
-from src.data.game_data import TARGET_TYPE_SCOUT, TARGET_TYPE_SHOOTER, SCOUT_SCORE, SHOOTER_SCORE
+from src.data.game_data import (
+    TARGET_TYPE_SCOUT, TARGET_TYPE_SHOOTER, TARGET_TYPE_HEAVY,
+    SCOUT_SCORE, SHOOTER_SCORE, HEAVY_SCORE
+)
 from src.entities.enemy import Enemy
 
 # Default Phase 2A Scout Introduction Encounter
@@ -27,6 +30,15 @@ SCOUT_INTRO_ENCOUNTER = {
 SHOOTER_INTRO_ENCOUNTER = {
     "name": "Shooter Positioning Encounter",
     "enemy_type": TARGET_TYPE_SHOOTER,
+    "count": 1,
+    "spawn_delay": 1.5,
+    "respawn_delay": 1.0,
+}
+
+# Phase 2C Heavy Introduction Encounter
+HEAVY_INTRO_ENCOUNTER = {
+    "name": "Heavy Target Priority Encounter",
+    "enemy_type": TARGET_TYPE_HEAVY,
     "count": 1,
     "spawn_delay": 1.5,
     "respawn_delay": 1.0,

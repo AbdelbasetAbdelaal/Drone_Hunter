@@ -17,17 +17,19 @@ from src.data.settings import (
     COLOR_NEON_RED
 )
 from src.data.game_data import (
-    TARGET_TYPE_SCOUT, TARGET_TYPE_STANDARD, TARGET_TYPE_FAST,
-    TARGET_TYPE_ARMORED, TARGET_TYPE_SHOOTER, TARGET_TYPE_TURRET,
-    TARGET_TYPE_VEHICLE, TARGET_TYPE_CHASER, TARGET_TYPE_SWARM,
-    TARGET_TYPE_SHIELD_DRONE, TARGET_TYPE_SNIPER, TARGET_SPEED,
+    TARGET_TYPE_SCOUT, TARGET_TYPE_SHOOTER, TARGET_TYPE_HEAVY, TARGET_TYPE_STANDARD,
+    TARGET_TYPE_FAST, TARGET_TYPE_ARMORED, TARGET_TYPE_TURRET, TARGET_TYPE_VEHICLE,
+    TARGET_TYPE_CHASER, TARGET_TYPE_SWARM, TARGET_TYPE_SHIELD_DRONE, TARGET_TYPE_SNIPER,
+    TARGET_SPEED,
     SCOUT_HP, SCOUT_SPEED, SCOUT_DIVE_SPEED, SCOUT_CONTACT_DAMAGE,
     SCOUT_SCORE, SCOUT_SIZE, SCOUT_TELEGRAPH_TIME, SCOUT_DIVE_DURATION,
     SCOUT_RECOVER_TIME, SCOUT_STRAFE_DURATION, SCOUT_CONTACT_COOLDOWN,
     SHOOTER_HP, SHOOTER_SPEED, SHOOTER_PREFERRED_DISTANCE, SHOOTER_MIN_DISTANCE,
     SHOOTER_MAX_DISTANCE, SHOOTER_SCORE, SHOOTER_SIZE, SHOOTER_PROJECTILE_DAMAGE,
     SHOOTER_PROJECTILE_SPEED, SHOOTER_FIRE_COOLDOWN, SHOOTER_TELEGRAPH_TIME,
-    SHOOTER_REPOSITION_TIME
+    SHOOTER_REPOSITION_TIME,
+    HEAVY_HP, HEAVY_SPEED, HEAVY_SCORE, HEAVY_SIZE, HEAVY_CONTACT_DAMAGE,
+    HEAVY_CONTACT_COOLDOWN, HEAVY_ARMOR, HEAVY_PRESSURE_DISTANCE, HEAVY_TELEGRAPH_TIME
 )
 from src.entities.bullet import EnemyBullet, EnemySniperBeam
 
@@ -55,6 +57,7 @@ class Enemy(pygame.sprite.Sprite):
         self.fire_timer = 0.0
         self.reposition_dir = pygame.Vector2(0, 0)
         self.aim_target = pygame.Vector2(0, 0)
+        self.armor = 0.0
 
         if enemy_type == TARGET_TYPE_SCOUT:
             base_hp = int(SCOUT_HP * sec_mult * hp_multiplier)
@@ -78,6 +81,17 @@ class Enemy(pygame.sprite.Sprite):
             self.color_outer = (239, 68, 68) # Industrial Crimson
             self.color_inner = COLOR_GOLD
 
+        elif enemy_type in (TARGET_TYPE_HEAVY, TARGET_TYPE_ARMORED):
+            base_hp = int(HEAVY_HP * sec_mult * hp_multiplier)
+            self.points = HEAVY_SCORE
+            size = HEAVY_SIZE
+            base_speed = (HEAVY_SPEED + speed_bonus) * speed_multiplier
+            self.dive_speed = base_speed
+            self.contact_damage = HEAVY_CONTACT_DAMAGE
+            self.armor = HEAVY_ARMOR
+            self.color_outer = (100, 116, 139) # Armored Titanium / Slate
+            self.color_inner = (245, 158, 11)  # Amber Warning Core
+
         elif enemy_type == TARGET_TYPE_FAST:
             base_hp = int(18 * sec_mult * hp_multiplier)
             self.points = 150
@@ -87,16 +101,6 @@ class Enemy(pygame.sprite.Sprite):
             self.contact_damage = 15.0
             self.color_outer = COLOR_GOLD
             self.color_inner = COLOR_WHITE
-
-        elif enemy_type == TARGET_TYPE_ARMORED:
-            base_hp = int(60 * sec_mult * hp_multiplier)
-            self.points = 250
-            size = 46
-            base_speed = (TARGET_SPEED * 0.75 + speed_bonus) * speed_multiplier
-            self.dive_speed = base_speed
-            self.contact_damage = 30.0
-            self.color_outer = (120, 140, 170)
-            self.color_inner = COLOR_CYAN
 
         elif enemy_type == TARGET_TYPE_TURRET:
             base_hp = int(50 * sec_mult * hp_multiplier)
@@ -214,9 +218,12 @@ class Enemy(pygame.sprite.Sprite):
         self.color_outer = val
 
     def take_damage(self, amount: int, source: str = "bullet", **kwargs) -> bool:
-        """Applies damage and returns True if entity dies."""
-        self.hp -= amount
-        self.hit_flash_timer = 0.10
+        """Applies armor-mitigated damage and returns True if entity dies."""
+        effective_damage = amount
+        if getattr(self, "armor", 0.0) > 0.0:
+            effective_damage = max(1, int(round(amount * (1.0 - self.armor))))
+        self.hp -= effective_damage
+        self.hit_flash_timer = 0.12 if getattr(self, "armor", 0.0) > 0.0 else 0.10
         if self.hp <= 0:
             self.hp = 0
             self.alive = False
@@ -404,6 +411,47 @@ class Enemy(pygame.sprite.Sprite):
                     self.state_timer = 0.0
 
         # ----------------------------------------------------------------------
+        # HEAVY TACTICAL AI (Phase 2C Target Prioritization Pressure)
+        # ----------------------------------------------------------------------
+        elif self.enemy_type in (TARGET_TYPE_HEAVY, TARGET_TYPE_ARMORED):
+            self.state_timer += dt
+            to_player = pygame.Vector2(player_pos[0] - self.pos.x, player_pos[1] - self.pos.y)
+            dist = to_player.length()
+            norm_to_player = to_player / dist if dist > 0.001 else pygame.Vector2(1, 0)
+
+            if self.ai_state == "approach":
+                # Advance steadily and predictably toward player with heavy momentum
+                move_dir = norm_to_player
+                self.pos += move_dir * self.speed * dt
+                self.heading_angle = math.degrees(math.atan2(move_dir.y, move_dir.x))
+                if dist <= HEAVY_PRESSURE_DISTANCE:
+                    self.ai_state = "pressure"
+                    self.state_timer = 0.0
+
+            elif self.ai_state == "pressure":
+                # Maintain relentless forward space pressure toward player
+                move_dir = norm_to_player
+                self.pos += move_dir * (self.speed * 1.15) * dt
+                self.heading_angle = math.degrees(math.atan2(move_dir.y, move_dir.x))
+
+                # After sustained pressure window or if player flees far
+                if self.state_timer >= 2.5 or dist > HEAVY_PRESSURE_DISTANCE + 120.0:
+                    self.ai_state = "recover"
+                    self.state_timer = 0.0
+                    lateral = pygame.Vector2(-norm_to_player.y, norm_to_player.x) * self.strafe_dir
+                    self.recover_dir = (norm_to_player * 0.4 + lateral * 0.6).normalize()
+
+            elif self.ai_state == "recover":
+                # Brief stabilization / hydraulic vent venting period before re-engaging
+                self.pos += self.recover_dir * (self.speed * 0.65) * dt
+                self.heading_angle = math.degrees(math.atan2(to_player.y, to_player.x))
+
+                if self.state_timer >= 0.85:
+                    self.ai_state = "approach"
+                    self.state_timer = 0.0
+                    self.strafe_dir = random.choice([-1.0, 1.0])
+
+        # ----------------------------------------------------------------------
         # OTHER LEGACY TARGET TYPES
         # ----------------------------------------------------------------------
         elif self.enemy_type == TARGET_TYPE_SWARM:
@@ -440,7 +488,7 @@ class Enemy(pygame.sprite.Sprite):
                 cx, cy = self.rect.center
                 new_bullets.append(EnemySniperBeam((cx - 20, cy), pred_aim, speed=bullet_speed + 800))
 
-        else: # Standard, Armored, Turret, Vehicle
+        else: # Standard, Turret, Vehicle
             self.pos.x -= self.speed * dt
             self.pos.y = self.base_y + math.sin(self.time_accum * 2.5) * 22.0
 
@@ -531,17 +579,60 @@ class Enemy(pygame.sprite.Sprite):
             self.rect = self.image.get_rect(center=self.rect.center)
             return
 
+        elif self.enemy_type in (TARGET_TYPE_HEAVY, TARGET_TYPE_ARMORED):
+            # Heavy Armored Juggernaut Chassis (58x58)
+            half = s // 2
+            # Outer Heavy Armor Hull (Reinforced Octagonal Bevel)
+            oct_points = [
+                (s - 4, half),
+                (s - 12, 4),
+                (12, 4),
+                (4, half - 10),
+                (4, half + 10),
+                (12, s - 4),
+                (s - 12, s - 4)
+            ]
+            pygame.draw.polygon(surf, (71, 85, 105), oct_points) # Dark Slate Armor
+            pygame.draw.polygon(surf, (148, 163, 184), oct_points, 2) # Titanium Trim
+
+            # Reinforced Front Ramming Wedge & Armor Mantlet
+            wedge_points = [
+                (s - 6, half),
+                (s - 18, 12),
+                (half - 2, 12),
+                (half + 4, half),
+                (half - 2, s - 12),
+                (s - 18, s - 12)
+            ]
+            pygame.draw.polygon(surf, (51, 65, 85), wedge_points)
+            pygame.draw.polygon(surf, (203, 213, 225), wedge_points, 2)
+
+            # Hydraulic Side Thrusters / Heat Exhausts
+            pygame.draw.rect(surf, (30, 41, 59), (8, 8, 8, 12), border_radius=2)
+            pygame.draw.rect(surf, (30, 41, 59), (8, s - 20, 8, 12), border_radius=2)
+
+            # Center Warning Reactor Core
+            core_col = (245, 158, 11) if self.ai_state != "pressure" else (239, 68, 68)
+            core_r = 7 if self.ai_state != "pressure" else int(8 + 2 * math.sin(self.state_timer * 18.0))
+            pygame.draw.circle(surf, core_col, (half - 4, half), core_r)
+            pygame.draw.circle(surf, COLOR_WHITE, (half - 4, half), 3)
+
+            # Visual aggression telegraph in PRESSURE state
+            if self.ai_state == "pressure":
+                glow_alpha = int(150 + 90 * math.sin(self.state_timer * 20.0))
+                p_surf = pygame.Surface((s + 12, s + 12), pygame.SRCALPHA)
+                pygame.draw.circle(p_surf, (245, 158, 11, max(0, min(255, glow_alpha))), ((s + 12) // 2, (s + 12) // 2), (s + 12) // 2, 2)
+                surf.blit(p_surf, (-6, -6))
+
+            rotated = pygame.transform.rotate(surf, -self.heading_angle)
+            self.image = rotated
+            self.rect = self.image.get_rect(center=self.rect.center)
+            return
+
         elif self.enemy_type == TARGET_TYPE_FAST:
             points = [(s, s // 2), (0, 0), (s // 3, s // 2), (0, s)]
             pygame.draw.polygon(surf, self.color_outer, points)
             pygame.draw.circle(surf, self.color_inner, center, 3)
-
-        elif self.enemy_type == TARGET_TYPE_ARMORED:
-            pygame.draw.polygon(surf, self.color_outer, [
-                (s // 4, 0), (3 * s // 4, 0), (s, s // 2),
-                (3 * s // 4, s), (s // 4, s), (0, s // 2)
-            ])
-            pygame.draw.circle(surf, self.color_inner, center, s // 4)
 
         elif self.enemy_type == TARGET_TYPE_TURRET:
             pygame.draw.rect(surf, self.color_outer, (2, 2, s - 4, s - 4), border_radius=4)
@@ -594,4 +685,10 @@ class Scout(Enemy):
 class Shooter(Enemy):
     """Convenience alias/subclass for Phase 2B Shooter Drone."""
     def __init__(self, pos: tuple[float, float] = None, enemy_type: str = TARGET_TYPE_SHOOTER, **kwargs):
+        super().__init__(enemy_type=enemy_type, pos=pos, **kwargs)
+
+
+class Heavy(Enemy):
+    """Convenience alias/subclass for Phase 2C Heavy Drone."""
+    def __init__(self, pos: tuple[float, float] = None, enemy_type: str = TARGET_TYPE_HEAVY, **kwargs):
         super().__init__(enemy_type=enemy_type, pos=pos, **kwargs)

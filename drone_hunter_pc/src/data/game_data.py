@@ -119,10 +119,11 @@ WEAPON_DEFS = {
 # Enemy & Boss Type Identifiers
 # -----------------------------------------------------------------------------
 TARGET_TYPE_SCOUT = "scout"                       # Phase 2A Scout Drone (Mobile Melee Pressure)
+TARGET_TYPE_SHOOTER = "shooter"                   # Phase 2B Shooter Drone (Positioning Pressure)
+TARGET_TYPE_HEAVY = "heavy"                       # Phase 2C Heavy Drone (Target Prioritization Pressure)
 TARGET_TYPE_STANDARD = "standard"
 TARGET_TYPE_FAST = "fast"
 TARGET_TYPE_ARMORED = "armored"
-TARGET_TYPE_SHOOTER = "shooter"
 TARGET_TYPE_TURRET = "turret"
 TARGET_TYPE_VEHICLE = "vehicle"
 TARGET_TYPE_CHASER = "chaser"
@@ -168,6 +169,19 @@ SHOOTER_PROJECTILE_SPEED = 340.0
 SHOOTER_FIRE_COOLDOWN = 1.50
 SHOOTER_TELEGRAPH_TIME = 0.55
 SHOOTER_REPOSITION_TIME = 0.90
+
+# -----------------------------------------------------------------------------
+# Heavy Drone Specifications (Phase 2C Baseline)
+# -----------------------------------------------------------------------------
+HEAVY_HP = 180
+HEAVY_SPEED = 65.0
+HEAVY_SCORE = 500
+HEAVY_SIZE = 58
+HEAVY_CONTACT_DAMAGE = 30.0
+HEAVY_CONTACT_COOLDOWN = 1.00
+HEAVY_ARMOR = 0.20
+HEAVY_PRESSURE_DISTANCE = 300.0
+HEAVY_TELEGRAPH_TIME = 0.65
 
 # -----------------------------------------------------------------------------
 # Campaign Sectors & Stages
