@@ -347,6 +347,14 @@ class TestPhase7Release(unittest.TestCase):
             self.assertIsNotNone(exit_r, f"Exit rect is None in {state}")
             self.assertGreater(exit_r.width * exit_r.height, 0, f"Exit rect empty in {state}")
 
+    # -------------------------------------------------------------------------
+    # 13. Fullscreen Toggle Safety
+    # -------------------------------------------------------------------------
+    def test_toggle_fullscreen_execution(self):
+        """Verify toggle_fullscreen executes safely on both Game and Renderer without throwing errors."""
+        self.game.toggle_fullscreen()
+        self.game.renderer.toggle_fullscreen()
+
 
 if __name__ == "__main__":
     unittest.main()

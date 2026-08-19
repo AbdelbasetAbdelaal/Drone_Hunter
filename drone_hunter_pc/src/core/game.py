@@ -277,6 +277,16 @@ class Game:
         scale_y = SCREEN_HEIGHT / max(1, self.win_h)
         return (int(raw_x * scale_x), int(raw_y * scale_y))
 
+    def toggle_fullscreen(self):
+        """Toggles between fullscreen and resizable windowed mode."""
+        is_full = bool(self.screen.get_flags() & pygame.FULLSCREEN)
+        if is_full:
+            self.win_w, self.win_h = SCREEN_WIDTH, SCREEN_HEIGHT
+            self.screen = pygame.display.set_mode((self.win_w, self.win_h), pygame.RESIZABLE)
+        else:
+            self.screen = pygame.display.set_mode((0, 0), pygame.FULLSCREEN)
+            self.win_w, self.win_h = self.screen.get_size()
+
     def handle_events(self):
         ctx = self.context
         for event in pygame.event.get():
@@ -289,7 +299,7 @@ class Game:
 
             elif event.type == pygame.KEYDOWN:
                 if event.key == pygame.K_F11:
-                    self.renderer.toggle_fullscreen()
+                    self.toggle_fullscreen()
                 elif event.key == pygame.K_F2:
                     ctx.show_crt = not ctx.show_crt
                     self.save_progress()
@@ -456,7 +466,7 @@ class Game:
 
                 elif ctx.state == STATE_SETTINGS:
                     if cache.get('fullscreen') and cache['fullscreen'].collidepoint(mx, my):
-                        self.renderer.toggle_fullscreen()
+                        self.toggle_fullscreen()
                     elif cache.get('crt') and cache['crt'].collidepoint(mx, my):
                         ctx.show_crt = not ctx.show_crt
                         self.save_progress()

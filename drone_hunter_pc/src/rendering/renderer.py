@@ -125,3 +125,13 @@ class GameRenderer:
     def set_viewport_size(self, w: int, h: int):
         """Resize the internal canvas when the window is resized."""
         pass  # Canvas stays fixed; scaling is done in present()
+
+    def toggle_fullscreen(self):
+        """Safe fallback to toggle fullscreen mode."""
+        surf = pygame.display.get_surface()
+        if surf:
+            is_full = bool(surf.get_flags() & pygame.FULLSCREEN)
+            if is_full:
+                pygame.display.set_mode((SCREEN_WIDTH, SCREEN_HEIGHT), pygame.RESIZABLE)
+            else:
+                pygame.display.set_mode((0, 0), pygame.FULLSCREEN)
