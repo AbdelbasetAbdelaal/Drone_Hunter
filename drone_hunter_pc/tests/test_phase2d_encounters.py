@@ -30,7 +30,16 @@ from src.systems.encounter_system import (
     SCOUT_SHOOTER_ENCOUNTER,
     SCOUT_HEAVY_ENCOUNTER,
     SHOOTER_HEAVY_ENCOUNTER,
-    SCOUT_SHOOTER_HEAVY_ENCOUNTER
+    SCOUT_SHOOTER_HEAVY_ENCOUNTER,
+    WAVE_SCOUTS_PATROL,
+    WAVE_SCOUTS_ASSAULT,
+    WAVE_SCOUTS_SWARM,
+    WAVE_SHOOTERS_PAIR,
+    WAVE_SHOOTERS_SQUAD,
+    WAVE_HEAVY_ESCORT,
+    WAVE_HEAVY_BATTLEGROUP,
+    WAVE_SHIELD_VANGUARD,
+    WAVE_ELITE_STRIKE_FORCE
 )
 
 class TestPhase2DEncounters:
@@ -168,3 +177,51 @@ class TestPhase2DEncounters:
         assert encounter.spawned_count == 0
         assert len(encounter.active_enemies) == 0
         assert not encounter.is_active
+
+    # --------------------------------------------------------------------------
+    # 7. ALL PHASE 8 TACTICAL WAVE COMPOSITION LIFECYCLE TESTS
+    # --------------------------------------------------------------------------
+    @pytest.mark.parametrize("wave_config, expected_count", [
+        (WAVE_SCOUTS_PATROL, 3),
+        (WAVE_SCOUTS_ASSAULT, 4),
+        (WAVE_SCOUTS_SWARM, 5),
+        (WAVE_SHOOTERS_PAIR, 3),
+        (WAVE_SHOOTERS_SQUAD, 5),
+        (WAVE_HEAVY_ESCORT, 4),
+        (WAVE_HEAVY_BATTLEGROUP, 5),
+        (WAVE_SHIELD_VANGUARD, 4),
+        (WAVE_ELITE_STRIKE_FORCE, 5),
+    ])
+    def test_all_wave_compositions_lifecycle(self, wave_config, expected_count):
+        """Verify spawn count, tracking, dead enemy cleanup, and completion."""
+        self.ctx.target_group.empty()
+        encounter = EncounterSystem(config=wave_config)
+        assert encounter.total_count == expected_count
+        encounter.start()
+        assert encounter.state == "waiting"
+
+        # Advance sufficient time for all sequential spawns (0.5s + (count-1)*1.0s + 0.5s)
+        total_time = 1.0 + (expected_count * 1.1)
+        self._fast_forward(encounter, total_time)
+
+        assert encounter.spawned_count == expected_count
+        assert len(encounter.active_enemies) == expected_count
+        assert len(self.ctx.target_group) == expected_count
+        assert encounter.state == "active"
+        assert not encounter.is_complete
+
+        # Kill 1 enemy -> verify removed from active_enemies but encounter still active
+        first_enemy = encounter.active_enemies[0]
+        first_enemy.kill()
+        encounter.update(0.016, self.ctx)
+        assert len(encounter.active_enemies) == expected_count - 1
+        assert encounter.eliminated_count == 1
+        assert not encounter.is_complete
+
+        # Kill remaining enemies -> verify complete
+        self._kill_all_enemies(encounter)
+        assert encounter.is_complete is True
+        assert encounter.state == "complete"
+        assert len(encounter.active_enemies) == 0
+        assert encounter.eliminated_count == expected_count
+
