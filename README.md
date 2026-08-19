@@ -18,16 +18,19 @@
 pip install pygame-ce
 ```
 
-### Run from Command Prompt (`cmd` / Windows Terminal)
-```cmd
-cd /d d:\Drone_Hunter
+### Run PC Edition:
+```bash
 python drone_hunter_pc/main.py
 ```
 
-### Run Mobile Simulation (On-Screen Touch Joystick Edition)
-```cmd
-cd /d d:\Drone_Hunter
+### Run Mobile Touch Edition (Simulation):
+```bash
 python drone_hunter_mobile/main.py
+```
+
+### Run Automated Tests:
+```bash
+pytest drone_hunter_pc/tests
 ```
 
 ---

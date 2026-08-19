@@ -14,11 +14,14 @@ crash_log*.txt
 
 # Temporary files
 *.tmp
+test_*_save.json
+test_*.json
 
 # Distribution / packaging
 build/
 dist/
 *.egg-info/
+*.spec
 .eggs/
 
 # IDE files

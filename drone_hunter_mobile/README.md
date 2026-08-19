@@ -6,9 +6,7 @@ Mobile version tailored for Android touch devices and simulators, featuring on-s
 
 ## 🎮 How to Run (Desktop Simulation)
 
-From Command Prompt (`cmd`):
-```cmd
-cd /d d:\Drone_Hunter
+```bash
 python drone_hunter_mobile/main.py
 ```
 

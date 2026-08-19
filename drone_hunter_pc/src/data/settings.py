@@ -11,7 +11,8 @@ SCREEN_HEIGHT = 720
 WORLD_WIDTH = 2400
 WORLD_HEIGHT = 1400
 FPS = 60
-TITLE = "Drone Hunter 2D"
+TITLE = "Drone Hunter 2D - PC Edition"
+VERSION = "1.0.0"
 
 # Sci-Fi Cyberpunk Color Palette (RGBA/RGB tuples)
 COLOR_BG = (10, 15, 26)

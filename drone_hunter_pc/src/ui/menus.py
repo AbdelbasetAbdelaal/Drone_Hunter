@@ -28,9 +28,12 @@ def draw_main_menu(canvas: pygame.Surface, mouse_pos: tuple[int, int] = None) ->
     canvas.fill((5, 10, 15))
     vw, vh = canvas.get_size()
 
-    title = font_title.render("DRONE HUNTER", True, COLOR_CYAN)
-    canvas.blit(title, title.get_rect(center=(vw // 2, vh // 2 - 80)))
+    title = font_title.render("DRONE HUNTER 2D", True, COLOR_CYAN)
+    canvas.blit(title, title.get_rect(center=(vw // 2, vh // 2 - 95)))
     
+    edition = font_card.render("PC EDITION  |  v1.0.0", True, COLOR_TEXT_DIM)
+    canvas.blit(edition, edition.get_rect(center=(vw // 2, vh // 2 - 58)))
+
     sub = font_banner.render("PRESS SPACE TO DEPLOY", True, COLOR_EMERALD)
     canvas.blit(sub, sub.get_rect(center=(vw // 2, vh // 2 - 20)))
 

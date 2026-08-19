@@ -1,92 +1,110 @@
-# 🖥️ Drone Hunter (PC Edition)
+# 🛸 Drone Hunter 2D — PC Edition (v1.0.0)
 
-Clean, high-performance, modular **2D Top-Down Drone Combat Game** built with Python & Pygame.
+**Drone Hunter 2D** is a fast-paced, high-performance tactical sci-fi 2D top-down drone combat game developed with Python and `pygame-ce`.
+
+Fight through 5 distinct industrial sectors, complete 25 combat missions, engage 5 major command bosses with multi-phase attack patterns, upgrade your combat drone in the Hangar, and conquer the Drone Overlord in the final endgame confrontation.
 
 ---
 
-## 🎮 How to Run
+## 🚀 Quick Start
 
-From Command Prompt (`cmd`):
-```cmd
-cd /d d:\Drone_Hunter
-python drone_hunter_pc/main.py
-```
+### 1. Prerequisites
+- Python 3.10+ (tested on Python 3.10, 3.11, 3.12, 3.13, 3.14)
+- `pip install -r requirements.txt` (or `pip install pygame-ce pytest`)
 
-From PowerShell / Terminal:
-```powershell
-python drone_hunter_pc/main.py
-```
-
-Run Automated Test Suite:
+### 2. Launch the Game
+From the project root:
 ```bash
-python drone_hunter_pc/tests/test_game_systems.py
+python drone_hunter_pc/main.py
+```
+Or from inside `drone_hunter_pc/`:
+```bash
+python main.py
 ```
 
----
-
-## 🏗️ Architecture Overview
-
-```
-drone_hunter_pc/
-├── main.py                     # Minimal startup script (42 lines)
-├── save_data_pc.json           # Atomic persistent progress data
-├── tests/
-│   ├── test_game_systems.py    # Automated test suite
-│   ├── test_phase1_flight.py   # Flight physics tests
-│   ├── test_phase2a_scout.py   # Scout enemy & encounter tests
-│   ├── test_phase2b_shooter.py # Shooter enemy & positioning tests
-│   ├── test_phase2c_heavy.py   # Heavy enemy & priority tests
-│   ├── test_phase2d_encounters.py # Composition tests
-│   └── test_runtime_smoke.py   # 120-frame runtime stability test
-└── src/
-    ├── core/                   # Game engine, State Machine, Context, Clock
-    │   ├── game.py
-    │   ├── game_state.py
-    │   ├── game_context.py
-    │   └── clock.py
-    ├── data/                   # Centralized settings & game data catalogs
-    │   ├── settings.py
-    │   └── game_data.py
-    ├── entities/               # 2D Sprite Entities
-    │   ├── player.py
-    │   ├── enemy.py
-    │   ├── boss.py
-    │   ├── bullet.py
-    │   ├── powerup.py
-    │   ├── obstacle.py
-    │   └── hazard.py
-    ├── systems/                # Core Gameplay Systems
-    │   ├── combat_system.py
-    │   ├── spawn_system.py
-    │   ├── encounter_system.py # Deterministic multi-threat compositions
-    │   ├── progression_system.py
-    │   ├── difficulty_system.py
-    │   └── save_system.py
-    ├── rendering/              # 2D Graphics & Visual Effects
-    │   ├── renderer.py
-    │   ├── background.py
-    │   └── particles.py
-    ├── ui/                     # Holographic HUD & Interfaces
-    │   ├── hud.py
-    │   ├── menus.py
-    │   ├── hangar.py
-    │   └── font_manager.py
-    └── audio/                  # Procedural Sound Synthesizer & Caching
-        ├── sound_synth.py
-        └── audio_manager.py
+### 3. Run Automated Tests
+```bash
+pytest drone_hunter_pc/tests
 ```
 
 ---
 
 ## 🕹️ Controls Reference
 
-- **Fly / Maneuver**: `W`, `A`, `S`, `D` or `Arrow Keys`
-- **Aim & Shoot**: Mouse to aim, **Left Click** to fire
-- **Select Weapon**: `1` - `6`, `TAB`, or **Mouse Wheel**
-- **Overdrive Ultimate**: `F`, `Q`, or **Middle Click**
-- **EMP Shockwave**: `E` or **Right Click**
-- **Evasive Roll**: `Left Shift` / `Right Shift`
-- **Tactical Cloak**: `K`
-- **Change Skin**: `C`
-- **CRT Scanlines**: `F2`
-- **Pause / Menu**: `ESC` or `P`
+| Action | Primary Input | Secondary / Alternate |
+| :--- | :--- | :--- |
+| **Movement / Thrust** | `W`, `A`, `S`, `D` | `Arrow Keys` |
+| **Aim** | `Mouse Pointer` | *(Screen-mapped crosshair)* |
+| **Primary Fire** | `Left Mouse Button` | — |
+| **Weapon Selection** | `1` to `6` | `TAB` / `Mouse Wheel` |
+| **EMP Blast** | `E` | `Right Mouse Button` |
+| **Overdrive Mode** | `F` | `Q` / `Middle Mouse Button` |
+| **Evasive Barrel Roll** | `Left Shift` | `Right Shift` |
+| **Tactical Cloak** | `K` | — |
+| **Cycle Drone Skin** | `C` | *(Hangar Customizer)* |
+| **Pause / Resume** | `ESC` | `P` / `SPACE` (in paused state) |
+| **Fullscreen Toggle** | `F11` | — |
+| **Sector Map** | `M` | *(Menu button)* |
+| **Hangar Bay** | `H` | *(Menu button)* |
+| **Quick Quit** | `Q` | *(Menu button)* |
+
+---
+
+## 🌌 Campaign & Mission Structure
+
+The campaign spans **5 Sectors** and **25 Combat Missions**:
+
+1. **Sector 1 — Assembly Perimeter** (Missions `S1_M1` to `S1_M5`)  
+   *Boss: Assembly Warden*
+2. **Sector 2 — Industrial Core** (Missions `S2_M1` to `S2_M5`)  
+   *Boss: Core Executor*
+3. **Sector 3 — Reactor District** (Missions `S3_M1` to `S3_M5`)  
+   *Boss: Reactor Titan*
+4. **Sector 4 — Defense Matrix** (Missions `S4_M1` to `S4_M5`)  
+   *Boss: Defense Commander*
+5. **Sector 5 — Command Citadel** (Missions `S5_M1` to `S5_M5`)  
+   *Final Boss: Drone Overlord (4-Phase Endgame Encounter)*
+
+### Mission Types:
+- **Elimination**: Clear all hostile drone waves within the arena.
+- **Survive**: Endure relentless enemy swarms for the required duration.
+- **Target Priority**: Eliminate specific high-value enemy targets.
+- **Data Recovery**: Collect operational scrap caches under active fire.
+- **Boss Assassination**: Defeat the sector command unit.
+
+---
+
+## 🛠️ Drone Upgrades & Hangar
+
+Earn **Scrap** from destroyed enemies and mission rewards to upgrade 4 core subsystems in the Hangar:
+- **Hull Integrity**: Increases maximum drone HP.
+- **Energy Core**: Increases maximum energy capacity for special abilities.
+- **Weapon System**: Increases projectile damage across all weapon classes.
+- **Mobility Thrusters**: Increases flight velocity and acceleration responsiveness.
+
+---
+
+## 💾 Save & Progression Architecture
+
+- Progress is saved atomically to `save_data_pc.json` in the application directory.
+- Upgrades, Scrap, unlocked sectors, mission clears, defeated bosses, and campaign victory states persist across sessions.
+- Safe default fallbacks prevent data corruption or crashes if save files are modified or absent.
+
+---
+
+## 📦 Building Standalone Executable (Windows)
+
+To build a standalone Windows `.exe` using PyInstaller:
+```bash
+pip install pyinstaller
+pyinstaller --noconsole --name "DroneHunter" --add-data "drone_hunter_pc/assets;assets" drone_hunter_pc/main.py
+```
+The resulting executable will be located in `dist/DroneHunter/`.
+
+---
+
+## 📜 System Requirements
+
+- **OS**: Windows 10/11 (or Linux / macOS with Python 3.10+)
+- **Resolution**: 1280x720 (minimum), supports arbitrary window resizing and 1080p/1440p/4K fullscreen scaling.
+- **Audio**: Any standard stereo output device (game features automatic fail-safe fallback if no audio device is found).
