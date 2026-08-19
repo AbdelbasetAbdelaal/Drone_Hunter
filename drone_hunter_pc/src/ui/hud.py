@@ -123,23 +123,47 @@ def draw_hud(canvas: pygame.Surface, player, sector_idx: int = 0, level_score: i
             canvas.blit(txt_name, (px + 6, p_y + 4))
 
     # =========================================================================
-    # 4. BOTTOM-RIGHT: Compact Weapon Indicator
+    # 4. BOTTOM-RIGHT: Compact Weapon Indicator List
     # =========================================================================
     if player:
-        w_def = WEAPON_DEFS.get(player.active_weapon, {})
-        w_name = w_def.get("name", "Pulse Laser").upper()
-        w_col = w_def.get("color", COLOR_CYAN)
-        
-        lbl_wpn = font_card.render(f"⚡ {w_name}", True, w_col)
-        wpn_w = lbl_wpn.get_width() + 16
         wpn_h = 26
-        wpn_x = vw - margin_x - wpn_w
-        wpn_y = vh - margin_y - wpn_h
+        # Draw from bottom up
+        start_y = vh - margin_y - wpn_h
         
-        wpn_rect = pygame.Rect(wpn_x, wpn_y, wpn_w, wpn_h)
-        pygame.draw.rect(canvas, (15, 23, 42, 220), wpn_rect, border_radius=5)
-        pygame.draw.rect(canvas, w_col, wpn_rect, 1, border_radius=5)
-        canvas.blit(lbl_wpn, (wpn_x + 8, wpn_y + 5))
+        for idx, w_id in reversed(list(enumerate(player.available_weapons))):
+            w_def = WEAPON_DEFS.get(w_id, {})
+            w_name = w_def.get("name", "Unknown").upper()
+            w_col = w_def.get("color", COLOR_CYAN)
+            w_icon = w_def.get("icon", "⚡")
+            
+            is_active = (player.active_weapon == w_id)
+            cd = player.weapon_cooldowns.get(w_id, 0.0)
+            
+            if cd > 0:
+                lbl_text = f"[{idx+1}] {w_name} ({cd:.1f}s)"
+                text_col = (120, 135, 155)
+                box_border = (45, 55, 75)
+                bg_col = (15, 23, 42, 220)
+            else:
+                lbl_text = f"[{idx+1}] {w_name}"
+                text_col = w_col if is_active else (200, 200, 200)
+                box_border = w_col if is_active else (80, 90, 110)
+                bg_col = (30, 40, 60, 240) if is_active else (15, 23, 42, 220)
+
+            lbl_wpn = font_card.render(f"{w_icon} {lbl_text}", True, text_col)
+            wpn_w = lbl_wpn.get_width() + 16
+            wpn_x = vw - margin_x - wpn_w
+            
+            wpn_rect = pygame.Rect(wpn_x, start_y, wpn_w, wpn_h)
+            
+            # Create alpha surface for background
+            surf = pygame.Surface((wpn_w, wpn_h), pygame.SRCALPHA)
+            pygame.draw.rect(surf, bg_col, (0, 0, wpn_w, wpn_h), border_radius=5)
+            pygame.draw.rect(surf, box_border, (0, 0, wpn_w, wpn_h), 1, border_radius=5)
+            canvas.blit(surf, (wpn_x, start_y))
+            canvas.blit(lbl_wpn, (wpn_x + 8, start_y + 5))
+            
+            start_y -= (wpn_h + 4)
 
 
 def draw_boss_health_bar(canvas: pygame.Surface, boss_target):

@@ -68,9 +68,9 @@ class TestDroneHunter2D(unittest.TestCase):
         self.assertEqual(p.health, p.max_health - 40.0)
         self.assertEqual(p.energy, PLAYER_MAX_ENERGY, "Incoming damage must NOT drain weapon energy!")
 
-        # Firing weapon reduces ENERGY, NOT HEALTH
+        # Firing weapon does NOT reduce ENERGY in Phase 3 (unlimited ammo)
         p.shoot((300, 100))
-        self.assertLess(p.energy, PLAYER_MAX_ENERGY, "Firing weapons must consume energy!")
+        self.assertEqual(p.energy, PLAYER_MAX_ENERGY, "Phase 3 weapons have unlimited ammo!")
         self.assertEqual(p.health, p.max_health - 40.0, "Firing weapon must NOT reduce player health!")
 
     def test_overdrive_upgrade_integration(self):
@@ -95,11 +95,11 @@ class TestDroneHunter2D(unittest.TestCase):
     def test_authoritative_weapon_definitions(self):
         """Verify Player shoots projectiles with authoritative stats from WEAPON_DEFS."""
         p = Player((100, 100))
-        p.available_weapons = [WEAPON_PULSE, WEAPON_SCATTER, WEAPON_MISSILE, WEAPON_BEAM, WEAPON_TESLA, WEAPON_CLUSTER]
+        p.available_weapons = [WEAPON_PULSE, WEAPON_SCATTER, WEAPON_MISSILE]
 
         for w_key in p.available_weapons:
             p.active_weapon = w_key
-            p.shoot_timer = 0.0
+            p.weapon_cooldowns[w_key] = 0.0
             bullets = p.shoot((300, 100))
             self.assertGreater(len(bullets), 0)
             w_def = WEAPON_DEFS[w_key]

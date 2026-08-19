@@ -21,7 +21,7 @@ from src.core.game_state import (
     STATE_PAUSED, STATE_LEVEL_CLEAR, STATE_VICTORY, STATE_GAME_OVER
 )
 from src.data.game_data import (
-    WEAPON_PULSE, WEAPON_SCATTER, WEAPON_MISSILE, WEAPON_BEAM, WEAPON_TESLA, WEAPON_CLUSTER
+    WEAPON_PULSE, WEAPON_SCATTER, WEAPON_MISSILE
 )
 
 def run_runtime_smoke():

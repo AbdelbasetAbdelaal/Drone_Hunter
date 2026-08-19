@@ -146,11 +146,11 @@ class TestPhase1FlightAndArena(unittest.TestCase):
         self.assertLessEqual(self.player.velocity.length(), self.player.speed + 0.01)
 
     def test_primary_weapon_firing(self):
-        """Verify Pulse cannon fires dual projectiles toward aim target."""
+        """Verify Pulse cannon fires single projectile toward aim target (Phase 3 update)."""
         target_pos = (self.player.pos.x + 400, self.player.pos.y)
         bullets = self.player.shoot(target_pos)
-        self.assertEqual(len(bullets), 2)
-        self.assertEqual(bullets[0].damage, 28)
+        self.assertEqual(len(bullets), 1)
+        self.assertEqual(bullets[0].damage, 12)
 
     def test_responsive_hud_multi_resolution(self):
         """Verify HUD renders cleanly without errors across multiple viewport resolutions."""

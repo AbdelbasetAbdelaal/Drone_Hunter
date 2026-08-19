@@ -21,7 +21,7 @@ from src.data.game_data import (
     PLAYER_MAX_HEALTH, PLAYER_MAX_ENERGY, ENERGY_REGEN_RATE, BOOST_DRAIN_RATE,
     EMP_COOLDOWN_MAX, ROLL_COOLDOWN, ROLL_DURATION, ROLL_SPEED_BOOST,
     CLOAK_DURATION, CLOAK_COOLDOWN_MAX, OVERDRIVE_DURATION, OVERDRIVE_COOLDOWN_MAX,
-    WEAPON_PULSE, WEAPON_SCATTER, WEAPON_MISSILE, WEAPON_BEAM, WEAPON_TESLA, WEAPON_CLUSTER,
+    WEAPON_PULSE, WEAPON_SCATTER, WEAPON_MISSILE,
     WEAPON_DEFS, DRONE_SKINS
 )
 from src.entities.bullet import (
@@ -122,9 +122,10 @@ class Player(pygame.sprite.Sprite):
         self.cooldown_mult = 1.0
 
         # Weaponry
-        self.available_weapons = [WEAPON_PULSE, WEAPON_SCATTER]
+        self.available_weapons = [WEAPON_PULSE, WEAPON_SCATTER, WEAPON_MISSILE]
         self.current_weapon_idx = 0
         self.active_weapon = WEAPON_PULSE
+        self.weapon_cooldowns = {w: 0.0 for w in self.available_weapons}
 
         # Wingmen Escort Squad
         self.wingmen: list[WingmanDrone] = []
@@ -282,13 +283,8 @@ class Player(pygame.sprite.Sprite):
         self.overdrive_duration_max = OVERDRIVE_DURATION + (od_lvl * 1.5)
         self.overdrive_cooldown_max = max(12.0, OVERDRIVE_COOLDOWN_MAX - (od_lvl * 3.0))
 
-        # Weapon unlocks
-        unlocked = [WEAPON_PULSE, WEAPON_SCATTER]
-        if upgrades.get("missiles", 0) > 0: unlocked.append(WEAPON_MISSILE)
-        if upgrades.get("beam", 0) > 0: unlocked.append(WEAPON_BEAM)
-        if upgrades.get("tesla", 0) > 0: unlocked.append(WEAPON_TESLA)
-        if upgrades.get("cluster", 0) > 0: unlocked.append(WEAPON_CLUSTER)
-        self.available_weapons = unlocked
+        # Weapon unlocks (Phase 3 Development Mode: All 3 available by default)
+        self.available_weapons = [WEAPON_PULSE, WEAPON_SCATTER, WEAPON_MISSILE]
         if self.active_weapon not in self.available_weapons:
             self.active_weapon = WEAPON_PULSE
             self.current_weapon_idx = 0
@@ -317,7 +313,8 @@ class Player(pygame.sprite.Sprite):
             return False
         w_def = WEAPON_DEFS.get(self.active_weapon, {})
         cost = w_def.get("energy_cost", 2.0)
-        return self.shoot_timer <= 0.0 and (self.energy >= cost or self.overdrive_timer > 0.0)
+        cooldown_ready = self.weapon_cooldowns.get(self.active_weapon, 0.0) <= 0.0
+        return cooldown_ready and (self.energy >= cost or self.overdrive_timer > 0.0)
 
     def shoot(self, target_pos: tuple[float, float], level: int = 1, targets_group=None) -> list[pygame.sprite.Sprite]:
         """Fires projectiles toward world target position using authoritative balance values."""
@@ -326,13 +323,15 @@ class Player(pygame.sprite.Sprite):
 
         w_def = WEAPON_DEFS.get(self.active_weapon, {})
         base_cd = w_def.get("cooldown", 0.18)
-        cost = w_def.get("energy_cost", 2.5)
-        dmg = int(w_def.get("damage", 28))
-        spd = float(w_def.get("speed", 920.0))
+        cost = w_def.get("energy_cost", 0.0)
+        dmg = int(w_def.get("damage", 12))
+        spd = float(w_def.get("speed", 650.0))
         col = w_def.get("color", COLOR_CYAN)
+        proj_count = w_def.get("projectiles_per_shot", 1)
+        spread_deg = w_def.get("spread_deg", 0.0)
 
         cd_scale = 0.50 if self.overdrive_timer > 0.0 else (0.65 if self.overclock_timer > 0.0 else 1.0)
-        self.shoot_timer = base_cd * self.cooldown_mult * cd_scale
+        self.weapon_cooldowns[self.active_weapon] = base_cd * self.cooldown_mult * cd_scale
 
         if self.overdrive_timer <= 0.0:
             self.energy = max(0.0, self.energy - cost)
@@ -350,40 +349,31 @@ class Player(pygame.sprite.Sprite):
         bullets = []
         cos_a = math.cos(self.aim_angle)
         sin_a = math.sin(self.aim_angle)
+        
+        # Muzzle Position (nose of the ship)
+        m_x = cx + 24 * cos_a
+        m_y = cy + 24 * sin_a
 
         if self.active_weapon == WEAPON_PULSE:
-            # Dual Hardpoint Muzzle Positions (~70px wingspan)
-            m1_x = cx + (28 * cos_a) - (18 * sin_a)
-            m1_y = cy + (28 * sin_a) + (18 * cos_a)
-            m2_x = cx + (28 * cos_a) + (18 * sin_a)
-            m2_y = cy + (28 * sin_a) - (18 * cos_a)
-
-            bullets.append(Bullet((m1_x, m1_y), target_pos, speed=spd, damage=dmg, color=col))
-            bullets.append(Bullet((m2_x, m2_y), target_pos, speed=spd, damage=dmg, color=col))
+            bullets.append(Bullet((m_x, m_y), target_pos, speed=spd, damage=dmg, color=col))
             if self.overdrive_timer > 0.0:
                 od_dmg = int(dmg * 1.25)
-                bullets.append(Bullet((cx, cy), target_pos, angle_offset_deg=-12.0, speed=spd * 1.1, damage=od_dmg, color=COLOR_GOLD))
-                bullets.append(Bullet((cx, cy), target_pos, angle_offset_deg=12.0, speed=spd * 1.1, damage=od_dmg, color=COLOR_GOLD))
+                bullets.append(Bullet((m_x, m_y), target_pos, angle_offset_deg=-12.0, speed=spd * 1.1, damage=od_dmg, color=COLOR_GOLD))
+                bullets.append(Bullet((m_x, m_y), target_pos, angle_offset_deg=12.0, speed=spd * 1.1, damage=od_dmg, color=COLOR_GOLD))
 
         elif self.active_weapon == WEAPON_SCATTER:
-            spread_angles = [-16.0, -8.0, 0.0, 8.0, 16.0] if self.overdrive_timer > 0.0 else [-12.0, -4.0, 4.0, 12.0]
-            for ang in spread_angles:
-                bullets.append(Bullet((cx, cy), target_pos, angle_offset_deg=ang, speed=spd, damage=dmg, color=col))
+            # Deterministic spread: -11, -5.5, 0, 5.5, 11 degrees
+            start_ang = -spread_deg / 2
+            step = spread_deg / max(1, proj_count - 1) if proj_count > 1 else 0
+            
+            for i in range(proj_count):
+                ang = start_ang + step * i
+                bullets.append(Bullet((m_x, m_y), target_pos, angle_offset_deg=ang, speed=spd, damage=dmg, color=col))
 
         elif self.active_weapon == WEAPON_MISSILE:
-            bullets.append(HomingMissile((cx - 16 * sin_a, cy + 16 * cos_a), target_pos, damage=dmg, speed=spd))
-            bullets.append(HomingMissile((cx + 16 * sin_a, cy - 16 * cos_a), target_pos, damage=dmg, speed=spd))
-
-        elif self.active_weapon == WEAPON_BEAM:
-            bullets.append(PlasmaLaserBeam((cx, cy), target_pos, damage=dmg, speed=spd))
-
-        elif self.active_weapon == WEAPON_TESLA:
-            bullets.append(TeslaArcBeam((cx, cy), target_pos, damage=dmg, speed=spd))
-            if self.overdrive_timer > 0.0:
-                bullets.append(TeslaArcBeam((cx, cy), target_pos, damage=dmg, speed=spd))
-
-        elif self.active_weapon == WEAPON_CLUSTER:
-            bullets.append(ClusterTorpedo((cx, cy), target_pos, damage=dmg, speed=spd))
+            # Use normal bullet but with larger visual representation later, or HomingMissile if it exists
+            # We'll use HomingMissile but give it the correct stats.
+            bullets.append(HomingMissile((m_x, m_y), target_pos, damage=dmg, speed=spd))
 
         return bullets
 
@@ -455,7 +445,10 @@ class Player(pygame.sprite.Sprite):
             self.damage_flash_timer = max(0.0, self.damage_flash_timer - dt)
 
         # Ability Timers
-        if self.shoot_timer > 0: self.shoot_timer -= dt
+        for w in self.weapon_cooldowns:
+            if self.weapon_cooldowns[w] > 0:
+                self.weapon_cooldowns[w] -= dt
+                
         if self.invulnerable_timer > 0: self.invulnerable_timer -= dt
         if self.overclock_timer > 0: self.overclock_timer -= dt
         if self.emp_jammed_timer > 0: self.emp_jammed_timer = max(0.0, self.emp_jammed_timer - dt)

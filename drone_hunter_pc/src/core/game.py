@@ -488,6 +488,8 @@ class Game:
                             self.particle_manager.spawn_cluster_explosion(b.pos)
                             ctx.trigger_shake(8.0, 0.25)
                             for bb in bomblets: ctx.bullet_group.add(bb)
+                    elif hasattr(b, 'turn_rate'): # Check if it's a homing missile
+                        b.update(dt, target_group=ctx.target_group)
                     else:
                         b.update(dt)
 

@@ -42,76 +42,46 @@ OVERDRIVE_COOLDOWN_MAX = 25.0
 WEAPON_PULSE = "pulse"
 WEAPON_SCATTER = "scatter"
 WEAPON_MISSILE = "missile"
-WEAPON_BEAM = "beam"
-WEAPON_TESLA = "tesla"
-WEAPON_CLUSTER = "cluster"
 
 WEAPON_DEFS = {
     WEAPON_PULSE: {
         "name": "Pulse Laser",
         "cooldown": 0.18,
-        "energy_cost": 2.5,
-        "damage": 28,
-        "speed": 920.0,
+        "energy_cost": 0.0,
+        "damage": 12,
+        "speed": 650.0,
+        "projectiles_per_shot": 1,
+        "spread_deg": 0.0,
         "color": COLOR_CYAN,
-        "description": "Rapid-fire dual plasma bolts.",
+        "description": "Rapid-fire precision plasma bolt.",
         "icon": "⚡",
         "unlocked_default": True
     },
     WEAPON_SCATTER: {
-        "name": "Scatter Cannon",
-        "cooldown": 0.38,
-        "energy_cost": 6.0,
-        "damage": 18,
-        "speed": 860.0,
+        "name": "Spread Cannon",
+        "cooldown": 0.75,
+        "energy_cost": 0.0,
+        "damage": 10,
+        "speed": 500.0,
+        "projectiles_per_shot": 5,
+        "spread_deg": 22.0,
         "color": COLOR_GOLD,
-        "description": "Short-range multi-pellet spread.",
+        "description": "Close-range area pressure spread.",
         "icon": "💥",
         "unlocked_default": True
     },
     WEAPON_MISSILE: {
-        "name": "Homing Missiles",
-        "cooldown": 0.55,
-        "energy_cost": 10.0,
+        "name": "Heavy Missile",
+        "cooldown": 2.5,
+        "energy_cost": 0.0,
         "damage": 65,
-        "speed": 680.0,
+        "speed": 260.0,
+        "projectiles_per_shot": 1,
+        "spread_deg": 0.0,
         "color": COLOR_MISSILE,
-        "description": "Target-seeking guided ordnance.",
+        "description": "High-damage heavy ordnance.",
         "icon": "🚀",
-        "unlocked_default": False
-    },
-    WEAPON_BEAM: {
-        "name": "Plasma Beam",
-        "cooldown": 0.08,
-        "energy_cost": 12.0,
-        "damage": 14,
-        "speed": 1500.0,
-        "color": COLOR_BEAM,
-        "description": "Continuous high-intensity cutting beam.",
-        "icon": "⚡",
-        "unlocked_default": False
-    },
-    WEAPON_TESLA: {
-        "name": "Tesla Arc Cannon",
-        "cooldown": 0.32,
-        "energy_cost": 8.0,
-        "damage": 42,
-        "speed": 1100.0,
-        "color": COLOR_TESLA,
-        "description": "Electric bolt chaining to nearby hostiles.",
-        "icon": "🌩️",
-        "unlocked_default": False
-    },
-    WEAPON_CLUSTER: {
-        "name": "Cluster Torpedo",
-        "cooldown": 0.70,
-        "energy_cost": 14.0,
-        "damage": 80,
-        "speed": 520.0,
-        "color": COLOR_CLUSTER,
-        "description": "Heavy torpedo splitting into 6 bomblets.",
-        "icon": "💣",
-        "unlocked_default": False
+        "unlocked_default": True
     }
 }
 

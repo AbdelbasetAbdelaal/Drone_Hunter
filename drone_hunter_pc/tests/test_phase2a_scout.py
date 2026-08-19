@@ -355,7 +355,7 @@ class TestPhase2AScoutAndEncounter(unittest.TestCase):
         self.assertGreater(b_right.pos.x, 1200.0)
 
         # Fire Down (towards (1200, 1300))
-        player.shoot_timer = 0.0
+        player.weapon_cooldowns[player.active_weapon] = 0.0
         bullets_down = player.shoot((1200, 1300))
         self.assertGreater(len(bullets_down), 0)
         b_down = bullets_down[0]
