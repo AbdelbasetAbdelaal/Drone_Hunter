@@ -178,5 +178,19 @@ class TestPhase8PlayerVisualOverhaul(unittest.TestCase):
         scout._render_sprite()
         self.assertIsNotNone(scout.image)
 
+    def test_scout_render_sprite_uses_rotated_scout_sprite(self):
+        """Proves that Scout._render_sprite() uses rotation-aware Scout sprite."""
+        from unittest.mock import patch
+        from src.entities.enemy import Scout
+        scout = Scout(pos=(400, 300))
+        scout.heading_angle = 90.0
+
+        with patch.object(self.sm, 'get_rotated_scout_sprite', wraps=self.sm.get_rotated_scout_sprite) as mock_rot:
+            scout._render_sprite()
+            # Must call get_rotated_scout_sprite with angle_deg=-90.0
+            mock_rot.assert_called_once()
+            call_kwargs = mock_rot.call_args.kwargs
+            self.assertEqual(call_kwargs.get('angle_deg'), -90.0)
+
 if __name__ == '__main__':
     unittest.main()

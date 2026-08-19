@@ -203,13 +203,13 @@ class Enemy(pygame.sprite.Sprite):
         self.radius = self.size // 2
 
         # PERF: Sprite rebuild tracking — only rebuild when visual state changes
-        self._last_heading_angle = None  # track last rendered angle
-        self._last_ai_state = None       # track last rendered ai_state
-        self._last_hit_flash = False     # track hit flash state
-        self._last_is_aiming = False     # track sniper aim state
-        self._cached_angle = None        # angle corresponding to cached rotation
-        self._sprite_dirty = True        # force rebuild on first frame
-        self._heading_threshold = 3.0   # degrees threshold before re-rotating
+        self._last_heading_angle = self.heading_angle  # track last rendered angle
+        self._last_ai_state = self.ai_state            # track last rendered ai_state
+        self._last_hit_flash = False                  # track hit flash state
+        self._last_is_aiming = False                  # track sniper aim state
+        self._cached_angle = self.heading_angle       # angle corresponding to cached rotation
+        self._sprite_dirty = False                    # cleaned after initial build
+        self._heading_threshold = 3.0                # degrees threshold before re-rotating
         self._render_sprite()
 
     @property
@@ -536,7 +536,7 @@ class Enemy(pygame.sprite.Sprite):
         return new_bullets
 
     def _render_sprite(self):
-        s = self.size
+        s = 48 if self.enemy_type == TARGET_TYPE_SCOUT else self.size
         self._base_surf.fill((0, 0, 0, 0))
         surf = self._base_surf
         center = (s // 2, s // 2)
@@ -555,12 +555,20 @@ class Enemy(pygame.sprite.Sprite):
             else:
                 state = "idle"
                 
-            scout_surf = sm.get_scout_sprite(state=state, target_size=(44, 40))
-            surf.blit(scout_surf, (2, 4))
+            # Use pre-cached 2-degree rotated Scout sprite from SpriteManager
+            rotated_scout = sm.get_rotated_scout_sprite(state=state, angle_deg=-self.heading_angle, target_size=(44, 40))
+            rot_rect = rotated_scout.get_rect(center=center)
 
             if self.ai_state == "telegraph":
+                surf.blit(rotated_scout, rot_rect)
                 alpha = int(140 + 100 * math.sin(self.state_timer * 22.0))
                 pygame.draw.circle(surf, (244, 63, 94, max(0, min(255, alpha))), center, 22, 2)
+                self.image = surf.copy()
+            else:
+                self.image = rotated_scout
+
+            self._cached_angle = self.heading_angle
+            self._sprite_dirty = False
 
         elif self.enemy_type == TARGET_TYPE_SHOOTER:
             # Faceted angular ranged chassis with directional heavy barrel
@@ -678,21 +686,35 @@ class Enemy(pygame.sprite.Sprite):
             pygame.draw.circle(surf, self.color_outer, center, s // 2 - 2)
             pygame.draw.circle(surf, self.color_inner, center, s // 4)
 
-        if self.hit_flash_timer > 0:
-            mask = pygame.mask.from_surface(surf)
-            flash_surf = mask.to_surface(setcolor=(255, 255, 255, 140), unsetcolor=(0, 0, 0, 0))
-            surf.blit(flash_surf, (0, 0), special_flags=pygame.BLEND_RGBA_ADD)
-
-        # PERF: Only rotate when heading meaningfully changes
-        angle_changed = (
-            self._cached_angle is None or
-            abs(self.heading_angle - self._cached_angle) >= self._heading_threshold
-        )
-
-        if angle_changed or self._sprite_dirty:
-            self.image = pygame.transform.rotate(self._base_surf, -self.heading_angle)
+        if self.enemy_type == TARGET_TYPE_SCOUT:
+            if self.hit_flash_timer > 0:
+                mask = pygame.mask.from_surface(rotated_scout)
+                flash_surf = mask.to_surface(setcolor=(255, 255, 255, 140), unsetcolor=(0, 0, 0, 0))
+                flash_combined = rotated_scout.copy()
+                flash_combined.blit(flash_surf, (0, 0), special_flags=pygame.BLEND_RGBA_ADD)
+                self.image = flash_combined
+            elif self.ai_state == "telegraph":
+                pass # self.image was already set in telegraph block
+            else:
+                self.image = rotated_scout
             self._cached_angle = self.heading_angle
             self._sprite_dirty = False
+        else:
+            if self.hit_flash_timer > 0:
+                mask = pygame.mask.from_surface(surf)
+                flash_surf = mask.to_surface(setcolor=(255, 255, 255, 140), unsetcolor=(0, 0, 0, 0))
+                surf.blit(flash_surf, (0, 0), special_flags=pygame.BLEND_RGBA_ADD)
+
+            # PERF: Only rotate when heading meaningfully changes for vector enemies
+            angle_changed = (
+                self._cached_angle is None or
+                abs(self.heading_angle - self._cached_angle) >= self._heading_threshold
+            )
+
+            if angle_changed or self._sprite_dirty:
+                self.image = pygame.transform.rotate(self._base_surf, -self.heading_angle)
+                self._cached_angle = self.heading_angle
+                self._sprite_dirty = False
 
         self.rect = self.image.get_rect(center=self.rect.center)
 
