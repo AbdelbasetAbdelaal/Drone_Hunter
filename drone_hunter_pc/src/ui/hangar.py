@@ -15,7 +15,7 @@ from src.data.game_data import UPGRADE_COSTS, MAX_UPGRADE_LEVEL
 from src.ui.font_manager import font_title, font_header, font_banner, font_card
 from src.ui.menus import draw_exit_button
 
-def draw_hangar_shop_ui(canvas: pygame.Surface, scrap: int, current_sector_idx: int, upgrade_levels: dict[str, int]) -> tuple[pygame.Rect, pygame.Rect, dict]:
+def draw_hangar_shop_ui(canvas: pygame.Surface, scrap: int, current_sector_idx: int, upgrade_levels: dict[str, int], mouse_pos: tuple[int, int] = None) -> tuple[pygame.Rect, pygame.Rect, dict]:
     canvas.fill((10, 15, 26))
 
     header_rect = pygame.Rect(30, 16, SCREEN_WIDTH - 60, 52)
@@ -35,7 +35,7 @@ def draw_hangar_shop_ui(canvas: pygame.Surface, scrap: int, current_sector_idx: 
     ]
 
     card_w, card_h = 570, 90
-    mx, my = pygame.mouse.get_pos()
+    mx, my = mouse_pos if mouse_pos is not None else pygame.mouse.get_pos()
     item_rects = {}
 
     for idx, (key_num, upg_id, upg_name, color, stat_func) in enumerate(items):
@@ -97,5 +97,5 @@ def draw_hangar_shop_ui(canvas: pygame.Surface, scrap: int, current_sector_idx: 
     lbl_skin = font_card.render("[C] CHANGE SKIN", True, COLOR_WHITE)
     canvas.blit(lbl_skin, lbl_skin.get_rect(center=skin_btn_rect.center))
 
-    exit_btn_rect = draw_exit_button(canvas)
+    exit_btn_rect = draw_exit_button(canvas, mouse_pos=mouse_pos)
     return exit_btn_rect, skin_btn_rect, item_rects

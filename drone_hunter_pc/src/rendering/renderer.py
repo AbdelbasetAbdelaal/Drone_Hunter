@@ -99,9 +99,12 @@ class GameRenderer:
         else:
             self._last_flash_alpha = -1
 
-    def draw_crosshair(self):
-        """Draws animated tactical sci-fi crosshair at mouse position."""
-        mx, my = pygame.mouse.get_pos()
+    def draw_crosshair(self, mouse_pos: tuple[int, int] = None):
+        """Draws animated tactical sci-fi crosshair at canvas mouse position."""
+        if mouse_pos is None:
+            mx, my = pygame.mouse.get_pos()
+        else:
+            mx, my = mouse_pos
         r = 12
         pygame.draw.circle(self.canvas, (14, 165, 233, 160), (mx, my), r, 1)
         pygame.draw.line(self.canvas, (14, 165, 233), (mx - r - 4, my), (mx - 4, my), 2)

@@ -11,10 +11,10 @@ from src.data.mission_data import SECTORS_PHASE5, get_missions_for_sector
 
 COLOR_TEXT_DIM = (120, 140, 160)
 
-def draw_exit_button(canvas: pygame.Surface) -> pygame.Rect:
+def draw_exit_button(canvas: pygame.Surface, mouse_pos: tuple[int, int] = None) -> pygame.Rect:
     vw, vh = canvas.get_size()
     btn_rect = pygame.Rect(vw - 140, vh - 55, 120, 38)
-    mx, my = pygame.mouse.get_pos()
+    mx, my = mouse_pos if mouse_pos is not None else pygame.mouse.get_pos()
     hov = btn_rect.collidepoint(mx, my)
 
     pygame.draw.rect(canvas, (40, 20, 25) if hov else (25, 15, 20), btn_rect, border_radius=6)
@@ -24,7 +24,7 @@ def draw_exit_button(canvas: pygame.Surface) -> pygame.Rect:
     canvas.blit(lbl, lbl.get_rect(center=btn_rect.center))
     return btn_rect
 
-def draw_main_menu(canvas: pygame.Surface) -> list[pygame.Rect]:
+def draw_main_menu(canvas: pygame.Surface, mouse_pos: tuple[int, int] = None) -> list[pygame.Rect]:
     canvas.fill((5, 10, 15))
     vw, vh = canvas.get_size()
 
@@ -37,7 +37,7 @@ def draw_main_menu(canvas: pygame.Surface) -> list[pygame.Rect]:
     btn_labels = ["DEPLOY", "HANGAR", "QUIT"]
     buttons = []
     by = vh // 2 + 50
-    mx, my = pygame.mouse.get_pos()
+    mx, my = mouse_pos if mouse_pos is not None else pygame.mouse.get_pos()
 
     for idx, label in enumerate(btn_labels):
         r = pygame.Rect(vw // 2 - 100, by + idx * 46, 200, 38)
@@ -55,11 +55,11 @@ def draw_main_menu(canvas: pygame.Surface) -> list[pygame.Rect]:
         'exit': buttons[2]
     }
 
-def draw_mission_select_ui(canvas: pygame.Surface, ctx, scrap: int) -> dict:
+def draw_mission_select_ui(canvas: pygame.Surface, ctx, scrap: int, mouse_pos: tuple[int, int] = None) -> dict:
     """Renders the combined Phase 5 Sector and Mission selection UI."""
     canvas.fill(COLOR_BG)
     vw, vh = canvas.get_size()
-    mx, my = pygame.mouse.get_pos()
+    mx, my = mouse_pos if mouse_pos is not None else pygame.mouse.get_pos()
     
     # Header
     header_rect = pygame.Rect(30, 16, vw - 60, 52)
@@ -80,7 +80,7 @@ def draw_mission_select_ui(canvas: pygame.Surface, ctx, scrap: int) -> dict:
     t_diff = font_card.render(f"DIFFICULTY: {diff_name}", True, diff_col)
     canvas.blit(t_diff, t_diff.get_rect(center=diff_rect.center))
     
-    interactive_rects = {"diff_rect": diff_rect, "exit": draw_exit_button(canvas), "sectors": {}, "missions": {}}
+    interactive_rects = {"diff_rect": diff_rect, "exit": draw_exit_button(canvas, mouse_pos=mouse_pos), "sectors": {}, "missions": {}}
     
     # Sectors List (Left side)
     left_pane = pygame.Rect(30, 90, 350, vh - 110)
@@ -191,10 +191,10 @@ def draw_mission_select_ui(canvas: pygame.Surface, ctx, scrap: int) -> dict:
 
     return interactive_rects
 
-def draw_mission_briefing(canvas: pygame.Surface, mission_data: dict, scrap: int) -> dict:
+def draw_mission_briefing(canvas: pygame.Surface, mission_data: dict, scrap: int, mouse_pos: tuple[int, int] = None) -> dict:
     canvas.fill(COLOR_BG)
     vw, vh = canvas.get_size()
-    mx, my = pygame.mouse.get_pos()
+    mx, my = mouse_pos if mouse_pos is not None else pygame.mouse.get_pos()
 
     box_w, box_h = 600, 400
     box_rect = pygame.Rect(vw // 2 - box_w // 2, vh // 2 - box_h // 2, box_w, box_h)
@@ -233,7 +233,7 @@ def draw_mission_briefing(canvas: pygame.Surface, mission_data: dict, scrap: int
     start_lbl = font_card.render("[SPACE] START", True, COLOR_EMERALD)
     canvas.blit(start_lbl, start_lbl.get_rect(center=btn_rect.center))
     
-    exit_btn = draw_exit_button(canvas)
+    exit_btn = draw_exit_button(canvas, mouse_pos=mouse_pos)
     
     return {"start": btn_rect, "exit": exit_btn}
 
@@ -278,7 +278,7 @@ def draw_mission_failed(canvas: pygame.Surface, scrap: int):
     canvas.blit(t_go, t_go.get_rect(center=(vw // 2, vh // 2 - 40)))
     canvas.blit(t_re, t_re.get_rect(center=(vw // 2, vh // 2 + 40)))
 
-def draw_pause_settings_ui(canvas: pygame.Surface, difficulty_mode: int, show_crt: bool, sound_enabled: bool) -> dict:
+def draw_pause_settings_ui(canvas: pygame.Surface, difficulty_mode: int, show_crt: bool, sound_enabled: bool, mouse_pos: tuple[int, int] = None) -> dict:
     vw, vh = canvas.get_size()
     pause_overlay = pygame.Surface((vw, vh), pygame.SRCALPHA)
     pause_overlay.fill((5, 8, 15, 210))
@@ -303,8 +303,9 @@ def draw_pause_settings_ui(canvas: pygame.Surface, difficulty_mode: int, show_cr
     r_hangar = pygame.Rect(bx, by + 184, btn_w, btn_h)
     r_map = pygame.Rect(bx, by + 230, btn_w, btn_h)
 
+    mx, my = mouse_pos if mouse_pos is not None else pygame.mouse.get_pos()
+
     def _draw_btn(r: pygame.Rect, txt: str, col=COLOR_WHITE):
-        mx, my = pygame.mouse.get_pos()
         hov = r.collidepoint(mx, my)
         pygame.draw.rect(canvas, (30, 41, 59) if not hov else (51, 65, 85), r, border_radius=6)
         pygame.draw.rect(canvas, COLOR_CYAN if hov else (71, 85, 105), r, 1, border_radius=6)
@@ -318,7 +319,7 @@ def draw_pause_settings_ui(canvas: pygame.Surface, difficulty_mode: int, show_cr
     _draw_btn(r_hangar, "HANGAR ARMORY [H]", COLOR_GOLD)
     _draw_btn(r_map, "SECTOR MAP [M]", COLOR_CYAN)
 
-    draw_exit_button(canvas)
+    draw_exit_button(canvas, mouse_pos=mouse_pos)
 
     return {
         "resume": r_resume,

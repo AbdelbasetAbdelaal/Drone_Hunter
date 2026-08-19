@@ -282,7 +282,6 @@ class Game:
             elif event.type == pygame.VIDEORESIZE:
                 self.win_w, self.win_h = event.w, event.h
                 self.screen = pygame.display.set_mode((self.win_w, self.win_h), pygame.RESIZABLE)
-                self.camera.set_viewport_size(event.w, event.h)
 
             elif event.type == pygame.KEYDOWN:
                 if event.key == pygame.K_F11:
@@ -492,8 +491,8 @@ class Game:
                 # 1. Player Input & Update
                 keys = pygame.key.get_pressed()
                 if ctx.player and ctx.player.alive:
-                    mx, my = pygame.mouse.get_pos()
-                    world_mx, world_my = self.camera.screen_to_world(mx, my)
+                    canvas_mx, canvas_my = self.get_canvas_mouse_pos()
+                    world_mx, world_my = self.camera.screen_to_world(canvas_mx, canvas_my)
                     ctx.player.handle_input(keys, dt, mouse_pos=(world_mx, world_my))
 
                     # Spawn particle trail when accelerating or high velocity
@@ -604,18 +603,19 @@ class Game:
         ctx = self.context
         canvas = self.renderer.canvas
         canvas.fill(COLOR_BG)
+        canvas_m_pos = self.get_canvas_mouse_pos()
 
         if ctx.state == STATE_MENU:
             self.background.draw_menu_backdrop(canvas)
-            draw_main_menu(canvas)
+            draw_main_menu(canvas, mouse_pos=canvas_m_pos)
 
         elif ctx.state == STATE_SECTOR_SELECT:
-            self.ui_rects_cache = draw_mission_select_ui(canvas, ctx, ctx.scrap)
+            self.ui_rects_cache = draw_mission_select_ui(canvas, ctx, ctx.scrap, mouse_pos=canvas_m_pos)
         elif ctx.state == STATE_MISSION_BRIEFING:
-            self.ui_rects_cache = draw_mission_briefing(canvas, get_mission_data(self.pending_mission_id), ctx.scrap)
+            self.ui_rects_cache = draw_mission_briefing(canvas, get_mission_data(self.pending_mission_id), ctx.scrap, mouse_pos=canvas_m_pos)
         elif ctx.state == STATE_HANGAR:
 
-            draw_hangar_shop_ui(canvas, ctx.scrap, ctx.current_sector_idx, ctx.upgrade_levels)
+            draw_hangar_shop_ui(canvas, ctx.scrap, ctx.current_sector_idx, ctx.upgrade_levels, mouse_pos=canvas_m_pos)
 
         elif ctx.state == STATE_VICTORY:
             draw_campaign_victory_ui(
@@ -650,9 +650,9 @@ class Game:
                 draw_boss_health_bar(canvas, boss_entity)
 
             if ctx.state == STATE_PLAYING:
-                self.renderer.draw_crosshair()
+                self.renderer.draw_crosshair(canvas_m_pos)
             elif ctx.state == STATE_PAUSED:
-                draw_pause_settings_ui(canvas, ctx.difficulty_mode, ctx.show_crt, self.audio_manager.sound_enabled)
+                draw_pause_settings_ui(canvas, ctx.difficulty_mode, ctx.show_crt, self.audio_manager.sound_enabled, mouse_pos=canvas_m_pos)
             elif ctx.state == STATE_LEVEL_CLEAR:
                 draw_level_clear_ui(canvas, ctx.current_sector_idx, ctx.current_sub_level)
             elif ctx.state == STATE_GAME_OVER:
