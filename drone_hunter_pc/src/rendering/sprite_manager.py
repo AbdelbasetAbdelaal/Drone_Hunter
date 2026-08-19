@@ -59,7 +59,7 @@ class SpriteManager:
         self._load_raw_image('shadows/player_shadow.png')
         self._load_raw_image('vfx/engine_flame.png')
 
-    def get_player_sprite(self, state: str = 'idle', skin_idx: int = 0, target_size: tuple[int, int] = (94, 80)) -> pygame.Surface:
+    def get_player_sprite(self, state: str = 'idle', skin_idx: int = 0, target_size: tuple[int, int] = (90, 78)) -> pygame.Surface:
         cache_key = (state, skin_idx, target_size)
         if cache_key in self._skin_cache:
             return self._skin_cache[cache_key]
@@ -85,7 +85,7 @@ class SpriteManager:
         self._skin_cache[cache_key] = scaled
         return scaled
 
-    def get_player_shadow(self, target_size: tuple[int, int] = (64, 56)) -> pygame.Surface:
+    def get_player_shadow(self, target_size: tuple[int, int] = (76, 48)) -> pygame.Surface:
         if target_size in self._shadow_cache:
             return self._shadow_cache[target_size]
 
@@ -113,7 +113,7 @@ class SpriteManager:
         self._rotated_cache[cache_key] = rotated
         return rotated
 
-    def get_rotated_player_sprite(self, state: str = 'idle', skin_idx: int = 0, angle_deg: float = 0.0, target_size: tuple[int, int] = (68, 58)) -> pygame.Surface:
+    def get_rotated_player_sprite(self, state: str = 'idle', skin_idx: int = 0, angle_deg: float = 0.0, target_size: tuple[int, int] = (90, 78)) -> pygame.Surface:
         """Returns pre-cached, rotated, skin-tinted player sprite (quantized to 2 deg)."""
         quantized_angle = int(round(angle_deg / 2.0)) * 2 % 360
         cache_key = (state, skin_idx, target_size, quantized_angle)

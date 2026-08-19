@@ -84,23 +84,23 @@ class TestPhase8PlayerVisualOverhaul(unittest.TestCase):
                 self.assertEqual(c, 0, f'{rel_path} has non-transparent corner: {c}')
 
     def test_sprite_manager_rotation_caching(self):
-        surf1 = self.sm.get_rotated_player_sprite(state='idle', skin_idx=0, angle_deg=44.0, target_size=(94, 80))
-        surf2 = self.sm.get_rotated_player_sprite(state='idle', skin_idx=0, angle_deg=44.0, target_size=(94, 80))
+        surf1 = self.sm.get_rotated_player_sprite(state='idle', skin_idx=0, angle_deg=44.0, target_size=(90, 78))
+        surf2 = self.sm.get_rotated_player_sprite(state='idle', skin_idx=0, angle_deg=44.0, target_size=(90, 78))
         self.assertIs(surf1, surf2)
 
-        surf3 = self.sm.get_rotated_player_sprite(state='idle', skin_idx=0, angle_deg=44.2, target_size=(94, 80))
+        surf3 = self.sm.get_rotated_player_sprite(state='idle', skin_idx=0, angle_deg=44.2, target_size=(90, 78))
         self.assertIs(surf1, surf3)
 
     def test_player_shadow_is_unrotated(self):
-        shadow = self.sm.get_player_shadow(target_size=(80, 52))
+        shadow = self.sm.get_player_shadow(target_size=(76, 48))
         self.assertIsNotNone(shadow)
-        self.assertEqual(shadow.get_size(), (80, 52))
+        self.assertEqual(shadow.get_size(), (76, 48))
 
     def test_sprite_manager_distinct_chassis_models(self):
-        surfs = [self.sm.get_player_sprite(state='idle', skin_idx=s, target_size=(94, 80)) for s in range(5)]
+        surfs = [self.sm.get_player_sprite(state='idle', skin_idx=s, target_size=(90, 78)) for s in range(5)]
         for i in range(len(surfs)):
             self.assertIsNotNone(surfs[i])
-            self.assertEqual(surfs[i].get_size(), (94, 80))
+            self.assertEqual(surfs[i].get_size(), (90, 78))
 
     def test_player_renderer_draw_pipeline(self):
         canvas = pygame.Surface((1280, 720), pygame.SRCALPHA)
