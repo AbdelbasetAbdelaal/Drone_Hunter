@@ -580,9 +580,11 @@ class SectorBoss(pygame.sprite.Sprite):
             pygame.draw.circle(surf, (56, 189, 248, 140), center, half - 2, 3)
             pygame.draw.circle(surf, (255, 255, 255, 100), center, half - 6, 1)
 
-        # Hit Flash Overlay
+        # Hit Flash Overlay (Alpha-Safe Mask to preserve transparent background)
         if self.hit_flash_timer > 0:
-            surf.fill((255, 255, 255, 140), special_flags=pygame.BLEND_RGBA_ADD)
+            mask = pygame.mask.from_surface(surf)
+            flash_surf = mask.to_surface(setcolor=(255, 255, 255, 140), unsetcolor=(0, 0, 0, 0))
+            surf.blit(flash_surf, (0, 0), special_flags=pygame.BLEND_RGBA_ADD)
 
         self.image = surf
         self.rect = self.image.get_rect(center=self.rect.center)

@@ -680,7 +680,9 @@ class Enemy(pygame.sprite.Sprite):
             pygame.draw.circle(surf, self.color_inner, center, s // 4)
 
         if self.hit_flash_timer > 0:
-            surf.fill((255, 255, 255, 160), special_flags=pygame.BLEND_RGBA_ADD)
+            mask = pygame.mask.from_surface(surf)
+            flash_surf = mask.to_surface(setcolor=(255, 255, 255, 140), unsetcolor=(0, 0, 0, 0))
+            surf.blit(flash_surf, (0, 0), special_flags=pygame.BLEND_RGBA_ADD)
 
         # PERF: Only rotate when heading meaningfully changes
         angle_changed = (
