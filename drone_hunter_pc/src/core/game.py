@@ -318,8 +318,13 @@ class Game:
                         self.running = False
 
                 elif ctx.state == STATE_SETTINGS:
-                    if event.key in (pygame.K_ESCAPE, pygame.K_b, pygame.K_BACKSPACE):
+                    if event.key in (pygame.K_ESCAPE, pygame.K_b, pygame.K_BACKSPACE, pygame.K_SPACE, pygame.K_RETURN):
                         ctx.state = self.previous_state or STATE_SECTOR_SELECT
+                    elif event.key == pygame.K_F11:
+                        self.toggle_fullscreen()
+                    elif event.key == pygame.K_F2:
+                        ctx.show_crt = not ctx.show_crt
+                        self.save_progress()
 
                 elif ctx.state == STATE_SECTOR_SELECT:
                     if event.key in (pygame.K_SPACE, pygame.K_RETURN):
@@ -329,6 +334,7 @@ class Game:
                         for m in sec_missions:
                             if self.mission_system.get_mission_state(ctx, m["id"]) != "locked":
                                 target_m = m["id"]
+                                break
                         if target_m:
                             self.pending_mission_id = target_m
                             ctx.state = STATE_MISSION_BRIEFING
@@ -400,15 +406,17 @@ class Game:
                     if event.key in (pygame.K_p, pygame.K_SPACE, pygame.K_ESCAPE):
                         ctx.state = STATE_PLAYING
                     elif event.key == pygame.K_m:
+                        self.mission_system.active_mission_id = None
                         ctx.state = STATE_SECTOR_SELECT
                     elif event.key == pygame.K_h:
                         self.previous_state = STATE_SECTOR_SELECT
                         ctx.state = STATE_HANGAR
                     elif event.key == pygame.K_q:
-                        self.running = False
+                        self.mission_system.active_mission_id = None
+                        ctx.state = STATE_MENU
 
                 elif ctx.state == STATE_VICTORY:
-                    if event.key in (pygame.K_SPACE, pygame.K_RETURN, pygame.K_m):
+                    if event.key in (pygame.K_SPACE, pygame.K_RETURN, pygame.K_m, pygame.K_ESCAPE, pygame.K_b):
                         self.mission_system.active_mission_id = None
                         ctx.state = STATE_SECTOR_SELECT
                     elif event.key == pygame.K_h:
@@ -423,7 +431,8 @@ class Game:
                             self.start_phase5_mission(self.pending_mission_id)
                         else:
                             ctx.state = STATE_SECTOR_SELECT
-                    elif event.key in (pygame.K_m, pygame.K_ESCAPE):
+                    elif event.key in (pygame.K_m, pygame.K_ESCAPE, pygame.K_b):
+                        self.mission_system.active_mission_id = None
                         ctx.state = STATE_SECTOR_SELECT
                     elif event.key == pygame.K_q:
                         self.running = False
@@ -431,11 +440,11 @@ class Game:
                 elif ctx.state == STATE_LEVEL_CLEAR:
                     if event.key in (pygame.K_SPACE, pygame.K_RETURN):
                         self.start_next_stage()
-                    elif event.key in (pygame.K_m, pygame.K_ESCAPE):
+                    elif event.key in (pygame.K_m, pygame.K_ESCAPE, pygame.K_b):
                         ctx.state = STATE_SECTOR_SELECT
 
                 elif ctx.state == STATE_MISSION_COMPLETE:
-                    if event.key in (pygame.K_SPACE, pygame.K_RETURN, pygame.K_m):
+                    if event.key in (pygame.K_SPACE, pygame.K_RETURN, pygame.K_m, pygame.K_ESCAPE, pygame.K_b):
                         self.mission_system.active_mission_id = None
                         ctx.state = STATE_SECTOR_SELECT
                     elif event.key == pygame.K_h:
@@ -445,7 +454,7 @@ class Game:
                 elif ctx.state == STATE_MISSION_FAILED:
                     if event.key in (pygame.K_SPACE, pygame.K_RETURN):
                         self.start_phase5_mission(self.mission_system.active_mission_id or self.pending_mission_id)
-                    elif event.key in (pygame.K_m, pygame.K_ESCAPE):
+                    elif event.key in (pygame.K_m, pygame.K_ESCAPE, pygame.K_b):
                         self.mission_system.active_mission_id = None
                         ctx.state = STATE_SECTOR_SELECT
                     elif event.key == pygame.K_h:
@@ -514,17 +523,19 @@ class Game:
                     elif cache.get("diff_rect") and cache["diff_rect"].collidepoint(mx, my):
                         ctx.difficulty_mode = (ctx.difficulty_mode + 1) % 4
                         self.save_progress()
-                    if "sectors" in cache:
+                    elif "sectors" in cache and any(r.collidepoint(mx, my) for r in cache["sectors"].values()):
                         for s_id, rect in cache["sectors"].items():
                             if rect.collidepoint(mx, my):
                                 ctx.missions["current_sector"] = s_id
-                    if "missions" in cache:
+                                break
+                    elif "missions" in cache and any(r.collidepoint(mx, my) for r in cache["missions"].values()):
                         for m_id, rect in cache["missions"].items():
                             if rect.collidepoint(mx, my):
                                 st = self.mission_system.get_mission_state(ctx, m_id)
                                 if st != "locked":
                                     self.pending_mission_id = m_id
                                     ctx.state = STATE_MISSION_BRIEFING
+                                    break
 
                 elif ctx.state == STATE_MISSION_BRIEFING:
                     if cache.get("back") and cache["back"].collidepoint(mx, my):
@@ -545,7 +556,7 @@ class Game:
                         ctx.state = STATE_SETTINGS
                     elif cache.get("exit") and cache["exit"].collidepoint(mx, my):
                         self.running = False
-                    if "upgrades" in cache:
+                    elif "upgrades" in cache:
                         for upg_id, upg_r in cache["upgrades"].items():
                             if upg_r.collidepoint(mx, my):
                                 self.buy_upgrade(upg_id)
@@ -566,9 +577,28 @@ class Game:
                         self.previous_state = STATE_SECTOR_SELECT
                         ctx.state = STATE_HANGAR
                     elif pause_btns["map"].collidepoint(mx, my):
+                        self.mission_system.active_mission_id = None
                         ctx.state = STATE_SECTOR_SELECT
                     elif pause_btns["exit"].collidepoint(mx, my):
-                        self.running = False
+                        self.mission_system.active_mission_id = None
+                        ctx.state = STATE_MENU
+
+                elif ctx.state == STATE_MISSION_COMPLETE:
+                    self.mission_system.active_mission_id = None
+                    ctx.state = STATE_SECTOR_SELECT
+
+                elif ctx.state == STATE_MISSION_FAILED:
+                    self.start_phase5_mission(self.mission_system.active_mission_id or self.pending_mission_id)
+
+                elif ctx.state == STATE_VICTORY:
+                    self.mission_system.active_mission_id = None
+                    ctx.state = STATE_SECTOR_SELECT
+
+                elif ctx.state == STATE_GAME_OVER:
+                    if self.pending_mission_id:
+                        self.start_phase5_mission(self.pending_mission_id)
+                    else:
+                        ctx.state = STATE_SECTOR_SELECT
 
                 elif ctx.state == STATE_PLAYING:
                     if event.button == 1 and ctx.player and ctx.player.can_shoot():
