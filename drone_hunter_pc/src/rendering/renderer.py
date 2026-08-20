@@ -69,31 +69,7 @@ class GameRenderer:
                     pygame.draw.circle(self._emp_surf, (255, 255, 255, 180), t_screen, emp_r, 1)
                     self.canvas.blit(self._emp_surf, (0, 0))
 
-        # Layer 3: Grounded Entity Drop Shadows
-        for t in context.target_group:
-            etype = getattr(t, "enemy_type", "")
-            is_boss = getattr(t, "is_boss", False)
-            if is_boss:
-                b_name = getattr(t, "boss_name", getattr(t, "enemy_type", "assembly_warden"))
-                sh_surf = self.sprite_manager.get_boss_shadow(boss_key=b_name, target_size=(190, 110))
-                sh_rect = sh_surf.get_rect(center=(int(round(t.pos.x - ox + 10)), int(round(t.pos.y - oy + 24))))
-                self.canvas.blit(sh_surf, sh_rect)
-            elif etype == TARGET_TYPE_SCOUT:
-                sh_surf = self.sprite_manager.get_scout_shadow(target_size=(64, 38))
-                sh_rect = sh_surf.get_rect(center=(int(round(t.pos.x - ox + 6)), int(round(t.pos.y - oy + 14))))
-                self.canvas.blit(sh_surf, sh_rect)
-            elif etype == TARGET_TYPE_SHOOTER:
-                sh_surf = self.sprite_manager.get_shooter_shadow(target_size=(76, 48))
-                sh_rect = sh_surf.get_rect(center=(int(round(t.pos.x - ox + 6)), int(round(t.pos.y - oy + 16))))
-                self.canvas.blit(sh_surf, sh_rect)
-            elif etype in (TARGET_TYPE_HEAVY, TARGET_TYPE_ARMORED):
-                sh_surf = self.sprite_manager.get_heavy_shadow(target_size=(102, 60))
-                sh_rect = sh_surf.get_rect(center=(int(round(t.pos.x - ox + 8)), int(round(t.pos.y - oy + 18))))
-                self.canvas.blit(sh_surf, sh_rect)
-            elif etype == TARGET_TYPE_SHIELD_DRONE:
-                sh_surf = self.sprite_manager.get_shield_shadow(target_size=(78, 50))
-                sh_rect = sh_surf.get_rect(center=(int(round(t.pos.x - ox + 6)), int(round(t.pos.y - oy + 16))))
-                self.canvas.blit(sh_surf, sh_rect)
+        # Layer 3: Entities and Objects (Direct High-Fidelity Rendering)
 
         # Helper to blit sprite groups with camera offset
         def _draw_group_with_camera(group):

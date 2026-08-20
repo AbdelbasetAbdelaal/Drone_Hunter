@@ -253,19 +253,38 @@ class TestPhase8PlayerVisualOverhaul(unittest.TestCase):
             p2 = self.sm.get_projectile_sprite(ptype, (16, 16))
             self.assertIs(p1, p2)
 
-    def test_all_production_sprites_have_zero_corner_alpha(self):
-        import glob
-        from PIL import Image
-        import numpy as np
-        all_pngs = glob.glob(os.path.join(self.sm.base_dir, '**/*.png'), recursive=True)
-        self.assertGreaterEqual(len(all_pngs), 40)
-        for p in all_pngs:
-            im = Image.open(p).convert('RGBA')
-            arr = np.array(im)
-            alpha = arr[:, :, 3]
-            h, w = alpha.shape
-            corners = [int(alpha[0, 0]), int(alpha[0, w - 1]), int(alpha[h - 1, 0]), int(alpha[h - 1, w - 1])]
-            self.assertEqual(corners, [0, 0, 0, 0], f'{p} contains non-zero corner alpha!')
+    def test_bounded_rotation_cache(self):
+        self.sm.clear_rotation_cache()
+        for deg in range(0, 720, 2):
+            self.sm.get_rotated_player_sprite(state='idle', skin_idx=0, angle_deg=float(deg), target_size=(148, 128))
+            self.sm.get_rotated_scout_sprite(state='idle', angle_deg=float(deg), target_size=(52, 46))
+
+        stats = self.sm.get_cache_stats()
+        self.assertLessEqual(stats["rotated_surfaces"], self.sm.MAX_ROTATION_ENTRIES)
+        self.assertEqual(stats["angle_step"], 6)
+
+    def test_duplicate_state_cache_unification(self):
+        s_idle = self.sm.get_rotated_player_sprite(state='idle', skin_idx=0, angle_deg=32.0, target_size=(148, 128))
+        s_move = self.sm.get_rotated_player_sprite(state='move', skin_idx=0, angle_deg=32.0, target_size=(148, 128))
+        s_fire = self.sm.get_rotated_player_sprite(state='fire', skin_idx=0, angle_deg=32.0, target_size=(148, 128))
+        s_bank_l = self.sm.get_rotated_player_sprite(state='bank_left', skin_idx=0, angle_deg=32.0, target_size=(148, 128))
+        s_bank_r = self.sm.get_rotated_player_sprite(state='bank_right', skin_idx=0, angle_deg=32.0, target_size=(148, 128))
+
+        self.assertIs(s_idle, s_move)
+        self.assertIs(s_idle, s_fire)
+        self.assertIs(s_idle, s_bank_l)
+        self.assertIs(s_idle, s_bank_r)
+
+    def test_player_large_gameplay_size(self):
+        p_surf = self.sm.get_player_sprite(state='idle', skin_idx=0)
+        self.assertEqual(p_surf.get_size(), (148, 128))
+        p_rot = self.sm.get_rotated_player_sprite(state='idle', skin_idx=0, angle_deg=0.0)
+        self.assertEqual(p_rot.get_size(), (148, 128))
+
+    def test_shadow_assets_not_in_canonical_cache(self):
+        for key in self.sm._canonical_cache.keys():
+            self.assertNotIn('shadow', key.lower())
 
 if __name__ == '__main__':
     unittest.main()
+

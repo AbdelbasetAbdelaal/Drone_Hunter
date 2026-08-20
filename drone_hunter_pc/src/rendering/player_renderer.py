@@ -60,12 +60,7 @@ class PlayerRenderer:
 
         total_rot_deg = -math.degrees(player.aim_angle) + (tilt_y * 0.35)
 
-        # 2. 2D Entity Drop Shadow (Grounded to World Floor - Position/Scale Only, No Rotation)
-        shadow_surf = self.sprite_manager.get_player_shadow(skin_idx=skin_idx, target_size=(126, 78))
-        shadow_rect = shadow_surf.get_rect(center=(int(round(screen_x + 8)), int(round(screen_y + 20))))
-        canvas.blit(shadow_surf, shadow_rect)
-
-        # 3. Directional Ion Exhaust Flames (Crisp, Controlled, Non-Obstructive)
+        # 2. Directional Ion Exhaust Flames (Crisp, Controlled, Non-Obstructive)
         aim_rad = math.radians(-total_rot_deg)
         cos_a = math.cos(aim_rad)
         sin_a = math.sin(aim_rad)
