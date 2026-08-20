@@ -109,5 +109,12 @@ class ProgressionSystem:
         # 4. MOBILITY (Speed Multiplier)
         # Level 1: 1.0, Level 2: 1.05, Level 3: 1.10, Level 4: 1.15, Level 5: 1.20
         mobility_level = ctx.upgrade_levels.get("mobility", 1)
-        # Apply to base speed (base speed is 180.0 usually, wait, HORIZONTAL_SPEED is 220 in Phase 1, actually I will just set max_speed to 220.0 multiplied by mobility)
         player.max_speed = 220.0 * (1.0 + ((mobility_level - 1) * 0.05))
+
+        # 5. VISUAL DRONE VARIANT (0: Striker, 1: Phantom, 2: Titan, 3: Velocity, 4: Aegis Quad)
+        if getattr(ctx, "selected_skin_override", None) is not None:
+            player.skin_theme = ctx.selected_skin_override
+        else:
+            avg_level = sum(ctx.upgrade_levels.values()) / max(1, len(ctx.upgrade_levels))
+            overall_tier = getattr(ctx, "drone_tier", int(round(avg_level)))
+            player.skin_theme = max(0, min(4, overall_tier - 1))

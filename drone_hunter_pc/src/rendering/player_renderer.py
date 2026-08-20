@@ -61,7 +61,7 @@ class PlayerRenderer:
         total_rot_deg = -math.degrees(player.aim_angle) + (tilt_y * 0.35)
 
         # 2. 2D Entity Drop Shadow (Grounded to World Floor - Position/Scale Only, No Rotation)
-        shadow_surf = self.sprite_manager.get_player_shadow(target_size=(126, 78))
+        shadow_surf = self.sprite_manager.get_player_shadow(skin_idx=skin_idx, target_size=(126, 78))
         shadow_rect = shadow_surf.get_rect(center=(int(round(screen_x + 8)), int(round(screen_y + 20))))
         canvas.blit(shadow_surf, shadow_rect)
 

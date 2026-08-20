@@ -1,0 +1,14 @@
+{
+  "name": "scout",
+  "role": "Light / Fast / Agile",
+  "source_sheet": "a_high_resolution_sprite_sheet_style_compilation_i.png",
+  "source_box": [
+    8,
+    340,
+    100,
+    470
+  ],
+  "hero": "hero_2048.png",
+  "thumbnail": "thumbnail_512.png",
+  "shadow": "shadow_2048.png"
+}

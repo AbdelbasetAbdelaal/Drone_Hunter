@@ -393,7 +393,9 @@ class Game:
                     elif event.key in (pygame.K_2, pygame.K_KP2): self.buy_upgrade("energy")
                     elif event.key in (pygame.K_3, pygame.K_KP3): self.buy_upgrade("weapon")
                     elif event.key in (pygame.K_4, pygame.K_KP4): self.buy_upgrade("mobility")
-                    elif event.key == pygame.K_c and ctx.player: ctx.player.cycle_skin()
+                    elif event.key == pygame.K_c and ctx.player:
+                        ctx.player.cycle_skin()
+                        ctx.selected_skin_override = ctx.player.skin_theme
                     elif event.key == pygame.K_s:
                         self.previous_state = STATE_HANGAR
                         ctx.state = STATE_SETTINGS
@@ -419,6 +421,7 @@ class Game:
                     elif event.key in (pygame.K_k, pygame.K_c):
                         if event.key == pygame.K_c and ctx.player:
                             ctx.player.cycle_skin()
+                            ctx.selected_skin_override = ctx.player.skin_theme
                         elif event.key == pygame.K_k and ctx.player:
                             if ctx.player.trigger_cloak():
                                 self.audio_manager.play_cloak()
@@ -584,6 +587,7 @@ class Game:
                     elif cache.get("skin") and cache["skin"].collidepoint(mx, my):
                         if ctx.player:
                             ctx.player.cycle_skin()
+                            ctx.selected_skin_override = ctx.player.skin_theme
                     elif cache.get("settings") and cache["settings"].collidepoint(mx, my):
                         self.previous_state = STATE_HANGAR
                         ctx.state = STATE_SETTINGS

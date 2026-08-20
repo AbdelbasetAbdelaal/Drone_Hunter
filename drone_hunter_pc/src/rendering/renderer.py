@@ -74,7 +74,8 @@ class GameRenderer:
             etype = getattr(t, "enemy_type", "")
             is_boss = getattr(t, "is_boss", False)
             if is_boss:
-                sh_surf = self.sprite_manager.get_boss_shadow(target_size=(190, 110))
+                b_name = getattr(t, "boss_name", getattr(t, "enemy_type", "assembly_warden"))
+                sh_surf = self.sprite_manager.get_boss_shadow(boss_key=b_name, target_size=(190, 110))
                 sh_rect = sh_surf.get_rect(center=(int(round(t.pos.x - ox + 10)), int(round(t.pos.y - oy + 24))))
                 self.canvas.blit(sh_surf, sh_rect)
             elif etype == TARGET_TYPE_SCOUT:
