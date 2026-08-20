@@ -73,27 +73,36 @@ def draw_hud(canvas: pygame.Surface, player, sector_idx: int = 0, level_score: i
             canvas.blit(jam_banner, (vw // 2 - jam_banner.get_width() // 2, 70))
 
     # =========================================================================
-    # 2. TOP-RIGHT: Level, Score & Compact Combo Tag
+    # 2. TOP-RIGHT: Level Telemetry & Clean Score Card
     # =========================================================================
-    level_str = f"SECTOR {sector_idx + 1} - LEVEL {sub_level}"
+    level_str = f"SECTOR {sector_idx + 1}  |  STAGE {sub_level}"
     lbl_level = font_card.render(level_str, True, COLOR_CYAN)
-    level_x = vw - margin_x - lbl_level.get_width()
-    canvas.blit(lbl_level, (level_x, margin_y))
-
+    
     score_str = f"SCORE: {level_score:,}"
-    lbl_score = font_hud.render(score_str, True, COLOR_WHITE)
-    score_x = vw - margin_x - lbl_score.get_width()
-    canvas.blit(lbl_score, (score_x, margin_y + 20))
+    lbl_score = font_hud.render(score_str, True, COLOR_GOLD)
+    
+    # Calculate panel width
+    max_w = max(lbl_level.get_width(), lbl_score.get_width()) + 24
+    card_h = 50
+    card_x = vw - margin_x - max_w
+    card_rect = pygame.Rect(card_x, margin_y, max_w, card_h)
+    
+    # Semi-transparent sci-fi card backdrop
+    pygame.draw.rect(canvas, (15, 23, 42, 210), card_rect, border_radius=6)
+    pygame.draw.rect(canvas, (45, 65, 95), card_rect, 1, border_radius=6)
+    
+    canvas.blit(lbl_level, (card_x + 12, margin_y + 6))
+    canvas.blit(lbl_score, (card_x + 12, margin_y + 24))
 
-    # Compact Combo Streak Badge
+    # Compact Combo Streak Badge (stacked to the left of score card)
     if combo_mult > 1:
         combo_txt = f"COMBO x{combo_mult}"
         lbl_combo = font_card.render(combo_txt, True, COLOR_GOLD)
-        combo_w = lbl_combo.get_width() + 12
-        combo_rect = pygame.Rect(score_x - combo_w - 10, margin_y + 22, combo_w, 20)
+        combo_w = lbl_combo.get_width() + 14
+        combo_rect = pygame.Rect(card_x - combo_w - 8, margin_y + 12, combo_w, 26)
         pygame.draw.rect(canvas, (245, 158, 11, 40), combo_rect, border_radius=4)
         pygame.draw.rect(canvas, COLOR_GOLD, combo_rect, 1, border_radius=4)
-        canvas.blit(lbl_combo, (combo_rect.left + 6, combo_rect.top + 3))
+        canvas.blit(lbl_combo, (combo_rect.left + 7, combo_rect.top + 5))
 
     # =========================================================================
     # 3. BOTTOM-CENTER: Screen-Space Ability Indicators
