@@ -467,8 +467,8 @@ class SectorBoss(pygame.sprite.Sprite):
         return None
 
     def _render_sprite(self):
-        """Builds procedural sci-fi dreadnought visual for the boss."""
-        s = self.size
+        """Builds 2D industrial sci-fi dreadnought visual for the boss at enlarged HD scale."""
+        s = int(self.size * 1.6)
         surf = pygame.Surface((s, s), pygame.SRCALPHA)
         center = (s // 2, s // 2)
         half = s // 2
@@ -483,8 +483,8 @@ class SectorBoss(pygame.sprite.Sprite):
 
         # Shield Bubble Aura if Shielded
         if self.is_shielded:
-            pygame.draw.circle(surf, (56, 189, 248, 140), center, half - 2, 3)
-            pygame.draw.circle(surf, (255, 255, 255, 100), center, half - 6, 1)
+            pygame.draw.circle(surf, (56, 189, 248, 140), center, half - 3, 4)
+            pygame.draw.circle(surf, (255, 255, 255, 120), center, half - 8, 2)
 
         # Hit Flash Overlay (Alpha-Safe Mask to preserve transparent background)
         if self.hit_flash_timer > 0:

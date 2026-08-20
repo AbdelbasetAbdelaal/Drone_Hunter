@@ -196,7 +196,13 @@ class Enemy(pygame.sprite.Sprite):
         self.sniper_aim_timer = random.uniform(1.5, 3.0)
         self.is_aiming = False
 
-        surf_size = 48 if enemy_type == TARGET_TYPE_SCOUT else self.size
+        surf_size = 90 if enemy_type == TARGET_TYPE_SCOUT else (
+            96 if enemy_type == TARGET_TYPE_SHOOTER else (
+                120 if enemy_type in (TARGET_TYPE_HEAVY, TARGET_TYPE_ARMORED) else (
+                    100 if enemy_type == TARGET_TYPE_SHIELD_DRONE else max(self.size, 80)
+                )
+            )
+        )
         self._base_surf = pygame.Surface((surf_size, surf_size), pygame.SRCALPHA)
         self.image = pygame.Surface((surf_size, surf_size), pygame.SRCALPHA)
         self.rect = self.image.get_rect(center=self.pos)
@@ -536,7 +542,13 @@ class Enemy(pygame.sprite.Sprite):
         return new_bullets
 
     def _render_sprite(self):
-        s = 48 if self.enemy_type == TARGET_TYPE_SCOUT else self.size
+        s = 90 if self.enemy_type == TARGET_TYPE_SCOUT else (
+            96 if self.enemy_type == TARGET_TYPE_SHOOTER else (
+                120 if self.enemy_type in (TARGET_TYPE_HEAVY, TARGET_TYPE_ARMORED) else (
+                    100 if self.enemy_type == TARGET_TYPE_SHIELD_DRONE else max(self.size, 80)
+                )
+            )
+        )
         self._base_surf.fill((0, 0, 0, 0))
         surf = self._base_surf
         center = (s // 2, s // 2)
@@ -555,14 +567,14 @@ class Enemy(pygame.sprite.Sprite):
             else:
                 state = "idle"
                 
-            # Use pre-cached 2-degree rotated Scout sprite from SpriteManager
-            rotated_scout = sm.get_rotated_scout_sprite(state=state, angle_deg=-self.heading_angle, target_size=(44, 40))
+            # Use pre-cached 2-degree rotated Scout sprite from SpriteManager (Enlarged Scale)
+            rotated_scout = sm.get_rotated_scout_sprite(state=state, angle_deg=-self.heading_angle, target_size=(78, 70))
             rot_rect = rotated_scout.get_rect(center=center)
 
             if self.ai_state == "telegraph":
                 surf.blit(rotated_scout, rot_rect)
                 alpha = int(140 + 100 * math.sin(self.state_timer * 22.0))
-                pygame.draw.circle(surf, (244, 63, 94, max(0, min(255, alpha))), center, 22, 2)
+                pygame.draw.circle(surf, (244, 63, 94, max(0, min(255, alpha))), center, 36, 3)
                 self.image = surf.copy()
             else:
                 self.image = rotated_scout
@@ -584,14 +596,14 @@ class Enemy(pygame.sprite.Sprite):
             else:
                 state = "idle"
                 
-            rotated_shooter = sm.get_rotated_shooter_sprite(state=state, angle_deg=-self.heading_angle, target_size=(50, 46))
+            rotated_shooter = sm.get_rotated_shooter_sprite(state=state, angle_deg=-self.heading_angle, target_size=(88, 80))
             rot_rect = rotated_shooter.get_rect(center=center)
 
             if self.ai_state == "telegraph":
                 surf.blit(rotated_shooter, rot_rect)
                 charge_alpha = int(160 + 95 * math.sin(self.state_timer * 26.0))
-                charge_r = max(2, int(6 * (self.state_timer / SHOOTER_TELEGRAPH_TIME)))
-                pygame.draw.circle(surf, (255, 200, 50, max(0, min(255, charge_alpha))), (center[0] + 16, center[1]), charge_r, 2)
+                charge_r = max(3, int(10 * (self.state_timer / SHOOTER_TELEGRAPH_TIME)))
+                pygame.draw.circle(surf, (255, 200, 50, max(0, min(255, charge_alpha))), (center[0] + 26, center[1]), charge_r, 2)
                 self.image = surf.copy()
             else:
                 self.image = rotated_shooter
@@ -613,13 +625,13 @@ class Enemy(pygame.sprite.Sprite):
             else:
                 state = "idle"
                 
-            rotated_heavy = sm.get_rotated_heavy_sprite(state=state, angle_deg=-self.heading_angle, target_size=(62, 58))
+            rotated_heavy = sm.get_rotated_heavy_sprite(state=state, angle_deg=-self.heading_angle, target_size=(110, 102))
             rot_rect = rotated_heavy.get_rect(center=center)
 
             if self.ai_state == "pressure":
                 surf.blit(rotated_heavy, rot_rect)
                 glow_alpha = int(150 + 90 * math.sin(self.state_timer * 20.0))
-                pygame.draw.circle(surf, (245, 158, 11, max(0, min(255, glow_alpha))), center, s // 2 - 4, 2)
+                pygame.draw.circle(surf, (245, 158, 11, max(0, min(255, glow_alpha))), center, s // 2 - 4, 3)
                 self.image = surf.copy()
             else:
                 self.image = rotated_heavy
@@ -633,12 +645,12 @@ class Enemy(pygame.sprite.Sprite):
             
             # Determine visual state
             state = "hit" if self.hit_flash_timer > 0 else "idle"
-            rotated_shield = sm.get_rotated_shield_drone_sprite(state=state, angle_deg=-self.heading_angle, target_size=(50, 46))
+            rotated_shield = sm.get_rotated_shield_drone_sprite(state=state, angle_deg=-self.heading_angle, target_size=(90, 82))
             rot_rect = rotated_shield.get_rect(center=center)
             surf.blit(rotated_shield, rot_rect)
 
             # Rotating energy shield arc around physical nodes
-            arc_rect = pygame.Rect(4, 4, s - 8, s - 8)
+            arc_rect = pygame.Rect(6, 6, s - 12, s - 12)
             pygame.draw.arc(surf, COLOR_CYAN, arc_rect, self.shield_angle, self.shield_angle + 2.2, 3)
             self.image = surf.copy()
             self._cached_angle = self.heading_angle
@@ -647,9 +659,9 @@ class Enemy(pygame.sprite.Sprite):
         elif self.enemy_type == TARGET_TYPE_SNIPER:
             pygame.draw.polygon(surf, self.color_outer, [(s, s // 2), (0, 4), (s // 4, s // 2), (0, s - 4)])
             if self.is_aiming:
-                pygame.draw.circle(surf, COLOR_NEON_RED, center, 5)
+                pygame.draw.circle(surf, COLOR_NEON_RED, center, 6)
             else:
-                pygame.draw.circle(surf, self.color_inner, center, 3)
+                pygame.draw.circle(surf, self.color_inner, center, 4)
 
         else: # Standard
             pygame.draw.circle(surf, self.color_outer, center, s // 2 - 2)

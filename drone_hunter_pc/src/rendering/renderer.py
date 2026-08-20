@@ -74,24 +74,24 @@ class GameRenderer:
             etype = getattr(t, "enemy_type", "")
             is_boss = getattr(t, "is_boss", False)
             if is_boss:
-                sh_surf = self.sprite_manager.get_boss_shadow(target_size=(120, 72))
-                sh_rect = sh_surf.get_rect(center=(int(round(t.pos.x - ox + 8)), int(round(t.pos.y - oy + 18))))
+                sh_surf = self.sprite_manager.get_boss_shadow(target_size=(190, 110))
+                sh_rect = sh_surf.get_rect(center=(int(round(t.pos.x - ox + 10)), int(round(t.pos.y - oy + 24))))
                 self.canvas.blit(sh_surf, sh_rect)
             elif etype == TARGET_TYPE_SCOUT:
-                sh_surf = self.sprite_manager.get_scout_shadow(target_size=(36, 22))
-                sh_rect = sh_surf.get_rect(center=(int(round(t.pos.x - ox + 4)), int(round(t.pos.y - oy + 8))))
+                sh_surf = self.sprite_manager.get_scout_shadow(target_size=(64, 38))
+                sh_rect = sh_surf.get_rect(center=(int(round(t.pos.x - ox + 6)), int(round(t.pos.y - oy + 14))))
                 self.canvas.blit(sh_surf, sh_rect)
             elif etype == TARGET_TYPE_SHOOTER:
-                sh_surf = self.sprite_manager.get_shooter_shadow(target_size=(44, 28))
-                sh_rect = sh_surf.get_rect(center=(int(round(t.pos.x - ox + 4)), int(round(t.pos.y - oy + 10))))
+                sh_surf = self.sprite_manager.get_shooter_shadow(target_size=(76, 48))
+                sh_rect = sh_surf.get_rect(center=(int(round(t.pos.x - ox + 6)), int(round(t.pos.y - oy + 16))))
                 self.canvas.blit(sh_surf, sh_rect)
             elif etype in (TARGET_TYPE_HEAVY, TARGET_TYPE_ARMORED):
-                sh_surf = self.sprite_manager.get_heavy_shadow(target_size=(58, 36))
-                sh_rect = sh_surf.get_rect(center=(int(round(t.pos.x - ox + 6)), int(round(t.pos.y - oy + 12))))
+                sh_surf = self.sprite_manager.get_heavy_shadow(target_size=(102, 60))
+                sh_rect = sh_surf.get_rect(center=(int(round(t.pos.x - ox + 8)), int(round(t.pos.y - oy + 18))))
                 self.canvas.blit(sh_surf, sh_rect)
             elif etype == TARGET_TYPE_SHIELD_DRONE:
-                sh_surf = self.sprite_manager.get_shield_shadow(target_size=(46, 30))
-                sh_rect = sh_surf.get_rect(center=(int(round(t.pos.x - ox + 4)), int(round(t.pos.y - oy + 10))))
+                sh_surf = self.sprite_manager.get_shield_shadow(target_size=(78, 50))
+                sh_rect = sh_surf.get_rect(center=(int(round(t.pos.x - ox + 6)), int(round(t.pos.y - oy + 16))))
                 self.canvas.blit(sh_surf, sh_rect)
 
         # Helper to blit sprite groups with camera offset
