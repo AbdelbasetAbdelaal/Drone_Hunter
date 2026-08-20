@@ -7,7 +7,7 @@ from src.data.settings import COLOR_CYAN, COLOR_GOLD, COLOR_CRIMSON, COLOR_EMERA
 class SpriteManager:
     _instance = None
     ANGLE_STEP = 6  # 360 / 6 = 60 discrete orientations (bounded quantization)
-    MAX_ROTATION_ENTRIES = 360  # Strict bounded LRU rotation cache capacity
+    MAX_ROTATION_ENTRIES = 120  # Strict bounded LRU rotation cache capacity (120 entries)
 
     HIGH_FIDELITY_PLAYER_MAP = {
         0: 'high_fidelity/player_drones/01_striker/hero_2048.png',
@@ -41,7 +41,7 @@ class SpriteManager:
     }
 
     # Canonical base dimensions for downscaling high-res master PNGs to avoid huge RAM footprint
-    CANONICAL_PLAYER_SIZE = (296, 256)
+    CANONICAL_PLAYER_SIZE = (352, 304)
     CANONICAL_ENEMY_SIZES = {
         'scout': (170, 156),
         'shooter': (190, 176),
@@ -162,7 +162,7 @@ class SpriteManager:
     # -------------------------------------------------------------------------
     # PLAYER DRONES (High-Fidelity Large Variants 0..4)
     # -------------------------------------------------------------------------
-    def get_player_sprite(self, state: str = 'idle', skin_idx: int = 0, target_size: tuple[int, int] = (148, 128)) -> pygame.Surface:
+    def get_player_sprite(self, state: str = 'idle', skin_idx: int = 0, target_size: tuple[int, int] = (176, 152)) -> pygame.Surface:
         idx = max(0, min(4, skin_idx))
         cache_key = ('player', state, idx, target_size)
         if cache_key in self._skin_cache:
@@ -204,9 +204,9 @@ class SpriteManager:
         self._skin_cache[cache_key] = scaled
         return scaled
 
-    def get_rotated_player_sprite(self, state: str = 'idle', skin_idx: int = 0, angle_deg: float = 0.0, target_size: tuple[int, int] = (148, 128)) -> pygame.Surface:
+    def get_rotated_player_sprite(self, state: str = 'idle', skin_idx: int = 0, angle_deg: float = 0.0, target_size: tuple[int, int] = (176, 152)) -> pygame.Surface:
         """Returns pre-cached, rotated player sprite from bounded rotation cache without state duplication."""
-        # Unify non-hit states to avoid 4x duplicate rotation tables
+        # Unify non-hit states to avoid duplicate rotation tables
         state_key = 'hit' if state == 'hit' else 'base'
         base_key = ('player', state_key, max(0, min(4, skin_idx)), target_size)
         base_sprite = self.get_player_sprite(state=state, skin_idx=skin_idx, target_size=target_size)
@@ -440,33 +440,6 @@ class SpriteManager:
         base_sprite = self.get_boss_sprite(boss_key=boss_key, phase=phase, target_size=target_size)
         return self._get_or_create_rotated_surface(base_key, base_sprite, angle_deg)
 
-    # -------------------------------------------------------------------------
-    # ZERO-MEMORY SHADOW STUBS (Compatibility with unit tests, 0 disk I/O, 0 shadows)
-    # -------------------------------------------------------------------------
-    def _get_dummy_shadow(self, target_size: tuple[int, int]) -> pygame.Surface:
-        if not hasattr(self, '_dummy_shadows'):
-            self._dummy_shadows = {}
-        if target_size not in self._dummy_shadows:
-            self._dummy_shadows[target_size] = pygame.Surface(target_size, pygame.SRCALPHA)
-        return self._dummy_shadows[target_size]
-
-    def get_player_shadow(self, skin_idx: int = 0, target_size: tuple[int, int] = (76, 48)) -> pygame.Surface:
-        return self._get_dummy_shadow(target_size)
-
-    def get_scout_shadow(self, target_size: tuple[int, int] = (36, 22)) -> pygame.Surface:
-        return self._get_dummy_shadow(target_size)
-
-    def get_shooter_shadow(self, target_size: tuple[int, int] = (44, 28)) -> pygame.Surface:
-        return self._get_dummy_shadow(target_size)
-
-    def get_heavy_shadow(self, target_size: tuple[int, int] = (58, 36)) -> pygame.Surface:
-        return self._get_dummy_shadow(target_size)
-
-    def get_shield_shadow(self, target_size: tuple[int, int] = (46, 30)) -> pygame.Surface:
-        return self._get_dummy_shadow(target_size)
-
-    def get_boss_shadow(self, boss_key: str = 'assembly_warden', target_size: tuple[int, int] = (120, 72)) -> pygame.Surface:
-        return self._get_dummy_shadow(target_size)
 
     def get_rotated_surface(self, surf: pygame.Surface, angle_deg: float) -> pygame.Surface:
         quantized_angle = int(round(angle_deg / self.ANGLE_STEP)) * self.ANGLE_STEP % 360

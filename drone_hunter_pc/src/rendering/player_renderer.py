@@ -82,55 +82,55 @@ class PlayerRenderer:
             (56, 189, 248) if speed_ratio > 0.4 else glow_color
         )
 
-        for side in [-24.0, 24.0]:
+        for side in [-28.0, 28.0]:
             # Nozzle origin position strictly at rear exhaust port
-            noz_x = screen_x - (fwd_x * 35.0) + (right_x * side)
-            noz_y = screen_y - (fwd_y * 35.0) + (right_y * side)
+            noz_x = screen_x - (fwd_x * 42.0) + (right_x * side)
+            noz_y = screen_y - (fwd_y * 42.0) + (right_y * side)
             
             # Outer flame triangle
             tip_x = noz_x - (fwd_x * flame_len)
             tip_y = noz_y - (fwd_y * flame_len)
-            base_l_x = noz_x + (right_x * 6.0)
-            base_l_y = noz_y + (right_y * 6.0)
-            base_r_x = noz_x - (right_x * 6.0)
-            base_r_y = noz_y - (right_y * 6.0)
+            base_l_x = noz_x + (right_x * 7.0)
+            base_l_y = noz_y + (right_y * 7.0)
+            base_r_x = noz_x - (right_x * 7.0)
+            base_r_y = noz_y - (right_y * 7.0)
             pygame.draw.polygon(canvas, flame_color, [(base_l_x, base_l_y), (base_r_x, base_r_y), (tip_x, tip_y)])
 
             # Inner white flame core
             core_tip_x = noz_x - (fwd_x * core_len)
             core_tip_y = noz_y - (fwd_y * core_len)
-            c_base_l_x = noz_x + (right_x * 3.0)
-            c_base_l_y = noz_y + (right_y * 3.0)
-            c_base_r_x = noz_x - (right_x * 3.0)
-            c_base_r_y = noz_y - (right_y * 3.0)
+            c_base_l_x = noz_x + (right_x * 3.5)
+            c_base_l_y = noz_y + (right_y * 3.5)
+            c_base_r_x = noz_x - (right_x * 3.5)
+            c_base_r_y = noz_y - (right_y * 3.5)
             pygame.draw.polygon(canvas, COLOR_WHITE, [(c_base_l_x, c_base_l_y), (c_base_r_x, c_base_r_y), (core_tip_x, core_tip_y)])
 
-        # 4. Render Pre-Cached Rotated Mechanical Drone Chassis (Primary Visual - Enlarged HD Scale)
+        # 3. Render Pre-Cached Rotated Mechanical Drone Chassis (Primary Visual - Enlarged HD Scale 176x152)
         rotated_drone = self.sprite_manager.get_rotated_player_sprite(
-            state=state, skin_idx=skin_idx, angle_deg=total_rot_deg, target_size=(148, 128)
+            state=state, skin_idx=skin_idx, angle_deg=total_rot_deg, target_size=(176, 152)
         )
         rot_rect = rotated_drone.get_rect(center=(int(round(screen_x)), int(round(screen_y))))
         canvas.blit(rotated_drone, rot_rect)
 
-        # 5. Muzzle Flash Flares at Weapon Hardpoints (Tight, Non-Obscuring)
+        # 4. Muzzle Flash Flares at Weapon Hardpoints (Tight, Non-Obscuring)
         if player.muzzle_flash_timer > 0:
             flash_rad = int(8 + (player.muzzle_flash_timer * 35.0))
-            for side in [-28.0, 28.0]:
-                gun_x = screen_x + (fwd_x * 42.0) + (right_x * side)
-                gun_y = screen_y + (fwd_y * 42.0) + (right_y * side)
+            for side in [-32.0, 32.0]:
+                gun_x = screen_x + (fwd_x * 48.0) + (right_x * side)
+                gun_y = screen_y + (fwd_y * 48.0) + (right_y * side)
                 pygame.draw.circle(canvas, (255, 255, 255), (int(gun_x), int(gun_y)), flash_rad)
                 pygame.draw.circle(canvas, primary_color, (int(gun_x), int(gun_y)), flash_rad + 3, 2)
 
-        # 6. Low Health Warning Sparks (Subtle localized warning)
+        # 5. Low Health Warning Sparks (Subtle localized warning)
         if player.health < player.max_health * 0.30:
             if random.random() < 0.20:
-                sp_x = screen_x + random.randint(-20, 20)
-                sp_y = screen_y + random.randint(-20, 20)
+                sp_x = screen_x + random.randint(-24, 24)
+                sp_y = screen_y + random.randint(-24, 24)
                 pygame.draw.circle(canvas, (250, 204, 21), (int(sp_x), int(sp_y)), random.randint(1, 3))
 
-        # 7. Active Shield Bubble Hit Overlay (Translucent Perimeter Ring)
+        # 6. Active Shield Bubble Hit Overlay (Translucent Perimeter Ring)
         if player.shield_hits > 0:
-            shield_r = 75
+            shield_r = 86
             shield_surf = self._shield_surf
             shield_surf.fill((0, 0, 0, 0))
             shimmer_alpha = int(100 + 40 * math.sin(pygame.time.get_ticks() * 0.008))
@@ -139,9 +139,9 @@ class PlayerRenderer:
             pygame.draw.circle(shield_surf, (255, 255, 255, shimmer_alpha // 2), (shield_r + 5, shield_r + 5), shield_r - 4, 1)
             canvas.blit(shield_surf, (int(round(screen_x)) - shield_r - 5, int(round(screen_y)) - shield_r - 5))
 
-        # 8. Overdrive Hyper-Aura (Non-Obstructive Outer Ring)
+        # 7. Overdrive Hyper-Aura (Non-Obstructive Outer Ring)
         if player.overdrive_timer > 0:
-            od_r = 85
+            od_r = 96
             od_surf = self._od_surf
             od_surf.fill((0, 0, 0, 0))
             pulse_a = int(110 + 45 * math.cos(pygame.time.get_ticks() * 0.02))

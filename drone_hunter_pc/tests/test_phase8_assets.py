@@ -92,11 +92,6 @@ class TestPhase8PlayerVisualOverhaul(unittest.TestCase):
         surf3 = self.sm.get_rotated_player_sprite(state='idle', skin_idx=0, angle_deg=44.2, target_size=(90, 78))
         self.assertIs(surf1, surf3)
 
-    def test_player_shadow_is_unrotated(self):
-        shadow = self.sm.get_player_shadow(target_size=(76, 48))
-        self.assertIsNotNone(shadow)
-        self.assertEqual(shadow.get_size(), (76, 48))
-
     def test_sprite_manager_distinct_chassis_models(self):
         surfs = [self.sm.get_player_sprite(state='idle', skin_idx=s, target_size=(90, 78)) for s in range(5)]
         for i in range(len(surfs)):
@@ -157,14 +152,10 @@ class TestPhase8PlayerVisualOverhaul(unittest.TestCase):
             for c in corners:
                 self.assertEqual(c, 0, f'{rel_path} corner not transparent')
 
-    def test_scout_rotation_and_shadow_cache(self):
+    def test_scout_rotation_cache(self):
         s1 = self.sm.get_rotated_scout_sprite(state='idle', angle_deg=90.0, target_size=(52, 46))
         s2 = self.sm.get_rotated_scout_sprite(state='idle', angle_deg=90.0, target_size=(52, 46))
         self.assertIs(s1, s2)
-
-        sh1 = self.sm.get_scout_shadow(target_size=(36, 22))
-        sh2 = self.sm.get_scout_shadow(target_size=(36, 22))
-        self.assertIs(sh1, sh2)
 
     def test_scout_enemy_rendering_states(self):
         from src.entities.enemy import Scout
@@ -184,10 +175,6 @@ class TestPhase8PlayerVisualOverhaul(unittest.TestCase):
         s2 = self.sm.get_rotated_shooter_sprite(state='idle', angle_deg=45.0, target_size=(50, 46))
         self.assertIs(s1, s2)
 
-        sh1 = self.sm.get_shooter_shadow(target_size=(44, 28))
-        sh2 = self.sm.get_shooter_shadow(target_size=(44, 28))
-        self.assertIs(sh1, sh2)
-
         from src.entities.enemy import Enemy
         from src.data.game_data import TARGET_TYPE_SHOOTER
         shooter = Enemy(enemy_type=TARGET_TYPE_SHOOTER, pos=(400, 300))
@@ -200,10 +187,6 @@ class TestPhase8PlayerVisualOverhaul(unittest.TestCase):
         s2 = self.sm.get_rotated_heavy_sprite(state='idle', angle_deg=90.0, target_size=(62, 58))
         self.assertIs(s1, s2)
 
-        sh1 = self.sm.get_heavy_shadow(target_size=(58, 36))
-        sh2 = self.sm.get_heavy_shadow(target_size=(58, 36))
-        self.assertIs(sh1, sh2)
-
         from src.entities.enemy import Enemy
         from src.data.game_data import TARGET_TYPE_HEAVY
         heavy = Enemy(enemy_type=TARGET_TYPE_HEAVY, pos=(400, 300))
@@ -215,10 +198,6 @@ class TestPhase8PlayerVisualOverhaul(unittest.TestCase):
         s1 = self.sm.get_rotated_shield_drone_sprite(state='idle', angle_deg=180.0, target_size=(50, 46))
         s2 = self.sm.get_rotated_shield_drone_sprite(state='idle', angle_deg=180.0, target_size=(50, 46))
         self.assertIs(s1, s2)
-
-        sh1 = self.sm.get_shield_shadow(target_size=(46, 30))
-        sh2 = self.sm.get_shield_shadow(target_size=(46, 30))
-        self.assertIs(sh1, sh2)
 
         from src.entities.enemy import Enemy
         from src.data.game_data import TARGET_TYPE_SHIELD_DRONE
@@ -244,9 +223,6 @@ class TestPhase8PlayerVisualOverhaul(unittest.TestCase):
             rot2 = self.sm.get_rotated_boss_sprite(boss_key=key, angle_deg=30.0, phase=1, target_size=(100, 100))
             self.assertIs(rot1, rot2)
 
-        sh = self.sm.get_boss_shadow(target_size=(120, 72))
-        self.assertIsNotNone(sh)
-
     def test_projectiles_caching(self):
         for ptype in ['pulse', 'scatter', 'missile', 'enemy']:
             p1 = self.sm.get_projectile_sprite(ptype, (16, 16))
@@ -255,20 +231,22 @@ class TestPhase8PlayerVisualOverhaul(unittest.TestCase):
 
     def test_bounded_rotation_cache(self):
         self.sm.clear_rotation_cache()
-        for deg in range(0, 720, 2):
-            self.sm.get_rotated_player_sprite(state='idle', skin_idx=0, angle_deg=float(deg), target_size=(148, 128))
+        for deg in range(0, 1440, 2):
+            self.sm.get_rotated_player_sprite(state='idle', skin_idx=0, angle_deg=float(deg), target_size=(176, 152))
             self.sm.get_rotated_scout_sprite(state='idle', angle_deg=float(deg), target_size=(52, 46))
+            self.sm.get_rotated_shooter_sprite(state='idle', angle_deg=float(deg), target_size=(52, 48))
 
         stats = self.sm.get_cache_stats()
-        self.assertLessEqual(stats["rotated_surfaces"], self.sm.MAX_ROTATION_ENTRIES)
+        self.assertEqual(stats["max_rotation_capacity"], 120)
+        self.assertLessEqual(stats["rotated_surfaces"], 120)
         self.assertEqual(stats["angle_step"], 6)
 
     def test_duplicate_state_cache_unification(self):
-        s_idle = self.sm.get_rotated_player_sprite(state='idle', skin_idx=0, angle_deg=32.0, target_size=(148, 128))
-        s_move = self.sm.get_rotated_player_sprite(state='move', skin_idx=0, angle_deg=32.0, target_size=(148, 128))
-        s_fire = self.sm.get_rotated_player_sprite(state='fire', skin_idx=0, angle_deg=32.0, target_size=(148, 128))
-        s_bank_l = self.sm.get_rotated_player_sprite(state='bank_left', skin_idx=0, angle_deg=32.0, target_size=(148, 128))
-        s_bank_r = self.sm.get_rotated_player_sprite(state='bank_right', skin_idx=0, angle_deg=32.0, target_size=(148, 128))
+        s_idle = self.sm.get_rotated_player_sprite(state='idle', skin_idx=0, angle_deg=32.0, target_size=(176, 152))
+        s_move = self.sm.get_rotated_player_sprite(state='move', skin_idx=0, angle_deg=32.0, target_size=(176, 152))
+        s_fire = self.sm.get_rotated_player_sprite(state='fire', skin_idx=0, angle_deg=32.0, target_size=(176, 152))
+        s_bank_l = self.sm.get_rotated_player_sprite(state='bank_left', skin_idx=0, angle_deg=32.0, target_size=(176, 152))
+        s_bank_r = self.sm.get_rotated_player_sprite(state='bank_right', skin_idx=0, angle_deg=32.0, target_size=(176, 152))
 
         self.assertIs(s_idle, s_move)
         self.assertIs(s_idle, s_fire)
@@ -277,11 +255,25 @@ class TestPhase8PlayerVisualOverhaul(unittest.TestCase):
 
     def test_player_large_gameplay_size(self):
         p_surf = self.sm.get_player_sprite(state='idle', skin_idx=0)
-        self.assertEqual(p_surf.get_size(), (148, 128))
+        self.assertEqual(p_surf.get_size(), (176, 152))
         p_rot = self.sm.get_rotated_player_sprite(state='idle', skin_idx=0, angle_deg=0.0)
-        self.assertEqual(p_rot.get_size(), (148, 128))
+        self.assertEqual(p_rot.get_size(), (176, 152))
+        # Ensure gameplay hitbox radius is unchanged
+        player = Player(pos=(400, 300))
+        self.assertEqual(player.radius, 28)
 
-    def test_shadow_assets_not_in_canonical_cache(self):
+    def test_shadow_apis_and_assets_completely_removed(self):
+        shadow_methods = [
+            'get_player_shadow',
+            'get_scout_shadow',
+            'get_shooter_shadow',
+            'get_heavy_shadow',
+            'get_shield_shadow',
+            'get_boss_shadow',
+        ]
+        for m in shadow_methods:
+            self.assertFalse(hasattr(self.sm, m), f'Obsolete shadow API {m} still present on SpriteManager!')
+
         for key in self.sm._canonical_cache.keys():
             self.assertNotIn('shadow', key.lower())
 
