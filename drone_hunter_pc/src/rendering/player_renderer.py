@@ -60,13 +60,25 @@ class PlayerRenderer:
 
         total_rot_deg = -math.degrees(player.aim_angle) + (tilt_y * 0.35)
 
-        # 2. Directional Ion Exhaust Flames (Crisp, Controlled, Non-Obstructive)
+        # Precalculate direction vectors (used by glow, flames, and all VFX)
         aim_rad = math.radians(-total_rot_deg)
         cos_a = math.cos(aim_rad)
         sin_a = math.sin(aim_rad)
-        # Forward unit vector: (cos_a, sin_a), Perpendicular right unit vector: (-sin_a, cos_a)
         fwd_x, fwd_y = cos_a, sin_a
         right_x, right_y = -sin_a, cos_a
+
+        # 2. Cyan Engine Core Glow (Player Identity: Blue/Cyan Technology)
+        core_alpha = int(90 + 50 * math.sin(pygame.time.get_ticks() * 0.006))
+        for side in [-28.0, 28.0]:
+            cx_ = screen_x - (fwd_x * 40.0) + (right_x * side)
+            cy_ = screen_y - (fwd_y * 40.0) + (right_y * side)
+            pygame.draw.circle(canvas, (14, 165, 233, max(0, min(255, core_alpha))),
+                               (int(cx_), int(cy_)), 6)
+            pygame.draw.circle(canvas, (200, 240, 255, max(0, min(200, core_alpha + 40))),
+                               (int(cx_), int(cy_)), 3)
+
+        # 3. Directional Ion Exhaust Flames (Crisp, Controlled, Non-Obstructive)
+
 
         if is_accelerating:
             flame_len = 22.0 + (speed_ratio * 28.0) + random.uniform(-2.0, 2.0)

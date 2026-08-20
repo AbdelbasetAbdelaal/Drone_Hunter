@@ -474,12 +474,40 @@ class SectorBoss(pygame.sprite.Sprite):
         half = s // 2
 
         from src.rendering.sprite_manager import get_sprite_manager
+        import math as _math
         sm = get_sprite_manager()
 
         # Render 2D Production Boss Chassis with Phase Damage Overlays
         boss_phase = self.current_phase_idx + 1
         boss_surf = sm.get_boss_sprite(self.boss_id, phase=boss_phase, target_size=(s, s))
         surf.blit(boss_surf, (0, 0))
+
+        # ── BOSS IDENTITY VFX: Phase-Reactive Dominant Emissive Ring ──
+        # Phase color language: Phase 1=blue, Phase 2=amber, Phase 3=crimson, Phase 4=violet
+        phase_colors = [
+            (56, 189, 248),    # Phase 1 — Cool Blue (operational)
+            (245, 158, 11),    # Phase 2 — Amber (under attack)
+            (239, 68, 68),     # Phase 3 — Crimson (critical)
+            (217, 70, 239),    # Phase 4 — Violet (unstable/final)
+        ]
+        p_col = phase_colors[min(self.current_phase_idx, len(phase_colors) - 1)]
+        time_ms = pygame.time.get_ticks() * 0.001
+        ring_alpha = int(140 + 80 * _math.sin(time_ms * 3.5 + self.current_phase_idx * 1.3))
+        inner_alpha = int(50 + 35 * _math.sin(time_ms * 5.0))
+
+        # Outer emissive ring (phase color, pulsing, non-opaque)
+        outer_r = half - 6
+        if outer_r > 8:
+            pygame.draw.circle(surf, (*p_col, max(0, min(255, ring_alpha))), center, outer_r, 4)
+            # Subtle inner glow fill
+            pygame.draw.circle(surf, (*p_col, max(0, min(60, inner_alpha))), center, outer_r - 8, 0)
+
+        # Weapon emitter core glow (forward-facing bright dot — weapon identity)
+        weapon_alpha = int(180 + 75 * _math.sin(time_ms * 7.0))
+        wx = center[0]
+        wy = center[1] - half // 2  # Top-center = weapon facing forward
+        pygame.draw.circle(surf, (*p_col, max(0, min(255, weapon_alpha))), (wx, wy), 7)
+        pygame.draw.circle(surf, (255, 255, 255, max(0, min(255, weapon_alpha))), (wx, wy), 4)
 
         # Shield Bubble Aura if Shielded
         if self.is_shielded:
@@ -494,6 +522,7 @@ class SectorBoss(pygame.sprite.Sprite):
 
         self.image = surf
         self.rect = self.image.get_rect(center=self.rect.center)
+
 
 
 # =============================================================================

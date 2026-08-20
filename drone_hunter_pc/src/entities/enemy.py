@@ -568,8 +568,7 @@ class Enemy(pygame.sprite.Sprite):
         if self.enemy_type == TARGET_TYPE_SCOUT:
             from src.rendering.sprite_manager import get_sprite_manager
             sm = get_sprite_manager()
-            
-            # Determine visual state
+
             if self.hit_flash_timer > 0:
                 state = "hit"
             elif self.ai_state == "dive":
@@ -578,8 +577,7 @@ class Enemy(pygame.sprite.Sprite):
                 state = "move"
             else:
                 state = "idle"
-                
-            # Use pre-cached 2-degree rotated Scout sprite from SpriteManager (Enlarged Scale)
+
             rotated_scout = sm.get_rotated_scout_sprite(state=state, angle_deg=-self.heading_angle, target_size=(78, 70))
             rot_rect = rotated_scout.get_rect(center=center)
 
@@ -587,9 +585,39 @@ class Enemy(pygame.sprite.Sprite):
                 surf.blit(rotated_scout, rot_rect)
                 alpha = int(140 + 100 * math.sin(self.state_timer * 22.0))
                 pygame.draw.circle(surf, (244, 63, 94, max(0, min(255, alpha))), center, 36, 3)
-                self.image = surf.copy()
             else:
-                self.image = rotated_scout
+                surf.blit(rotated_scout, rot_rect)
+
+            # ── SCOUT IDENTITY VFX: Bright cyan/blue propulsion streak (fast/light identity) ──
+            aim_rad = math.radians(-self.heading_angle)
+            fwd_x = math.cos(aim_rad)
+            fwd_y = math.sin(aim_rad)
+            right_x = -fwd_y
+            right_y = fwd_x
+            # Two narrow propulsion bursts at rear
+            thruster_intensity = int(160 + 80 * math.sin(self.time_accum * 12.0))
+            for side in (-12.0, 12.0):
+                rx = center[0] - fwd_x * 30 + right_x * side
+                ry = center[1] - fwd_y * 30 + right_y * side
+                streak_len = 14 + int(8 * math.sin(self.time_accum * 15.0 + side))
+                tip_x = rx - fwd_x * streak_len
+                tip_y = ry - fwd_y * streak_len
+                b_col = (56, 189, 248, max(0, min(255, thruster_intensity)))
+                pygame.draw.line(surf, b_col, (int(rx), int(ry)), (int(tip_x), int(tip_y)), 2)
+                # Inner bright white core
+                white_tip_x = rx - fwd_x * (streak_len * 0.45)
+                white_tip_y = ry - fwd_y * (streak_len * 0.45)
+                pygame.draw.line(surf, (200, 230, 255, 180), (int(rx), int(ry)), (int(white_tip_x), int(white_tip_y)), 1)
+
+            # Hit flash: copy+overlay so base surf stays clean
+            if self.hit_flash_timer > 0:
+                flash_copy = surf.copy()
+                mask = pygame.mask.from_surface(flash_copy)
+                flash_surf = mask.to_surface(setcolor=(255, 255, 255, 140), unsetcolor=(0, 0, 0, 0))
+                flash_copy.blit(flash_surf, (0, 0), special_flags=pygame.BLEND_RGBA_ADD)
+                self.image = flash_copy
+            else:
+                self.image = surf  # reuse same _base_surf — preserves identity between redraws
 
             self._cached_angle = self.heading_angle
             self._sprite_dirty = False
@@ -597,8 +625,7 @@ class Enemy(pygame.sprite.Sprite):
         elif self.enemy_type == TARGET_TYPE_SHOOTER:
             from src.rendering.sprite_manager import get_sprite_manager
             sm = get_sprite_manager()
-            
-            # Determine visual state
+
             if self.hit_flash_timer > 0:
                 state = "hit"
             elif self.ai_state == "telegraph":
@@ -607,18 +634,46 @@ class Enemy(pygame.sprite.Sprite):
                 state = "move"
             else:
                 state = "idle"
-                
+
             rotated_shooter = sm.get_rotated_shooter_sprite(state=state, angle_deg=-self.heading_angle, target_size=(88, 80))
             rot_rect = rotated_shooter.get_rect(center=center)
+            surf.blit(rotated_shooter, rot_rect)
+
+            # ── SHOOTER IDENTITY VFX: Weapon-platform emitter glow at front hardpoints ──
+            aim_rad = math.radians(-self.heading_angle)
+            fwd_x = math.cos(aim_rad)
+            fwd_y = math.sin(aim_rad)
+            right_x = -fwd_y
+            right_y = fwd_x
 
             if self.ai_state == "telegraph":
-                surf.blit(rotated_shooter, rot_rect)
                 charge_alpha = int(160 + 95 * math.sin(self.state_timer * 26.0))
                 charge_r = max(3, int(10 * (self.state_timer / SHOOTER_TELEGRAPH_TIME)))
-                pygame.draw.circle(surf, (255, 200, 50, max(0, min(255, charge_alpha))), (center[0] + 26, center[1]), charge_r, 2)
-                self.image = surf.copy()
+                # Central bright weapon muzzle charge glow
+                muz_x = center[0] + fwd_x * 32
+                muz_y = center[1] + fwd_y * 32
+                pygame.draw.circle(surf, (255, 220, 60, max(0, min(255, charge_alpha))), (int(muz_x), int(muz_y)), charge_r + 2)
+                pygame.draw.circle(surf, (255, 255, 255, max(0, min(255, charge_alpha))), (int(muz_x), int(muz_y)), max(1, charge_r - 1))
             else:
-                self.image = rotated_shooter
+                # Subtle persistent weapon-emitter dot (readability in idle)
+                muz_x = center[0] + fwd_x * 30
+                muz_y = center[1] + fwd_y * 30
+                emitter_alpha = int(80 + 50 * math.sin(self.time_accum * 6.0))
+                pygame.draw.circle(surf, (255, 200, 80, max(0, min(255, emitter_alpha))), (int(muz_x), int(muz_y)), 4)
+                # Side hardpoint dots
+                for side in (-14.0, 14.0):
+                    hx = center[0] + fwd_x * 22 + right_x * side
+                    hy = center[1] + fwd_y * 22 + right_y * side
+                    pygame.draw.circle(surf, (200, 160, 60, 90), (int(hx), int(hy)), 2)
+
+            if self.hit_flash_timer > 0:
+                flash_copy = surf.copy()
+                mask = pygame.mask.from_surface(flash_copy)
+                flash_surf = mask.to_surface(setcolor=(255, 255, 255, 140), unsetcolor=(0, 0, 0, 0))
+                flash_copy.blit(flash_surf, (0, 0), special_flags=pygame.BLEND_RGBA_ADD)
+                self.image = flash_copy
+            else:
+                self.image = surf
 
             self._cached_angle = self.heading_angle
             self._sprite_dirty = False
@@ -626,8 +681,7 @@ class Enemy(pygame.sprite.Sprite):
         elif self.enemy_type in (TARGET_TYPE_HEAVY, TARGET_TYPE_ARMORED):
             from src.rendering.sprite_manager import get_sprite_manager
             sm = get_sprite_manager()
-            
-            # Determine visual state
+
             if self.hit_flash_timer > 0:
                 state = "hit"
             elif self.ai_state == "pressure":
@@ -636,17 +690,44 @@ class Enemy(pygame.sprite.Sprite):
                 state = "move"
             else:
                 state = "idle"
-                
+
             rotated_heavy = sm.get_rotated_heavy_sprite(state=state, angle_deg=-self.heading_angle, target_size=(110, 102))
             rot_rect = rotated_heavy.get_rect(center=center)
+            surf.blit(rotated_heavy, rot_rect)
+
+            # ── HEAVY IDENTITY VFX: Hot orange engine exhaust + threat ring in pressure ──
+            aim_rad = math.radians(-self.heading_angle)
+            fwd_x = math.cos(aim_rad)
+            fwd_y = math.sin(aim_rad)
+            right_x = -fwd_y
+            right_y = fwd_x
+
+            # Dual hot engine plumes at rear (large, hot orange — armored threat identity)
+            eng_intensity = int(190 + 60 * math.sin(self.time_accum * 8.0))
+            for side in (-18.0, 18.0):
+                ex = center[0] - fwd_x * 42 + right_x * side
+                ey = center[1] - fwd_y * 42 + right_y * side
+                plume_len = 16 + int(10 * abs(math.sin(self.time_accum * 7.5 + side)))
+                tip_x = ex - fwd_x * plume_len
+                tip_y = ey - fwd_y * plume_len
+                # Outer orange plume
+                pygame.draw.line(surf, (245, 120, 20, max(0, min(255, eng_intensity))), (int(ex), int(ey)), (int(tip_x), int(tip_y)), 4)
+                # Inner hot yellow core
+                pygame.draw.line(surf, (255, 210, 40, max(0, min(255, eng_intensity))), (int(ex), int(ey)), (int(ex - fwd_x * plume_len * 0.4), int(ey - fwd_y * plume_len * 0.4)), 2)
 
             if self.ai_state == "pressure":
-                surf.blit(rotated_heavy, rot_rect)
+                # Pressure mode: strong orange threat ring
                 glow_alpha = int(150 + 90 * math.sin(self.state_timer * 20.0))
-                pygame.draw.circle(surf, (245, 158, 11, max(0, min(255, glow_alpha))), center, s // 2 - 4, 3)
-                self.image = surf.copy()
+                pygame.draw.circle(surf, (245, 100, 11, max(0, min(255, glow_alpha))), center, s // 2 - 4, 3)
+
+            if self.hit_flash_timer > 0:
+                flash_copy = surf.copy()
+                mask = pygame.mask.from_surface(flash_copy)
+                flash_surf = mask.to_surface(setcolor=(255, 255, 255, 140), unsetcolor=(0, 0, 0, 0))
+                flash_copy.blit(flash_surf, (0, 0), special_flags=pygame.BLEND_RGBA_ADD)
+                self.image = flash_copy
             else:
-                self.image = rotated_heavy
+                self.image = surf
 
             self._cached_angle = self.heading_angle
             self._sprite_dirty = False
@@ -654,17 +735,35 @@ class Enemy(pygame.sprite.Sprite):
         elif self.enemy_type == TARGET_TYPE_SHIELD_DRONE:
             from src.rendering.sprite_manager import get_sprite_manager
             sm = get_sprite_manager()
-            
-            # Determine visual state
+
             state = "hit" if self.hit_flash_timer > 0 else "idle"
             rotated_shield = sm.get_rotated_shield_drone_sprite(state=state, angle_deg=-self.heading_angle, target_size=(90, 82))
             rot_rect = rotated_shield.get_rect(center=center)
             surf.blit(rotated_shield, rot_rect)
 
-            # Rotating energy shield arc around physical nodes
-            arc_rect = pygame.Rect(6, 6, s - 12, s - 12)
-            pygame.draw.arc(surf, COLOR_CYAN, arc_rect, self.shield_angle, self.shield_angle + 2.2, 3)
-            self.image = surf.copy()
+            # ── SHIELD ELITE IDENTITY VFX: Dual rotating energy arcs + inner pulse ──
+            # Primary rotating arc (electric blue)
+            arc_rect = pygame.Rect(8, 8, s - 16, s - 16)
+            arc_alpha = int(200 + 55 * math.sin(self.time_accum * 5.0))
+            pygame.draw.arc(surf, (56, 189, 248, max(0, min(255, arc_alpha))), arc_rect,
+                            self.shield_angle, self.shield_angle + 1.9, 3)
+            # Counter-rotating secondary arc (white)
+            pygame.draw.arc(surf, (180, 230, 255, 130), arc_rect,
+                            self.shield_angle + math.pi, self.shield_angle + math.pi + 1.2, 2)
+            # Inner energy pulse dot at shield emitter center
+            pulse_r = int(4 + 2 * math.sin(self.time_accum * 8.0))
+            pygame.draw.circle(surf, (56, 189, 248, 220), center, pulse_r)
+            pygame.draw.circle(surf, (255, 255, 255, 160), center, max(1, pulse_r - 2))
+
+            if self.hit_flash_timer > 0:
+                flash_copy = surf.copy()
+                mask = pygame.mask.from_surface(flash_copy)
+                flash_surf = mask.to_surface(setcolor=(255, 255, 255, 140), unsetcolor=(0, 0, 0, 0))
+                flash_copy.blit(flash_surf, (0, 0), special_flags=pygame.BLEND_RGBA_ADD)
+                self.image = flash_copy
+            else:
+                self.image = surf
+
             self._cached_angle = self.heading_angle
             self._sprite_dirty = False
 
@@ -680,25 +779,15 @@ class Enemy(pygame.sprite.Sprite):
             pygame.draw.circle(surf, self.color_inner, center, s // 4)
 
         if self.enemy_type == TARGET_TYPE_SCOUT:
-            if self.hit_flash_timer > 0:
-                mask = pygame.mask.from_surface(rotated_scout)
-                flash_surf = mask.to_surface(setcolor=(255, 255, 255, 140), unsetcolor=(0, 0, 0, 0))
-                flash_combined = rotated_scout.copy()
-                flash_combined.blit(flash_surf, (0, 0), special_flags=pygame.BLEND_RGBA_ADD)
-                self.image = flash_combined
-            elif self.ai_state == "telegraph":
-                pass # self.image was already set in telegraph block
-            else:
-                self.image = rotated_scout
-            self._cached_angle = self.heading_angle
-            self._sprite_dirty = False
+            pass  # handled above with identity-preserving logic
+        elif self.enemy_type in (TARGET_TYPE_SHOOTER, TARGET_TYPE_HEAVY, TARGET_TYPE_ARMORED, TARGET_TYPE_SHIELD_DRONE):
+            pass  # handled above with identity-preserving logic
         else:
             if self.hit_flash_timer > 0:
                 mask = pygame.mask.from_surface(surf)
                 flash_surf = mask.to_surface(setcolor=(255, 255, 255, 140), unsetcolor=(0, 0, 0, 0))
                 surf.blit(flash_surf, (0, 0), special_flags=pygame.BLEND_RGBA_ADD)
 
-            # PERF: Only rotate when heading meaningfully changes for vector enemies
             angle_changed = (
                 self._cached_angle is None or
                 abs(self.heading_angle - self._cached_angle) >= self._heading_threshold
@@ -710,6 +799,8 @@ class Enemy(pygame.sprite.Sprite):
                 self._sprite_dirty = False
 
         self.rect = self.image.get_rect(center=self.rect.center)
+
+
 
 
 class Scout(Enemy):
