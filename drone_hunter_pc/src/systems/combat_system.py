@@ -17,7 +17,7 @@ from src.data.settings import (
 from src.data.game_data import TARGET_TYPE_SHIELD_DRONE
 from src.entities.bullet import TeslaArcBeam, ClusterTorpedo
 from src.entities.powerup import PowerupItem
-from src.core.game_state import STATE_GAME_OVER
+from src.core.game_state import STATE_GAME_OVER, STATE_MISSION_FAILED
 from src.systems.combat_feedback import CombatFeedbackSystem
 
 class CombatSystem:
