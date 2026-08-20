@@ -361,14 +361,16 @@ def draw_settings_menu_ui(canvas: pygame.Surface, difficulty_mode: int, show_crt
     }
 
 
-def draw_mission_complete(canvas: pygame.Surface, mission_data: dict, was_first_clear: bool, is_sector_clear: bool):
+def draw_mission_complete(canvas: pygame.Surface, mission_data: dict, was_first_clear: bool, is_sector_clear: bool, mouse_pos: tuple[int, int] = None) -> dict:
     vw, vh = canvas.get_size()
+    mx, my = mouse_pos if mouse_pos is not None else pygame.mouse.get_pos()
+    
     overlay = pygame.Surface((vw, vh), pygame.SRCALPHA)
     overlay.fill((5, 15, 10, 220) if was_first_clear else (10, 10, 15, 220))
     canvas.blit(overlay, (0, 0))
 
     t_clear = font_title.render("SECTOR COMPLETE" if is_sector_clear else "MISSION COMPLETE", True, COLOR_EMERALD)
-    canvas.blit(t_clear, t_clear.get_rect(center=(vw // 2, vh // 2 - 80)))
+    canvas.blit(t_clear, t_clear.get_rect(center=(vw // 2, vh // 2 - 100)))
     
     if was_first_clear:
         from src.data.mission_data import MISSION_REWARDS, SECTOR_BONUS
@@ -379,29 +381,54 @@ def draw_mission_complete(canvas: pygame.Surface, mission_data: dict, was_first_
             txt += f"  |  Sector Bonus: +{SECTOR_BONUS.get(mission_data['sector_id'], 0)} Scrap"
             
         t_rew = font_banner.render(txt, True, COLOR_GOLD)
-        canvas.blit(t_rew, t_rew.get_rect(center=(vw // 2, vh // 2 - 20)))
+        canvas.blit(t_rew, t_rew.get_rect(center=(vw // 2, vh // 2 - 40)))
         
         t_nxt = font_banner.render("Next Mission: UNLOCKED", True, COLOR_CYAN)
-        canvas.blit(t_nxt, t_nxt.get_rect(center=(vw // 2, vh // 2 + 20)))
+        canvas.blit(t_nxt, t_nxt.get_rect(center=(vw // 2, vh // 2)))
     else:
         t_rep = font_banner.render("Replay Complete (Gameplay Only - No Duplicate Reward)", True, COLOR_TEXT_DIM)
-        canvas.blit(t_rep, t_rep.get_rect(center=(vw // 2, vh // 2 - 20)))
+        canvas.blit(t_rep, t_rep.get_rect(center=(vw // 2, vh // 2 - 40)))
 
-    t_cont = font_hud.render("[SPACE / ENTER] => SECTOR MAP", True, COLOR_WHITE)
-    canvas.blit(t_cont, t_cont.get_rect(center=(vw // 2, vh // 2 + 80)))
+    btn_w, btn_h = 240, 44
+    bx = vw // 2 - btn_w // 2
+    by = vh // 2 + 50
+
+    r_next = pygame.Rect(bx, by, btn_w, btn_h)
+    r_hangar = pygame.Rect(bx, by + 54, btn_w, btn_h)
+
+    draw_button(canvas, r_next, "[SPACE] SECTOR MAP", (mx, my), base_color=COLOR_EMERALD, text_color=COLOR_EMERALD)
+    draw_button(canvas, r_hangar, "[H] HANGAR ARMORY", (mx, my), base_color=COLOR_GOLD, text_color=COLOR_GOLD)
+
+    return {"next": r_next, "hangar": r_hangar}
 
 
-def draw_mission_failed(canvas: pygame.Surface, scrap: int):
+def draw_mission_failed(canvas: pygame.Surface, scrap: int, mouse_pos: tuple[int, int] = None) -> dict:
     vw, vh = canvas.get_size()
+    mx, my = mouse_pos if mouse_pos is not None else pygame.mouse.get_pos()
+    
     overlay = pygame.Surface((vw, vh), pygame.SRCALPHA)
-    overlay.fill((15, 5, 8, 220))
+    overlay.fill((15, 5, 8, 225))
     canvas.blit(overlay, (0, 0))
 
     t_go = font_gameover.render("MISSION FAILED", True, COLOR_CRIMSON)
-    t_re = font_hud.render("PRESS [SPACE] TO RETRY  |  [M] SECTOR MAP  |  [Q] QUIT", True, COLOR_GOLD)
+    canvas.blit(t_go, t_go.get_rect(center=(vw // 2, vh // 2 - 90)))
 
-    canvas.blit(t_go, t_go.get_rect(center=(vw // 2, vh // 2 - 40)))
-    canvas.blit(t_re, t_re.get_rect(center=(vw // 2, vh // 2 + 40)))
+    t_hint = font_banner.render("TACTICAL DRONE DESTROYED IN COMBAT", True, (160, 175, 195))
+    canvas.blit(t_hint, t_hint.get_rect(center=(vw // 2, vh // 2 - 35)))
+
+    btn_w, btn_h = 240, 44
+    bx = vw // 2 - btn_w // 2
+    by = vh // 2 + 25
+
+    r_retry = pygame.Rect(bx, by, btn_w, btn_h)
+    r_map = pygame.Rect(bx, by + 54, btn_w, btn_h)
+    r_exit = pygame.Rect(bx, by + 108, btn_w, btn_h)
+
+    draw_button(canvas, r_retry, "[SPACE] RETRY MISSION", (mx, my), base_color=COLOR_EMERALD, text_color=COLOR_EMERALD)
+    draw_button(canvas, r_map, "[M] SECTOR MAP", (mx, my), base_color=COLOR_CYAN, text_color=COLOR_CYAN)
+    draw_button(canvas, r_exit, "[Q] QUIT TO MENU", (mx, my), base_color=COLOR_CRIMSON, text_color=COLOR_CRIMSON)
+
+    return {"retry": r_retry, "map": r_map, "exit": r_exit}
 
 
 def draw_pause_settings_ui(canvas: pygame.Surface, difficulty_mode: int, show_crt: bool, sound_enabled: bool, mouse_pos: tuple[int, int] = None) -> dict:
