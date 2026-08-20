@@ -273,8 +273,17 @@ class Game:
         else:
             raw_x, raw_y = screen_pos
 
-        scale_x = SCREEN_WIDTH / max(1, self.win_w)
-        scale_y = SCREEN_HEIGHT / max(1, self.win_h)
+        cur_w = getattr(self, "win_w", None)
+        cur_h = getattr(self, "win_h", None)
+        if not cur_w or not cur_h:
+            if hasattr(self, "screen") and self.screen:
+                cur_w, cur_h = self.screen.get_size()
+                self.win_w, self.win_h = cur_w, cur_h
+            else:
+                cur_w, cur_h = SCREEN_WIDTH, SCREEN_HEIGHT
+
+        scale_x = SCREEN_WIDTH / max(1, cur_w)
+        scale_y = SCREEN_HEIGHT / max(1, cur_h)
         return (int(raw_x * scale_x), int(raw_y * scale_y))
 
     def toggle_fullscreen(self):
@@ -319,7 +328,7 @@ class Game:
 
                 elif ctx.state == STATE_SETTINGS:
                     if event.key in (pygame.K_ESCAPE, pygame.K_b, pygame.K_BACKSPACE, pygame.K_SPACE, pygame.K_RETURN):
-                        ctx.state = self.previous_state or STATE_SECTOR_SELECT
+                        ctx.state = self.previous_state if self.previous_state != STATE_SETTINGS else STATE_SECTOR_SELECT
                     elif event.key == pygame.K_F11:
                         self.toggle_fullscreen()
                     elif event.key == pygame.K_F2:
@@ -370,7 +379,7 @@ class Game:
                         self.previous_state = STATE_HANGAR
                         ctx.state = STATE_SETTINGS
                     elif event.key in (pygame.K_SPACE, pygame.K_RETURN, pygame.K_m, pygame.K_ESCAPE, pygame.K_b, pygame.K_BACKSPACE):
-                        ctx.state = self.previous_state or STATE_SECTOR_SELECT
+                        ctx.state = self.previous_state if self.previous_state != STATE_HANGAR else STATE_SECTOR_SELECT
                     elif event.key == pygame.K_q:
                         self.running = False
 
@@ -507,7 +516,7 @@ class Game:
                         ctx.campaign_completed = False
                         self.save_progress()
                     elif cache.get('back') and cache['back'].collidepoint(mx, my):
-                        ctx.state = self.previous_state or STATE_SECTOR_SELECT
+                        ctx.state = self.previous_state if self.previous_state != STATE_SETTINGS else STATE_SECTOR_SELECT
 
                 elif ctx.state == STATE_SECTOR_SELECT:
                     if cache.get("back") and cache["back"].collidepoint(mx, my):
@@ -547,7 +556,7 @@ class Game:
 
                 elif ctx.state == STATE_HANGAR:
                     if cache.get("back") and cache["back"].collidepoint(mx, my):
-                        ctx.state = self.previous_state or STATE_SECTOR_SELECT
+                        ctx.state = self.previous_state if self.previous_state != STATE_HANGAR else STATE_SECTOR_SELECT
                     elif cache.get("skin") and cache["skin"].collidepoint(mx, my):
                         if ctx.player:
                             ctx.player.cycle_skin()

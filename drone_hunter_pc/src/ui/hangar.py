@@ -96,10 +96,10 @@ def draw_hangar_shop_ui(canvas: pygame.Surface, scrap: int, current_sector_idx: 
     # Bottom Universal Navigation Bar
     # -------------------------------------------------------------------------
     nav_y = vh - 60
-    r_back = pygame.Rect(30, nav_y, 160, 44)
-    r_skin = pygame.Rect(210, nav_y, 220, 44)
-    r_settings = pygame.Rect(450, nav_y, 150, 44)
-    r_exit = pygame.Rect(vw - 160, nav_y, 130, 44)
+    r_back = pygame.Rect(26, nav_y - 2, 175, 48)
+    r_skin = pygame.Rect(215, nav_y - 2, 220, 48)
+    r_settings = pygame.Rect(450, nav_y - 2, 150, 48)
+    r_exit = pygame.Rect(vw - 160, nav_y - 2, 134, 48)
 
     draw_button(canvas, r_back, "[ESC] BACK TO MAP", (mx, my), base_color=COLOR_CYAN)
     draw_button(canvas, r_skin, "[C] CYCLE DRONE SKIN", (mx, my), base_color=COLOR_EMERALD, text_color=COLOR_EMERALD)
