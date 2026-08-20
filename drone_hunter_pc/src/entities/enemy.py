@@ -190,6 +190,9 @@ class Enemy(pygame.sprite.Sprite):
 
         self.base_y = self.pos.y
         self.time_accum = random.uniform(0.0, 10.0)
+        self.anim_timer = random.uniform(0.0, 5.0)
+        self.anim_frame = 0
+        self.hover_offset = pygame.Vector2(0.0, 0.0)
         self.is_diving = False
         self.shield_angle = 0.0
         self.shoot_timer = random.uniform(0.8, 2.2)
@@ -208,14 +211,15 @@ class Enemy(pygame.sprite.Sprite):
         self.rect = self.image.get_rect(center=self.pos)
         self.radius = self.size // 2
 
-        # PERF: Sprite rebuild tracking — only rebuild when visual state changes
-        self._last_heading_angle = self.heading_angle  # track last rendered angle
-        self._last_ai_state = self.ai_state            # track last rendered ai_state
-        self._last_hit_flash = False                  # track hit flash state
-        self._last_is_aiming = False                  # track sniper aim state
-        self._cached_angle = self.heading_angle       # angle corresponding to cached rotation
-        self._sprite_dirty = False                    # cleaned after initial build
-        self._heading_threshold = 3.0                # degrees threshold before re-rotating
+        # PERF: Sprite rebuild tracking — rebuilds with anim/angle/flash/hover
+        self._last_heading_angle = self.heading_angle
+        self._last_ai_state = self.ai_state
+        self._last_hit_flash = False
+        self._last_is_aiming = False
+        self._last_anim_frame = 0
+        self._cached_angle = self.heading_angle
+        self._sprite_dirty = False
+        self._heading_threshold = 2.5
         self._render_sprite()
 
     @property
@@ -509,7 +513,15 @@ class Enemy(pygame.sprite.Sprite):
             self.pos.x -= self.speed * dt
             self.pos.y = self.base_y + math.sin(self.time_accum * 2.5) * 22.0
 
-        self.rect.center = (round(self.pos.x), round(self.pos.y))
+        # Natural organic flight animation: hovering bob & thruster oscillation
+        self.anim_timer += dt
+        self.time_accum += dt
+        hover_amp = 3.5 if self.enemy_type == TARGET_TYPE_SCOUT else (2.0 if self.enemy_type == TARGET_TYPE_SHOOTER else 1.2)
+        hover_freq = 4.5 if self.enemy_type == TARGET_TYPE_SCOUT else 3.0
+        self.hover_offset.y = math.sin(self.time_accum * hover_freq) * hover_amp
+        self.hover_offset.x = math.cos(self.time_accum * (hover_freq * 0.7)) * (hover_amp * 0.5)
+
+        self.rect.center = (round(self.pos.x + self.hover_offset.x), round(self.pos.y + self.hover_offset.y))
 
         # --- Shooting Behaviors for Turrets ---
         if self.enemy_type == TARGET_TYPE_TURRET:
