@@ -37,7 +37,7 @@ from src.systems.encounter_system import EncounterSystem, SCOUT_SHOOTER_HEAVY_EN
 from src.systems.combat_director import CombatDirector
 from src.systems.mission_system import MissionSystem
 from src.systems.boss_system import BossSystem
-from src.data.mission_data import get_mission_data
+from src.data.mission_data import get_mission_data, get_missions_for_sector
 from src.systems.combat_system import CombatSystem
 from src.rendering.camera import Camera2D
 from src.rendering.background import ParallaxBackground
@@ -322,7 +322,20 @@ class Game:
                         ctx.state = self.previous_state or STATE_SECTOR_SELECT
 
                 elif ctx.state == STATE_SECTOR_SELECT:
-                    if event.key in (pygame.K_ESCAPE, pygame.K_b, pygame.K_BACKSPACE):
+                    if event.key in (pygame.K_SPACE, pygame.K_RETURN):
+                        cur_sec = ctx.missions.get("current_sector", 1)
+                        sec_missions = get_missions_for_sector(cur_sec)
+                        target_m = None
+                        for m in sec_missions:
+                            if self.mission_system.get_mission_state(ctx, m["id"]) != "locked":
+                                target_m = m["id"]
+                        if target_m:
+                            self.pending_mission_id = target_m
+                            ctx.state = STATE_MISSION_BRIEFING
+                        elif sec_missions:
+                            self.pending_mission_id = sec_missions[0]["id"]
+                            ctx.state = STATE_MISSION_BRIEFING
+                    elif event.key in (pygame.K_ESCAPE, pygame.K_b, pygame.K_BACKSPACE):
                         ctx.state = STATE_MENU
                     elif event.key == pygame.K_h:
                         self.previous_state = STATE_SECTOR_SELECT
@@ -350,7 +363,7 @@ class Game:
                     elif event.key == pygame.K_s:
                         self.previous_state = STATE_HANGAR
                         ctx.state = STATE_SETTINGS
-                    elif event.key in (pygame.K_m, pygame.K_ESCAPE, pygame.K_b, pygame.K_BACKSPACE):
+                    elif event.key in (pygame.K_SPACE, pygame.K_RETURN, pygame.K_m, pygame.K_ESCAPE, pygame.K_b, pygame.K_BACKSPACE):
                         ctx.state = self.previous_state or STATE_SECTOR_SELECT
                     elif event.key == pygame.K_q:
                         self.running = False
@@ -608,9 +621,10 @@ class Game:
                     wm_bullets = ctx.player.update(dt, targets_group=ctx.target_group)
                     for wb in wm_bullets: ctx.bullet_group.add(wb)
 
-                    # Player Weapon Shooting
+                    # Player Weapon Shooting (Mouse Left Click or Spacebar)
                     mouse_pressed = pygame.mouse.get_pressed()
-                    if mouse_pressed[0] and ctx.player.can_shoot():
+                    is_shooting = mouse_pressed[0] or (keys[pygame.K_SPACE] if isinstance(keys, (list, tuple, dict)) or hasattr(keys, '__getitem__') else False)
+                    if is_shooting and ctx.player.can_shoot():
                         fired_bullets = ctx.player.shoot((world_mx, world_my), level=ctx.current_sub_level, targets_group=ctx.target_group)
                         for b in fired_bullets: ctx.bullet_group.add(b)
                         
