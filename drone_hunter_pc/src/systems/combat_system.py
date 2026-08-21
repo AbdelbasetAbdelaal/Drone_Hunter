@@ -132,10 +132,20 @@ class CombatSystem:
                         ctx.particle_manager.spawn_heavy_impact(b.rect.center)
                     else:
                         ctx.particle_manager.spawn_enemy_hit_sparks(b.rect.center, etype, dmg)
-                if ctx.audio_manager: ctx.audio_manager.play_hit()
+                if ctx.audio_manager:
+                    hit_target_type = getattr(target, "enemy_type", "")
+                    if getattr(target, "is_boss", False):
+                        hit_target_type = "boss"
+                    elif is_shielded:
+                        hit_target_type = "shield"
+                    ctx.audio_manager.play_hit(hit_target_type)
 
                 if is_dead:
-                    if ctx.audio_manager: ctx.audio_manager.play_explosion()
+                    if ctx.audio_manager:
+                        death_type = getattr(target, "enemy_type", "")
+                        if getattr(target, "is_boss", False):
+                            death_type = "boss"
+                        ctx.audio_manager.play_death(death_type)
                     shake_intensity = 3.0 if not getattr(target, "is_boss", False) else 4.0
                     ctx.trigger_shake(shake_intensity, 0.2)
                     earned_pts = ctx.add_score(target.score_value)
@@ -174,15 +184,16 @@ class CombatSystem:
                 is_destroyed = player.take_damage(scaled_dmg)
 
                 if had_shield:
-                    if ctx.audio_manager: ctx.audio_manager.play_hit()
+                    if ctx.audio_manager: ctx.audio_manager.play_hit_shield()
                     if ctx.particle_manager: ctx.particle_manager.spawn_spark(player.rect.center, count=10, color=COLOR_SHIELD)
                 else:
                     ctx.trigger_shake(4.0, 0.2)
                     ctx.damage_flash_timer = 0.18
-                    if ctx.audio_manager: ctx.audio_manager.play_explosion()
+                    if ctx.audio_manager: ctx.audio_manager.play_player_hit()
                     if ctx.particle_manager: ctx.particle_manager.spawn_explosion(player.rect.center, count=20, color=COLOR_CRIMSON)
 
                 if is_destroyed:
+                    if ctx.audio_manager: ctx.audio_manager.play_player_death()
                     if ctx.particle_manager:
                         ctx.particle_manager.spawn_player_destruction(player.rect.center)
                     ctx.trigger_shake(5.0, 0.4)
@@ -204,15 +215,16 @@ class CombatSystem:
                     is_destroyed = player.take_damage(c_dmg)
 
                     if had_shield:
-                        if ctx.audio_manager: ctx.audio_manager.play_hit()
+                        if ctx.audio_manager: ctx.audio_manager.play_hit_shield()
                         if ctx.particle_manager: ctx.particle_manager.spawn_spark(player.rect.center, count=12, color=COLOR_SHIELD)
                     else:
                         ctx.trigger_shake(4.0, 0.2)
                         ctx.damage_flash_timer = 0.18
-                        if ctx.audio_manager: ctx.audio_manager.play_hit()
+                        if ctx.audio_manager: ctx.audio_manager.play_player_hit()
                         if ctx.particle_manager: ctx.particle_manager.spawn_spark(player.rect.center, count=15, color=COLOR_CRIMSON)
 
                     if is_destroyed:
+                        if ctx.audio_manager: ctx.audio_manager.play_player_death()
                         if ctx.particle_manager:
                             ctx.particle_manager.spawn_player_destruction(player.rect.center)
                         ctx.trigger_shake(5.0, 0.4)
@@ -229,8 +241,10 @@ class CombatSystem:
                 if hasattr(h, "gap_y"): # LaserGridFence
                     is_destroyed = player.take_damage(35.0 * dt)
                     ctx.trigger_shake(4.0, 0.1)
+                    if ctx.audio_manager: ctx.audio_manager.play_player_hit()
                     if ctx.particle_manager: ctx.particle_manager.spawn_spark(player.rect.center, count=4, color=COLOR_NEON_RED)
                     if is_destroyed:
+                        if ctx.audio_manager: ctx.audio_manager.play_player_death()
                         if ctx.particle_manager:
                             ctx.particle_manager.spawn_player_destruction(player.rect.center)
                         ctx.trigger_shake(5.0, 0.4)
@@ -239,6 +253,7 @@ class CombatSystem:
                             ctx.state = STATE_MISSION_FAILED
                         else:
                             ctx.state = STATE_GAME_OVER
+
 
         # 5. Player vs Power-up Items
         if player.alive:

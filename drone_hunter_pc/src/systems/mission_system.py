@@ -58,31 +58,33 @@ class MissionSystem:
         else:
             director.set_mission_sequence(seq, loop=False)
             
+        if ctx.audio_manager:
+            ctx.audio_manager.play_mission_start()
+            
         # Start the director
         director.start()
 
     def update(self, dt: float, ctx: GameContext, director: CombatDirector, boss_system=None) -> bool:
         """
-        Updates objective logic.
-        Returns True if the mission just completed this frame.
+        Updates mission progression and checks for victory.
+        Returns True if the mission just concluded successfully.
         """
-        if self.state != STATE_ACTIVE or not self.active_mission_data:
+        if self.state != STATE_ACTIVE:
             return False
-
-        # Phase 6: Boss Encounter Flow for Mission 5
+            
+        # Check for Boss Mission Handling
         if boss_system and boss_system.has_boss_for_mission(self.active_mission_id):
             if boss_system.state == "idle":
                 # Prelude encounters run first; when complete, trigger boss intro
                 if director.state == "complete":
                     boss_system.start_boss_for_mission(self.active_mission_id, ctx)
-                return False
             else:
                 boss_done = boss_system.update(dt, ctx)
                 if boss_done:
                     self._trigger_success(ctx)
                     return True
-                return False
-
+            return False
+            
         obj = self.active_mission_data["objective"]
         
         if obj == OBJECTIVE_SURVIVE:
@@ -146,6 +148,13 @@ class MissionSystem:
                     else:
                         # Final Boss (Sector 5 Mission 5) defeated -> Campaign Complete!
                         ctx.campaign_completed = True
+
+        if ctx.audio_manager:
+            if getattr(ctx, "campaign_completed", False):
+                ctx.audio_manager.play_victory()
+            else:
+                ctx.audio_manager.play_mission_complete()
+
 
     def trigger_failure(self):
         """Handles player death without granting completion rewards."""

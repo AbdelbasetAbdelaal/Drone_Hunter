@@ -39,22 +39,30 @@ class CombatFeedbackSystem:
         # 4. Subtle Camera Micro-Shake
         ctx.trigger_shake(3.0, 0.10)
 
-        # 5. Play Hit Audio
+        # 5. Play Target-Specific Hit Audio
         if ctx.audio_manager:
-            ctx.audio_manager.play_hit()
+            enemy_type = getattr(target, "enemy_type", "")
+            if getattr(target, "is_boss", False):
+                enemy_type = "boss"
+            elif getattr(target, "is_shielded", False) or getattr(target, "shield_hits", 0) > 0:
+                enemy_type = "shield"
+            ctx.audio_manager.play_hit(enemy_type)
 
         # 6. If eliminated, dispatch destruction feedback
         if is_dead:
+            enemy_type = getattr(target, "enemy_type", "")
             if getattr(target, "is_boss", False):
                 ctx.particle_manager.spawn_boss_explosion(target.rect.center)
                 ctx.trigger_shake(14.0, 0.55)
+                if ctx.audio_manager:
+                    ctx.audio_manager.play_boss_death()
             else:
                 target_color = getattr(target, "color", COLOR_CRIMSON)
                 ctx.particle_manager.spawn_enemy_death(target.rect.center, target_color)
                 ctx.trigger_shake(6.0, 0.20)
+                if ctx.audio_manager:
+                    ctx.audio_manager.play_death(enemy_type)
 
-            if ctx.audio_manager:
-                ctx.audio_manager.play_explosion()
 
     def on_player_hit(self, damage: int):
         """Dispatches player damage feedback."""

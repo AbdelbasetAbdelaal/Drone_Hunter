@@ -141,7 +141,12 @@ class SectorBoss(pygame.sprite.Sprite):
         else:
             self.reinforcement_timer = 999.0
 
+        if getattr(self, "_last_audio_phase", -1) != phase_idx and phase_idx > 0:
+            self.phase_audio_pending = phase_idx + 1
+        self._last_audio_phase = phase_idx
+
         self._sprite_dirty = True
+
 
     @property
     def current_phase_number(self) -> int:

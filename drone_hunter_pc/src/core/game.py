@@ -661,7 +661,7 @@ class Game:
                         fired_bullets = ctx.player.shoot((world_mx, world_my), level=ctx.current_sub_level, targets_group=ctx.target_group, particle_manager=self.particle_manager)
                         for b in fired_bullets: ctx.bullet_group.add(b)
                         if ctx.player.active_weapon == "pulse": self.audio_manager.play_laser()
-                        elif ctx.player.active_weapon == "scatter": self.audio_manager.play_laser()
+                        elif ctx.player.active_weapon == "scatter": self.audio_manager.play_scatter()
                         elif ctx.player.active_weapon == "missile": self.audio_manager.play_missile()
                         elif ctx.player.active_weapon == "beam": self.audio_manager.play_beam()
                         elif ctx.player.active_weapon == "tesla": self.audio_manager.play_tesla()
@@ -705,6 +705,11 @@ class Game:
                     wm_bullets = ctx.player.update(dt, targets_group=ctx.target_group)
                     for wb in wm_bullets: ctx.bullet_group.add(wb)
 
+                    # Dynamic ion engine audio modulation
+                    speed = ctx.player.velocity.length()
+                    speed_ratio = speed / max(1.0, ctx.player.max_speed)
+                    self.audio_manager.update_engine_sound(speed_ratio, ctx.player.is_accelerating)
+
                     # Player Weapon Shooting (Mouse Left Click or Spacebar)
                     mouse_pressed = pygame.mouse.get_pressed()
                     is_shooting = mouse_pressed[0] or (keys[pygame.K_SPACE] if isinstance(keys, (list, tuple, dict)) or hasattr(keys, '__getitem__') else False)
@@ -713,7 +718,7 @@ class Game:
                         for b in fired_bullets: ctx.bullet_group.add(b)
                         
                         if ctx.player.active_weapon == "pulse": self.audio_manager.play_laser()
-                        elif ctx.player.active_weapon == "scatter": self.audio_manager.play_laser()
+                        elif ctx.player.active_weapon == "scatter": self.audio_manager.play_scatter()
                         elif ctx.player.active_weapon == "missile": self.audio_manager.play_missile()
                         elif ctx.player.active_weapon == "beam": self.audio_manager.play_beam()
                         elif ctx.player.active_weapon == "tesla": self.audio_manager.play_tesla()
@@ -721,12 +726,15 @@ class Game:
 
                     # Smooth Camera Tracking
                     self.camera.update((ctx.player.pos.x, ctx.player.pos.y), dt)
+                else:
+                    self.audio_manager.stop_engine_sound()
 
                 # 2. Phase 5 & 6 Mission System & Boss Orchestration overrides Spawner
                 if self.mission_system.active_mission_id is not None:
                     self.combat_director.update(dt, ctx)
                     mission_done = self.mission_system.update(dt, ctx, self.combat_director, self.boss_system)
                     if mission_done:
+
                         if self.mission_system.is_mission_success:
                             if getattr(ctx, "campaign_completed", False) and self.mission_system.active_mission_id == "S5_M5":
                                 ctx.state = STATE_VICTORY
@@ -810,8 +818,11 @@ class Game:
                         ctx.state = STATE_LEVEL_CLEAR
                         self.audio_manager.play_powerup()
                         self.save_progress()
+        else:
+            self.audio_manager.stop_engine_sound()
 
     def render(self):
+
         ctx = self.context
         canvas = self.renderer.canvas
         canvas.fill(COLOR_BG)

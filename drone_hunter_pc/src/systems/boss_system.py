@@ -142,6 +142,11 @@ class BossSystem:
                 self._trigger_boss_defeat(ctx)
                 return False
 
+            # Boss Phase Transition Audio Hook (Triggers ONCE per phase change)
+            if ctx.audio_manager and getattr(self.active_boss, "phase_audio_pending", 0) > 0:
+                ctx.audio_manager.play_boss_phase(self.active_boss.phase_audio_pending)
+                self.active_boss.phase_audio_pending = 0
+
             # Manage Reinforcements
             self._clean_active_reinforcements(ctx)
             current_active = len(self.active_reinforcements)
@@ -150,6 +155,7 @@ class BossSystem:
                 self._spawn_reinforcements(types_to_spawn, ctx)
 
             return False
+
 
         # ---------------------------------------------------------------------
         # 3. BOSS DEFEATED DEATH SEQUENCE
