@@ -132,12 +132,44 @@ class LightningArc:
             pygame.draw.lines(surface, COLOR_WHITE, False, screen_pts, 1)
 
 
+class ExplosionOverlay:
+    def __init__(self, pos: tuple[float, float], sprite: pygame.Surface, lifetime: float = 0.4, max_size: int = 64):
+        self.pos = pygame.Vector2(pos)
+        self.sprite = sprite
+        self.lifetime = lifetime
+        self.max_lifetime = lifetime
+        self.max_size = max_size
+        self.current_size = max_size * 0.3
+
+    def update(self, dt: float) -> bool:
+        self.lifetime -= dt
+        if self.lifetime <= 0:
+            return False
+        progress = 1.0 - (self.lifetime / self.max_lifetime)
+        self.current_size = self.max_size * (0.3 + 0.7 * progress)
+        return True
+
+    def draw(self, surface: pygame.Surface, camera_offset: tuple[float, float] = (0.0, 0.0)):
+        pct = max(0.0, min(1.0, self.lifetime / self.max_lifetime))
+        alpha = int(255 * pct)
+        ox, oy = camera_offset
+        sz = int(self.current_size)
+        if sz > 0 and alpha > 10:
+            scaled = pygame.transform.smoothscale(self.sprite, (sz, sz))
+            scaled.set_alpha(alpha)
+            rect = scaled.get_rect(center=(int(round(self.pos.x - ox)), int(round(self.pos.y - oy))))
+            surface.blit(scaled, rect)
+
+
 class ParticleManager:
     def __init__(self):
         self.particles = pygame.sprite.Group()
         self.floating_texts = pygame.sprite.Group()
         self.lightning_arcs: list[LightningArc] = []
         self.weather_particles = []
+        self.explosion_overlays: list[ExplosionOverlay] = []
+        from src.rendering.sprite_manager import get_sprite_manager
+        self.sprite_manager = get_sprite_manager()
 
     def _enforce_particle_cap(self):
         if len(self.particles) > MAX_COMBAT_PARTICLES:
@@ -156,7 +188,7 @@ class ParticleManager:
             self.particles.add(Particle(pos, vel, color, rad, life, is_spark=True))
         self._enforce_particle_cap()
 
-    def spawn_explosion(self, pos: tuple[float, float], count: int = 24, color: tuple[int, int, int] = COLOR_GOLD):
+    def spawn_explosion(self, pos: tuple[float, float], count: int = 24, color: tuple[int, int, int] = COLOR_GOLD, sprite_name: str | None = None):
         for _ in range(count):
             ang = random.uniform(0, math.tau)
             spd = random.uniform(80.0, 320.0)
@@ -165,14 +197,17 @@ class ParticleManager:
             life = random.uniform(0.25, 0.55)
             self.particles.add(Particle(pos, vel, color, rad, life))
         self._enforce_particle_cap()
+        if sprite_name and self.sprite_manager:
+            exp_sprite = self.sprite_manager.get_vfx_sprite(sprite_name, (64, 64))
+            self.explosion_overlays.append(ExplosionOverlay(pos, exp_sprite, lifetime=0.4, max_size=64))
 
     def spawn_enemy_death(self, pos: tuple[float, float], color: tuple[int, int, int]):
-        self.spawn_explosion(pos, count=28, color=color)
+        self.spawn_explosion(pos, count=28, color=color, sprite_name='explosion_1')
         self.spawn_spark(pos, count=16, color=COLOR_WHITE)
 
     def spawn_boss_explosion(self, pos: tuple[float, float]):
-        self.spawn_explosion(pos, count=55, color=COLOR_GOLD)
-        self.spawn_explosion(pos, count=35, color=COLOR_CRIMSON)
+        self.spawn_explosion(pos, count=55, color=COLOR_GOLD, sprite_name='explosion_2')
+        self.spawn_explosion(pos, count=35, color=COLOR_CRIMSON, sprite_name='explosion_2')
         self.spawn_spark(pos, count=30, color=COLOR_WHITE)
 
     def spawn_drone_trail(self, pos: tuple[float, float]):
@@ -337,6 +372,9 @@ class ParticleManager:
             life = random.uniform(0.20, 0.50)
             self.particles.add(Particle(pos, vel, COLOR_WHITE, random.uniform(2.0, 4.5), life))
         self._enforce_particle_cap()
+        if self.sprite_manager:
+            exp_sprite = self.sprite_manager.get_vfx_sprite('explosion_2', (128, 128))
+            self.explosion_overlays.append(ExplosionOverlay(pos, exp_sprite, lifetime=0.5, max_size=128))
 
     def spawn_floating_text(self, pos: tuple[float, float], text: str, color: tuple[int, int, int] = COLOR_GOLD, font_size: int = 18):
         self.floating_texts.add(FloatingText(pos, text, color, font_size))
@@ -353,6 +391,7 @@ class ParticleManager:
         self.particles.update(dt)
         self.floating_texts.update(dt)
         self.lightning_arcs = [arc for arc in self.lightning_arcs if arc.update(dt)]
+        self.explosion_overlays = [o for o in self.explosion_overlays if o.update(dt)]
 
         # Weather particles
         for p in self.weather_particles[:]:
@@ -365,6 +404,10 @@ class ParticleManager:
         # Weather particles in screen space
         for p in self.weather_particles:
             pygame.draw.circle(surface, p[4], (int(p[0]), int(p[1])), 2)
+
+        # Explosion overlays (high-fidelity sprites)
+        for overlay in self.explosion_overlays:
+            overlay.draw(surface, camera_offset)
 
         # Particles & Text in World Space with Camera Offset
         for part in self.particles:

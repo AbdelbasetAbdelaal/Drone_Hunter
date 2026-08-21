@@ -183,7 +183,6 @@ class CombatSystem:
                     if ctx.particle_manager: ctx.particle_manager.spawn_explosion(player.rect.center, count=20, color=COLOR_CRIMSON)
 
                 if is_destroyed:
-                    player.kill()
                     if ctx.particle_manager:
                         ctx.particle_manager.spawn_player_destruction(player.rect.center)
                     ctx.trigger_shake(5.0, 0.4)
@@ -214,7 +213,6 @@ class CombatSystem:
                         if ctx.particle_manager: ctx.particle_manager.spawn_spark(player.rect.center, count=15, color=COLOR_CRIMSON)
 
                     if is_destroyed:
-                        player.kill()
                         if ctx.particle_manager:
                             ctx.particle_manager.spawn_player_destruction(player.rect.center)
                         ctx.trigger_shake(5.0, 0.4)
@@ -233,7 +231,9 @@ class CombatSystem:
                     ctx.trigger_shake(4.0, 0.1)
                     if ctx.particle_manager: ctx.particle_manager.spawn_spark(player.rect.center, count=4, color=COLOR_NEON_RED)
                     if is_destroyed:
-                        player.kill()
+                        if ctx.particle_manager:
+                            ctx.particle_manager.spawn_player_destruction(player.rect.center)
+                        ctx.trigger_shake(5.0, 0.4)
                         if hasattr(ctx, "mission_system") and ctx.mission_system and ctx.mission_system.active_mission_id is not None:
                             ctx.mission_system.trigger_failure()
                             ctx.state = STATE_MISSION_FAILED

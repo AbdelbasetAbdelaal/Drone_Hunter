@@ -469,12 +469,45 @@ class SpriteManager:
             'scatter': 'weapons/laser_scatter.png',
             'missile': 'weapons/missile.png',
             'enemy': 'weapons/enemy_bullet.png',
+            'beam': 'weapons/laser_beam.png',
+            'tesla': 'weapons/tesla_orb.png',
+            'cluster': 'weapons/cluster_torpedo.png',
         }
         rel = file_map.get(proj_type, 'weapons/laser_pulse.png')
         raw = self._load_raw_image(rel)
         if raw is None:
             fallback = pygame.Surface(target_size, pygame.SRCALPHA)
             pygame.draw.circle(fallback, (56, 189, 248), (target_size[0] // 2, target_size[1] // 2), target_size[0] // 2)
+            self._skin_cache[cache_key] = fallback
+            return fallback
+
+        scaled = pygame.transform.smoothscale(raw, target_size)
+        self._skin_cache[cache_key] = scaled
+        return scaled
+
+    def get_vfx_sprite(self, name: str, target_size: tuple[int, int]) -> pygame.Surface:
+        cache_key = ('vfx', name, target_size)
+        if cache_key in self._skin_cache:
+            return self._skin_cache[cache_key]
+
+        raw = self._load_raw_image(f'vfx/{name}.png')
+        if raw is None:
+            fallback = pygame.Surface(target_size, pygame.SRCALPHA)
+            self._skin_cache[cache_key] = fallback
+            return fallback
+
+        scaled = pygame.transform.smoothscale(raw, target_size)
+        self._skin_cache[cache_key] = scaled
+        return scaled
+
+    def get_player_state_sprite(self, state: str, skin_idx: int, target_size: tuple[int, int]) -> pygame.Surface:
+        cache_key = ('player_state', state, skin_idx, target_size)
+        if cache_key in self._skin_cache:
+            return self._skin_cache[cache_key]
+
+        raw = self._load_raw_image(f'player/player_{state}.png')
+        if raw is None:
+            fallback = pygame.Surface(target_size, pygame.SRCALPHA)
             self._skin_cache[cache_key] = fallback
             return fallback
 

@@ -209,5 +209,97 @@ class TestGameplayValuesUnchanged(unittest.TestCase):
         self.assertEqual(WEAPON_DEFS["missile"]["damage"], 65)
 
 
+class TestAssetBackedVFX(unittest.TestCase):
+    """Test that existing high-fidelity assets are actually used during gameplay events."""
+
+    def test_sprite_manager_vfx_sprites_load(self):
+        from src.rendering.sprite_manager import get_sprite_manager
+        sm = get_sprite_manager()
+        explosion = sm.get_vfx_sprite('explosion_1', (64, 64))
+        self.assertEqual(explosion.get_size(), (64, 64))
+        explosion2 = sm.get_vfx_sprite('explosion_2', (64, 64))
+        self.assertEqual(explosion2.get_size(), (64, 64))
+
+    def test_sprite_manager_player_state_sprites_load(self):
+        from src.rendering.sprite_manager import get_sprite_manager
+        sm = get_sprite_manager()
+        fire = sm.get_player_state_sprite('fire', 0, (50, 52))
+        self.assertIsNotNone(fire)
+        hit = sm.get_player_state_sprite('hit', 0, (100, 70))
+        self.assertIsNotNone(hit)
+        destroy = sm.get_player_state_sprite('destroy', 0, (100, 100))
+        self.assertIsNotNone(destroy)
+
+    def test_projectile_sprites_load(self):
+        from src.rendering.sprite_manager import get_sprite_manager
+        sm = get_sprite_manager()
+        pulse = sm.get_projectile_sprite('pulse', (40, 12))
+        self.assertIsNotNone(pulse)
+        scatter = sm.get_projectile_sprite('scatter', (40, 12))
+        self.assertIsNotNone(scatter)
+        missile = sm.get_projectile_sprite('missile', (45, 16))
+        self.assertIsNotNone(missile)
+
+    def test_bullet_accepts_sprite_image(self):
+        from src.entities.bullet import Bullet
+        from src.rendering.sprite_manager import get_sprite_manager
+        sm = get_sprite_manager()
+        sprite = sm.get_projectile_sprite('pulse', (40, 12))
+        b = Bullet((0, 0), (100, 0), speed=650.0, damage=12, image=sprite)
+        self.assertIs(b.original_image, sprite)
+
+    def test_bullet_falls_back_to_procedural_without_image(self):
+        from src.entities.bullet import Bullet
+        b = Bullet((0, 0), (100, 0), speed=650.0, damage=12)
+        self.assertIsNotNone(b.original_image)
+
+    def test_explosion_overlay_created(self):
+        pm = ParticleManager()
+        pm.spawn_explosion((100, 100), sprite_name='explosion_1')
+        self.assertGreater(len(pm.explosion_overlays), 0)
+
+    def test_explosion_overlay_expires(self):
+        pm = ParticleManager()
+        pm.spawn_explosion((100, 100), sprite_name='explosion_1')
+        for _ in range(60):
+            pm.update(0.016)
+        self.assertEqual(len(pm.explosion_overlays), 0)
+
+    def test_player_destruction_state_set(self):
+        from src.entities.player import Player
+        p = Player((100, 100))
+        p.health = 10.0
+        destroyed = p.take_damage(20.0)
+        self.assertTrue(destroyed)
+        self.assertTrue(p.is_destroyed)
+        self.assertGreater(p.destruction_timer, 0.0)
+        self.assertFalse(p.alive)
+
+    def test_player_destruction_timer_counts_down(self):
+        from src.entities.player import Player
+        p = Player((100, 100))
+        p.health = 10.0
+        p.take_damage(20.0)
+        initial_timer = p.destruction_timer
+        p.update(0.1)
+        self.assertLess(p.destruction_timer, initial_timer)
+
+    def test_player_killed_after_destruction_timer(self):
+        from src.entities.player import Player
+        p = Player((100, 100))
+        p.health = 10.0
+        p.take_damage(20.0)
+        p.destruction_timer = 0.01
+        p.update(0.016)
+        self.assertFalse(p.alive)
+
+    def test_enemy_bullet_default_image_cached(self):
+        from src.entities.bullet import EnemyBullet
+        EnemyBullet._cached_default_image = None
+        b = EnemyBullet((0, 0), (100, 0))
+        self.assertIsNotNone(b.original_image)
+        self.assertIsNotNone(EnemyBullet._cached_default_image)
+
+
 if __name__ == '__main__':
     unittest.main()

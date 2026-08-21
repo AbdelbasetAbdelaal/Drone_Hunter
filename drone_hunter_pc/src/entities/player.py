@@ -28,6 +28,7 @@ from src.entities.bullet import (
     Bullet, HomingMissile, PlasmaLaserBeam, TeslaArcBeam, ClusterTorpedo
 )
 from src.rendering.player_renderer import PlayerRenderer
+from src.rendering.sprite_manager import get_sprite_manager
 
 class WingmanDrone:
     """Autonomous escort mini-drone providing supportive auto-fire."""
@@ -83,6 +84,8 @@ class Player(pygame.sprite.Sprite):
         self.renderer = PlayerRenderer()
         self.muzzle_flash_timer = 0.0
         self.damage_flash_timer = 0.0
+        self.is_destroyed = False
+        self.destruction_timer = 0.0
         
         # Hull & Energy
         self.max_health = PLAYER_MAX_HEALTH
@@ -306,6 +309,8 @@ class Player(pygame.sprite.Sprite):
         self.health = max(0.0, self.health - float(amount))
         if self.health <= 0.0:
             self.alive = False
+            self.is_destroyed = True
+            self.destruction_timer = 0.5
             return True
         return False
 
@@ -355,26 +360,31 @@ class Player(pygame.sprite.Sprite):
         m_x = cx + 24 * cos_a
         m_y = cy + 24 * sin_a
 
+        sm = get_sprite_manager()
+
         if self.active_weapon == WEAPON_PULSE:
-            bullets.append(Bullet((m_x, m_y), target_pos, speed=spd, damage=dmg, color=col))
+            sprite = sm.get_projectile_sprite('pulse', (40, 12))
+            bullets.append(Bullet((m_x, m_y), target_pos, speed=spd, damage=dmg, color=col, image=sprite))
             if self.overdrive_timer > 0.0:
                 od_dmg = int(dmg * 1.25)
-                bullets.append(Bullet((m_x, m_y), target_pos, angle_offset_deg=-12.0, speed=spd * 1.1, damage=od_dmg, color=COLOR_GOLD))
-                bullets.append(Bullet((m_x, m_y), target_pos, angle_offset_deg=12.0, speed=spd * 1.1, damage=od_dmg, color=COLOR_GOLD))
+                bullets.append(Bullet((m_x, m_y), target_pos, angle_offset_deg=-12.0, speed=spd * 1.1, damage=od_dmg, color=COLOR_GOLD, image=sprite))
+                bullets.append(Bullet((m_x, m_y), target_pos, angle_offset_deg=12.0, speed=spd * 1.1, damage=od_dmg, color=COLOR_GOLD, image=sprite))
 
         elif self.active_weapon == WEAPON_SCATTER:
             # Deterministic spread: -11, -5.5, 0, 5.5, 11 degrees
             start_ang = -spread_deg / 2
             step = spread_deg / max(1, proj_count - 1) if proj_count > 1 else 0
+            sprite = sm.get_projectile_sprite('scatter', (40, 12))
             
             for i in range(proj_count):
                 ang = start_ang + step * i
-                bullets.append(Bullet((m_x, m_y), target_pos, angle_offset_deg=ang, speed=spd, damage=dmg, color=col))
+                bullets.append(Bullet((m_x, m_y), target_pos, angle_offset_deg=ang, speed=spd, damage=dmg, color=col, image=sprite))
 
         elif self.active_weapon == WEAPON_MISSILE:
             # Use normal bullet but with larger visual representation later, or HomingMissile if it exists
             # We'll use HomingMissile but give it the correct stats.
-            bullets.append(HomingMissile((m_x, m_y), target_pos, damage=dmg, speed=spd))
+            sprite = sm.get_projectile_sprite('missile', (45, 16))
+            bullets.append(HomingMissile((m_x, m_y), target_pos, damage=dmg, speed=spd, image=sprite))
 
         if particle_manager:
             particle_manager.spawn_muzzle_flash((m_x, m_y), self.aim_angle, self.active_weapon)
@@ -447,6 +457,12 @@ class Player(pygame.sprite.Sprite):
             self.muzzle_flash_timer = max(0.0, self.muzzle_flash_timer - dt)
         if self.damage_flash_timer > 0:
             self.damage_flash_timer = max(0.0, self.damage_flash_timer - dt)
+
+        # Destruction Animation Timer
+        if self.is_destroyed:
+            self.destruction_timer = max(0.0, self.destruction_timer - dt)
+            if self.destruction_timer <= 0:
+                self.kill()
 
         # Ability Timers
         for w in self.weapon_cooldowns:
