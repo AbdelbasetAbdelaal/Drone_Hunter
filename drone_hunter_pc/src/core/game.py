@@ -90,6 +90,7 @@ class Game:
         self.context.particle_manager = self.particle_manager
         self.context.audio_manager = self.audio_manager
         self.context.save_system = self.save_system
+        self.context.spawner = self.spawner
         self.context.background = self.background
         self.context.encounter_system = self.encounter_system
         self.context.combat_director = self.combat_director
@@ -108,6 +109,9 @@ class Game:
         self.context.campaign_completed = saved_data.get("campaign_completed", False)
         self.context.show_crt = saved_data["show_crt"]
         self.context.difficulty_mode = saved_data["difficulty_mode"]
+        self.context.selected_drone = saved_data.get("selected_drone", "striker")
+        self.context.selected_skin = saved_data.get("selected_skin", 0)
+        self.context.selected_skin_override = self.context.selected_skin
 
         self.progression = ProgressionSystem(
             self.context.unlocked_sectors,
@@ -160,6 +164,10 @@ class Game:
         ctx.shake_timer = 0.0
 
         p = Player((WORLD_WIDTH // 2, WORLD_HEIGHT // 2))
+        selected_skin = getattr(ctx, "selected_skin_override", None)
+        if selected_skin is None:
+            selected_skin = getattr(ctx, "selected_skin", 0)
+        p.apply_drone_class(selected_skin)
         p.apply_shop_upgrades(ctx.upgrade_levels)
         self.progression.apply_to_player(ctx, p)
         p.health = p.max_health
@@ -194,6 +202,10 @@ class Game:
         self.particle_manager.floating_texts.empty()
 
         ctx.player = Player((WORLD_WIDTH // 2, WORLD_HEIGHT // 2))
+        selected_skin = getattr(ctx, "selected_skin_override", None)
+        if selected_skin is None:
+            selected_skin = getattr(ctx, "selected_skin", 0)
+        ctx.player.apply_drone_class(selected_skin)
         ctx.player.apply_shop_upgrades(ctx.upgrade_levels)
         self.progression.apply_to_player(ctx, ctx.player)
         ctx.player_group.add(ctx.player)
@@ -205,10 +217,22 @@ class Game:
         )
         is_boss_stage = (ctx.current_sub_level == 3)
         ctx.wave_manager = WaveManager(target_score, is_boss_stage=is_boss_stage)
-        self.spawner.reset_for_stage(ctx.current_sector_idx * 3 + ctx.current_sub_level, ctx.current_sector_idx)
-        self.encounter_system.reset()
-        self.combat_director.reset()
-        self.background.set_sector(ctx.current_sector_idx)
+        if hasattr(self, "spawner") and self.spawner is not None:
+            self.spawner.reset_for_stage(ctx.current_sector_idx * 3 + ctx.current_sub_level, ctx.current_sector_idx)
+        if hasattr(self, "encounter_system") and self.encounter_system is not None:
+            self.encounter_system.reset()
+        if hasattr(self, "combat_director") and self.combat_director is not None:
+            self.combat_director.reset()
+        if hasattr(self, "background") and self.background is not None:
+            self.background.set_sector(ctx.current_sector_idx)
+        
+        # Phase 2E Development Integration: Sector 1 (Cyber Factory internally is 1) Stage 1
+        if ctx.current_sector_idx == 1 and ctx.current_sub_level == 1:
+            if hasattr(self, "combat_director") and self.combat_director is not None:
+                self.combat_director.start()
+            
+        ctx.state = STATE_PLAYING
+
 
     def start_stage(self, sector_idx: int = None, stage_idx: int = None):
         """Prepares and launches a gameplay stage."""
@@ -226,6 +250,8 @@ class Game:
 
     def save_progress(self):
         ctx = self.context
+        skin_idx = getattr(ctx.player, "skin_theme", 0) if ctx.player else getattr(ctx, "selected_skin", 0)
+        drone_name = getattr(ctx.player, "drone_class", "striker") if ctx.player else getattr(ctx, "selected_drone", "striker")
         self.save_system.save(
             scrap=ctx.scrap,
             coins=ctx.coins,
@@ -238,7 +264,9 @@ class Game:
             missions=ctx.missions,
             sector_progress=ctx.sector_progress,
             bosses_defeated=getattr(ctx, "bosses_defeated", []),
-            campaign_completed=getattr(ctx, "campaign_completed", False)
+            campaign_completed=getattr(ctx, "campaign_completed", False),
+            selected_drone=drone_name,
+            selected_skin=skin_idx
         )
 
     def start_next_stage(self):

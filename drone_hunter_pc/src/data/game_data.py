@@ -181,11 +181,32 @@ WEAPON_DEFS = {
         "description": "Ballistic torpedo detonating into 6 sub-munitions.",
         "icon": "💣",
         "unlocked_default": True
+    },
+    WEAPON_EMP: {
+        "name": "EMP Pulse",
+        "cooldown": 0.50,
+        "energy_cost": 0.0,
+        "damage": 30,
+        "speed": 1200.0,
+        "projectiles_per_shot": 1,
+        "spread_deg": 0.0,
+        "color": (6, 182, 212),
+        "description": "Electromagnetic shockwave projectile disabling electronic systems.",
+        "icon": "🌐",
+        "unlocked_default": True
     }
 }
 
+# Weapon Name Aliases for Authoritative Loadout Resolution
+WEAPON_DEFS["light_missile"] = WEAPON_DEFS[WEAPON_MISSILE]
+WEAPON_DEFS["heavy_missile"] = WEAPON_DEFS[WEAPON_MISSILE]
+WEAPON_DEFS["precision"] = WEAPON_DEFS[WEAPON_RAIL]
+WEAPON_DEFS["heavy_cannon"] = WEAPON_DEFS[WEAPON_PLASMA]
+WEAPON_DEFS["arc_beam"] = WEAPON_DEFS[WEAPON_BEAM]
+WEAPON_DEFS["missile_barrage"] = WEAPON_DEFS[WEAPON_BARRAGE]
+
 # -----------------------------------------------------------------------------
-# Five Drone Combat Classes
+# Five Drone Combat Classes & Deterministic Loadout Architecture
 # -----------------------------------------------------------------------------
 DRONE_CLASS_STRIKER = "striker"
 DRONE_CLASS_INTERCEPTOR = "interceptor"
@@ -193,34 +214,66 @@ DRONE_CLASS_ASSAULT = "assault"
 DRONE_CLASS_ARC = "arc"
 DRONE_CLASS_COMMAND = "command"
 
+# Authoritative Single Source of Truth for Drone Loadouts
+DRONE_LOADOUTS = {
+    DRONE_CLASS_INTERCEPTOR: {
+        "primary": WEAPON_PULSE,
+        "secondary": WEAPON_RAPID,
+        "heavy": WEAPON_MISSILE,
+    },
+    DRONE_CLASS_STRIKER: {
+        "primary": WEAPON_PULSE,
+        "secondary": WEAPON_SCATTER,
+        "heavy": WEAPON_MISSILE,
+    },
+    DRONE_CLASS_ASSAULT: {
+        "primary": WEAPON_PULSE,
+        "secondary": WEAPON_PLASMA,
+        "heavy": WEAPON_MISSILE,
+    },
+    DRONE_CLASS_ARC: {
+        "primary": WEAPON_EMP,
+        "secondary": WEAPON_TESLA,
+        "heavy": WEAPON_BEAM,
+    },
+    DRONE_CLASS_COMMAND: {
+        "primary": WEAPON_RAIL,
+        "secondary": WEAPON_BEAM,
+        "heavy": WEAPON_BARRAGE,
+        "special": WEAPON_CLUSTER,
+    },
+}
+
 DRONE_CLASSES = {
     0: {
         "class_id": DRONE_CLASS_STRIKER,
         "name": "STRIKER",
-        "title": "BALANCED COMBAT DRONE",
-        "description": "Balanced combat chassis with precision forward weapons and reliable defense.",
+        "title": "BALANCED FRONTLINE DRONE",
+        "description": "Balanced combat chassis with precision forward weapons and versatile performance.",
         "speed_mult": 1.0,           # Baseline 420.0 px/s
-        "accel_mult": 1.0,           # Fast 3600.0 px/s²
+        "accel_mult": 1.0,           # Baseline 3600.0 px/s²
         "max_health": 100,
         "armor": 0,
+        "loadout": DRONE_LOADOUTS[DRONE_CLASS_STRIKER],
         "weapons": [WEAPON_PULSE, WEAPON_SCATTER, WEAPON_MISSILE],
         "mounts": {
             "primary": (38.0, 0.0),       # Front center nose
             "left": (16.0, -28.0),        # Left wing hardpoint
             "right": (16.0, 28.0),        # Right wing hardpoint
         },
-        "role": "BALANCED / ACCURATE / RELIABLE"
+        "role": "BALANCED / ACCURATE / VERSATILE"
     },
 
     1: {
         "class_id": DRONE_CLASS_INTERCEPTOR,
         "name": "INTERCEPTOR",
-        "title": "FAST ATTACK DRONE",
+        "title": "FAST ATTACK / INTERCEPTION",
         "description": "High-mobility strike platform with extreme acceleration and rapid-fire armament.",
-        "speed_mult": 1.15,          # 483.0 px/s (very agile!)
-        "accel_mult": 1.25,          # 4500.0 px/s² (immediate response!)
-        "max_health": 85,
+        "speed_mult": 1.35,          # 567 px/s (very fast & agile)
+        "accel_mult": 1.35,          # 4860 px/s² (instant response)
+        "max_health": 80,
         "armor": 0,
+        "loadout": DRONE_LOADOUTS[DRONE_CLASS_INTERCEPTOR],
         "weapons": [WEAPON_PULSE, WEAPON_RAPID, WEAPON_MISSILE],
         "mounts": {
             "primary": (42.0, 0.0),       # Needle nose
@@ -229,35 +282,37 @@ DRONE_CLASSES = {
             "dual_left": (36.0, -10.0),
             "dual_right": (36.0, 10.0),
         },
-        "role": "FAST / AGILE / HIGH DPS"
+        "role": "FAST / AGILE / HIGH DPS / LOW SURVIVABILITY"
     },
     2: {
         "class_id": DRONE_CLASS_ASSAULT,
         "name": "ASSAULT",
-        "title": "HEAVY ATTACK DRONE",
-        "description": "Armored dreadnought chassis packing heavy ordnance, high durability, and devastating impact.",
-        "speed_mult": 0.88,          # 369.6 px/s (heavy armored tank)
-        "accel_mult": 0.88,
-        "max_health": 140,
-        "armor": 4,
-        "weapons": [WEAPON_PULSE, WEAPON_MISSILE, WEAPON_PLASMA],
+        "title": "HEAVY ATTACK DREADNOUGHT",
+        "description": "Heavily armored juggernaut packing devastating heavy plasma ordnance and high durability.",
+        "speed_mult": 0.90,          # 378 px/s (heavy tank)
+        "accel_mult": 0.85,          # 3060 px/s²
+        "max_health": 145,
+        "armor": 6,
+        "loadout": DRONE_LOADOUTS[DRONE_CLASS_ASSAULT],
+        "weapons": [WEAPON_PULSE, WEAPON_PLASMA, WEAPON_MISSILE],
         "mounts": {
             "primary": (36.0, 0.0),
             "left": (18.0, -32.0),
             "right": (18.0, 32.0),
         },
-        "role": "HEAVY / DURABLE / HIGH DAMAGE"
+        "role": "HEAVY / POWERFUL / HIGH DURABILITY"
     },
     3: {
         "class_id": DRONE_CLASS_ARC,
         "name": "ARC",
         "title": "ENERGY / AREA CONTROL",
         "description": "Specialized electromagnetic disruption platform with high-voltage chain arcs and EMP focus.",
-        "speed_mult": 1.04,          # 436.8 px/s
-        "accel_mult": 1.05,
+        "speed_mult": 1.10,          # 462 px/s
+        "accel_mult": 1.15,          # 4140 px/s²
         "max_health": 95,
-        "armor": 0,
-        "weapons": [WEAPON_PULSE, WEAPON_TESLA, WEAPON_BEAM],
+        "armor": 2,
+        "loadout": DRONE_LOADOUTS[DRONE_CLASS_ARC],
+        "weapons": [WEAPON_EMP, WEAPON_TESLA, WEAPON_BEAM],
         "mounts": {
             "primary": (40.0, 0.0),
             "left": (16.0, -28.0),
@@ -268,13 +323,14 @@ DRONE_CLASSES = {
     4: {
         "class_id": DRONE_CLASS_COMMAND,
         "name": "COMMAND",
-        "title": "ADVANCED COMBAT PLATFORM",
-        "description": "Endgame quad-thruster platform equipped with multi-pod missile barrages and cutting lasers.",
-        "speed_mult": 1.08,          # 453.6 px/s
-        "accel_mult": 1.15,
+        "title": "ADVANCED ENDGAME PLATFORM",
+        "description": "Endgame quad-thruster platform equipped with multi-pod missile barrages and precision rail slugs.",
+        "speed_mult": 1.25,          # 525 px/s
+        "accel_mult": 1.20,          # 4320 px/s²
         "max_health": 125,
-        "armor": 2,
-        "weapons": [WEAPON_BEAM, WEAPON_BARRAGE, WEAPON_CLUSTER, WEAPON_RAIL],
+        "armor": 4,
+        "loadout": DRONE_LOADOUTS[DRONE_CLASS_COMMAND],
+        "weapons": [WEAPON_RAIL, WEAPON_BEAM, WEAPON_BARRAGE, WEAPON_CLUSTER],
         "mounts": {
             "primary": (44.0, 0.0),
             "left": (20.0, -30.0),
@@ -282,9 +338,26 @@ DRONE_CLASSES = {
             "pod_left": (4.0, -36.0),
             "pod_right": (4.0, 36.0),
         },
-        "role": "ENDGAME / BARRAGE / HIGH SURVIVABILITY"
+        "role": "ADVANCED / PRECISION / HIGH FIREPOWER / ENDGAME"
     }
 }
+
+
+def get_drone_class_by_id(class_id: str) -> dict:
+    """Returns the authoritative drone class configuration for a given class ID."""
+    for c in DRONE_CLASSES.values():
+        if c["class_id"] == class_id:
+            return c
+    return DRONE_CLASSES[0]
+
+
+def get_drone_loadout(class_id_or_index: str | int) -> dict[str, str]:
+    """Returns the authoritative deterministic loadout mapping for a drone class."""
+    if isinstance(class_id_or_index, int):
+        c = DRONE_CLASSES.get(class_id_or_index, DRONE_CLASSES[0])
+        return c["loadout"]
+    return DRONE_LOADOUTS.get(class_id_or_index, DRONE_LOADOUTS[DRONE_CLASS_STRIKER])
+
 
 
 # -----------------------------------------------------------------------------

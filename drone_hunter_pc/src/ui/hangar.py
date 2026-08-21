@@ -127,11 +127,14 @@ def draw_hangar_shop_ui(canvas: pygame.Surface, scrap: int, current_sector_idx: 
     # Weapons Loadout List
     w_names = []
     from src.data.game_data import WEAPON_DEFS
+    slot_names = ["PRIMARY", "SECONDARY", "HEAVY", "SPECIAL"]
     for idx_w, w_id in enumerate(c_info.get("weapons", [])):
         w_d = WEAPON_DEFS.get(w_id, {})
-        w_names.append(f"[{idx_w+1}] {w_d.get('name', w_id.upper())}")
-    t_weapons = font_sub.render(f"MOUNTED WEAPONS:  {'   •   '.join(w_names)}", True, COLOR_EMERALD)
+        s_tag = slot_names[idx_w] if idx_w < len(slot_names) else f"SLOT {idx_w+1}"
+        w_names.append(f"[{idx_w+1}] {s_tag}: {w_d.get('name', w_id.upper())}")
+    t_weapons = font_sub.render(f"FIXED LOADOUT:  {'   •   '.join(w_names)}", True, COLOR_EMERALD)
     canvas.blit(t_weapons, (50, 472))
+
 
     # Controls hint
     t_hint = font_sub.render("PRESS [C] TO CYCLE CHASSIS CLASS   •   PRESS [1-4] TO SELECT WEAPON", True, (130, 145, 165))

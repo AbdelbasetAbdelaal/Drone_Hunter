@@ -47,7 +47,9 @@ class SaveSystem:
             "bosses_defeated": [],
             "campaign_completed": False,
             "show_crt": False,
-            "difficulty_mode": 1
+            "difficulty_mode": 1,
+            "selected_drone": "striker",
+            "selected_skin": 0
         }
 
     def load(self) -> dict:
@@ -93,6 +95,8 @@ class SaveSystem:
 
             show_crt = bool(data.get("show_crt", False))
             difficulty_mode = int(data.get("difficulty_mode", 1)) % 4
+            selected_drone = str(data.get("selected_drone", "striker"))
+            selected_skin = int(data.get("selected_skin", 0))
 
             return {
                 "scrap": scrap,
@@ -106,7 +110,9 @@ class SaveSystem:
                 "bosses_defeated": bosses_defeated,
                 "campaign_completed": campaign_completed,
                 "show_crt": show_crt,
-                "difficulty_mode": difficulty_mode
+                "difficulty_mode": difficulty_mode,
+                "selected_drone": selected_drone,
+                "selected_skin": selected_skin
             }
 
         except json.JSONDecodeError as jde:
@@ -119,7 +125,8 @@ class SaveSystem:
     def save(self, scrap: int, coins: int, highscore: int, upgrades: dict, sectors: list, 
              show_crt: bool = False, stages: list = None, difficulty_mode: int = 1,
              missions: dict = None, sector_progress: dict = None,
-             bosses_defeated: list = None, campaign_completed: bool = False) -> bool:
+             bosses_defeated: list = None, campaign_completed: bool = False,
+             selected_drone: str = "striker", selected_skin: int = 0) -> bool:
         """Atomically saves game data using a temporary write & replace pattern."""
         if stages is None:
             stages = [True] + [False] * 14
@@ -141,8 +148,11 @@ class SaveSystem:
             "bosses_defeated": bosses_defeated,
             "campaign_completed": bool(campaign_completed),
             "show_crt": bool(show_crt),
-            "difficulty_mode": int(difficulty_mode)
+            "difficulty_mode": int(difficulty_mode),
+            "selected_drone": str(selected_drone),
+            "selected_skin": int(selected_skin)
         }
+
 
         try:
             # Step 1: Write to temporary file
