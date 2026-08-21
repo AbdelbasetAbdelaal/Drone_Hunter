@@ -32,7 +32,8 @@ CHANNEL_BOSS = 0
 CHANNEL_PLAYER = 1
 CHANNEL_ENGINE = 2
 CHANNEL_UI = 3
-CHANNELS_WEAPONS = [4, 5, 6, 7]
+CHANNELS_WEAPONS = [4, 5, 6]
+CHANNEL_BEAM = 7
 CHANNELS_SFX = list(range(8, 24))
 
 # Authoritative Audio Asset Map for production audio file discovery & safe fallback

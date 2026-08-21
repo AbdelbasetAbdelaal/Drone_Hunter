@@ -101,15 +101,15 @@ class Game:
         # Load Save Data
         saved_data = self.save_system.load()
         self.context.scrap = saved_data.get("scrap", 0)
-        self.context.coins = saved_data["coins"]
-        self.context.highscore = saved_data["highscore"]
-        self.context.upgrade_levels = saved_data["upgrades"]
-        self.context.unlocked_sectors = saved_data["sectors"]
-        self.context.unlocked_stages = saved_data["stages"]
+        self.context.coins = saved_data.get("coins", 0)
+        self.context.highscore = saved_data.get("highscore", 0)
+        self.context.upgrade_levels = saved_data.get("upgrades", {})
+        self.context.unlocked_sectors = saved_data.get("sectors", [])
+        self.context.unlocked_stages = saved_data.get("stages", [])
         self.context.bosses_defeated = saved_data.get("bosses_defeated", [])
         self.context.campaign_completed = saved_data.get("campaign_completed", False)
-        self.context.show_crt = saved_data["show_crt"]
-        self.context.difficulty_mode = saved_data["difficulty_mode"]
+        self.context.show_crt = saved_data.get("show_crt", False)
+        self.context.difficulty_mode = saved_data.get("difficulty_mode", 0)
         self.context.missions = saved_data.get("missions", self.context.missions)
         self.context.sector_progress = saved_data.get("sector_progress", self.context.sector_progress)
         self.context.selected_drone = saved_data.get("selected_drone", "striker")

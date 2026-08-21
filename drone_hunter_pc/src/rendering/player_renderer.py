@@ -136,6 +136,7 @@ class PlayerRenderer:
         # 4. Developer Debug Mount Mode (Optional Visualization)
         if getattr(player, "debug_mounts", False):
             from src.data.game_data import get_drone_class_by_id, DRONE_MOUNT_PROFILES
+            cam_ox, cam_oy = camera_offset if camera_offset else (0, 0)
             d_class = get_drone_class_by_id(getattr(player, "drone_class_id", "striker"))
             cid = d_class.get("class_id", "striker")
             mount_prof = DRONE_MOUNT_PROFILES.get(cid, {})

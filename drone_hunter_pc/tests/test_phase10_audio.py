@@ -27,7 +27,7 @@ pygame.init()
 
 from src.audio.audio_manager import (
     AudioManager, CHANNEL_BOSS, CHANNEL_PLAYER, CHANNEL_ENGINE, CHANNEL_UI,
-    CHANNELS_WEAPONS, CHANNELS_SFX
+    CHANNELS_WEAPONS, CHANNEL_BEAM, CHANNELS_SFX
 )
 from src.core.game_context import GameContext
 from src.entities.player import Player
@@ -74,9 +74,10 @@ class TestPhase10Audio(unittest.TestCase):
         self.assertEqual(CHANNEL_PLAYER, 1)
         self.assertEqual(CHANNEL_ENGINE, 2)
         self.assertEqual(CHANNEL_UI, 3)
-        self.assertEqual(len(CHANNELS_WEAPONS), 4)
+        self.assertEqual(len(CHANNELS_WEAPONS), 3)
+        self.assertEqual(CHANNEL_BEAM, 7)
         self.assertEqual(len(CHANNELS_SFX), 16)
-        total_channels = 1 + 1 + 1 + 1 + len(CHANNELS_WEAPONS) + len(CHANNELS_SFX)
+        total_channels = 1 + 1 + 1 + 1 + len(CHANNELS_WEAPONS) + 1 + len(CHANNELS_SFX)
         self.assertEqual(total_channels, 24)
 
     def test_weapon_sound_dispatch(self):
