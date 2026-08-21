@@ -7,6 +7,7 @@ dynamic viewport sizing, boundary clamping, and world/screen conversions.
 """
 
 import pygame
+import random
 from src.data.settings import SCREEN_WIDTH, SCREEN_HEIGHT, WORLD_WIDTH, WORLD_HEIGHT
 
 class Camera2D:
