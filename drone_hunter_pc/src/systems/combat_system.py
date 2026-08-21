@@ -14,7 +14,11 @@ from src.data.settings import (
     COLOR_EMERALD, COLOR_SHIELD, COLOR_OVERCLOCK, COLOR_SLOWMO, COLOR_COIN,
     COLOR_NEON_RED, COLOR_TESLA
 )
-from src.data.game_data import TARGET_TYPE_SHIELD_DRONE
+from src.data.game_data import (
+    TARGET_TYPE_SHIELD_DRONE, TARGET_TYPE_SCOUT, TARGET_TYPE_SHOOTER,
+    TARGET_TYPE_HEAVY, TARGET_TYPE_ARMORED, TARGET_TYPE_BOSS,
+    REWARD_SCOUT, REWARD_SHOOTER, REWARD_HEAVY
+)
 from src.entities.bullet import TeslaArcBeam, ClusterTorpedo
 from src.entities.powerup import PowerupItem
 from src.core.game_state import STATE_GAME_OVER, STATE_MISSION_FAILED
@@ -110,7 +114,6 @@ class CombatSystem:
                                 if ctx.audio_manager: ctx.audio_manager.play_explosion()
                                 earned = ctx.add_score(chained_enemy.score_value)
                                 
-                                from src.data.game_data import TARGET_TYPE_SCOUT, TARGET_TYPE_SHOOTER, TARGET_TYPE_HEAVY, REWARD_SCOUT, REWARD_SHOOTER, REWARD_HEAVY
                                 if chained_enemy.enemy_type == TARGET_TYPE_SCOUT:
                                     ctx.scrap += REWARD_SCOUT
                                 elif chained_enemy.enemy_type == TARGET_TYPE_SHOOTER:
@@ -137,7 +140,6 @@ class CombatSystem:
                     ctx.trigger_shake(shake_intensity, 0.2)
                     earned_pts = ctx.add_score(target.score_value)
                     
-                    from src.data.game_data import TARGET_TYPE_SCOUT, TARGET_TYPE_SHOOTER, TARGET_TYPE_HEAVY, REWARD_SCOUT, REWARD_SHOOTER, REWARD_HEAVY
                     if target.enemy_type == TARGET_TYPE_SCOUT:
                         ctx.scrap += REWARD_SCOUT
                     elif target.enemy_type == TARGET_TYPE_SHOOTER:
