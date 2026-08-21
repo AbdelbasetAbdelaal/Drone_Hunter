@@ -31,9 +31,10 @@ class CombatDirector:
         ]
         self.loop_encounters = False
         
-        # Pacing Config
-        self.intro_delay = 0.5
-        self.relief_after_encounter = 2.0
+        # Pacing Config (Snappy Fast-Paced Combat Transitions)
+        self.intro_delay = 0.4
+        self.relief_after_encounter = 1.0
+
 
     def set_mission_sequence(self, sequence: list, loop: bool = False):
         """Phase 5: Sets the exact sequence to run, and whether to loop it."""

@@ -716,13 +716,9 @@ class Game:
                     if is_shooting and ctx.player.can_shoot():
                         fired_bullets = ctx.player.shoot((world_mx, world_my), level=ctx.current_sub_level, targets_group=ctx.target_group, particle_manager=self.particle_manager)
                         for b in fired_bullets: ctx.bullet_group.add(b)
-                        
-                        if ctx.player.active_weapon == "pulse": self.audio_manager.play_laser()
-                        elif ctx.player.active_weapon == "scatter": self.audio_manager.play_scatter()
-                        elif ctx.player.active_weapon == "missile": self.audio_manager.play_missile()
-                        elif ctx.player.active_weapon == "beam": self.audio_manager.play_beam()
-                        elif ctx.player.active_weapon == "tesla": self.audio_manager.play_tesla()
-                        elif ctx.player.active_weapon == "cluster": self.audio_manager.play_cluster()
+                        if fired_bullets:
+                            self.audio_manager.play_weapon(ctx.player.active_weapon)
+
 
                     # Smooth Camera Tracking
                     self.camera.update((ctx.player.pos.x, ctx.player.pos.y), dt)
@@ -845,7 +841,7 @@ class Game:
             self.ui_rects_cache = draw_mission_briefing(canvas, get_mission_data(self.pending_mission_id), ctx.scrap, mouse_pos=canvas_m_pos)
 
         elif ctx.state == STATE_HANGAR:
-            self.ui_rects_cache = draw_hangar_shop_ui(canvas, ctx.scrap, ctx.current_sector_idx, ctx.upgrade_levels, mouse_pos=canvas_m_pos)
+            self.ui_rects_cache = draw_hangar_shop_ui(canvas, ctx.scrap, ctx.current_sector_idx, ctx.upgrade_levels, mouse_pos=canvas_m_pos, player=ctx.player)
 
         elif ctx.state == STATE_VICTORY:
             draw_campaign_victory_ui(

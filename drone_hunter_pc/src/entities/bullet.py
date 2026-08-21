@@ -290,6 +290,86 @@ class ClusterTorpedo(pygame.sprite.Sprite):
         return []
 
 
+class HeavyPlasmaOrb(pygame.sprite.Sprite):
+    """Heavy concentrated plasma orb with high impact and energy trail."""
+    def __init__(self, start_pos: tuple[float, float], target_pos: tuple[float, float], damage: int = 90, speed: float = 460.0, image: pygame.Surface | None = None):
+        super().__init__()
+        self.damage = damage
+        self.speed = speed
+        self.is_plasma = True
+        
+        if image is not None:
+            self.original_image = image
+        else:
+            self.original_image = pygame.Surface((28, 28), pygame.SRCALPHA)
+            pygame.draw.circle(self.original_image, (168, 85, 247, 100), (14, 14), 14)
+            pygame.draw.circle(self.original_image, (217, 70, 239), (14, 14), 10)
+            pygame.draw.circle(self.original_image, COLOR_WHITE, (14, 14), 5)
+        
+        dx = target_pos[0] - start_pos[0]
+        dy = target_pos[1] - start_pos[1]
+        self.angle_rad = math.atan2(dy, dx)
+        self.image = pygame.transform.rotate(self.original_image, math.degrees(-self.angle_rad))
+        self.pos = pygame.Vector2(start_pos)
+        self.rect = self.image.get_rect(center=start_pos)
+        self.radius = 14
+
+    def update(self, dt: float):
+        self.pos.x += math.cos(self.angle_rad) * self.speed * dt
+        self.pos.y += math.sin(self.angle_rad) * self.speed * dt
+        self.rect.center = (round(self.pos.x), round(self.pos.y))
+
+        if (self.rect.right < -80 or self.rect.left > WORLD_WIDTH + 80 or
+            self.rect.bottom < -80 or self.rect.top > WORLD_HEIGHT + 80):
+            self.kill()
+
+
+class RailgunSlug(pygame.sprite.Sprite):
+    """Supersonic precision kinetic railgun slug with high piercing capability."""
+    def __init__(self, start_pos: tuple[float, float], target_pos: tuple[float, float], damage: int = 115, speed: float = 1800.0, image: pygame.Surface | None = None):
+        super().__init__()
+        self.damage = damage
+        self.speed = speed
+        self.is_piercing = True
+        
+        if image is not None:
+            self.original_image = image
+        else:
+            self.original_image = pygame.Surface((56, 8), pygame.SRCALPHA)
+            pygame.draw.rect(self.original_image, (186, 230, 253), (0, 1, 56, 6), border_radius=3)
+            pygame.draw.rect(self.original_image, COLOR_WHITE, (8, 2, 44, 4), border_radius=2)
+            pygame.draw.circle(self.original_image, (56, 189, 248), (52, 4), 4)
+        
+        dx = target_pos[0] - start_pos[0]
+        dy = target_pos[1] - start_pos[1]
+        self.angle_rad = math.atan2(dy, dx)
+        self.angle_deg = math.degrees(-self.angle_rad)
+        
+        self.image = pygame.transform.rotate(self.original_image, self.angle_deg)
+        self.pos = pygame.Vector2(start_pos)
+        self.rect = self.image.get_rect(center=start_pos)
+        self.radius = 8
+
+    def update(self, dt: float):
+        self.pos.x += math.cos(self.angle_rad) * self.speed * dt
+        self.pos.y += math.sin(self.angle_rad) * self.speed * dt
+        self.rect.center = (round(self.pos.x), round(self.pos.y))
+
+        if (self.rect.right < -80 or self.rect.left > WORLD_WIDTH + 80 or
+            self.rect.bottom < -80 or self.rect.top > WORLD_HEIGHT + 80):
+            self.kill()
+
+
+class BarrageMissile(HomingMissile):
+    """High-agility guided micro-missile fired in staggered salvos."""
+    def __init__(self, start_pos: tuple[float, float], target_pos: tuple[float, float], angle_offset_deg: float = 0.0, damage: int = 38, speed: float = 620.0, image: pygame.Surface | None = None):
+        super().__init__(start_pos, target_pos, damage=damage, speed=speed, image=image)
+        self.turn_rate = 11.0
+        self.angle_rad += math.radians(angle_offset_deg)
+        self.image = pygame.transform.rotate(self.original_image, math.degrees(-self.angle_rad))
+
+
+
 class EnemyBullet(pygame.sprite.Sprite):
     """Hostile enemy projectile."""
     _cached_default_image = None

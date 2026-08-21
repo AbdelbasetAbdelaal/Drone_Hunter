@@ -42,6 +42,14 @@ OVERDRIVE_COOLDOWN_MAX = 25.0
 WEAPON_PULSE = "pulse"
 WEAPON_SCATTER = "scatter"
 WEAPON_MISSILE = "missile"
+WEAPON_RAPID = "rapid"
+WEAPON_PLASMA = "plasma"
+WEAPON_RAIL = "rail"
+WEAPON_BARRAGE = "barrage"
+WEAPON_BEAM = "beam"
+WEAPON_TESLA = "tesla"
+WEAPON_CLUSTER = "cluster"
+WEAPON_EMP = "emp"
 
 WEAPON_DEFS = {
     WEAPON_PULSE: {
@@ -53,7 +61,7 @@ WEAPON_DEFS = {
         "projectiles_per_shot": 1,
         "spread_deg": 0.0,
         "color": COLOR_CYAN,
-        "description": "Rapid-fire precision plasma bolt.",
+        "description": "Rapid-fire precision energy bolt.",
         "icon": "⚡",
         "unlocked_default": True
     },
@@ -66,7 +74,7 @@ WEAPON_DEFS = {
         "projectiles_per_shot": 5,
         "spread_deg": 22.0,
         "color": COLOR_GOLD,
-        "description": "Close-range area pressure spread.",
+        "description": "Close-range multi-shrapnel area pressure.",
         "icon": "💥",
         "unlocked_default": True
     },
@@ -79,11 +87,205 @@ WEAPON_DEFS = {
         "projectiles_per_shot": 1,
         "spread_deg": 0.0,
         "color": COLOR_MISSILE,
-        "description": "High-damage heavy ordnance.",
+        "description": "High-yield homing heavy ordnance.",
         "icon": "🚀",
+        "unlocked_default": True
+    },
+    WEAPON_RAPID: {
+        "name": "Rapid Autocannon",
+        "cooldown": 0.08,
+        "energy_cost": 0.0,
+        "damage": 8,
+        "speed": 980.0,
+        "projectiles_per_shot": 1,
+        "spread_deg": 3.0,
+        "color": (250, 204, 21),
+        "description": "Ultra-high cyclic rate kinetic autocannon.",
+        "icon": "🔥",
+        "unlocked_default": True
+    },
+    WEAPON_PLASMA: {
+        "name": "Plasma Cannon",
+        "cooldown": 0.85,
+        "energy_cost": 0.0,
+        "damage": 90,
+        "speed": 460.0,
+        "projectiles_per_shot": 1,
+        "spread_deg": 0.0,
+        "color": (168, 85, 247),
+        "description": "Heavy concentrated plasma core with explosive shock.",
+        "icon": "🔮",
+        "unlocked_default": True
+    },
+    WEAPON_RAIL: {
+        "name": "Precision Railgun",
+        "cooldown": 1.10,
+        "energy_cost": 0.0,
+        "damage": 115,
+        "speed": 1800.0,
+        "projectiles_per_shot": 1,
+        "spread_deg": 0.0,
+        "color": (224, 242, 254),
+        "description": "Supersonic armor-piercing kinetic rail slug.",
+        "icon": "💠",
+        "unlocked_default": True
+    },
+    WEAPON_BARRAGE: {
+        "name": "Missile Barrage",
+        "cooldown": 2.2,
+        "energy_cost": 0.0,
+        "damage": 38,
+        "speed": 620.0,
+        "projectiles_per_shot": 4,
+        "spread_deg": 28.0,
+        "color": COLOR_MISSILE,
+        "description": "Salvo of 4 agile guided micro-missiles.",
+        "icon": "🎯",
+        "unlocked_default": True
+    },
+    WEAPON_BEAM: {
+        "name": "Plasma Cutting Beam",
+        "cooldown": 0.08,
+        "energy_cost": 0.0,
+        "damage": 16,
+        "speed": 1500.0,
+        "projectiles_per_shot": 1,
+        "spread_deg": 0.0,
+        "color": COLOR_BEAM,
+        "description": "Continuous high-frequency cutting beam.",
+        "icon": "〰️",
+        "unlocked_default": True
+    },
+    WEAPON_TESLA: {
+        "name": "Tesla Arc",
+        "cooldown": 0.40,
+        "energy_cost": 0.0,
+        "damage": 44,
+        "speed": 1100.0,
+        "projectiles_per_shot": 1,
+        "spread_deg": 0.0,
+        "color": COLOR_TESLA,
+        "description": "High-voltage chaining electrical discharge.",
+        "icon": "⚡",
+        "unlocked_default": True
+    },
+    WEAPON_CLUSTER: {
+        "name": "Cluster Torpedo",
+        "cooldown": 2.0,
+        "energy_cost": 0.0,
+        "damage": 85,
+        "speed": 520.0,
+        "projectiles_per_shot": 1,
+        "spread_deg": 0.0,
+        "color": COLOR_CLUSTER,
+        "description": "Ballistic torpedo detonating into 6 sub-munitions.",
+        "icon": "💣",
         "unlocked_default": True
     }
 }
+
+# -----------------------------------------------------------------------------
+# Five Drone Combat Classes
+# -----------------------------------------------------------------------------
+DRONE_CLASS_STRIKER = "striker"
+DRONE_CLASS_INTERCEPTOR = "interceptor"
+DRONE_CLASS_ASSAULT = "assault"
+DRONE_CLASS_ARC = "arc"
+DRONE_CLASS_COMMAND = "command"
+
+DRONE_CLASSES = {
+    0: {
+        "class_id": DRONE_CLASS_STRIKER,
+        "name": "STRIKER",
+        "title": "BALANCED COMBAT DRONE",
+        "description": "Balanced combat chassis with precision forward weapons and reliable defense.",
+        "speed_mult": 1.0,           # Baseline 420.0 px/s
+        "accel_mult": 1.0,           # Fast 3600.0 px/s²
+        "max_health": 100,
+        "armor": 0,
+        "weapons": [WEAPON_PULSE, WEAPON_SCATTER, WEAPON_MISSILE],
+        "mounts": {
+            "primary": (38.0, 0.0),       # Front center nose
+            "left": (16.0, -28.0),        # Left wing hardpoint
+            "right": (16.0, 28.0),        # Right wing hardpoint
+        },
+        "role": "BALANCED / ACCURATE / RELIABLE"
+    },
+
+    1: {
+        "class_id": DRONE_CLASS_INTERCEPTOR,
+        "name": "INTERCEPTOR",
+        "title": "FAST ATTACK DRONE",
+        "description": "High-mobility strike platform with extreme acceleration and rapid-fire armament.",
+        "speed_mult": 1.15,          # 483.0 px/s (very agile!)
+        "accel_mult": 1.25,          # 4500.0 px/s² (immediate response!)
+        "max_health": 85,
+        "armor": 0,
+        "weapons": [WEAPON_PULSE, WEAPON_RAPID, WEAPON_MISSILE],
+        "mounts": {
+            "primary": (42.0, 0.0),       # Needle nose
+            "left": (14.0, -24.0),
+            "right": (14.0, 24.0),
+            "dual_left": (36.0, -10.0),
+            "dual_right": (36.0, 10.0),
+        },
+        "role": "FAST / AGILE / HIGH DPS"
+    },
+    2: {
+        "class_id": DRONE_CLASS_ASSAULT,
+        "name": "ASSAULT",
+        "title": "HEAVY ATTACK DRONE",
+        "description": "Armored dreadnought chassis packing heavy ordnance, high durability, and devastating impact.",
+        "speed_mult": 0.88,          # 369.6 px/s (heavy armored tank)
+        "accel_mult": 0.88,
+        "max_health": 140,
+        "armor": 4,
+        "weapons": [WEAPON_PULSE, WEAPON_MISSILE, WEAPON_PLASMA],
+        "mounts": {
+            "primary": (36.0, 0.0),
+            "left": (18.0, -32.0),
+            "right": (18.0, 32.0),
+        },
+        "role": "HEAVY / DURABLE / HIGH DAMAGE"
+    },
+    3: {
+        "class_id": DRONE_CLASS_ARC,
+        "name": "ARC",
+        "title": "ENERGY / AREA CONTROL",
+        "description": "Specialized electromagnetic disruption platform with high-voltage chain arcs and EMP focus.",
+        "speed_mult": 1.04,          # 436.8 px/s
+        "accel_mult": 1.05,
+        "max_health": 95,
+        "armor": 0,
+        "weapons": [WEAPON_PULSE, WEAPON_TESLA, WEAPON_BEAM],
+        "mounts": {
+            "primary": (40.0, 0.0),
+            "left": (16.0, -28.0),
+            "right": (16.0, 28.0),
+        },
+        "role": "ENERGY / CONTROL / AREA DAMAGE"
+    },
+    4: {
+        "class_id": DRONE_CLASS_COMMAND,
+        "name": "COMMAND",
+        "title": "ADVANCED COMBAT PLATFORM",
+        "description": "Endgame quad-thruster platform equipped with multi-pod missile barrages and cutting lasers.",
+        "speed_mult": 1.08,          # 453.6 px/s
+        "accel_mult": 1.15,
+        "max_health": 125,
+        "armor": 2,
+        "weapons": [WEAPON_BEAM, WEAPON_BARRAGE, WEAPON_CLUSTER, WEAPON_RAIL],
+        "mounts": {
+            "primary": (44.0, 0.0),
+            "left": (20.0, -30.0),
+            "right": (20.0, 30.0),
+            "pod_left": (4.0, -36.0),
+            "pod_right": (4.0, 36.0),
+        },
+        "role": "ENDGAME / BARRAGE / HIGH SURVIVABILITY"
+    }
+}
+
 
 # -----------------------------------------------------------------------------
 # Enemy & Boss Type Identifiers

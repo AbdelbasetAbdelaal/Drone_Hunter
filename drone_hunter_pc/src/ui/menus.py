@@ -32,10 +32,21 @@ def draw_button(canvas: pygame.Surface, rect: pygame.Rect, text: str,
     return is_hover
 
 
+def _get_safe_mouse_pos(mouse_pos: tuple[int, int] | None = None) -> tuple[int, int]:
+    if mouse_pos is not None:
+        return mouse_pos
+    try:
+        if pygame.display.get_init():
+            return pygame.mouse.get_pos()
+    except Exception:
+        pass
+    return (0, 0)
+
+
 def draw_exit_button(canvas: pygame.Surface, mouse_pos: tuple[int, int] = None, rect: pygame.Rect = None) -> pygame.Rect:
     vw, vh = canvas.get_size()
     btn_rect = rect if rect is not None else pygame.Rect(vw - 150, vh - 55, 120, 38)
-    mx, my = mouse_pos if mouse_pos is not None else pygame.mouse.get_pos()
+    mx, my = _get_safe_mouse_pos(mouse_pos)
     
     draw_button(
         canvas, btn_rect, "[Q] QUIT", (mx, my),
@@ -48,11 +59,12 @@ def draw_exit_button(canvas: pygame.Surface, mouse_pos: tuple[int, int] = None, 
 def draw_main_menu(canvas: pygame.Surface, mouse_pos: tuple[int, int] = None) -> dict[str, pygame.Rect]:
     canvas.fill((6, 10, 18))
     vw, vh = canvas.get_size()
-    mx, my = mouse_pos if mouse_pos is not None else pygame.mouse.get_pos()
+    mx, my = _get_safe_mouse_pos(mouse_pos)
 
     # Title & Subtitle
     title = font_title.render("DRONE HUNTER 2D", True, COLOR_CYAN)
     canvas.blit(title, title.get_rect(center=(vw // 2, vh // 2 - 120)))
+
     
     edition = font_card.render("PC EDITION  |  v1.0.0", True, COLOR_TEXT_DIM)
     canvas.blit(edition, edition.get_rect(center=(vw // 2, vh // 2 - 78)))
@@ -87,7 +99,7 @@ def draw_mission_select_ui(canvas: pygame.Surface, ctx, scrap: int, mouse_pos: t
     """Renders the overhauled, clean Phase 5 Sector and Mission selection UI."""
     canvas.fill((8, 12, 22))
     vw, vh = canvas.get_size()
-    mx, my = mouse_pos if mouse_pos is not None else pygame.mouse.get_pos()
+    mx, my = _get_safe_mouse_pos(mouse_pos)
     
     # -------------------------------------------------------------------------
     # 1. Top Header Bar
@@ -273,7 +285,7 @@ def draw_mission_select_ui(canvas: pygame.Surface, ctx, scrap: int, mouse_pos: t
 def draw_mission_briefing(canvas: pygame.Surface, mission_data: dict, scrap: int, mouse_pos: tuple[int, int] = None) -> dict:
     canvas.fill((8, 12, 22))
     vw, vh = canvas.get_size()
-    mx, my = mouse_pos if mouse_pos is not None else pygame.mouse.get_pos()
+    mx, my = _get_safe_mouse_pos(mouse_pos)
 
     box_w, box_h = 640, 420
     box_rect = pygame.Rect(vw // 2 - box_w // 2, vh // 2 - box_h // 2, box_w, box_h)
@@ -320,7 +332,7 @@ def draw_settings_menu_ui(canvas: pygame.Surface, difficulty_mode: int, show_crt
     """Renders the dedicated Fullscreen/Audio/Difficulty settings menu."""
     canvas.fill((8, 12, 22))
     vw, vh = canvas.get_size()
-    mx, my = mouse_pos if mouse_pos is not None else pygame.mouse.get_pos()
+    mx, my = _get_safe_mouse_pos(mouse_pos)
 
     panel_w, panel_h = 580, 440
     panel_rect = pygame.Rect(vw // 2 - panel_w // 2, vh // 2 - panel_h // 2, panel_w, panel_h)
@@ -363,7 +375,7 @@ def draw_settings_menu_ui(canvas: pygame.Surface, difficulty_mode: int, show_crt
 
 def draw_mission_complete(canvas: pygame.Surface, mission_data: dict, was_first_clear: bool, is_sector_clear: bool, mouse_pos: tuple[int, int] = None) -> dict:
     vw, vh = canvas.get_size()
-    mx, my = mouse_pos if mouse_pos is not None else pygame.mouse.get_pos()
+    mx, my = _get_safe_mouse_pos(mouse_pos)
     
     overlay = pygame.Surface((vw, vh), pygame.SRCALPHA)
     overlay.fill((5, 15, 10, 220) if was_first_clear else (10, 10, 15, 220))
@@ -404,7 +416,7 @@ def draw_mission_complete(canvas: pygame.Surface, mission_data: dict, was_first_
 
 def draw_mission_failed(canvas: pygame.Surface, scrap: int, mouse_pos: tuple[int, int] = None) -> dict:
     vw, vh = canvas.get_size()
-    mx, my = mouse_pos if mouse_pos is not None else pygame.mouse.get_pos()
+    mx, my = _get_safe_mouse_pos(mouse_pos)
     
     overlay = pygame.Surface((vw, vh), pygame.SRCALPHA)
     overlay.fill((15, 5, 8, 225))
@@ -457,7 +469,7 @@ def draw_pause_settings_ui(canvas: pygame.Surface, difficulty_mode: int, show_cr
     r_map = pygame.Rect(bx, by + 230, btn_w, btn_h)
     r_exit = pygame.Rect(bx, by + 276, btn_w, btn_h)
 
-    mx, my = mouse_pos if mouse_pos is not None else pygame.mouse.get_pos()
+    mx, my = _get_safe_mouse_pos(mouse_pos)
 
     draw_button(canvas, r_resume, "RESUME COMBAT [ESC/P]", (mx, my), base_color=COLOR_EMERALD, text_color=COLOR_EMERALD)
     draw_button(canvas, r_diff, f"DIFFICULTY: {DIFFICULTY_NAMES[difficulty_mode]}", (mx, my), base_color=COLOR_GOLD, text_color=COLOR_GOLD)

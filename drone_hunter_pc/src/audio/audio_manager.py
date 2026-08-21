@@ -11,7 +11,8 @@ volume hierarchy.
 import math
 import pygame
 from src.audio.sound_synth import (
-    generate_laser_sound, generate_scatter_sound, generate_missile_sound,
+    generate_laser_sound, generate_rapid_sound, generate_scatter_sound, generate_missile_sound,
+    generate_barrage_sound, generate_plasma_sound, generate_rail_sound,
     generate_beam_sound, generate_tesla_sound, generate_cluster_sound,
     generate_sniper_sound, generate_emp_sound,
     generate_hit_scout_sound, generate_hit_shooter_sound, generate_hit_heavy_sound,
@@ -71,8 +72,12 @@ class AudioManager:
 
         # Weapons
         self._sound_cache["laser"] = generate_laser_sound()
+        self._sound_cache["rapid"] = generate_rapid_sound()
         self._sound_cache["scatter"] = generate_scatter_sound()
         self._sound_cache["missile"] = generate_missile_sound()
+        self._sound_cache["barrage"] = generate_barrage_sound()
+        self._sound_cache["plasma"] = generate_plasma_sound()
+        self._sound_cache["rail"] = generate_rail_sound()
         self._sound_cache["beam"] = generate_beam_sound()
         self._sound_cache["tesla"] = generate_tesla_sound()
         self._sound_cache["cluster"] = generate_cluster_sound()
@@ -155,11 +160,44 @@ class AudioManager:
     # =========================================================================
     # WEAPON AUDIO METHODS
     # =========================================================================
+    def play_weapon(self, weapon_type: str):
+        """Dispatches audio for any given weapon identifier."""
+        if weapon_type in ("pulse", "laser"):
+            self.play_laser()
+        elif weapon_type == "rapid":
+            self.play_rapid()
+        elif weapon_type == "scatter":
+            self.play_scatter()
+        elif weapon_type == "missile":
+            self.play_missile()
+        elif weapon_type == "barrage":
+            self.play_barrage()
+        elif weapon_type == "plasma":
+            self.play_plasma()
+        elif weapon_type in ("rail", "sniper"):
+            self.play_rail()
+        elif weapon_type == "beam":
+            self.play_beam()
+        elif weapon_type == "tesla":
+            self.play_tesla()
+        elif weapon_type == "cluster":
+            self.play_cluster()
+        elif weapon_type == "emp":
+            self.play_emp()
+        else:
+            self.play_laser()
+
     def play_laser(self):
         """Pulse Laser fire sound."""
         ch_idx = CHANNELS_WEAPONS[self._weapon_channel_idx]
         self._weapon_channel_idx = (self._weapon_channel_idx + 1) % len(CHANNELS_WEAPONS)
         self._play_cached("laser", min_interval_ms=45, channel_id=ch_idx, volume_scale=0.85)
+
+    def play_rapid(self):
+        """Rapid Autocannon fire sound."""
+        ch_idx = CHANNELS_WEAPONS[self._weapon_channel_idx]
+        self._weapon_channel_idx = (self._weapon_channel_idx + 1) % len(CHANNELS_WEAPONS)
+        self._play_cached("rapid", min_interval_ms=30, channel_id=ch_idx, volume_scale=0.80)
 
     def play_scatter(self):
         """Spread Cannon fire sound."""
@@ -172,6 +210,24 @@ class AudioManager:
         ch_idx = CHANNELS_WEAPONS[self._weapon_channel_idx]
         self._weapon_channel_idx = (self._weapon_channel_idx + 1) % len(CHANNELS_WEAPONS)
         self._play_cached("missile", min_interval_ms=75, channel_id=ch_idx, volume_scale=0.95)
+
+    def play_barrage(self):
+        """Missile Barrage salvo sound."""
+        ch_idx = CHANNELS_WEAPONS[self._weapon_channel_idx]
+        self._weapon_channel_idx = (self._weapon_channel_idx + 1) % len(CHANNELS_WEAPONS)
+        self._play_cached("barrage", min_interval_ms=80, channel_id=ch_idx, volume_scale=0.95)
+
+    def play_plasma(self):
+        """Plasma Cannon fire sound."""
+        ch_idx = CHANNELS_WEAPONS[self._weapon_channel_idx]
+        self._weapon_channel_idx = (self._weapon_channel_idx + 1) % len(CHANNELS_WEAPONS)
+        self._play_cached("plasma", min_interval_ms=80, channel_id=ch_idx, volume_scale=1.0)
+
+    def play_rail(self):
+        """Precision Railgun fire sound."""
+        ch_idx = CHANNELS_WEAPONS[self._weapon_channel_idx]
+        self._weapon_channel_idx = (self._weapon_channel_idx + 1) % len(CHANNELS_WEAPONS)
+        self._play_cached("rail", min_interval_ms=80, channel_id=ch_idx, volume_scale=1.0)
 
     def play_beam(self):
         """Plasma Cutting Laser fire sound."""
@@ -187,11 +243,12 @@ class AudioManager:
 
     def play_sniper(self):
         """Railgun Sniper beam fire sound."""
-        self._play_cached("sniper", min_interval_ms=80, volume_scale=1.0)
+        self.play_rail()
 
     def play_emp(self):
         """EMP blast wave sound."""
         self._play_cached("emp", min_interval_ms=120, channel_id=CHANNEL_PLAYER, volume_scale=1.0)
+
 
     # =========================================================================
     # TARGET-SPECIFIC IMPACT METHODS
