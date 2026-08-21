@@ -188,7 +188,7 @@ class ParticleManager:
             self.particles.add(Particle(pos, vel, color, rad, life, is_spark=True))
         self._enforce_particle_cap()
 
-    def spawn_explosion(self, pos: tuple[float, float], count: int = 24, color: tuple[int, int, int] = COLOR_GOLD, sprite_name: str | None = None):
+    def spawn_explosion(self, pos: tuple[float, float], count: int = 24, color: tuple[int, int, int] = COLOR_GOLD, sprite_name: str | None = None, max_size: int = 64):
         for _ in range(count):
             ang = random.uniform(0, math.tau)
             spd = random.uniform(80.0, 320.0)
@@ -198,16 +198,24 @@ class ParticleManager:
             self.particles.add(Particle(pos, vel, color, rad, life))
         self._enforce_particle_cap()
         if sprite_name and self.sprite_manager:
-            exp_sprite = self.sprite_manager.get_vfx_sprite(sprite_name, (64, 64))
-            self.explosion_overlays.append(ExplosionOverlay(pos, exp_sprite, lifetime=0.4, max_size=64))
+            exp_sprite = self.sprite_manager.get_vfx_sprite(sprite_name, (max_size, max_size))
+            self.explosion_overlays.append(ExplosionOverlay(pos, exp_sprite, lifetime=0.4, max_size=max_size))
 
-    def spawn_enemy_death(self, pos: tuple[float, float], color: tuple[int, int, int]):
-        self.spawn_explosion(pos, count=28, color=color, sprite_name='explosion_1')
+    def spawn_enemy_death(self, pos: tuple[float, float], color: tuple[int, int, int], enemy_type: str = ""):
+        if enemy_type in (TARGET_TYPE_HEAVY, TARGET_TYPE_ARMORED):
+            max_size = 110
+        elif enemy_type == TARGET_TYPE_SHIELD_DRONE:
+            max_size = 100
+        elif enemy_type == TARGET_TYPE_SCOUT:
+            max_size = 78
+        else:
+            max_size = 88
+        self.spawn_explosion(pos, count=28, color=color, sprite_name='explosion_1', max_size=max_size)
         self.spawn_spark(pos, count=16, color=COLOR_WHITE)
 
     def spawn_boss_explosion(self, pos: tuple[float, float]):
-        self.spawn_explosion(pos, count=55, color=COLOR_GOLD, sprite_name='explosion_2')
-        self.spawn_explosion(pos, count=35, color=COLOR_CRIMSON, sprite_name='explosion_2')
+        self.spawn_explosion(pos, count=55, color=COLOR_GOLD, sprite_name='explosion_2', max_size=210)
+        self.spawn_explosion(pos, count=35, color=COLOR_CRIMSON, sprite_name='explosion_2', max_size=180)
         self.spawn_spark(pos, count=30, color=COLOR_WHITE)
 
     def spawn_drone_trail(self, pos: tuple[float, float]):
@@ -373,8 +381,8 @@ class ParticleManager:
             self.particles.add(Particle(pos, vel, COLOR_WHITE, random.uniform(2.0, 4.5), life))
         self._enforce_particle_cap()
         if self.sprite_manager:
-            exp_sprite = self.sprite_manager.get_vfx_sprite('explosion_2', (128, 128))
-            self.explosion_overlays.append(ExplosionOverlay(pos, exp_sprite, lifetime=0.5, max_size=128))
+            exp_sprite = self.sprite_manager.get_player_state_sprite('destroy', 0, (160, 160))
+            self.explosion_overlays.append(ExplosionOverlay(pos, exp_sprite, lifetime=0.5, max_size=160))
 
     def spawn_floating_text(self, pos: tuple[float, float], text: str, color: tuple[int, int, int] = COLOR_GOLD, font_size: int = 18):
         self.floating_texts.add(FloatingText(pos, text, color, font_size))

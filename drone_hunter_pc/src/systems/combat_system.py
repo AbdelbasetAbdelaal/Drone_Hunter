@@ -153,7 +153,7 @@ class CombatSystem:
                         if getattr(target, "is_boss", False):
                             ctx.particle_manager.spawn_boss_explosion(target.rect.center)
                         else:
-                            ctx.particle_manager.spawn_enemy_death(target.rect.center, target.color)
+                            ctx.particle_manager.spawn_enemy_death(target.rect.center, target.color, enemy_type=target.enemy_type)
                         ctx.particle_manager.spawn_floating_text(target.rect.center, f"+{earned_pts}", COLOR_GOLD, 20)
 
                     # Power-up drop roll with difficulty drop rate scaling

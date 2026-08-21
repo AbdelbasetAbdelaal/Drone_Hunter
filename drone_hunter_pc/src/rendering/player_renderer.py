@@ -27,7 +27,7 @@ class PlayerRenderer:
 
     def draw_player(self, canvas: pygame.Surface, player, camera_offset: tuple[float, float] = (0.0, 0.0)):
         """Renders high-presence physical mechanical combat drone with shadow and VFX."""
-        if not player.alive:
+        if not player.alive and not getattr(player, "is_destroyed", False):
             return
 
         ox, oy = camera_offset

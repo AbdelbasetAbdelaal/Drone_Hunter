@@ -300,6 +300,80 @@ class TestAssetBackedVFX(unittest.TestCase):
         self.assertIsNotNone(b.original_image)
         self.assertIsNotNone(EnemyBullet._cached_default_image)
 
+    def test_player_destruction_render_path_reachable_when_dead(self):
+        from src.rendering.player_renderer import PlayerRenderer
+        from src.entities.player import Player
+        canvas = pygame.Surface((200, 200), pygame.SRCALPHA)
+        p = Player((100, 100))
+        p.health = 10.0
+        p.take_damage(20.0)
+        self.assertFalse(p.alive)
+        self.assertTrue(p.is_destroyed)
+        pr = PlayerRenderer()
+        pr.draw_player(canvas, p, camera_offset=(0, 0))
+        self.assertFalse(p.alive)
+
+    def test_player_destruction_effect_expires(self):
+        from src.rendering.particles import ParticleManager
+        pm = ParticleManager()
+        pm.spawn_player_destruction((100, 100))
+        self.assertGreater(len(pm.explosion_overlays), 0)
+        for _ in range(60):
+            pm.update(0.016)
+        self.assertEqual(len(pm.explosion_overlays), 0)
+
+    def test_enemy_death_scale_by_type_scout(self):
+        from src.rendering.particles import ParticleManager
+        from src.data.game_data import TARGET_TYPE_SCOUT
+        pm = ParticleManager()
+        pm.spawn_enemy_death((100, 100), (255, 0, 0), enemy_type=TARGET_TYPE_SCOUT)
+        self.assertGreater(len(pm.explosion_overlays), 0)
+        self.assertEqual(pm.explosion_overlays[0].max_size, 78)
+
+    def test_enemy_death_scale_by_type_heavy(self):
+        from src.rendering.particles import ParticleManager
+        from src.data.game_data import TARGET_TYPE_HEAVY
+        pm = ParticleManager()
+        pm.spawn_enemy_death((100, 100), (255, 0, 0), enemy_type=TARGET_TYPE_HEAVY)
+        self.assertGreater(len(pm.explosion_overlays), 0)
+        self.assertEqual(pm.explosion_overlays[0].max_size, 110)
+
+    def test_enemy_death_scale_by_type_shield(self):
+        from src.rendering.particles import ParticleManager
+        from src.data.game_data import TARGET_TYPE_SHIELD_DRONE
+        pm = ParticleManager()
+        pm.spawn_enemy_death((100, 100), (255, 0, 0), enemy_type=TARGET_TYPE_SHIELD_DRONE)
+        self.assertGreater(len(pm.explosion_overlays), 0)
+        self.assertEqual(pm.explosion_overlays[0].max_size, 100)
+
+    def test_boss_explosion_uses_large_scale(self):
+        from src.rendering.particles import ParticleManager
+        pm = ParticleManager()
+        pm.spawn_boss_explosion((100, 100))
+        self.assertEqual(len(pm.explosion_overlays), 2)
+        sizes = [o.max_size for o in pm.explosion_overlays]
+        self.assertTrue(all(s >= 180 for s in sizes))
+
+    def test_weapon_assets_remain_mapped(self):
+        from src.rendering.sprite_manager import get_sprite_manager
+        sm = get_sprite_manager()
+        self.assertIsNotNone(sm.get_projectile_sprite('pulse', (40, 12)))
+        self.assertIsNotNone(sm.get_projectile_sprite('scatter', (40, 12)))
+        self.assertIsNotNone(sm.get_projectile_sprite('missile', (45, 16)))
+        self.assertIsNotNone(sm.get_projectile_sprite('beam', (36, 6)))
+        self.assertIsNotNone(sm.get_projectile_sprite('tesla', (32, 32)))
+        self.assertIsNotNone(sm.get_projectile_sprite('cluster', (34, 14)))
+
+    def test_explosion_overlays_cleaned_up(self):
+        from src.rendering.particles import ParticleManager
+        pm = ParticleManager()
+        for _ in range(20):
+            pm.spawn_explosion((100, 100), sprite_name='explosion_1')
+        self.assertGreater(len(pm.explosion_overlays), 0)
+        for _ in range(120):
+            pm.update(0.016)
+        self.assertEqual(len(pm.explosion_overlays), 0)
+
 
 if __name__ == '__main__':
     unittest.main()
