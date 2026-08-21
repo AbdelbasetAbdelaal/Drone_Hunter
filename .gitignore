@@ -30,3 +30,17 @@ dist/
 .idea/
 *.swp
 *.swo
+
+# Scratch / one-off maintenance scripts
+scratch/
+
+# Generated audit artifacts
+assets_list.txt
+asset_inventory.txt
+
+# Unused asset packs
+Drone_Hunter_Phase8_2D_Assets_v01/
+Drone_Hunter_Phase8_2D_Assets_v04_HighFidelity/
+
+# Kilo config directory
+.kilo/

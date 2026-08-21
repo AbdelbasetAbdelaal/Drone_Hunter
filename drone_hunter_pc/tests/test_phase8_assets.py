@@ -31,12 +31,11 @@ class TestPhase8PlayerVisualOverhaul(unittest.TestCase):
             'player/player_destroyed.png',
             'player/player_bank_left.png',
             'player/player_bank_right.png',
-            'player/chassis_0.png',
-            'player/chassis_1.png',
-            'player/chassis_2.png',
-            'player/chassis_3.png',
-            'player/chassis_4.png',
-            'shadows/player_shadow.png',
+            'player/drone_chassis_0.png',
+            'player/drone_chassis_1.png',
+            'player/drone_chassis_2.png',
+            'player/drone_chassis_3.png',
+            'player/drone_chassis_4.png',
             'vfx/engine_flame.png',
         ]
         for rel_path in required_player_files:
@@ -56,12 +55,11 @@ class TestPhase8PlayerVisualOverhaul(unittest.TestCase):
             'player/player_destroyed.png',
             'player/player_bank_left.png',
             'player/player_bank_right.png',
-            'player/chassis_0.png',
-            'player/chassis_1.png',
-            'player/chassis_2.png',
-            'player/chassis_3.png',
-            'player/chassis_4.png',
-            'shadows/player_shadow.png',
+            'player/drone_chassis_0.png',
+            'player/drone_chassis_1.png',
+            'player/drone_chassis_2.png',
+            'player/drone_chassis_3.png',
+            'player/drone_chassis_4.png',
             'vfx/engine_flame.png',
         ]
         for rel_path in required_player_files:
@@ -137,7 +135,6 @@ class TestPhase8PlayerVisualOverhaul(unittest.TestCase):
             'enemies/scout/scout_move.png',
             'enemies/scout/scout_attack.png',
             'enemies/scout/scout_hit.png',
-            'shadows/scout_shadow.png',
         ]
         for rel_path in scout_files:
             full_path = os.path.join(base_dir, rel_path)
