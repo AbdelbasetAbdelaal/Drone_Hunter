@@ -79,20 +79,20 @@ class FactoryFloor:
         self.world_h = world_h
         self.assets = CyberFactoryAssetManager.get_instance()
 
-        # Load floor tile variations scaled to modular 90x60
+        # Load floor tile variations scaled to modular 120x80
         self.tiles = [
-            self.assets.get_image("floor/floor_01.png", scale=(90, 60)),
-            self.assets.get_image("floor/floor_02.png", scale=(90, 60)),
-            self.assets.get_image("floor/floor_03.png", scale=(90, 60)),
-            self.assets.get_image("floor/floor_04.png", scale=(90, 60)),
-            self.assets.get_image("floor/floor_05.png", scale=(90, 60)),
-            self.assets.get_image("floor/floor_panel.png", scale=(90, 60)),
-            self.assets.get_image("floor/floor_maintenance.png", scale=(90, 60)),
+            self.assets.get_image("floor/floor_01.png", scale=(120, 80)),
+            self.assets.get_image("floor/floor_02.png", scale=(120, 80)),
+            self.assets.get_image("floor/floor_03.png", scale=(120, 80)),
+            self.assets.get_image("floor/floor_04.png", scale=(120, 80)),
+            self.assets.get_image("floor/floor_05.png", scale=(120, 80)),
+            self.assets.get_image("floor/floor_panel.png", scale=(120, 80)),
+            self.assets.get_image("floor/floor_maintenance.png", scale=(120, 80)),
         ]
-        self.tile_grate = self.assets.get_image("floor/floor_grate.png", scale=(90, 60))
+        self.tile_grate = self.assets.get_image("floor/floor_grate.png", scale=(120, 80))
         self.hazard_img = self.assets.get_image("hazards/hazard_stripe_01.png", scale=(135, 52))
 
-        self.tw, self.th = 90, 60
+        self.tw, self.th = 120, 80
 
         # Discrete Assembly Corridor Hazard Stripes
         self.hazard_lines = [
@@ -121,17 +121,14 @@ class FactoryFloor:
                     col_idx = (gx // self.tw)
                     row_idx = (gy // self.th)
 
-                    # Cohesive, quiet industrial foundation (predominantly clean slate plates)
-                    # Grates and maintenance panels clustered along dedicated service corridors
-                    is_service_duct = (col_idx % 8 == 0) or (row_idx % 10 == 0)
-                    if is_service_duct and ((col_idx + row_idx) % 3 == 0):
-                        surface.blit(self.tile_grate, (sx, sy))
-                    elif is_service_duct:
-                        surface.blit(self.tiles[5], (sx, sy)) # floor_panel
-                    else:
-                        # Solid calm plates with subtle tone variation
-                        base_idx = (col_idx // 2 + row_idx // 2) % 2 # floor_01 / floor_02
-                        surface.blit(self.tiles[base_idx], (sx, sy))
+                    # Cohesive, rich industrial slate plates with deterministic spatial distribution
+                    tile_hash = (col_idx * 73856093 ^ row_idx * 19349663) & 0x7FFFFFFF
+                    base_idx = tile_hash % 4
+                    surface.blit(self.tiles[base_idx], (sx, sy))
+                    if (col_idx % 11 == 0 and row_idx % 7 == 0):
+                        surface.blit(self.tiles[5], (sx, sy)) # maintenance panel
+                    elif (col_idx % 13 == 0 and row_idx % 9 == 0):
+                        surface.blit(self.tile_grate, (sx, sy)) # floor grate
 
         # 3. Discrete Assembly Line Hazard Stripes
         hw, hh = self.hazard_img.get_size()
@@ -406,8 +403,12 @@ class CyberFactoryEnvironment:
             if -aw <= asx <= vw + aw and -ah <= asy <= vh + ah:
                 pygame.draw.rect(surface, (10, 14, 20), (asx, asy, aw, ah), border_radius=4)
                 pygame.draw.rect(surface, (239, 68, 68), (asx, asy, aw, ah), 2, border_radius=4)
-                for zx in range(asx + 4, asx + aw - 8, 16):
-                    pygame.draw.line(surface, (217, 119, 6), (zx, asy + ah - 4), (zx + 8, asy + 4), 2)
+                if aw >= ah: # Horizontal airlock
+                    for zx in range(asx + 4, asx + aw - 8, 16):
+                        pygame.draw.line(surface, (217, 119, 6), (zx, asy + ah - 4), (zx + 8, asy + 4), 2)
+                else: # Vertical airlock
+                    for zy in range(asy + 4, asy + ah - 8, 16):
+                        pygame.draw.line(surface, (217, 119, 6), (asx + 4, zy + 8), (asx + aw - 4, zy), 2)
 
         # 9. Perimeter Security Barrier
         pad = 20.0

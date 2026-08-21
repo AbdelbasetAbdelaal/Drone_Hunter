@@ -122,16 +122,31 @@ class PlayerRenderer:
         rot_rect = rotated_drone.get_rect(center=(int(round(screen_x)), int(round(screen_y))))
         canvas.blit(rotated_drone, rot_rect)
 
-        # 4. Muzzle Flash Sprite Overlay at Weapon Hardpoints (High-Fidelity Asset)
-        if player.muzzle_flash_timer > 0:
-            flash_pct = max(0.0, min(1.0, player.muzzle_flash_timer / 0.08))
-            flash_alpha = int(220 * flash_pct)
-            flash_size = int(50 + flash_pct * 20)
-            fire_sprite = self.sprite_manager.get_player_state_sprite('fire', skin_idx, (flash_size, flash_size + 4))
-            fire_surf = fire_sprite.copy()
-            fire_surf.set_alpha(flash_alpha)
-            fire_rect = fire_surf.get_rect(center=(int(round(screen_x)), int(round(screen_y))))
-            canvas.blit(fire_surf, fire_rect)
+        # 4. Developer Debug Mount Mode (Optional Visualization)
+        if getattr(player, "debug_mounts", False):
+            from src.data.game_data import DRONE_MOUNT_PROFILES, DRONE_CLASSES
+            d_class = DRONE_CLASSES.get(skin_idx, DRONE_CLASSES[0])
+            cid = d_class.get("class_id", "striker")
+            mount_prof = DRONE_MOUNT_PROFILES.get(cid, {})
+            for m_name, (f_off, l_off) in mount_prof.items():
+                m_wx, m_wy = player.get_mount_world_pos(m_name)
+                m_sx, m_sy = int(round(m_wx - cam_ox)), int(round(m_wy - cam_oy))
+                # Color code mounts by type
+                if "front" in m_name or "primary" in m_name or "rail" in m_name:
+                    m_col = (34, 197, 94)    # Green
+                elif "left" in m_name or "dual_left" in m_name:
+                    m_col = (234, 179, 8)    # Yellow
+                elif "right" in m_name or "dual_right" in m_name:
+                    m_col = (249, 115, 22)   # Orange
+                elif "missile" in m_name or "pod" in m_name:
+                    m_col = (239, 68, 68)    # Red
+                elif "beam" in m_name or "energy" in m_name:
+                    m_col = (59, 130, 246)   # Blue
+                else:
+                    m_col = (168, 85, 247)   # Purple
+                pygame.draw.circle(canvas, m_col, (m_sx, m_sy), 4)
+                pygame.draw.circle(canvas, COLOR_WHITE, (m_sx, m_sy), 2)
+
 
         # 5. Low Health Warning Sparks (Subtle localized warning)
         if player.health < player.max_health * 0.30:
@@ -181,5 +196,8 @@ class PlayerRenderer:
             destroy_surf.set_alpha(destroy_alpha)
             destroy_rect = destroy_surf.get_rect(center=(int(round(screen_x)), int(round(screen_y))))
             canvas.blit(destroy_surf, destroy_rect)
+
+    render = draw_player
+
 
 

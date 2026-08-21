@@ -109,6 +109,8 @@ class Game:
         self.context.campaign_completed = saved_data.get("campaign_completed", False)
         self.context.show_crt = saved_data["show_crt"]
         self.context.difficulty_mode = saved_data["difficulty_mode"]
+        self.context.missions = saved_data.get("missions", self.context.missions)
+        self.context.sector_progress = saved_data.get("sector_progress", self.context.sector_progress)
         self.context.selected_drone = saved_data.get("selected_drone", "striker")
         self.context.selected_skin = saved_data.get("selected_skin", 0)
         self.context.selected_skin_override = self.context.selected_skin
@@ -121,6 +123,8 @@ class Game:
         self.camera = Camera2D(world_w=WORLD_WIDTH, world_h=WORLD_HEIGHT, view_w=SCREEN_WIDTH, view_h=SCREEN_HEIGHT)
         self.running = True
         self.reset_game()
+        self.context.state = STATE_MENU
+        self.previous_state = STATE_MENU
 
         if Game.DEBUG_PROFILE:
             self._prof = {
@@ -162,6 +166,22 @@ class Game:
         ctx.combo_timer = 0.0
         ctx.damage_flash_timer = 0.0
         ctx.shake_timer = 0.0
+        ctx.level_score = 0
+
+        # Update sector and stage telemetry based on mission_id
+        try:
+            sec_num = int(mission_id[1])
+            m_num = int(mission_id[4])
+            ctx.current_sector_idx = max(0, min(4, sec_num - 1))
+            ctx.current_sub_level = m_num
+            ctx.missions["current_sector"] = sec_num
+            ctx.missions["current_mission"] = m_num
+        except Exception:
+            ctx.current_sector_idx = 0
+            ctx.current_sub_level = 1
+
+        if hasattr(self, "background") and self.background is not None:
+            self.background.set_sector(ctx.current_sector_idx)
 
         p = Player((WORLD_WIDTH // 2, WORLD_HEIGHT // 2))
         selected_skin = getattr(ctx, "selected_skin_override", None)
@@ -281,6 +301,21 @@ class Game:
             ctx.state = STATE_VICTORY
         else:
             self.start_stage(next_sec, next_stg)
+
+    def get_next_mission_id(self) -> str | None:
+        """Determines the next mission ID in campaign sequence."""
+        current_id = self.mission_system.active_mission_id or getattr(self, "pending_mission_id", None) or "S1_M1"
+        try:
+            sec_num = int(current_id[1])
+            m_num = int(current_id[4])
+            if m_num < 5:
+                return f"S{sec_num}_M{m_num + 1}"
+            elif sec_num < 5:
+                return f"S{sec_num + 1}_M1"
+            else:
+                return None
+        except Exception:
+            return "S1_M2"
 
     def buy_upgrade(self, upgrade_id: str) -> bool:
         ctx = self.context
@@ -504,7 +539,13 @@ class Game:
                         ctx.state = STATE_SECTOR_SELECT
 
                 elif ctx.state == STATE_MISSION_COMPLETE:
-                    if event.key in (pygame.K_SPACE, pygame.K_RETURN, pygame.K_m, pygame.K_ESCAPE, pygame.K_b):
+                    if event.key in (pygame.K_SPACE, pygame.K_RETURN):
+                        next_mid = self.get_next_mission_id()
+                        if next_mid:
+                            self.start_phase5_mission(next_mid)
+                        else:
+                            ctx.state = STATE_VICTORY
+                    elif event.key in (pygame.K_m, pygame.K_ESCAPE, pygame.K_b):
                         self.mission_system.active_mission_id = None
                         ctx.state = STATE_SECTOR_SELECT
                     elif event.key == pygame.K_h:
@@ -650,15 +691,24 @@ class Game:
 
                 elif ctx.state == STATE_MISSION_COMPLETE:
                     if cache.get("next") and cache["next"].collidepoint(mx, my):
-                        self.mission_system.active_mission_id = None
-                        ctx.state = STATE_SECTOR_SELECT
+                        next_mid = self.get_next_mission_id()
+                        if next_mid:
+                            self.start_phase5_mission(next_mid)
+                        else:
+                            ctx.state = STATE_VICTORY
                     elif cache.get("hangar") and cache["hangar"].collidepoint(mx, my):
                         self.mission_system.active_mission_id = None
                         self.previous_state = STATE_SECTOR_SELECT
                         ctx.state = STATE_HANGAR
-                    else:
+                    elif cache.get("map") and cache["map"].collidepoint(mx, my):
                         self.mission_system.active_mission_id = None
                         ctx.state = STATE_SECTOR_SELECT
+                    else:
+                        next_mid = self.get_next_mission_id()
+                        if next_mid:
+                            self.start_phase5_mission(next_mid)
+                        else:
+                            ctx.state = STATE_SECTOR_SELECT
 
                 elif ctx.state == STATE_MISSION_FAILED:
                     if cache.get("retry") and cache["retry"].collidepoint(mx, my):
@@ -672,15 +722,38 @@ class Game:
                     else:
                         self.start_phase5_mission(self.mission_system.active_mission_id or self.pending_mission_id)
 
+                elif ctx.state == STATE_LEVEL_CLEAR:
+                    if cache.get("next") and cache["next"].collidepoint(mx, my):
+                        self.start_next_stage()
+                    elif cache.get("hangar") and cache["hangar"].collidepoint(mx, my):
+                        self.previous_state = STATE_SECTOR_SELECT
+                        ctx.state = STATE_HANGAR
+                    elif cache.get("map") and cache["map"].collidepoint(mx, my):
+                        ctx.state = STATE_SECTOR_SELECT
+                    else:
+                        self.start_next_stage()
+
                 elif ctx.state == STATE_VICTORY:
                     self.mission_system.active_mission_id = None
                     ctx.state = STATE_SECTOR_SELECT
 
                 elif ctx.state == STATE_GAME_OVER:
-                    if self.pending_mission_id:
-                        self.start_phase5_mission(self.pending_mission_id)
+                    if cache.get("retry") and cache["retry"].collidepoint(mx, my):
+                        if self.pending_mission_id:
+                            self.start_phase5_mission(self.pending_mission_id)
+                        else:
+                            self.start_stage(ctx.current_sector_idx, ctx.current_sub_level)
+                    elif cache.get("hangar") and cache["hangar"].collidepoint(mx, my):
+                        self.previous_state = STATE_SECTOR_SELECT
+                        ctx.state = STATE_HANGAR
+                    elif cache.get("menu") and cache["menu"].collidepoint(mx, my):
+                        self.mission_system.active_mission_id = None
+                        ctx.state = STATE_MENU
                     else:
-                        ctx.state = STATE_SECTOR_SELECT
+                        if self.pending_mission_id:
+                            self.start_phase5_mission(self.pending_mission_id)
+                        else:
+                            ctx.state = STATE_SECTOR_SELECT
 
                 elif ctx.state == STATE_PLAYING:
                     if event.button == 1 and ctx.player and ctx.player.can_shoot():
@@ -838,9 +911,12 @@ class Game:
                     if ctx.state in (STATE_MISSION_COMPLETE, STATE_MISSION_FAILED, STATE_GAME_OVER):
                         return
 
-                # 5. Check Legacy Stage Completion (Only in legacy mode without active mission)
+                # 5. Check Stage Completion (Only in legacy mode without active mission)
                 if self.mission_system.active_mission_id is None:
-                    if ctx.wave_manager.is_stage_complete(ctx.level_score, targets_group=ctx.target_group):
+                    living_enemies = [e for e in ctx.target_group if getattr(e, "alive", False) and not getattr(e, "is_obstacle", False)]
+                    stage_complete = ctx.wave_manager.is_stage_complete(ctx.level_score, targets_group=ctx.target_group)
+                    director_finished = (self.combat_director.state == "complete" and len(living_enemies) == 0 and ctx.level_score >= 1200)
+                    if stage_complete or director_finished:
                         ctx.state = STATE_LEVEL_CLEAR
                         self.audio_manager.play_powerup()
                         self.save_progress()
@@ -892,7 +968,8 @@ class Game:
                 canvas, ctx.player, ctx.current_sector_idx, ctx.level_score,
                 ctx.total_score, ctx.scrap, DIFFICULTY_NAMES[ctx.difficulty_mode],
                 combo_mult=ctx.combo_count, show_crt=ctx.show_crt,
-                current_wave=ctx.current_wave, sub_level=ctx.current_sub_level
+                current_wave=ctx.current_wave, sub_level=ctx.current_sub_level,
+                mission_id=getattr(self.mission_system, "active_mission_id", None)
             )
             
             draw_radar_minimap(canvas, ctx.player, ctx.target_group)
@@ -910,9 +987,9 @@ class Game:
             elif ctx.state == STATE_PAUSED:
                 draw_pause_settings_ui(canvas, ctx.difficulty_mode, ctx.show_crt, self.audio_manager.sound_enabled, mouse_pos=canvas_m_pos)
             elif ctx.state == STATE_LEVEL_CLEAR:
-                draw_level_clear_ui(canvas, ctx.current_sector_idx, ctx.current_sub_level)
+                self.ui_rects_cache = draw_level_clear_ui(canvas, ctx.current_sector_idx, ctx.current_sub_level, ctx.level_score, getattr(ctx, "scrap", 0), mouse_pos=canvas_m_pos)
             elif ctx.state == STATE_GAME_OVER:
-                draw_game_over_ui(canvas, ctx.total_score, ctx.highscore)
+                self.ui_rects_cache = draw_game_over_ui(canvas, ctx.current_sector_idx, ctx.current_sub_level, ctx.level_score, mouse_pos=canvas_m_pos)
             elif ctx.state == STATE_MISSION_COMPLETE:
                 is_sec = (self.mission_system.active_mission_data["mission_number"] == 5) if self.mission_system.active_mission_data else False
                 self.ui_rects_cache = draw_mission_complete(canvas, self.mission_system.active_mission_data or {}, self.mission_system.is_mission_success, is_sec, mouse_pos=canvas_m_pos)

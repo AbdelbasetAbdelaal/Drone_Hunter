@@ -18,11 +18,11 @@ from src.ui.font_manager import font_hud, font_card, font_banner
 
 def draw_hud(canvas: pygame.Surface, player, sector_idx: int = 0, level_score: int = 0, total_score: int = 0,
              scrap: int = 0, difficulty_name: str = "NORMAL", combo_mult: int = 1, show_crt: bool = False,
-             current_wave: int = 1, sub_level: int = 1):
+             current_wave: int = 1, sub_level: int = 1, mission_id: str | None = None):
     """Renders clean, responsive screen-space tactical HUD."""
     vw, vh = canvas.get_size()
     margin_x = 24
-    margin_y = 16
+    margin_y = 20
 
     # =========================================================================
     # 1. TOP-LEFT: Hull Integrity, Energy Status & Shield Pips
@@ -30,121 +30,120 @@ def draw_hud(canvas: pygame.Surface, player, sector_idx: int = 0, level_score: i
     if player:
         # HP Hull Bar
         hp_pct = max(0.0, min(1.0, player.health / max(1.0, player.max_health)))
-        hp_w = 150
-        hp_h = 14
+        hp_w = 160
+        hp_h = 16
         
-        pygame.draw.rect(canvas, (15, 23, 42, 220), (margin_x, margin_y, hp_w, hp_h), border_radius=4)
+        pygame.draw.rect(canvas, (15, 23, 42, 230), (margin_x, margin_y, hp_w, hp_h), border_radius=4)
         if hp_pct > 0:
             fill_w = int(round(hp_w * hp_pct))
             hp_col = COLOR_EMERALD if hp_pct > 0.5 else (COLOR_GOLD if hp_pct > 0.25 else COLOR_CRIMSON)
             pygame.draw.rect(canvas, hp_col, (margin_x, margin_y, fill_w, hp_h), border_radius=4)
         pygame.draw.rect(canvas, (51, 65, 85), (margin_x, margin_y, hp_w, hp_h), 1, border_radius=4)
         
-        txt_hp = font_card.render(f"HULL  {int(player.health)}/{int(player.max_health)}", True, COLOR_WHITE)
-        canvas.blit(txt_hp, (margin_x, margin_y + hp_h + 3))
+        txt_hp = font_card.render(f"HULL {int(player.health)} / {int(player.max_health)}", True, COLOR_WHITE)
+        canvas.blit(txt_hp, (margin_x + hp_w + 12, margin_y - 1))
 
         # NRG Bar (Stacked right below Hull readout)
-        nrg_y = margin_y + hp_h + 20
+        nrg_y = margin_y + hp_h + 10
         nrg_pct = max(0.0, min(1.0, player.energy / max(1.0, player.max_energy)))
-        nrg_w = 110
-        nrg_h = 8
+        nrg_w = 160
+        nrg_h = 10
         
-        pygame.draw.rect(canvas, (15, 23, 42, 220), (margin_x, nrg_y, nrg_w, nrg_h), border_radius=3)
+        pygame.draw.rect(canvas, (15, 23, 42, 230), (margin_x, nrg_y, nrg_w, nrg_h), border_radius=3)
         if nrg_pct > 0:
             fill_nrg = int(round(nrg_w * nrg_pct))
             pygame.draw.rect(canvas, COLOR_CYAN, (margin_x, nrg_y, fill_nrg, nrg_h), border_radius=3)
         pygame.draw.rect(canvas, (30, 58, 85), (margin_x, nrg_y, nrg_w, nrg_h), 1, border_radius=3)
         
-        txt_nrg = font_card.render(f"NRG  {int(player.energy)}%", True, COLOR_CYAN)
-        canvas.blit(txt_nrg, (margin_x + nrg_w + 8, nrg_y - 3))
+        txt_nrg = font_card.render(f"NRG {int(player.energy)}%", True, COLOR_CYAN)
+        canvas.blit(txt_nrg, (margin_x + nrg_w + 12, nrg_y - 3))
 
         # Shield Hit Charge Indicators
         if player.shield_hits > 0:
-            sh_x = margin_x + hp_w + 14
+            sh_x = margin_x + hp_w + txt_hp.get_width() + 24
             for s_i in range(min(5, player.shield_hits)):
-                pygame.draw.circle(canvas, COLOR_SHIELD, (sh_x + s_i * 12, margin_y + 7), 4)
-                pygame.draw.circle(canvas, COLOR_WHITE, (sh_x + s_i * 12, margin_y + 7), 1)
+                pygame.draw.circle(canvas, COLOR_SHIELD, (sh_x + s_i * 12, margin_y + 8), 4)
+                pygame.draw.circle(canvas, COLOR_WHITE, (sh_x + s_i * 12, margin_y + 8), 1)
             txt_sh = font_card.render(f"SHIELD x{player.shield_hits}", True, COLOR_SHIELD)
-            canvas.blit(txt_sh, (sh_x + player.shield_hits * 12 + 6, margin_y + 1))
+            canvas.blit(txt_sh, (sh_x + min(5, player.shield_hits) * 12 + 6, margin_y - 1))
 
         # EMP Jammed Alert Banner (Centered on screen)
         if player.is_jammed:
-            jam_banner = font_banner.render(f"⚡ SYSTEM JAMMED: {player.emp_jammed_timer:.1f}s", True, COLOR_NEON_RED)
+            jam_banner = font_banner.render(f"SYSTEM JAMMED: {player.emp_jammed_timer:.1f}s", True, COLOR_NEON_RED)
             canvas.blit(jam_banner, (vw // 2 - jam_banner.get_width() // 2, 70))
 
     # =========================================================================
     # 2. TOP-RIGHT: Level Telemetry & Clean Score Card
     # =========================================================================
-    level_str = f"SECTOR {sector_idx + 1}  |  STAGE {sub_level}"
+    if mission_id:
+        level_str = f"SECTOR {sector_idx + 1}  |  STAGE {sub_level}"
+    else:
+        level_str = f"SECTOR {sector_idx + 1}  |  STAGE {sub_level}"
     lbl_level = font_card.render(level_str, True, COLOR_CYAN)
     
     score_str = f"SCORE: {level_score:,}"
     lbl_score = font_hud.render(score_str, True, COLOR_GOLD)
     
-    # Calculate panel width
-    max_w = max(lbl_level.get_width(), lbl_score.get_width()) + 24
-    card_h = 50
+    max_w = max(lbl_level.get_width(), lbl_score.get_width()) + 28
+    card_h = 52
     card_x = vw - margin_x - max_w
     card_rect = pygame.Rect(card_x, margin_y, max_w, card_h)
     
-    # Semi-transparent sci-fi card backdrop
-    pygame.draw.rect(canvas, (15, 23, 42, 210), card_rect, border_radius=6)
+    pygame.draw.rect(canvas, (15, 23, 42, 220), card_rect, border_radius=6)
     pygame.draw.rect(canvas, (45, 65, 95), card_rect, 1, border_radius=6)
     
-    canvas.blit(lbl_level, (card_x + 12, margin_y + 6))
-    canvas.blit(lbl_score, (card_x + 12, margin_y + 24))
+    canvas.blit(lbl_level, (card_x + 14, margin_y + 7))
+    canvas.blit(lbl_score, (card_x + 14, margin_y + 26))
 
     # Compact Combo Streak Badge (stacked to the left of score card)
     if combo_mult > 1:
         combo_txt = f"COMBO x{combo_mult}"
         lbl_combo = font_card.render(combo_txt, True, COLOR_GOLD)
-        combo_w = lbl_combo.get_width() + 14
-        combo_rect = pygame.Rect(card_x - combo_w - 8, margin_y + 12, combo_w, 26)
+        combo_w = lbl_combo.get_width() + 16
+        combo_rect = pygame.Rect(card_x - combo_w - 10, margin_y + 12, combo_w, 28)
         pygame.draw.rect(canvas, (245, 158, 11, 40), combo_rect, border_radius=4)
         pygame.draw.rect(canvas, COLOR_GOLD, combo_rect, 1, border_radius=4)
-        canvas.blit(lbl_combo, (combo_rect.left + 7, combo_rect.top + 5))
+        canvas.blit(lbl_combo, (combo_rect.left + 8, combo_rect.top + 5))
 
     # =========================================================================
     # 3. BOTTOM-CENTER: Screen-Space Ability Indicators
     # =========================================================================
     if player:
         abilities = [
-            ("ROLL", player.roll_cooldown <= 0.0, COLOR_EMERALD, f"{player.roll_cooldown:.1f}s" if player.roll_cooldown > 0 else "READY"),
-            ("EMP [E]", player.emp_cooldown <= 0.0, COLOR_CYAN, f"{player.emp_cooldown:.1f}s" if player.emp_cooldown > 0 else "READY"),
-            ("ULT [F]", player.overdrive_cooldown <= 0.0 or player.overdrive_timer > 0, COLOR_GOLD if player.overdrive_cooldown <= 0 else COLOR_OVERCLOCK,
+            ("[SHIFT] ROLL", player.roll_cooldown <= 0.0, COLOR_EMERALD, f"{player.roll_cooldown:.1f}s" if player.roll_cooldown > 0 else "READY"),
+            ("[E] EMP", player.emp_cooldown <= 0.0, COLOR_CYAN, f"{player.emp_cooldown:.1f}s" if player.emp_cooldown > 0 else "READY"),
+            ("[F] ULT", player.overdrive_cooldown <= 0.0 or player.overdrive_timer > 0, COLOR_GOLD if player.overdrive_cooldown <= 0 else COLOR_OVERCLOCK,
              f"{player.overdrive_timer:.1f}s" if player.overdrive_timer > 0 else ("READY" if player.overdrive_cooldown <= 0 else f"{player.overdrive_cooldown:.0f}s")),
         ]
         
-        pill_w = 78
-        pill_h = 24
-        gap = 8
+        pill_w = 95
+        pill_h = 28
+        gap = 10
         total_w = len(abilities) * pill_w + (len(abilities) - 1) * gap
         start_x = (vw - total_w) // 2
-        p_y = vh - margin_y - pill_h
+        p_y = vh - margin_y - pill_h - 6
 
         for idx, (name, ready, col, status_str) in enumerate(abilities):
             px = start_x + idx * (pill_w + gap)
             p_rect = pygame.Rect(px, p_y, pill_w, pill_h)
-            pygame.draw.rect(canvas, (15, 23, 42, 210), p_rect, border_radius=4)
-            pygame.draw.rect(canvas, col if ready else (45, 55, 75), p_rect, 1, border_radius=4)
+            pygame.draw.rect(canvas, (15, 23, 42, 220), p_rect, border_radius=5)
+            pygame.draw.rect(canvas, col if ready else (45, 55, 75), p_rect, 1, border_radius=5)
             
             txt_name = font_card.render(name, True, col if ready else (120, 135, 155))
-            canvas.blit(txt_name, (px + 6, p_y + 4))
+            canvas.blit(txt_name, txt_name.get_rect(center=p_rect.center))
 
     # =========================================================================
-    # 4. BOTTOM-RIGHT: Compact Weapon Slot Indicator List
+    # 4. BOTTOM-RIGHT: Clean Weapon Slot Indicator List
     # =========================================================================
     if player:
         wpn_h = 26
-        # Draw from bottom up
-        start_y = vh - margin_y - wpn_h
+        start_y = vh - margin_y - wpn_h - 6
         slot_names = ["PRIMARY", "SECONDARY", "HEAVY", "SPECIAL"]
         
         for idx, w_id in reversed(list(enumerate(player.available_weapons))):
             w_def = WEAPON_DEFS.get(w_id, {})
             w_name = w_def.get("name", "Unknown").upper()
             w_col = w_def.get("color", COLOR_CYAN)
-            w_icon = w_def.get("icon", "⚡")
             slot_tag = slot_names[idx] if idx < len(slot_names) else f"SLOT {idx+1}"
             
             is_active = (player.active_weapon == w_id)
@@ -158,19 +157,19 @@ def draw_hud(canvas: pygame.Surface, player, sector_idx: int = 0, level_score: i
             else:
                 lbl_text = f"[{idx+1}] {slot_tag}: {w_name}"
                 text_col = w_col if is_active else (200, 200, 200)
-                box_border = w_col if is_active else (80, 90, 110)
+                box_border = w_col if is_active else (70, 80, 100)
                 bg_col = (30, 40, 60, 240) if is_active else (15, 23, 42, 220)
 
-            lbl_wpn = font_card.render(f"{w_icon} {lbl_text}", True, text_col)
-            wpn_w = lbl_wpn.get_width() + 16
+            lbl_wpn = font_card.render(lbl_text, True, text_col)
+            wpn_w = lbl_wpn.get_width() + 18
             wpn_x = vw - margin_x - wpn_w
             
             wpn_rect = pygame.Rect(wpn_x, start_y, wpn_w, wpn_h)
             pygame.draw.rect(canvas, bg_col, wpn_rect, border_radius=5)
-            pygame.draw.rect(canvas, box_border, wpn_rect, 1, border_radius=5)
-            canvas.blit(lbl_wpn, (wpn_x + 8, start_y + 5))
+            pygame.draw.rect(canvas, box_border, wpn_rect, 2 if is_active else 1, border_radius=5)
+            canvas.blit(lbl_wpn, (wpn_x + 9, start_y + 5))
             
-            start_y -= (wpn_h + 4)
+            start_y -= (wpn_h + 5)
 
 
 

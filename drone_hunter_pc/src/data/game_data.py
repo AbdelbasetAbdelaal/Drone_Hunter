@@ -328,57 +328,65 @@ WEAPON_DEFS["arc_beam"] = WEAPON_DEFS[WEAPON_BEAM]
 WEAPON_DEFS["missile_barrage"] = WEAPON_DEFS[WEAPON_BARRAGE]
 
 # -----------------------------------------------------------------------------
-# Drone Specific Mount Profiles & Local-Space Hardpoints
+# Drone Specific Mount Profiles & Local-Space Hardpoints (Calibrated for 176x152)
 # -----------------------------------------------------------------------------
 DRONE_MOUNT_PROFILES = {
     "striker": {
-        "primary_front_center": (38.0, 0.0),
-        "primary": (38.0, 0.0),
-        "left": (16.0, -28.0),
-        "right": (16.0, 28.0),
-        "wing_left": (16.0, -28.0),
-        "wing_right": (16.0, 28.0),
-        "missile_mount": (20.0, 0.0),
+        "primary_front_center": (88.0, 0.0),
+        "primary": (88.0, 0.0),
+        "left": (32.0, -56.0),
+        "right": (32.0, 56.0),
+        "wing_left": (32.0, -56.0),
+        "wing_right": (32.0, 56.0),
+        "missile_mount": (40.0, 0.0),
+        "missile_left": (24.0, -58.0),
+        "missile_right": (24.0, 58.0),
     },
     "interceptor": {
-        "primary_front_center": (42.0, 0.0),
-        "primary": (42.0, 0.0),
-        "dual_left": (36.0, -10.0),
-        "dual_right": (36.0, 10.0),
-        "left": (14.0, -24.0),
-        "right": (14.0, 24.0),
-        "wing_left": (14.0, -24.0),
-        "wing_right": (14.0, 24.0),
-        "missile_mount": (22.0, 0.0),
+        "primary_front_center": (94.0, 0.0),
+        "primary": (94.0, 0.0),
+        "dual_left": (82.0, -18.0),
+        "dual_right": (82.0, 18.0),
+        "left": (28.0, -50.0),
+        "right": (28.0, 50.0),
+        "wing_left": (28.0, -50.0),
+        "wing_right": (28.0, 50.0),
+        "missile_mount": (36.0, 0.0),
+        "missile_left": (20.0, -52.0),
+        "missile_right": (20.0, 52.0),
     },
     "assault": {
-        "heavy_front_center": (36.0, 0.0),
-        "primary": (36.0, 0.0),
-        "left": (18.0, -32.0),
-        "right": (18.0, 32.0),
-        "plasma_left": (18.0, -32.0),
-        "plasma_right": (18.0, 32.0),
-        "missile_left": (8.0, -34.0),
-        "missile_right": (8.0, 34.0),
+        "heavy_front_center": (86.0, 0.0),
+        "primary_front_center": (86.0, 0.0),
+        "primary": (86.0, 0.0),
+        "left": (36.0, -64.0),
+        "right": (36.0, 64.0),
+        "plasma_left": (36.0, -64.0),
+        "plasma_right": (36.0, 64.0),
+        "missile_left": (16.0, -68.0),
+        "missile_right": (16.0, 68.0),
+        "missile_mount": (20.0, 0.0),
     },
     "arc": {
-        "energy_center": (40.0, 0.0),
-        "primary": (40.0, 0.0),
-        "energy_left": (16.0, -28.0),
-        "energy_right": (16.0, 28.0),
-        "left": (16.0, -28.0),
-        "right": (16.0, 28.0),
-        "beam_emitter": (40.0, 0.0),
+        "energy_center": (88.0, 0.0),
+        "primary_front_center": (88.0, 0.0),
+        "primary": (88.0, 0.0),
+        "beam_emitter": (88.0, 0.0),
+        "energy_left": (32.0, -54.0),
+        "energy_right": (32.0, 54.0),
+        "left": (32.0, -54.0),
+        "right": (32.0, 54.0),
     },
     "command": {
-        "rail_front": (44.0, 0.0),
-        "primary": (44.0, 0.0),
-        "beam_emitter": (44.0, 0.0),
-        "left": (20.0, -30.0),
-        "right": (20.0, 30.0),
-        "pod_left": (4.0, -36.0),
-        "pod_right": (4.0, 36.0),
-        "cluster_pod": (20.0, 0.0),
+        "rail_front": (96.0, 0.0),
+        "primary_front_center": (96.0, 0.0),
+        "primary": (96.0, 0.0),
+        "beam_emitter": (96.0, 0.0),
+        "left": (24.0, -48.0),
+        "right": (24.0, 48.0),
+        "pod_left": (12.0, -72.0),
+        "pod_right": (12.0, 72.0),
+        "cluster_pod": (44.0, 0.0),
     }
 }
 
@@ -435,9 +443,9 @@ DRONE_CLASSES = {
         "loadout": DRONE_LOADOUTS[DRONE_CLASS_STRIKER],
         "weapons": [WEAPON_PULSE, WEAPON_SCATTER, WEAPON_MISSILE],
         "mounts": {
-            "primary": (38.0, 0.0),       # Front center nose
-            "left": (16.0, -28.0),        # Left wing hardpoint
-            "right": (16.0, 28.0),        # Right wing hardpoint
+            "primary": (88.0, 0.0),       # Front center nose
+            "left": (32.0, -56.0),        # Left wing hardpoint
+            "right": (32.0, 56.0),        # Right wing hardpoint
         },
         "role": "BALANCED / ACCURATE / VERSATILE"
     },
@@ -454,11 +462,11 @@ DRONE_CLASSES = {
         "loadout": DRONE_LOADOUTS[DRONE_CLASS_INTERCEPTOR],
         "weapons": [WEAPON_PULSE, WEAPON_RAPID, WEAPON_MISSILE],
         "mounts": {
-            "primary": (42.0, 0.0),       # Needle nose
-            "left": (14.0, -24.0),
-            "right": (14.0, 24.0),
-            "dual_left": (36.0, -10.0),
-            "dual_right": (36.0, 10.0),
+            "primary": (94.0, 0.0),       # Needle nose
+            "left": (28.0, -50.0),
+            "right": (28.0, 50.0),
+            "dual_left": (82.0, -18.0),
+            "dual_right": (82.0, 18.0),
         },
         "role": "FAST / AGILE / HIGH DPS / LOW SURVIVABILITY"
     },
@@ -474,9 +482,13 @@ DRONE_CLASSES = {
         "loadout": DRONE_LOADOUTS[DRONE_CLASS_ASSAULT],
         "weapons": [WEAPON_PULSE, WEAPON_PLASMA, WEAPON_MISSILE],
         "mounts": {
-            "primary": (36.0, 0.0),
-            "left": (18.0, -32.0),
-            "right": (18.0, 32.0),
+            "primary": (86.0, 0.0),
+            "left": (36.0, -64.0),
+            "right": (36.0, 64.0),
+            "plasma_left": (36.0, -64.0),
+            "plasma_right": (36.0, 64.0),
+            "missile_left": (16.0, -68.0),
+            "missile_right": (16.0, 68.0),
         },
         "role": "HEAVY / POWERFUL / HIGH DURABILITY"
     },
@@ -492,9 +504,13 @@ DRONE_CLASSES = {
         "loadout": DRONE_LOADOUTS[DRONE_CLASS_ARC],
         "weapons": [WEAPON_EMP, WEAPON_TESLA, WEAPON_BEAM],
         "mounts": {
-            "primary": (40.0, 0.0),
-            "left": (16.0, -28.0),
-            "right": (16.0, 28.0),
+            "primary": (88.0, 0.0),
+            "energy_center": (88.0, 0.0),
+            "beam_emitter": (88.0, 0.0),
+            "left": (32.0, -54.0),
+            "right": (32.0, 54.0),
+            "energy_left": (32.0, -54.0),
+            "energy_right": (32.0, 54.0),
         },
         "role": "ENERGY / CONTROL / AREA DAMAGE"
     },
@@ -510,11 +526,14 @@ DRONE_CLASSES = {
         "loadout": DRONE_LOADOUTS[DRONE_CLASS_COMMAND],
         "weapons": [WEAPON_RAIL, WEAPON_BEAM, WEAPON_BARRAGE, WEAPON_CLUSTER],
         "mounts": {
-            "primary": (44.0, 0.0),
-            "left": (20.0, -30.0),
-            "right": (20.0, 30.0),
-            "pod_left": (4.0, -36.0),
-            "pod_right": (4.0, 36.0),
+            "primary": (96.0, 0.0),
+            "rail_front": (96.0, 0.0),
+            "beam_emitter": (96.0, 0.0),
+            "left": (24.0, -48.0),
+            "right": (24.0, 48.0),
+            "pod_left": (12.0, -72.0),
+            "pod_right": (12.0, 72.0),
+            "cluster_pod": (44.0, 0.0),
         },
         "role": "ADVANCED / PRECISION / HIGH FIREPOWER / ENDGAME"
     }

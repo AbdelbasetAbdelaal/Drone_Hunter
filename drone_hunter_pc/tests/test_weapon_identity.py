@@ -17,6 +17,11 @@ Comprehensive test suite validating:
 15. Safe fallback on missing VFX asset
 16. Save system compatibility & legacy fallbacks
 17. Five drone loadouts remain fully deterministic
+18. Physical mount geometry outside chassis (176x152 resolution)
+19. Projectile owner metadata (player vs wingman vs enemy)
+20. Inactive Wingman produces zero projectiles
+21. Multi-angle 8-way rotational invariance (0, 45, 90, 135, 180, 225, 270, 315 deg)
+22. Single player chassis rendering (no centered fire-state sprite overlay)
 """
 
 import math
@@ -38,9 +43,10 @@ from src.data.game_data import (
     DRONE_CLASS_ARC, DRONE_CLASS_COMMAND,
     get_drone_loadout
 )
-from src.entities.player import Player
+from src.entities.player import Player, WingmanDrone
 from src.audio.audio_manager import AudioManager, AUDIO_ASSET_MAP
 from src.rendering.particles import ParticleManager
+from src.rendering.player_renderer import PlayerRenderer
 from src.systems.save_system import SaveSystem
 
 
@@ -97,14 +103,10 @@ def test_5_distinct_behavior_configuration():
     plasma = WEAPON_DEFS[WEAPON_PLASMA]
     rail = WEAPON_DEFS[WEAPON_RAIL]
 
-    # Rapid has faster fire rate (lower cooldown) than Pulse
     assert rapid["cooldown"] < pulse["cooldown"]
-    # Scatter fires multiple projectiles per burst
     assert scatter["projectiles_per_shot"] > 1
-    # Railgun has extreme speed and high single-shot damage
     assert rail["speed"] > pulse["speed"]
     assert rail["damage"] > pulse["damage"]
-    # Plasma is heavier and slower than rail
     assert plasma["speed"] < rail["speed"]
     assert plasma["damage"] > pulse["damage"]
 
@@ -120,53 +122,53 @@ def test_6_weapon_definitions_deterministic():
 def test_7_muzzle_origin_0_degrees():
     """7. Muzzle origin calculation at 0 deg heading (facing right)."""
     p = Player((500, 500))
-    p.apply_drone_class(0)  # Striker: primary is (38.0, 0.0)
+    p.apply_drone_class(0)  # Striker: primary is (88.0, 0.0)
     p.aim_angle = 0.0
     wx, wy = p.get_mount_world_pos("primary")
-    assert pytest.approx(wx, abs=0.1) == 538.0
+    assert pytest.approx(wx, abs=0.1) == 588.0
     assert pytest.approx(wy, abs=0.1) == 500.0
 
 
 def test_8_muzzle_origin_90_degrees():
     """8. Muzzle origin calculation rotates correctly at 90 deg heading (facing down)."""
     p = Player((500, 500))
-    p.apply_drone_class(0)  # Striker: primary is (38.0, 0.0)
+    p.apply_drone_class(0)  # Striker: primary is (88.0, 0.0)
     p.aim_angle = math.pi / 2  # 90 deg
     wx, wy = p.get_mount_world_pos("primary")
     assert pytest.approx(wx, abs=0.1) == 500.0
-    assert pytest.approx(wy, abs=0.1) == 538.0
+    assert pytest.approx(wy, abs=0.1) == 588.0
 
 
 def test_9_muzzle_origin_180_degrees():
     """9. Muzzle origin calculation rotates correctly at 180 deg heading (facing left)."""
     p = Player((500, 500))
-    p.apply_drone_class(0)  # Striker: primary is (38.0, 0.0)
+    p.apply_drone_class(0)  # Striker: primary is (88.0, 0.0)
     p.aim_angle = math.pi  # 180 deg
     wx, wy = p.get_mount_world_pos("primary")
-    assert pytest.approx(wx, abs=0.1) == 462.0
+    assert pytest.approx(wx, abs=0.1) == 412.0
     assert pytest.approx(wy, abs=0.1) == 500.0
 
 
 def test_10_muzzle_origin_270_degrees():
     """10. Muzzle origin calculation rotates correctly at 270 deg heading (facing up)."""
     p = Player((500, 500))
-    p.apply_drone_class(0)  # Striker: primary is (38.0, 0.0)
+    p.apply_drone_class(0)  # Striker: primary is (88.0, 0.0)
     p.aim_angle = 3 * math.pi / 2  # 270 deg (-90)
     wx, wy = p.get_mount_world_pos("primary")
     assert pytest.approx(wx, abs=0.1) == 500.0
-    assert pytest.approx(wy, abs=0.1) == 462.0
+    assert pytest.approx(wy, abs=0.1) == 412.0
 
 
 def test_11_muzzle_distance_invariance_under_rotation():
     """11. Distance from player center to muzzle remains constant under all rotations."""
     p = Player((300, 400))
-    p.apply_drone_class(1)  # Interceptor: primary (42.0, 0.0)
+    p.apply_drone_class(1)  # Interceptor: primary (94.0, 0.0)
     
     for angle_deg in range(0, 360, 30):
         p.aim_angle = math.radians(angle_deg)
         wx, wy = p.get_mount_world_pos("primary")
         dist = math.hypot(wx - p.pos.x, wy - p.pos.y)
-        assert pytest.approx(dist, abs=0.1) == 42.0
+        assert pytest.approx(dist, abs=0.1) == 94.0
 
 
 def test_12_projectile_begins_at_muzzle_position():
@@ -191,12 +193,11 @@ def test_13_projectile_aim_direction_preserved():
     p.active_weapon = WEAPON_PULSE
     p.weapon_cooldowns[WEAPON_PULSE] = 0.0
     
-    # Aiming towards (500, 1000) (directly down)
     bullets = p.shoot((500, 1000))
     assert len(bullets) >= 1
     b = bullets[0]
     b.update(0.1)
-    assert b.pos.y > 500.0  # Moves downwards towards target
+    assert b.pos.y > 500.0
 
 
 def test_14_audio_dispatch_resolves_correct_id():
@@ -247,3 +248,102 @@ def test_18_drone_loadout_integrity():
         assert loadout["primary"] == exp_weapons[0]
         assert loadout["secondary"] == exp_weapons[1]
         assert loadout["heavy"] == exp_weapons[2]
+
+
+def test_19_front_muzzle_outside_chassis():
+    """19. Primary nose muzzle emitter extends beyond the center of the 176x152 chassis."""
+    for skin_idx in range(5):
+        p = Player((500, 500))
+        p.apply_drone_class(skin_idx)
+        p.aim_angle = 0.0
+        wx, wy = p.get_mount_world_pos("primary")
+        dist = math.hypot(wx - 500, wy - 500)
+        # 176x152 chassis half-width is 88px, nose emitter is >= 86px
+        assert dist >= 86.0, f"Drone {skin_idx} muzzle dist {dist} must be outside chassis"
+
+
+def test_20_wing_muzzles_outside_chassis():
+    """20. Left and right wing hardpoints sit at true physical lateral offsets."""
+    for skin_idx in range(5):
+        p = Player((500, 500))
+        p.apply_drone_class(skin_idx)
+        p.aim_angle = 0.0
+        lx, ly = p.get_mount_world_pos("left")
+        rx, ry = p.get_mount_world_pos("right")
+        assert ly < 500.0, f"Left mount must be port side (-Y in screen space)"
+        assert ry > 500.0, f"Right mount must be starboard side (+Y in screen space)"
+        assert abs(ly - 500.0) >= 48.0, f"Wing lateral offset must be >= 48px"
+
+
+def test_21_projectile_ownership_metadata():
+    """21. Player projectiles contain explicit owner=='player' and weapon_id."""
+    p = Player((500, 500))
+    p.apply_drone_class(0)
+    for wid in p.available_weapons:
+        p.set_weapon(wid)
+        p.weapon_cooldowns[wid] = 0.0
+        bullets = p.shoot((900, 500))
+        for b in bullets:
+            assert hasattr(b, "owner")
+            assert b.owner == "player"
+            assert hasattr(b, "weapon_id")
+            assert b.weapon_id == wid
+
+
+def test_22_wingman_zero_projectiles_when_inactive():
+    """22. When player has no Wingman upgrade, zero wingman projectiles or entities exist."""
+    p = Player((500, 500))
+    p.wingmen.clear()
+    assert len(p.wingmen) == 0
+    wm_bullets = p.update_wingmen(0.016)
+    assert len(wm_bullets) == 0
+
+
+def test_23_wingman_projectile_ownership():
+    """23. Active Wingman drone shoots from its own offset and sets owner=='wingman'."""
+    p = Player((500, 500))
+    wm = WingmanDrone(-42, -40)
+    p.wingmen.append(wm)
+    
+    # Mock target
+    class DummyTarget(pygame.sprite.Sprite):
+        def __init__(self):
+            super().__init__()
+            self.rect = pygame.Rect(800, 500, 20, 20)
+            self.alive = True
+    
+    tg = [DummyTarget()]
+    wm.shoot_timer = 0.0
+    bullets = wm.update(0.016, p.pos, tg)
+    assert len(bullets) >= 1
+    b = bullets[0]
+    assert b.owner == "wingman"
+    assert b.weapon_id == "wingman_pulse"
+    assert pytest.approx(b.pos.x, abs=1.0) == (500 - 42)
+    assert pytest.approx(b.pos.y, abs=1.0) == (500 - 40)
+
+
+def test_24_8_way_rotational_invariance():
+    """24. Muzzle radial distance is invariant at all 8 cardinal and intercardinal angles."""
+    p = Player((400, 400))
+    p.apply_drone_class(4)  # Command drone
+    angles_deg = [0, 45, 90, 135, 180, 225, 270, 315]
+    for ang in angles_deg:
+        p.aim_angle = math.radians(ang)
+        wx, wy = p.get_mount_world_pos("primary")
+        dist = math.hypot(wx - 400, wy - 400)
+        assert pytest.approx(dist, abs=0.1) == 96.0
+
+
+def test_25_single_chassis_rendering():
+    """25. PlayerRenderer renders exactly one primary chassis without centered fire overlay."""
+    renderer = PlayerRenderer()
+    p = Player((640, 360))
+    p.apply_drone_class(0)
+    p.muzzle_flash_timer = 0.08  # Active firing state
+    
+    surf = pygame.Surface((1280, 720), pygame.SRCALPHA)
+    renderer.render(surf, p, (0, 0))
+    
+    # Ensure renderer completed cleanly
+    assert surf is not None

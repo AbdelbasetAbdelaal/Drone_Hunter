@@ -86,6 +86,7 @@ class MissionSystem:
             return False
             
         obj = self.active_mission_data["objective"]
+        living_enemies = [e for e in ctx.target_group if getattr(e, "alive", False) and not getattr(e, "is_obstacle", False)]
         
         if obj == OBJECTIVE_SURVIVE:
             self.survive_timer -= dt
@@ -93,13 +94,8 @@ class MissionSystem:
                 self._trigger_success(ctx)
                 return True
                 
-        elif obj == OBJECTIVE_COMPLETE_ENCOUNTERS:
-            if director.state == "complete":
-                self._trigger_success(ctx)
-                return True
-                
-        elif obj == OBJECTIVE_DESTROY_ALL:
-            if director.state == "complete" and len(ctx.target_group) == 0:
+        elif obj in (OBJECTIVE_COMPLETE_ENCOUNTERS, OBJECTIVE_DESTROY_ALL):
+            if director.state == "complete" and len(living_enemies) == 0:
                 self._trigger_success(ctx)
                 return True
                 

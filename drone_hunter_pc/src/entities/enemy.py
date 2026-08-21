@@ -518,9 +518,9 @@ class Enemy(pygame.sprite.Sprite):
         self.time_accum += dt
         hover_amp = 3.5 if self.enemy_type == TARGET_TYPE_SCOUT else (2.0 if self.enemy_type == TARGET_TYPE_SHOOTER else 1.2)
         hover_freq = 4.5 if self.enemy_type == TARGET_TYPE_SCOUT else 3.0
-        self.hover_offset.y = math.sin(self.time_accum * hover_freq) * hover_amp
-        self.hover_offset.x = math.cos(self.time_accum * (hover_freq * 0.7)) * (hover_amp * 0.5)
-
+        # Arena boundary clamping so enemies never escape or drift outside the battlefield
+        self.pos.x = max(60.0, min(float(WORLD_WIDTH - 60.0), self.pos.x))
+        self.pos.y = max(60.0, min(float(WORLD_HEIGHT - 60.0), self.pos.y))
         self.rect.center = (round(self.pos.x + self.hover_offset.x), round(self.pos.y + self.hover_offset.y))
 
         # --- Shooting Behaviors for Turrets ---

@@ -23,8 +23,12 @@ class Bullet(pygame.sprite.Sprite):
     """Primary Player Projectile bolt."""
     def __init__(self, start_pos: tuple[float, float], target_pos: tuple[float, float],
                  angle_offset_deg: float = 0.0, color: tuple[int, int, int] = COLOR_CYAN,
-                 speed: float = BULLET_SPEED, damage: int = 28, image: pygame.Surface | None = None):
+                 speed: float = BULLET_SPEED, damage: int = 28, image: pygame.Surface | None = None,
+                 owner: str = "player", weapon_id: str = "pulse"):
         super().__init__()
+        self.owner = owner
+        self.weapon_id = weapon_id
+        self.spawn_pos = (float(start_pos[0]), float(start_pos[1]))
         self.damage = damage
         self.speed = speed
         self.color = color
@@ -61,8 +65,12 @@ class Bullet(pygame.sprite.Sprite):
 
 class HomingMissile(pygame.sprite.Sprite):
     """Target-seeking guided missile tracking nearest hostile entity."""
-    def __init__(self, start_pos: tuple[float, float], target_pos: tuple[float, float], damage: int = 65, speed: float = 680.0, image: pygame.Surface | None = None):
+    def __init__(self, start_pos: tuple[float, float], target_pos: tuple[float, float], damage: int = 65, speed: float = 680.0, image: pygame.Surface | None = None,
+                 owner: str = "player", weapon_id: str = "missile"):
         super().__init__()
+        self.owner = owner
+        self.weapon_id = weapon_id
+        self.spawn_pos = (float(start_pos[0]), float(start_pos[1]))
         self.damage = damage
         self.speed = speed
         self.turn_rate = 7.5
@@ -126,8 +134,12 @@ class HomingMissile(pygame.sprite.Sprite):
 
 class PlasmaLaserBeam(pygame.sprite.Sprite):
     """High-velocity cutting laser beam with piercing capability."""
-    def __init__(self, start_pos: tuple[float, float], target_pos: tuple[float, float], damage: int = 14, speed: float = 1500.0, image: pygame.Surface | None = None):
+    def __init__(self, start_pos: tuple[float, float], target_pos: tuple[float, float], damage: int = 14, speed: float = 1500.0, image: pygame.Surface | None = None,
+                 owner: str = "player", weapon_id: str = "beam"):
         super().__init__()
+        self.owner = owner
+        self.weapon_id = weapon_id
+        self.spawn_pos = (float(start_pos[0]), float(start_pos[1]))
         self.damage = damage
         self.speed = speed
         self.is_piercing = True
@@ -161,8 +173,12 @@ class PlasmaLaserBeam(pygame.sprite.Sprite):
 
 class TeslaArcBeam(pygame.sprite.Sprite):
     """Electric arc bolt that zaps and branches to nearby targets."""
-    def __init__(self, start_pos: tuple[float, float], target_pos: tuple[float, float], damage: int = 42, speed: float = 1100.0, image: pygame.Surface | None = None):
+    def __init__(self, start_pos: tuple[float, float], target_pos: tuple[float, float], damage: int = 42, speed: float = 1100.0, image: pygame.Surface | None = None,
+                 owner: str = "player", weapon_id: str = "tesla"):
         super().__init__()
+        self.owner = owner
+        self.weapon_id = weapon_id
+        self.spawn_pos = (float(start_pos[0]), float(start_pos[1]))
         self.damage = damage
         self.speed = speed
         self.chained_targets = set()
@@ -195,8 +211,12 @@ class TeslaArcBeam(pygame.sprite.Sprite):
 
 class ClusterBomblet(pygame.sprite.Sprite):
     """Sub-munition created when a Cluster Torpedo detonates."""
-    def __init__(self, pos: tuple[float, float], angle_rad: float, speed: float = 380.0, damage: int = 24, image: pygame.Surface | None = None):
+    def __init__(self, pos: tuple[float, float], angle_rad: float, speed: float = 380.0, damage: int = 24, image: pygame.Surface | None = None,
+                 owner: str = "player", weapon_id: str = "cluster"):
         super().__init__()
+        self.owner = owner
+        self.weapon_id = weapon_id
+        self.spawn_pos = (float(pos[0]), float(pos[1]))
         self.damage = damage
         self.speed = speed
         self.lifetime = random.uniform(0.65, 1.1)
@@ -240,8 +260,12 @@ class ClusterTorpedo(pygame.sprite.Sprite):
                 cls._cached_default_image = None
         return cls._cached_default_image
 
-    def __init__(self, start_pos: tuple[float, float], target_pos: tuple[float, float], damage: int = 80, speed: float = 520.0, image: pygame.Surface | None = None):
+    def __init__(self, start_pos: tuple[float, float], target_pos: tuple[float, float], damage: int = 80, speed: float = 520.0, image: pygame.Surface | None = None,
+                 owner: str = "player", weapon_id: str = "cluster"):
         super().__init__()
+        self.owner = owner
+        self.weapon_id = weapon_id
+        self.spawn_pos = (float(start_pos[0]), float(start_pos[1]))
         self.damage = damage
         self.speed = speed
         self.fuse_timer = 0.55
@@ -284,7 +308,7 @@ class ClusterTorpedo(pygame.sprite.Sprite):
             for i in range(6):
                 ang = self.angle_rad + (i * (math.pi / 3.0)) + random.uniform(-0.2, 0.2)
                 spd = random.uniform(320.0, 460.0)
-                bomblets.append(ClusterBomblet(self.rect.center, ang, speed=spd, damage=self.damage // 3))
+                bomblets.append(ClusterBomblet(self.rect.center, ang, speed=spd, damage=self.damage // 3, owner=self.owner, weapon_id=self.weapon_id))
             return bomblets
 
         return []
@@ -292,8 +316,12 @@ class ClusterTorpedo(pygame.sprite.Sprite):
 
 class HeavyPlasmaOrb(pygame.sprite.Sprite):
     """Heavy concentrated plasma orb with high impact and energy trail."""
-    def __init__(self, start_pos: tuple[float, float], target_pos: tuple[float, float], damage: int = 90, speed: float = 460.0, image: pygame.Surface | None = None):
+    def __init__(self, start_pos: tuple[float, float], target_pos: tuple[float, float], damage: int = 90, speed: float = 460.0, image: pygame.Surface | None = None,
+                 owner: str = "player", weapon_id: str = "plasma"):
         super().__init__()
+        self.owner = owner
+        self.weapon_id = weapon_id
+        self.spawn_pos = (float(start_pos[0]), float(start_pos[1]))
         self.damage = damage
         self.speed = speed
         self.is_plasma = True
@@ -326,8 +354,12 @@ class HeavyPlasmaOrb(pygame.sprite.Sprite):
 
 class RailgunSlug(pygame.sprite.Sprite):
     """Supersonic precision kinetic railgun slug with high piercing capability."""
-    def __init__(self, start_pos: tuple[float, float], target_pos: tuple[float, float], damage: int = 115, speed: float = 1800.0, image: pygame.Surface | None = None):
+    def __init__(self, start_pos: tuple[float, float], target_pos: tuple[float, float], damage: int = 115, speed: float = 1800.0, image: pygame.Surface | None = None,
+                 owner: str = "player", weapon_id: str = "rail"):
         super().__init__()
+        self.owner = owner
+        self.weapon_id = weapon_id
+        self.spawn_pos = (float(start_pos[0]), float(start_pos[1]))
         self.damage = damage
         self.speed = speed
         self.is_piercing = True
@@ -362,8 +394,9 @@ class RailgunSlug(pygame.sprite.Sprite):
 
 class BarrageMissile(HomingMissile):
     """High-agility guided micro-missile fired in staggered salvos."""
-    def __init__(self, start_pos: tuple[float, float], target_pos: tuple[float, float], angle_offset_deg: float = 0.0, damage: int = 38, speed: float = 620.0, image: pygame.Surface | None = None):
-        super().__init__(start_pos, target_pos, damage=damage, speed=speed, image=image)
+    def __init__(self, start_pos: tuple[float, float], target_pos: tuple[float, float], angle_offset_deg: float = 0.0, damage: int = 38, speed: float = 620.0, image: pygame.Surface | None = None,
+                 owner: str = "player", weapon_id: str = "barrage"):
+        super().__init__(start_pos, target_pos, damage=damage, speed=speed, image=image, owner=owner, weapon_id=weapon_id)
         self.turn_rate = 11.0
         self.angle_rad += math.radians(angle_offset_deg)
         self.image = pygame.transform.rotate(self.original_image, math.degrees(-self.angle_rad))
@@ -371,8 +404,12 @@ class BarrageMissile(HomingMissile):
 
 class EMPPulse(pygame.sprite.Sprite):
     """Expanding electromagnetic shockwave pulse disabling electronic systems."""
-    def __init__(self, start_pos: tuple[float, float], target_pos: tuple[float, float], damage: int = 30, speed: float = 1200.0, image: pygame.Surface | None = None):
+    def __init__(self, start_pos: tuple[float, float], target_pos: tuple[float, float], damage: int = 30, speed: float = 1200.0, image: pygame.Surface | None = None,
+                 owner: str = "player", weapon_id: str = "emp"):
         super().__init__()
+        self.owner = owner
+        self.weapon_id = weapon_id
+        self.spawn_pos = (float(start_pos[0]), float(start_pos[1]))
         self.damage = damage
         self.speed = speed
         self.is_emp = True
@@ -426,8 +463,12 @@ class EnemyBullet(pygame.sprite.Sprite):
         return cls._cached_default_image
 
     def __init__(self, start_pos: tuple[float, float], target_pos: tuple[float, float],
-                 speed: float = ENEMY_BULLET_SPEED, angle_offset_deg: float = 0.0, damage: int = 20, image: pygame.Surface | None = None):
+                 speed: float = ENEMY_BULLET_SPEED, angle_offset_deg: float = 0.0, damage: int = 20, image: pygame.Surface | None = None,
+                 owner: str = "enemy", weapon_id: str = "enemy_laser"):
         super().__init__()
+        self.owner = owner
+        self.weapon_id = weapon_id
+        self.spawn_pos = (float(start_pos[0]), float(start_pos[1]))
         self.damage = damage
         self.speed = speed
         self.lifetime = 6.0
@@ -483,8 +524,12 @@ class EnemySniperBeam(pygame.sprite.Sprite):
                 cls._cached_default_image = None
         return cls._cached_default_image
 
-    def __init__(self, start_pos: tuple[float, float], target_pos: tuple[float, float], speed: float = 1200.0, damage: int = 35, image: pygame.Surface | None = None):
+    def __init__(self, start_pos: tuple[float, float], target_pos: tuple[float, float], speed: float = 1200.0, damage: int = 35, image: pygame.Surface | None = None,
+                 owner: str = "enemy", weapon_id: str = "sniper_beam"):
         super().__init__()
+        self.owner = owner
+        self.weapon_id = weapon_id
+        self.spawn_pos = (float(start_pos[0]), float(start_pos[1]))
         self.damage = damage
         self.speed = speed
         self.lifetime = 3.0

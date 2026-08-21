@@ -14,6 +14,7 @@ from src.data.game_data import (
     TARGET_TYPE_STANDARD, TARGET_TYPE_FAST, TARGET_TYPE_ARMORED, TARGET_TYPE_SHOOTER,
     TARGET_TYPE_TURRET, TARGET_TYPE_VEHICLE, TARGET_TYPE_CHASER, TARGET_TYPE_SWARM,
     TARGET_TYPE_SHIELD_DRONE, TARGET_TYPE_SNIPER, TARGET_TYPE_BOSS,
+    TARGET_TYPE_SCOUT, TARGET_TYPE_HEAVY,
     TARGET_TYPE_STEALTH_MIRAGE, TARGET_TYPE_EMP_DISRUPTER, TARGET_TYPE_TITAN_MECH,
     SECTORS
 )
@@ -111,24 +112,23 @@ class Spawner:
                 context.target_group.add(enemy)
 
     def _select_enemy_type(self, current_wave: int) -> str:
-        r = random.random()
         if self.sector_idx == 0:
-            if current_wave == 1: return random.choice([TARGET_TYPE_STANDARD, TARGET_TYPE_FAST, TARGET_TYPE_SWARM])
-            elif current_wave == 2: return random.choice([TARGET_TYPE_STANDARD, TARGET_TYPE_FAST, TARGET_TYPE_SHOOTER, TARGET_TYPE_SWARM])
-            else: return random.choice([TARGET_TYPE_FAST, TARGET_TYPE_SHOOTER, TARGET_TYPE_ARMORED, TARGET_TYPE_SWARM])
+            if current_wave == 1: return random.choice([TARGET_TYPE_SCOUT, TARGET_TYPE_SHOOTER])
+            elif current_wave == 2: return random.choice([TARGET_TYPE_SCOUT, TARGET_TYPE_SHOOTER, TARGET_TYPE_HEAVY])
+            else: return random.choice([TARGET_TYPE_SCOUT, TARGET_TYPE_SHOOTER, TARGET_TYPE_HEAVY, TARGET_TYPE_SHIELD_DRONE])
 
         elif self.sector_idx == 1:
-            if current_wave <= 2: return random.choice([TARGET_TYPE_STANDARD, TARGET_TYPE_ARMORED, TARGET_TYPE_TURRET, TARGET_TYPE_SHIELD_DRONE])
-            else: return random.choice([TARGET_TYPE_ARMORED, TARGET_TYPE_TURRET, TARGET_TYPE_SHIELD_DRONE, TARGET_TYPE_CHASER])
+            if current_wave <= 2: return random.choice([TARGET_TYPE_SCOUT, TARGET_TYPE_ARMORED, TARGET_TYPE_SHOOTER, TARGET_TYPE_SHIELD_DRONE])
+            else: return random.choice([TARGET_TYPE_ARMORED, TARGET_TYPE_HEAVY, TARGET_TYPE_SHIELD_DRONE, TARGET_TYPE_SHOOTER])
 
         elif self.sector_idx == 2:
-            if current_wave <= 2: return random.choice([TARGET_TYPE_FAST, TARGET_TYPE_SHOOTER, TARGET_TYPE_SNIPER, TARGET_TYPE_SHIELD_DRONE])
-            else: return random.choice([TARGET_TYPE_SNIPER, TARGET_TYPE_CHASER, TARGET_TYPE_SHIELD_DRONE, TARGET_TYPE_ARMORED])
+            if current_wave <= 2: return random.choice([TARGET_TYPE_SCOUT, TARGET_TYPE_SHOOTER, TARGET_TYPE_SNIPER, TARGET_TYPE_SHIELD_DRONE])
+            else: return random.choice([TARGET_TYPE_SNIPER, TARGET_TYPE_HEAVY, TARGET_TYPE_SHIELD_DRONE, TARGET_TYPE_ARMORED])
 
         else: # Sectors 3 & 4
             return random.choice([
-                TARGET_TYPE_FAST, TARGET_TYPE_ARMORED, TARGET_TYPE_SHOOTER,
-                TARGET_TYPE_CHASER, TARGET_TYPE_SWARM, TARGET_TYPE_SHIELD_DRONE, TARGET_TYPE_SNIPER
+                TARGET_TYPE_SCOUT, TARGET_TYPE_ARMORED, TARGET_TYPE_SHOOTER,
+                TARGET_TYPE_HEAVY, TARGET_TYPE_SHIELD_DRONE, TARGET_TYPE_SNIPER
             ])
 
     def _create_sector_boss(self, sector_idx: int, hp_mult: float, spd_mult: float):

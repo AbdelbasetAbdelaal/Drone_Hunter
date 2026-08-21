@@ -49,7 +49,7 @@ class WingmanDrone:
             self.shoot_timer = 0.45
             nearest = min(targets_group, key=lambda t: (t.rect.centerx - self.pos.x)**2 + (t.rect.centery - self.pos.y)**2)
             tx, ty = nearest.rect.center
-            bullets.append(Bullet((self.pos.x, self.pos.y), (tx, ty), speed=850.0, damage=16, color=COLOR_CYAN))
+            bullets.append(Bullet((self.pos.x, self.pos.y), (tx, ty), speed=850.0, damage=16, color=COLOR_CYAN, owner="wingman", weapon_id="wingman_pulse"))
 
         return bullets
 
@@ -412,11 +412,11 @@ class Player(pygame.sprite.Sprite):
             m_pos = self.get_mount_world_pos("primary_front_center")
             sprite = sm.get_projectile_sprite('pulse', (40, 12))
             t_pt = (m_pos[0] + math.cos(self.aim_angle) * 1000.0, m_pos[1] + math.sin(self.aim_angle) * 1000.0)
-            bullets.append(Bullet(m_pos, t_pt, speed=spd, damage=dmg, color=col, image=sprite))
+            bullets.append(Bullet(m_pos, t_pt, speed=spd, damage=dmg, color=col, image=sprite, owner="player", weapon_id=self.active_weapon))
             if self.overdrive_timer > 0.0:
                 od_dmg = int(dmg * 1.25)
-                bullets.append(Bullet(m_pos, t_pt, angle_offset_deg=-10.0, speed=spd * 1.1, damage=od_dmg, color=COLOR_GOLD, image=sprite))
-                bullets.append(Bullet(m_pos, t_pt, angle_offset_deg=10.0, speed=spd * 1.1, damage=od_dmg, color=COLOR_GOLD, image=sprite))
+                bullets.append(Bullet(m_pos, t_pt, angle_offset_deg=-10.0, speed=spd * 1.1, damage=od_dmg, color=COLOR_GOLD, image=sprite, owner="player", weapon_id=self.active_weapon))
+                bullets.append(Bullet(m_pos, t_pt, angle_offset_deg=10.0, speed=spd * 1.1, damage=od_dmg, color=COLOR_GOLD, image=sprite, owner="player", weapon_id=self.active_weapon))
             if particle_manager:
                 particle_manager.spawn_muzzle_flash(m_pos, self.aim_angle, self.active_weapon)
 
@@ -426,7 +426,7 @@ class Player(pygame.sprite.Sprite):
             m_pos = self.get_mount_world_pos(mount_key)
             sprite = sm.get_projectile_sprite('pulse', (32, 10))
             t_pt = (m_pos[0] + math.cos(self.aim_angle) * 1000.0, m_pos[1] + math.sin(self.aim_angle) * 1000.0)
-            bullets.append(Bullet(m_pos, t_pt, speed=spd, damage=dmg, color=col, image=sprite))
+            bullets.append(Bullet(m_pos, t_pt, speed=spd, damage=dmg, color=col, image=sprite, owner="player", weapon_id=self.active_weapon))
             if particle_manager:
                 particle_manager.spawn_muzzle_flash(m_pos, self.aim_angle, self.active_weapon)
 
@@ -442,7 +442,7 @@ class Player(pygame.sprite.Sprite):
                 ang = start_ang + step * i
                 origin = left_pos if i % 2 == 0 else right_pos
                 t_pt = (origin[0] + math.cos(self.aim_angle) * 1000.0, origin[1] + math.sin(self.aim_angle) * 1000.0)
-                bullets.append(Bullet(origin, t_pt, angle_offset_deg=ang, speed=spd, damage=dmg, color=col, image=sprite))
+                bullets.append(Bullet(origin, t_pt, angle_offset_deg=ang, speed=spd, damage=dmg, color=col, image=sprite, owner="player", weapon_id=self.active_weapon))
             if particle_manager:
                 particle_manager.spawn_muzzle_flash(left_pos, self.aim_angle, self.active_weapon)
                 particle_manager.spawn_muzzle_flash(right_pos, self.aim_angle, self.active_weapon)
@@ -452,7 +452,7 @@ class Player(pygame.sprite.Sprite):
             self._missile_side = (self._missile_side + 1) % 2
             m_pos = self.get_mount_world_pos(mount_key)
             sprite = sm.get_projectile_sprite('missile', (45, 16))
-            bullets.append(HomingMissile(m_pos, target_pos, damage=dmg, speed=spd, image=sprite))
+            bullets.append(HomingMissile(m_pos, target_pos, damage=dmg, speed=spd, image=sprite, owner="player", weapon_id=self.active_weapon))
             if particle_manager:
                 particle_manager.spawn_muzzle_flash(m_pos, self.aim_angle, self.active_weapon)
 
@@ -460,10 +460,10 @@ class Player(pygame.sprite.Sprite):
             pod_l = self.get_mount_world_pos("pod_left")
             pod_r = self.get_mount_world_pos("pod_right")
             sprite = sm.get_projectile_sprite('missile', (36, 12))
-            bullets.append(BarrageMissile(pod_l, target_pos, angle_offset_deg=-12.0, damage=dmg, speed=spd, image=sprite))
-            bullets.append(BarrageMissile(pod_l, target_pos, angle_offset_deg=-4.0, damage=dmg, speed=spd * 0.95, image=sprite))
-            bullets.append(BarrageMissile(pod_r, target_pos, angle_offset_deg=4.0, damage=dmg, speed=spd * 0.95, image=sprite))
-            bullets.append(BarrageMissile(pod_r, target_pos, angle_offset_deg=12.0, damage=dmg, speed=spd, image=sprite))
+            bullets.append(BarrageMissile(pod_l, target_pos, angle_offset_deg=-12.0, damage=dmg, speed=spd, image=sprite, owner="player", weapon_id=self.active_weapon))
+            bullets.append(BarrageMissile(pod_l, target_pos, angle_offset_deg=-4.0, damage=dmg, speed=spd * 0.95, image=sprite, owner="player", weapon_id=self.active_weapon))
+            bullets.append(BarrageMissile(pod_r, target_pos, angle_offset_deg=4.0, damage=dmg, speed=spd * 0.95, image=sprite, owner="player", weapon_id=self.active_weapon))
+            bullets.append(BarrageMissile(pod_r, target_pos, angle_offset_deg=12.0, damage=dmg, speed=spd, image=sprite, owner="player", weapon_id=self.active_weapon))
             if particle_manager:
                 particle_manager.spawn_muzzle_flash(pod_l, self.aim_angle, self.active_weapon)
                 particle_manager.spawn_muzzle_flash(pod_r, self.aim_angle, self.active_weapon)
@@ -471,40 +471,40 @@ class Player(pygame.sprite.Sprite):
         elif self.active_weapon == WEAPON_PLASMA:
             m_pos = self.get_mount_world_pos("heavy_front_center")
             sprite = sm.get_projectile_sprite('plasma', (36, 36))
-            bullets.append(HeavyPlasmaOrb(m_pos, target_pos, damage=dmg, speed=spd, image=sprite))
+            bullets.append(HeavyPlasmaOrb(m_pos, target_pos, damage=dmg, speed=spd, image=sprite, owner="player", weapon_id=self.active_weapon))
             if particle_manager:
                 particle_manager.spawn_muzzle_flash(m_pos, self.aim_angle, self.active_weapon)
 
         elif self.active_weapon == WEAPON_RAIL:
             m_pos = self.get_mount_world_pos("rail_front")
             sprite = sm.get_projectile_sprite('sniper', (64, 14))
-            bullets.append(RailgunSlug(m_pos, target_pos, damage=dmg, speed=spd, image=sprite))
+            bullets.append(RailgunSlug(m_pos, target_pos, damage=dmg, speed=spd, image=sprite, owner="player", weapon_id=self.active_weapon))
             if particle_manager:
                 particle_manager.spawn_muzzle_flash(m_pos, self.aim_angle, self.active_weapon)
 
         elif self.active_weapon == WEAPON_BEAM:
             m_pos = self.get_mount_world_pos("beam_emitter")
             sprite = sm.get_projectile_sprite('beam', (44, 8))
-            bullets.append(PlasmaLaserBeam(m_pos, target_pos, damage=dmg, speed=spd, image=sprite))
+            bullets.append(PlasmaLaserBeam(m_pos, target_pos, damage=dmg, speed=spd, image=sprite, owner="player", weapon_id=self.active_weapon))
             if particle_manager:
                 particle_manager.spawn_muzzle_flash(m_pos, self.aim_angle, self.active_weapon)
 
         elif self.active_weapon == WEAPON_TESLA:
             m_pos = self.get_mount_world_pos("energy_center")
             sprite = sm.get_projectile_sprite('tesla', (32, 10))
-            bullets.append(TeslaArcBeam(m_pos, target_pos, damage=dmg, speed=spd, image=sprite))
+            bullets.append(TeslaArcBeam(m_pos, target_pos, damage=dmg, speed=spd, image=sprite, owner="player", weapon_id=self.active_weapon))
             if particle_manager:
                 particle_manager.spawn_muzzle_flash(m_pos, self.aim_angle, self.active_weapon)
 
         elif self.active_weapon == WEAPON_CLUSTER:
             m_pos = self.get_mount_world_pos("primary")
-            bullets.append(ClusterTorpedo(m_pos, target_pos, damage=dmg, speed=spd))
+            bullets.append(ClusterTorpedo(m_pos, target_pos, damage=dmg, speed=spd, owner="player", weapon_id=self.active_weapon))
             if particle_manager:
                 particle_manager.spawn_muzzle_flash(m_pos, self.aim_angle, self.active_weapon)
 
         elif self.active_weapon == WEAPON_EMP:
             m_pos = self.get_mount_world_pos("energy_center")
-            bullets.append(EMPPulse(m_pos, target_pos, damage=dmg, speed=spd))
+            bullets.append(EMPPulse(m_pos, target_pos, damage=dmg, speed=spd, owner="player", weapon_id=self.active_weapon))
             if particle_manager:
                 particle_manager.spawn_muzzle_flash(m_pos, self.aim_angle, self.active_weapon)
 
@@ -615,12 +615,16 @@ class Player(pygame.sprite.Sprite):
             self.cloak_cooldown = max(0.0, self.cloak_cooldown - dt)
 
         # Update Wingmen
+        return self.update_wingmen(dt, targets_group=targets_group)
+
+    def update_wingmen(self, dt: float, targets_group=None) -> list[Bullet]:
+        """Updates autonomous escort wingmen and returns fired supportive projectiles."""
         wingman_bullets = []
         for wm in self.wingmen:
             wm_b = wm.update(dt, self.pos, targets_group=targets_group)
             wingman_bullets.extend(wm_b)
-
         return wingman_bullets
+
 
     def draw_wingmen(self, canvas: pygame.Surface, camera_offset: tuple[float, float] = (0, 0)):
         for wm in self.wingmen:

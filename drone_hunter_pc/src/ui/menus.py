@@ -523,5 +523,148 @@ def draw_campaign_victory_ui(canvas: pygame.Surface, total_score: int = 0, highs
 
 
 def draw_sector_select_ui(*args, **kwargs): return {}, pygame.Rect(0,0,0,0), []
-def draw_level_clear_ui(*args, **kwargs): pass
-def draw_game_over_ui(*args, **kwargs): pass
+
+def draw_level_clear_ui(canvas: pygame.Surface, sector_idx: int = 0, sub_level: int = 1, score: int = 0, scrap: int = 0, mouse_pos: tuple[int, int] = None) -> dict:
+    """Renders sleek, sci-fi stage clear completion screen with stats and interactive buttons."""
+    vw, vh = canvas.get_size()
+    m_pos = mouse_pos or (0, 0)
+    buttons = {}
+
+    dim_surf = pygame.Surface((vw, vh), pygame.SRCALPHA)
+    dim_surf.fill((10, 15, 26, 210))
+    canvas.blit(dim_surf, (0, 0))
+
+    frame_w = 640
+    frame_h = 420
+    frame_rect = pygame.Rect((vw - frame_w) // 2, (vh - frame_h) // 2, frame_w, frame_h)
+
+    pygame.draw.rect(canvas, (15, 23, 42), frame_rect, border_radius=10)
+    pygame.draw.rect(canvas, COLOR_EMERALD, frame_rect, 2, border_radius=10)
+
+    t_title = font_title.render("STAGE CLEARED", True, COLOR_EMERALD)
+    t_sub = font_banner.render(f"SECTOR {sector_idx + 1}  •  STAGE {sub_level} COMPLETE", True, COLOR_CYAN)
+    canvas.blit(t_title, t_title.get_rect(center=(vw // 2, frame_rect.top + 45)))
+    canvas.blit(t_sub, t_sub.get_rect(center=(vw // 2, frame_rect.top + 90)))
+
+    sy = frame_rect.top + 145
+    stats = [
+        ("STAGE SCORE:", f"{score:,} PTS", COLOR_GOLD),
+        ("SCRAP SALVAGED:", f"+{scrap:,} SCRAP", COLOR_EMERALD),
+        ("SECTOR STATUS:", "AIRSPACE SECURED", COLOR_WHITE),
+        ("COMBAT RATING:", "S-RANK TACTICAL VICTORY", COLOR_CYAN),
+    ]
+    for lbl, val, col in stats:
+        t_l = font_card.render(lbl, True, (148, 163, 184))
+        t_v = font_card.render(val, True, col)
+        canvas.blit(t_l, (frame_rect.left + 50, sy))
+        canvas.blit(t_v, (frame_rect.right - 50 - t_v.get_width(), sy))
+        sy += 36
+
+    btn_y = frame_rect.bottom - 75
+    btn_w = 170
+    btn_h = 44
+    gap = 20
+    total_btn_w = 3 * btn_w + 2 * gap
+    btn_start_x = (vw - total_btn_w) // 2
+
+    # 1. Next Stage
+    b_next = pygame.Rect(btn_start_x, btn_y, btn_w, btn_h)
+    hov_next = b_next.collidepoint(m_pos)
+    pygame.draw.rect(canvas, (16, 185, 129, 80) if hov_next else (15, 23, 42), b_next, border_radius=6)
+    pygame.draw.rect(canvas, COLOR_EMERALD if hov_next else (50, 120, 90), b_next, 2 if hov_next else 1, border_radius=6)
+    t_next = font_card.render("NEXT STAGE [SPACE]", True, COLOR_WHITE if hov_next else COLOR_EMERALD)
+    canvas.blit(t_next, t_next.get_rect(center=b_next.center))
+    buttons["next"] = b_next
+
+    # 2. Hangar
+    b_hangar = pygame.Rect(btn_start_x + btn_w + gap, btn_y, btn_w, btn_h)
+    hov_hangar = b_hangar.collidepoint(m_pos)
+    pygame.draw.rect(canvas, (245, 158, 11, 80) if hov_hangar else (15, 23, 42), b_hangar, border_radius=6)
+    pygame.draw.rect(canvas, COLOR_GOLD if hov_hangar else (120, 90, 40), b_hangar, 2 if hov_hangar else 1, border_radius=6)
+    t_hangar = font_card.render("HANGAR [H]", True, COLOR_WHITE if hov_hangar else COLOR_GOLD)
+    canvas.blit(t_hangar, t_hangar.get_rect(center=b_hangar.center))
+    buttons["hangar"] = b_hangar
+
+    # 3. Map / Menu
+    b_map = pygame.Rect(btn_start_x + 2 * (btn_w + gap), btn_y, btn_w, btn_h)
+    hov_map = b_map.collidepoint(m_pos)
+    pygame.draw.rect(canvas, (14, 165, 233, 80) if hov_map else (15, 23, 42), b_map, border_radius=6)
+    pygame.draw.rect(canvas, COLOR_CYAN if hov_map else (40, 80, 110), b_map, 2 if hov_map else 1, border_radius=6)
+    t_map = font_card.render("MAP [M]", True, COLOR_WHITE if hov_map else COLOR_CYAN)
+    canvas.blit(t_map, t_map.get_rect(center=b_map.center))
+    buttons["map"] = b_map
+
+    return buttons
+
+
+def draw_game_over_ui(canvas: pygame.Surface, sector_idx: int = 0, sub_level: int = 1, score: int = 0, mouse_pos: tuple[int, int] = None) -> dict:
+    """Renders atmospheric tactical Game Over screen with retry and navigation."""
+    vw, vh = canvas.get_size()
+    m_pos = mouse_pos or (0, 0)
+    buttons = {}
+
+    dim_surf = pygame.Surface((vw, vh), pygame.SRCALPHA)
+    dim_surf.fill((18, 5, 10, 220))
+    canvas.blit(dim_surf, (0, 0))
+
+    frame_w = 640
+    frame_h = 400
+    frame_rect = pygame.Rect((vw - frame_w) // 2, (vh - frame_h) // 2, frame_w, frame_h)
+
+    pygame.draw.rect(canvas, (24, 10, 15), frame_rect, border_radius=10)
+    pygame.draw.rect(canvas, COLOR_CRIMSON, frame_rect, 2, border_radius=10)
+
+    t_title = font_title.render("MISSION FAILED", True, COLOR_CRIMSON)
+    t_sub = font_banner.render("DRONE CHASSIS DESTROYED — SIGNAL LOST", True, (248, 113, 113))
+    canvas.blit(t_title, t_title.get_rect(center=(vw // 2, frame_rect.top + 45)))
+    canvas.blit(t_sub, t_sub.get_rect(center=(vw // 2, frame_rect.top + 90)))
+
+    sy = frame_rect.top + 145
+    stats = [
+        ("SECTOR / STAGE:", f"SECTOR {sector_idx + 1} - STAGE {sub_level}", COLOR_WHITE),
+        ("SCORE ATTAINED:", f"{score:,} PTS", COLOR_GOLD),
+        ("CAUSE OF FAILURE:", "CRITICAL HULL INTEGRITY COMPROMISE", COLOR_CRIMSON),
+    ]
+    for lbl, val, col in stats:
+        t_l = font_card.render(lbl, True, (148, 163, 184))
+        t_v = font_card.render(val, True, col)
+        canvas.blit(t_l, (frame_rect.left + 50, sy))
+        canvas.blit(t_v, (frame_rect.right - 50 - t_v.get_width(), sy))
+        sy += 36
+
+    btn_y = frame_rect.bottom - 75
+    btn_w = 170
+    btn_h = 44
+    gap = 20
+    total_btn_w = 3 * btn_w + 2 * gap
+    btn_start_x = (vw - total_btn_w) // 2
+
+    # 1. Retry
+    b_retry = pygame.Rect(btn_start_x, btn_y, btn_w, btn_h)
+    hov_retry = b_retry.collidepoint(m_pos)
+    pygame.draw.rect(canvas, (239, 68, 68, 80) if hov_retry else (24, 10, 15), b_retry, border_radius=6)
+    pygame.draw.rect(canvas, COLOR_CRIMSON if hov_retry else (120, 40, 50), b_retry, 2 if hov_retry else 1, border_radius=6)
+    t_retry = font_card.render("RETRY [SPACE]", True, COLOR_WHITE if hov_retry else COLOR_CRIMSON)
+    canvas.blit(t_retry, t_retry.get_rect(center=b_retry.center))
+    buttons["retry"] = b_retry
+
+    # 2. Hangar
+    b_hangar = pygame.Rect(btn_start_x + btn_w + gap, btn_y, btn_w, btn_h)
+    hov_hangar = b_hangar.collidepoint(m_pos)
+    pygame.draw.rect(canvas, (245, 158, 11, 80) if hov_hangar else (24, 10, 15), b_hangar, border_radius=6)
+    pygame.draw.rect(canvas, COLOR_GOLD if hov_hangar else (120, 90, 40), b_hangar, 2 if hov_hangar else 1, border_radius=6)
+    t_hangar = font_card.render("HANGAR [H]", True, COLOR_WHITE if hov_hangar else COLOR_GOLD)
+    canvas.blit(t_hangar, t_hangar.get_rect(center=b_hangar.center))
+    buttons["hangar"] = b_hangar
+
+    # 3. Quit
+    b_quit = pygame.Rect(btn_start_x + 2 * (btn_w + gap), btn_y, btn_w, btn_h)
+    hov_quit = b_quit.collidepoint(m_pos)
+    pygame.draw.rect(canvas, (100, 116, 139, 80) if hov_quit else (24, 10, 15), b_quit, border_radius=6)
+    pygame.draw.rect(canvas, (148, 163, 184) if hov_quit else (70, 80, 95), b_quit, 2 if hov_quit else 1, border_radius=6)
+    t_quit = font_card.render("MENU [Q]", True, COLOR_WHITE if hov_quit else (148, 163, 184))
+    canvas.blit(t_quit, t_quit.get_rect(center=b_quit.center))
+    buttons["menu"] = b_quit
+
+    return buttons
+

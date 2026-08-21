@@ -76,20 +76,21 @@ class SaveSystem:
                         try: upgrades[k] = max(0, int(v))
                         except (ValueError, TypeError): pass
 
-            # Validate sectors list (Legacy)
+            # Validate sectors list
             sectors = list(data.get("sectors", defaults["sectors"]))
             while len(sectors) < len(SECTORS):
                 sectors.append(False)
-            sectors[0] = True # First sector is always unlocked
+            sectors[0] = True
 
-            # Validate stages list (15 stages across 5 sectors - Legacy)
+            # Validate stages list
             stages = list(data.get("stages", defaults["stages"]))
             while len(stages) < 15:
                 stages.append(False)
-            stages[0] = True # First stage is always unlocked
+            stages[0] = True
 
             missions = data.get("missions", defaults["missions"])
             sector_progress = data.get("sector_progress", defaults["sector_progress"])
+
             bosses_defeated = list(data.get("bosses_defeated", defaults["bosses_defeated"]))
             campaign_completed = bool(data.get("campaign_completed", defaults["campaign_completed"]))
 
