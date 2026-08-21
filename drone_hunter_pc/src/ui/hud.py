@@ -109,8 +109,13 @@ def draw_hud(canvas: pygame.Surface, player, sector_idx: int = 0, level_score: i
     # 3. BOTTOM-CENTER: Screen-Space Ability Indicators
     # =========================================================================
     if player:
+        cloak_ready = (player.cloak_cooldown <= 0.0) or player.is_cloaked
+        cloak_status = f"{player.cloak_timer:.1f}s" if player.is_cloaked else ("READY" if player.cloak_cooldown <= 0 else f"{player.cloak_cooldown:.1f}s")
+        cloak_col = (168, 85, 247) if player.is_cloaked else ((147, 51, 234) if player.cloak_cooldown <= 0 else (75, 85, 99))
+
         abilities = [
             ("[SHIFT] ROLL", player.roll_cooldown <= 0.0, COLOR_EMERALD, f"{player.roll_cooldown:.1f}s" if player.roll_cooldown > 0 else "READY"),
+            ("[C] CLOAK", cloak_ready, cloak_col, cloak_status),
             ("[E] EMP", player.emp_cooldown <= 0.0, COLOR_CYAN, f"{player.emp_cooldown:.1f}s" if player.emp_cooldown > 0 else "READY"),
             ("[F] ULT", player.overdrive_cooldown <= 0.0 or player.overdrive_timer > 0, COLOR_GOLD if player.overdrive_cooldown <= 0 else COLOR_OVERCLOCK,
              f"{player.overdrive_timer:.1f}s" if player.overdrive_timer > 0 else ("READY" if player.overdrive_cooldown <= 0 else f"{player.overdrive_cooldown:.0f}s")),
@@ -118,7 +123,7 @@ def draw_hud(canvas: pygame.Surface, player, sector_idx: int = 0, level_score: i
         
         pill_w = 95
         pill_h = 28
-        gap = 10
+        gap = 8
         total_w = len(abilities) * pill_w + (len(abilities) - 1) * gap
         start_x = (vw - total_w) // 2
         p_y = vh - margin_y - pill_h - 6
@@ -129,7 +134,8 @@ def draw_hud(canvas: pygame.Surface, player, sector_idx: int = 0, level_score: i
             pygame.draw.rect(canvas, (15, 23, 42, 220), p_rect, border_radius=5)
             pygame.draw.rect(canvas, col if ready else (45, 55, 75), p_rect, 1, border_radius=5)
             
-            txt_name = font_card.render(name, True, col if ready else (120, 135, 155))
+            lbl_str = f"{name} {status_str}" if status_str != "READY" else name
+            txt_name = font_card.render(lbl_str, True, col if ready else (120, 135, 155))
             canvas.blit(txt_name, txt_name.get_rect(center=p_rect.center))
 
     # =========================================================================

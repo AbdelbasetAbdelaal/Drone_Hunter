@@ -78,6 +78,10 @@ class GameRenderer:
                 sy = int(round(spr.rect.y - oy))
                 if -spr.rect.width <= sx <= vw + spr.rect.width and -spr.rect.height <= sy <= vh + spr.rect.height:
                     self.canvas.blit(spr.image, (sx, sy))
+                    if hasattr(spr, "weapon_id"):
+                        from src.data.game_data import WEAPON_ASSETS
+                        asset_path = WEAPON_ASSETS.get(spr.weapon_id, spr.weapon_id)
+                        self.sprite_manager.track_weapon_render(asset_path)
 
         # Layer 4: Sprite Entities
         _draw_group_with_camera(context.target_group)

@@ -49,12 +49,12 @@ AUDIO_ASSET_MAP = {
     "tesla": "assets/audio/tesla_arc.wav",
     "cluster": "assets/audio/cluster_launch.wav",
     "emp": "assets/audio/emp_discharge.wav",
-    "explosion_small": "assets/audio/explosion_small.wav",
-    "explosion_medium": "assets/audio/explosion_medium.wav",
-    "explosion_heavy": "assets/audio/explosion_heavy.wav",
-    "explosion_energy": "assets/audio/explosion_energy.wav",
-    "explosion_boss": "assets/audio/explosion_boss.wav",
-    "explosion_player": "assets/audio/explosion_player.wav",
+    "explosion_small": "assets/audio/Drone_Hunter_assets_audio/explosions/explosion_small.ogg",
+    "explosion_medium": "assets/audio/Drone_Hunter_assets_audio/explosions/explosion_medium.ogg",
+    "explosion_heavy": "assets/audio/Drone_Hunter_assets_audio/explosions/explosion_heavy.ogg",
+    "explosion_energy": "assets/audio/Drone_Hunter_assets_audio/explosions/explosion_medium.ogg",
+    "explosion_boss": "assets/audio/Drone_Hunter_assets_audio/explosions/explosion_boss.ogg",
+    "explosion_player": "assets/audio/Drone_Hunter_assets_audio/explosions/explosion_heavy.ogg",
     "mission_success": "assets/audio/mission_success.wav",
     "mission_failure": "assets/audio/mission_failure.wav",
 }
@@ -138,7 +138,7 @@ class AudioManager:
 
         # Destructions
         self._sound_cache["death_scout"] = self._load_or_synthesize("explosion_small", generate_death_scout_sound)
-        self._sound_cache["death_shooter"] = self._load_or_synthesize("explosion_medium", generate_death_shooter_sound)
+        self._sound_cache["death_shooter"] = self._load_or_synthesize("explosion_small", generate_death_shooter_sound)
         self._sound_cache["death_heavy"] = self._load_or_synthesize("explosion_heavy", generate_death_heavy_sound)
         self._sound_cache["death_shield"] = self._load_or_synthesize("explosion_energy", generate_death_shield_sound)
         self._sound_cache["death_boss"] = self._load_or_synthesize("explosion_boss", generate_death_boss_sound)

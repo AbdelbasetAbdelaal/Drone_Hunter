@@ -40,7 +40,7 @@ from src.entities.boss import (
     SkyDreadnoughtBoss, StealthMirageBoss, EMPDisrupterBoss, ColossusTitanMechBoss
 )
 from src.entities.bullet import (
-    Bullet, HomingMissile, PlasmaLaserBeam, TeslaArcBeam, ClusterTorpedo
+    Bullet, HomingMissile, ContinuousBeam, TeslaArcBeam, ClusterTorpedo
 )
 from src.systems.save_system import SaveSystem
 from src.systems.difficulty_system import DifficultySystem

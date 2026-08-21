@@ -26,7 +26,7 @@ from src.data.game_data import (
 from src.rendering.sprite_manager import get_sprite_manager, SpriteManager
 from src.rendering.particles import ParticleManager, ExplosionOverlay
 from src.entities.bullet import (
-    Bullet, HomingMissile, PlasmaLaserBeam, TeslaArcBeam,
+    Bullet, HomingMissile, ContinuousBeam, TeslaArcBeam,
     ClusterTorpedo, ClusterBomblet, HeavyPlasmaOrb, RailgunSlug,
     BarrageMissile, EMPPulse, EnemyBullet, EnemySniperBeam
 )
@@ -72,19 +72,19 @@ def test_all_registered_vfx_pngs_exist_on_disk():
 def test_weapon_asset_usage_telemetry():
     """Verify SpriteManager tracks weapon asset render usage telemetry."""
     sm = get_sprite_manager()
-    initial_usage = sm.weapon_asset_usage.get("laser_pulse.png", 0)
+    initial_usage = sm.weapon_asset_requested.get("laser_pulse.png", 0)
     surf = sm.get_projectile_sprite("pulse", (40, 12))
     assert surf is not None
-    assert sm.weapon_asset_usage.get("laser_pulse.png", 0) > initial_usage
+    assert sm.weapon_asset_requested.get("laser_pulse.png", 0) > initial_usage
 
 
 def test_vfx_asset_usage_telemetry():
     """Verify SpriteManager tracks VFX asset render usage telemetry."""
     sm = get_sprite_manager()
-    initial_usage = sm.vfx_asset_usage.get("explosion_1.png", 0)
+    initial_usage = sm.vfx_asset_requested.get("explosion_1.png", 0)
     surf = sm.get_vfx_sprite("explosion_1", (64, 64))
     assert surf is not None
-    assert sm.vfx_asset_usage.get("explosion_1.png", 0) > initial_usage
+    assert sm.vfx_asset_requested.get("explosion_1.png", 0) > initial_usage
 
 
 def test_all_projectile_classes_instantiate_with_real_sprites():
@@ -96,7 +96,7 @@ def test_all_projectile_classes_instantiate_with_real_sprites():
     p_rapid = Bullet(start, target, weapon_id="rapid")
     p_scatter = Bullet(start, target, weapon_id="scatter")
     p_missile = HomingMissile(start, target)
-    p_beam = PlasmaLaserBeam(start, target)
+    p_beam = ContinuousBeam(start, 0.0)
     p_tesla = TeslaArcBeam(start, target)
     p_torpedo = ClusterTorpedo(start, target)
     p_bomblet = ClusterBomblet(start, 0.0)
@@ -185,6 +185,7 @@ def test_weapons_never_fire_backwards():
 
     for skin in range(5):
         player.apply_drone_class(skin)
+        player.available_weapons = all_weapons
         for w in all_weapons:
             player.set_weapon(w)
             # Test various angles around the 360 circle

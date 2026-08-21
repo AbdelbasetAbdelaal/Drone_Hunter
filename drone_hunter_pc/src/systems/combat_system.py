@@ -37,27 +37,9 @@ class CombatSystem:
             ctx.audio_manager.play_emp()
             ctx.trigger_shake(12.0, 0.45)
             ctx.particle_manager.spawn_emp_shockwave(player.pos)
-
-            # Eliminate all enemy bullets
-            for eb in list(ctx.enemy_bullet_group):
-                eb.kill()
-                ctx.particle_manager.spawn_spark(eb.rect.center, count=5, color=COLOR_CYAN)
-
-            # Damage & destroy regular enemies
-            for t in list(ctx.target_group):
-                if getattr(t, "is_boss", False):
-                    is_dead = t.take_damage(75, source="emp")
-                    ctx.particle_manager.spawn_spark(t.rect.center, count=15, color=COLOR_CYAN)
-                else:
-                    pts = t.score_value
-                    ctx.add_score(pts)
-                    t.kill()
-                    ctx.particle_manager.spawn_explosion(t.rect.center, count=25, color=COLOR_CYAN)
-                    ctx.particle_manager.spawn_floating_text(t.rect.center, f"+{pts} EMP!", COLOR_CYAN, 22)
-
-            for obs in list(ctx.obstacle_group):
-                obs.kill()
-                ctx.particle_manager.spawn_explosion(obs.rect.center, count=30, color=(239, 68, 68))
+            from src.entities.bullet import EMPShockwave
+            # Huge shockwave for the ultimate ability (1200 radius = covers the screen over time)
+            ctx.bullet_group.add(EMPShockwave(player.rect.center, max_radius=1200.0, lifetime=1.5, owner="player"))
 
     def update_combat(self, dt: float):
         ctx = self.context
@@ -81,6 +63,117 @@ class CombatSystem:
         shield_drones = [t for t in ctx.target_group if getattr(t, "enemy_type", "") == TARGET_TYPE_SHIELD_DRONE]
 
         for b in list(ctx.bullet_group):
+            if getattr(b, "is_continuous", False):
+                # 1. Raycast against obstacles to find beam length
+                start_x, start_y = b.muzzle_pos.x, b.muzzle_pos.y
+                dx = math.cos(b.angle_rad)
+                dy = math.sin(b.angle_rad)
+                max_len = 2000.0
+                closest_hit = max_len
+                
+                # Check obstacles
+                for obs in list(ctx.obstacle_group):
+                    # Simple ray-circle intersection
+                    cx, cy = obs.pos.x, obs.pos.y
+                    r = obs.radius
+                    fx = start_x - cx
+                    fy = start_y - cy
+                    a = dx*dx + dy*dy
+                    b_coef = 2 * (fx*dx + fy*dy)
+                    c = (fx*fx + fy*fy) - r*r
+                    disc = b_coef*b_coef - 4*a*c
+                    if disc >= 0:
+                        t = (-b_coef - math.sqrt(disc)) / (2*a)
+                        if 0 <= t < closest_hit:
+                            closest_hit = t
+                            if ctx.particle_manager and random.random() < 0.4:
+                                hit_pt = (start_x + dx*t, start_y + dy*t)
+                                ctx.particle_manager.spawn_spark(hit_pt, count=random.randint(1, 3), color=(255, 140, 0))
+                
+                b.length = closest_hit
+
+                # 2. Damage enemies along the beam
+                dmg = b.damage_per_second * dt
+                for target in list(ctx.target_group):
+                    cx, cy = target.pos.x, target.pos.y
+                    # Distance from point to line segment
+                    fx = cx - start_x
+                    fy = cy - start_y
+                    dot = fx*dx + fy*dy
+                    t = max(0.0, min(b.length, dot))
+                    proj_x = start_x + t*dx
+                    proj_y = start_y + t*dy
+                    dist = math.hypot(cx - proj_x, cy - proj_y)
+                    
+                    if dist <= target.radius + 8.0:
+                        # Enemy is hit by continuous beam
+                        is_shielded = False
+                        for ally in shield_drones:
+                            if ally != target and math.hypot(target.pos.x - ally.pos.x, target.pos.y - ally.pos.y) <= 160.0:
+                                is_shielded = True
+                                break
+                        if is_shielded:
+                            dmg = max(1.0, dmg / 3.0)
+                            if ctx.particle_manager and random.random() < 0.15:
+                                ctx.particle_manager.spawn_shield_ripple(target.rect.center)
+                        
+                        target.take_damage(dmg, source="beam")
+                        if ctx.particle_manager:
+                            ctx.particle_manager.spawn_spark((proj_x, proj_y), count=random.randint(1, 3), color=(56, 189, 248))
+                            if random.random() < 0.35:
+                                ctx.particle_manager.spawn_enemy_hit_sparks((proj_x, proj_y), getattr(target, "enemy_type", ""), 10)
+
+                # 3. Disintegrate incoming enemy projectiles caught in the plasma beam
+                for eb in list(ctx.enemy_bullet_group):
+                    ecx, ecy = eb.pos.x, eb.pos.y
+                    efx = ecx - start_x
+                    efy = ecy - start_y
+                    edot = efx*dx + efy*dy
+                    et = max(0.0, min(b.length, edot))
+                    eproj_x = start_x + et*dx
+                    eproj_y = start_y + et*dy
+                    edist = math.hypot(ecx - eproj_x, ecy - eproj_y)
+                    if edist <= eb.radius + 14.0:
+                        eb.kill()
+                        if ctx.particle_manager:
+                            ctx.particle_manager.spawn_spark((eproj_x, eproj_y), count=2, color=(56, 189, 248))
+                continue
+
+            elif getattr(b, "is_emp_shockwave", False):
+                for target in list(ctx.target_group):
+                    if target in getattr(b, "hit_targets", set()):
+                        continue
+                    dist = math.hypot(target.pos.x - b.pos.x, target.pos.y - b.pos.y)
+                    if dist <= target.radius + b.radius:
+                        b.hit_targets.add(target)
+                        is_dead = target.take_damage(b.damage, source="emp")
+                        if not getattr(target, "is_boss", False):
+                            target.emp_jammed_timer = 3.0
+                            if ctx.particle_manager:
+                                ctx.particle_manager.spawn_spark(target.rect.center, 5, COLOR_CYAN)
+                        if is_dead:
+                            ctx.add_score(target.score_value)
+                            if ctx.particle_manager: ctx.particle_manager.spawn_explosion(target.rect.center, 25, COLOR_CYAN)
+
+                # Wipe enemy bullets in radius
+                for eb in list(ctx.enemy_bullet_group):
+                    dist = math.hypot(eb.pos.x - b.pos.x, eb.pos.y - b.pos.y)
+                    if dist <= eb.radius + b.radius:
+                        eb.kill()
+                        if ctx.particle_manager:
+                            ctx.particle_manager.spawn_spark(eb.rect.center, count=3, color=COLOR_CYAN)
+
+                for obs in list(ctx.obstacle_group):
+                    if obs in getattr(b, "hit_targets", set()):
+                        continue
+                    dist = math.hypot(obs.pos.x - b.pos.x, obs.pos.y - b.pos.y)
+                    if dist <= obs.radius + b.radius:
+                        b.hit_targets.add(obs)
+                        if obs.take_damage(b.damage):
+                            obs.kill()
+                            if ctx.particle_manager: ctx.particle_manager.spawn_explosion(obs.rect.center, 30, (239, 68, 68))
+                continue
+
             hits = pygame.sprite.spritecollide(b, ctx.target_group, False)
             for target in hits:
                 dmg = getattr(b, "damage", 25)
@@ -92,10 +185,14 @@ class CombatSystem:
                         is_shielded = True
                         break
                 if is_shielded:
-                    dmg = max(4, dmg // 3)
+                    dmg = max(4, int(dmg // 3))
                     if ctx.particle_manager: ctx.particle_manager.spawn_shield_ripple(target.rect.center)
 
                 is_dead = target.take_damage(dmg, source="bullet")
+                
+                if getattr(b, "is_emp_projectile", False):
+                    b.detonate(ctx)
+                    continue
 
                 # Tesla Arc Lightning Chain Reaction
                 if isinstance(b, TeslaArcBeam):

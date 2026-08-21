@@ -86,8 +86,13 @@ class SpriteManager:
         self._rotated_cache: OrderedDict[tuple, pygame.Surface] = OrderedDict()
 
         # Asset usage diagnostics telemetry (tracks actual render usage)
-        self.weapon_asset_usage: dict[str, int] = {}
-        self.vfx_asset_usage: dict[str, int] = {}
+        self.weapon_asset_loaded: dict[str, bool] = {}
+        self.weapon_asset_requested: dict[str, int] = {}
+        self.weapon_asset_rendered: dict[str, int] = {}
+        
+        self.vfx_asset_loaded: dict[str, bool] = {}
+        self.vfx_asset_requested: dict[str, int] = {}
+        self.vfx_asset_rendered: dict[str, int] = {}
 
         self._initialized = True
         self._preload_high_fidelity_canonical_assets()
@@ -97,34 +102,46 @@ class SpriteManager:
     def validate_weapon_assets(self) -> dict[str, bool]:
         """Preloads and validates all authoritative production weapon PNG assets."""
         results = {}
+        from src.data.game_data import WEAPON_ASSETS
         for w_id, rel_path in WEAPON_ASSETS.items():
             base_name = os.path.basename(rel_path)
             surf = self._load_raw_image(rel_path)
             if surf is not None:
                 results[w_id] = True
-                if base_name not in self.weapon_asset_usage:
-                    self.weapon_asset_usage[base_name] = 0
+                self.weapon_asset_loaded[base_name] = True
                 logger.info(f"[ASSET] weapon loaded: {base_name}")
             else:
                 results[w_id] = False
+                self.weapon_asset_loaded[base_name] = False
                 logger.error(f"[ASSET ERROR] Missing: {rel_path}")
         return results
 
     def validate_vfx_assets(self) -> dict[str, bool]:
         """Preloads and validates all authoritative production VFX PNG assets."""
         results = {}
+        from src.data.game_data import VFX_ASSETS
         for v_id, rel_path in VFX_ASSETS.items():
             base_name = os.path.basename(rel_path)
             surf = self._load_raw_image(rel_path)
             if surf is not None:
                 results[v_id] = True
-                if base_name not in self.vfx_asset_usage:
-                    self.vfx_asset_usage[base_name] = 0
+                self.vfx_asset_loaded[base_name] = True
                 logger.info(f"[ASSET] VFX loaded: {base_name}")
             else:
                 results[v_id] = False
+                self.vfx_asset_loaded[base_name] = False
                 logger.error(f"[ASSET ERROR] Missing: {rel_path}")
         return results
+
+    def track_weapon_render(self, asset_name: str):
+        base_name = os.path.basename(asset_name)
+        if not base_name.endswith('.png'): base_name += '.png'
+        self.weapon_asset_rendered[base_name] = self.weapon_asset_rendered.get(base_name, 0) + 1
+        
+    def track_vfx_render(self, asset_name: str):
+        base_name = os.path.basename(asset_name)
+        if not base_name.endswith('.png'): base_name += '.png'
+        self.vfx_asset_rendered[base_name] = self.vfx_asset_rendered.get(base_name, 0) + 1
 
     def _resolve_file_path(self, rel_path: str) -> str | None:
         candidates = [
@@ -484,7 +501,7 @@ class SpriteManager:
         if cache_key in self._skin_cache:
             rel = WEAPON_ASSETS.get(proj_type, proj_type if proj_type.endswith('.png') else 'weapons/laser_pulse.png')
             base_name = os.path.basename(rel)
-            self.weapon_asset_usage[base_name] = self.weapon_asset_usage.get(base_name, 0) + 1
+            self.weapon_asset_requested[base_name] = self.weapon_asset_requested.get(base_name, 0) + 1
             return self._skin_cache[cache_key]
 
         rel = WEAPON_ASSETS.get(proj_type)
@@ -498,12 +515,9 @@ class SpriteManager:
         base_name = os.path.basename(rel)
         if raw is None:
             logger.error(f"[ASSET ERROR] Missing weapon sprite: {rel}")
-            fallback = pygame.Surface(target_size, pygame.SRCALPHA)
-            pygame.draw.circle(fallback, (56, 189, 248), (target_size[0] // 2, target_size[1] // 2), target_size[0] // 2)
-            self._skin_cache[cache_key] = fallback
-            return fallback
+            raise RuntimeError(f"Missing production weapon asset: {rel}. Do NOT use procedural fallbacks.")
 
-        self.weapon_asset_usage[base_name] = self.weapon_asset_usage.get(base_name, 0) + 1
+        self.weapon_asset_requested[base_name] = self.weapon_asset_requested.get(base_name, 0) + 1
         scaled = pygame.transform.smoothscale(raw, target_size)
         self._skin_cache[cache_key] = scaled
         return scaled
@@ -513,7 +527,7 @@ class SpriteManager:
         if cache_key in self._skin_cache:
             rel = VFX_ASSETS.get(name, f'vfx/{name}.png' if not name.startswith('vfx/') else name)
             base_name = os.path.basename(rel)
-            self.vfx_asset_usage[base_name] = self.vfx_asset_usage.get(base_name, 0) + 1
+            self.vfx_asset_requested[base_name] = self.vfx_asset_requested.get(base_name, 0) + 1
             return self._skin_cache[cache_key]
 
         rel = VFX_ASSETS.get(name)
@@ -527,11 +541,9 @@ class SpriteManager:
         base_name = os.path.basename(rel)
         if raw is None:
             logger.error(f"[ASSET ERROR] Missing VFX sprite: {rel}")
-            fallback = pygame.Surface(target_size, pygame.SRCALPHA)
-            self._skin_cache[cache_key] = fallback
-            return fallback
+            raise RuntimeError(f"Missing production VFX asset: {rel}. Do NOT use procedural fallbacks.")
 
-        self.vfx_asset_usage[base_name] = self.vfx_asset_usage.get(base_name, 0) + 1
+        self.vfx_asset_requested[base_name] = self.vfx_asset_requested.get(base_name, 0) + 1
         scaled = pygame.transform.smoothscale(raw, target_size)
         self._skin_cache[cache_key] = scaled
         return scaled
@@ -561,8 +573,12 @@ class SpriteManager:
             'rotated_surfaces': len(self._rotated_cache),
             'max_rotation_capacity': self.MAX_ROTATION_ENTRIES,
             'angle_step': self.ANGLE_STEP,
-            'weapon_asset_usage': dict(self.weapon_asset_usage),
-            'vfx_asset_usage': dict(self.vfx_asset_usage),
+            'weapon_asset_loaded': dict(self.weapon_asset_loaded),
+            'weapon_asset_requested': dict(self.weapon_asset_requested),
+            'weapon_asset_rendered': dict(self.weapon_asset_rendered),
+            'vfx_asset_loaded': dict(self.vfx_asset_loaded),
+            'vfx_asset_requested': dict(self.vfx_asset_requested),
+            'vfx_asset_rendered': dict(self.vfx_asset_rendered),
         }
 
     def clear_rotation_cache(self):

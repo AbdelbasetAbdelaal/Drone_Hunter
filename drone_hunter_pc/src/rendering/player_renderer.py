@@ -119,13 +119,24 @@ class PlayerRenderer:
         rotated_drone = self.sprite_manager.get_rotated_player_sprite(
             state=state, skin_idx=skin_idx, angle_deg=total_rot_deg, target_size=(176, 152)
         )
+        
+        # Stealth Cloak Visual Effect: Phantom Translucency + Cyan Phase Distortion
+        if getattr(player, "is_cloaked", False):
+            rotated_drone = rotated_drone.copy()
+            # 30% opacity ghosting
+            rotated_drone.set_alpha(75)
+            # Draw pulsing stealth ring around drone
+            shimmer_r = int(50 + 6 * math.sin(pygame.time.get_ticks() * 0.015))
+            pygame.draw.circle(canvas, (147, 51, 234, 110), (int(screen_x), int(screen_y)), shimmer_r, 2)
+            pygame.draw.circle(canvas, (56, 189, 248, 80), (int(screen_x), int(screen_y)), shimmer_r - 4, 1)
+
         rot_rect = rotated_drone.get_rect(center=(int(round(screen_x)), int(round(screen_y))))
         canvas.blit(rotated_drone, rot_rect)
 
         # 4. Developer Debug Mount Mode (Optional Visualization)
         if getattr(player, "debug_mounts", False):
-            from src.data.game_data import DRONE_MOUNT_PROFILES, DRONE_CLASSES
-            d_class = DRONE_CLASSES.get(skin_idx, DRONE_CLASSES[0])
+            from src.data.game_data import get_drone_class_by_id, DRONE_MOUNT_PROFILES
+            d_class = get_drone_class_by_id(getattr(player, "drone_class_id", "striker"))
             cid = d_class.get("class_id", "striker")
             mount_prof = DRONE_MOUNT_PROFILES.get(cid, {})
             for m_name, (f_off, l_off) in mount_prof.items():

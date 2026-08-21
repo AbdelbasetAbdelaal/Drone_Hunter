@@ -143,7 +143,7 @@ class TestPhase105CombatOverhaul:
             p = Player((0, 0))
             for idx, class_id in enumerate([DRONE_CLASS_STRIKER, DRONE_CLASS_INTERCEPTOR, DRONE_CLASS_ASSAULT, DRONE_CLASS_ARC, DRONE_CLASS_COMMAND]):
                 p.apply_drone_class(idx)
-                assert p.available_weapons == DRONE_CLASSES[idx]["weapons"]
+                assert p.available_weapons == list(DRONE_CLASSES.values())[idx]["weapons"]
                 assert get_drone_loadout(class_id) == DRONE_LOADOUTS[class_id]
 
     # 8. No random weapon selection occurs in player loadout resolution
@@ -165,7 +165,7 @@ class TestPhase105CombatOverhaul:
         player = Player((0, 0))
         for idx in range(len(DRONE_CLASSES)):
             player.apply_drone_class(idx)
-            expected_weapons = DRONE_CLASSES[idx]["weapons"]
+            expected_weapons = list(DRONE_CLASSES.values())[idx]["weapons"]
             assert player.available_weapons == expected_weapons
             assert player.active_weapon in player.available_weapons
 

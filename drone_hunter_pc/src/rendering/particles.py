@@ -178,6 +178,7 @@ class ExplosionOverlay:
             ox, oy = camera_offset
             rect = rendered.get_rect(center=(int(round(self.pos.x - ox)), int(round(self.pos.y - oy))))
             surface.blit(rendered, rect)
+            sm.track_vfx_render(self.asset_id)
 
 
 class ParticleManager:

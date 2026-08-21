@@ -22,7 +22,7 @@ from src.core.game_state import (
     GameState, STATE_MENU, STATE_SECTOR_SELECT, STATE_HANGAR, STATE_PLAYING,
     STATE_PAUSED, STATE_LEVEL_CLEAR, STATE_GAME_OVER, STATE_VICTORY,
     STATE_MISSION_BRIEFING, STATE_MISSION_COMPLETE, STATE_MISSION_FAILED,
-    STATE_SETTINGS
+    STATE_SETTINGS, STATE_DRONE_SELECT
 )
 from src.core.game_context import GameContext
 from src.core.clock import GameClock
@@ -54,6 +54,7 @@ from src.ui.menus import (
     draw_mission_failed, draw_settings_menu_ui,
     draw_level_clear_ui, draw_game_over_ui, draw_campaign_victory_ui
 )
+from src.ui.drone_select import draw_drone_select_ui
 from src.ui.hangar import draw_hangar_shop_ui
 
 class Game:
@@ -187,7 +188,13 @@ class Game:
         selected_skin = getattr(ctx, "selected_skin_override", None)
         if selected_skin is None:
             selected_skin = getattr(ctx, "selected_skin", 0)
-        p.apply_drone_class(selected_skin)
+            
+        selected_drone = getattr(ctx, "selected_drone_override", None)
+        if selected_drone is None:
+            selected_drone = getattr(ctx, "selected_drone", "striker")
+            
+        p.set_drone_class(selected_drone)
+        p.set_visual_skin(selected_skin)
         p.apply_shop_upgrades(ctx.upgrade_levels)
         self.progression.apply_to_player(ctx, p)
         p.health = p.max_health
@@ -225,7 +232,13 @@ class Game:
         selected_skin = getattr(ctx, "selected_skin_override", None)
         if selected_skin is None:
             selected_skin = getattr(ctx, "selected_skin", 0)
-        ctx.player.apply_drone_class(selected_skin)
+            
+        selected_drone = getattr(ctx, "selected_drone_override", None)
+        if selected_drone is None:
+            selected_drone = getattr(ctx, "selected_drone", "striker")
+            
+        ctx.player.set_drone_class(selected_drone)
+        ctx.player.set_visual_skin(selected_skin)
         ctx.player.apply_shop_upgrades(ctx.upgrade_levels)
         self.progression.apply_to_player(ctx, ctx.player)
         ctx.player_group.add(ctx.player)
@@ -369,14 +382,16 @@ class Game:
         return (int(raw_x * scale_x), int(raw_y * scale_y))
 
     def toggle_fullscreen(self):
-        """Toggles between fullscreen and resizable windowed mode."""
-        is_full = bool(self.screen.get_flags() & pygame.FULLSCREEN)
-        if is_full:
-            self.win_w, self.win_h = SCREEN_WIDTH, SCREEN_HEIGHT
-            self.screen = pygame.display.set_mode((self.win_w, self.win_h), pygame.RESIZABLE)
-        else:
+        """Toggles between fullscreen and resizable windowed mode reliably."""
+        self.is_fullscreen = not getattr(self, "is_fullscreen", False)
+        if self.is_fullscreen:
+            self._saved_window_size = (getattr(self, "win_w", SCREEN_WIDTH), getattr(self, "win_h", SCREEN_HEIGHT))
             self.screen = pygame.display.set_mode((0, 0), pygame.FULLSCREEN)
             self.win_w, self.win_h = self.screen.get_size()
+        else:
+            saved_w, saved_h = getattr(self, "_saved_window_size", (SCREEN_WIDTH, SCREEN_HEIGHT))
+            self.win_w, self.win_h = saved_w, saved_h
+            self.screen = pygame.display.set_mode((self.win_w, self.win_h), pygame.RESIZABLE)
 
     def handle_events(self):
         ctx = self.context
@@ -385,19 +400,22 @@ class Game:
                 self.running = False
 
             elif event.type == pygame.VIDEORESIZE:
-                self.win_w, self.win_h = event.w, event.h
-                self.screen = pygame.display.set_mode((self.win_w, self.win_h), pygame.RESIZABLE)
+                if not getattr(self, "is_fullscreen", False):
+                    self.win_w, self.win_h = event.w, event.h
+                    self.screen = pygame.display.set_mode((self.win_w, self.win_h), pygame.RESIZABLE)
 
             elif event.type == pygame.KEYDOWN:
                 if event.key == pygame.K_F11:
                     self.toggle_fullscreen()
+                    continue
                 elif event.key == pygame.K_F2:
                     ctx.show_crt = not ctx.show_crt
                     self.save_progress()
+                    continue
 
                 if ctx.state == STATE_MENU:
                     if event.key in (pygame.K_SPACE, pygame.K_RETURN):
-                        ctx.state = STATE_SECTOR_SELECT
+                        ctx.state = STATE_DRONE_SELECT
                         self.audio_manager.play_powerup()
                     elif event.key == pygame.K_h:
                         self.previous_state = STATE_MENU
@@ -408,14 +426,18 @@ class Game:
                     elif event.key in (pygame.K_q, pygame.K_ESCAPE):
                         self.running = False
 
+                elif ctx.state == STATE_DRONE_SELECT:
+                    if event.key in (pygame.K_ESCAPE, pygame.K_b, pygame.K_BACKSPACE):
+                        ctx.state = STATE_MENU
+                    elif event.key in (pygame.K_1, pygame.K_KP1): ctx.player.apply_drone_class(0); ctx.state = STATE_SECTOR_SELECT
+                    elif event.key in (pygame.K_2, pygame.K_KP2): ctx.player.apply_drone_class(1); ctx.state = STATE_SECTOR_SELECT
+                    elif event.key in (pygame.K_3, pygame.K_KP3): ctx.player.apply_drone_class(2); ctx.state = STATE_SECTOR_SELECT
+                    elif event.key in (pygame.K_4, pygame.K_KP4): ctx.player.apply_drone_class(3); ctx.state = STATE_SECTOR_SELECT
+                    elif event.key in (pygame.K_5, pygame.K_KP5): ctx.player.apply_drone_class(4); ctx.state = STATE_SECTOR_SELECT
+
                 elif ctx.state == STATE_SETTINGS:
                     if event.key in (pygame.K_ESCAPE, pygame.K_b, pygame.K_BACKSPACE, pygame.K_SPACE, pygame.K_RETURN):
                         ctx.state = self.previous_state if self.previous_state != STATE_SETTINGS else STATE_SECTOR_SELECT
-                    elif event.key == pygame.K_F11:
-                        self.toggle_fullscreen()
-                    elif event.key == pygame.K_F2:
-                        ctx.show_crt = not ctx.show_crt
-                        self.save_progress()
 
                 elif ctx.state == STATE_SECTOR_SELECT:
                     if event.key in (pygame.K_SPACE, pygame.K_RETURN):
@@ -457,6 +479,9 @@ class Game:
                     elif event.key in (pygame.K_3, pygame.K_KP3): self.buy_upgrade("weapon")
                     elif event.key in (pygame.K_4, pygame.K_KP4): self.buy_upgrade("mobility")
                     elif event.key == pygame.K_c and ctx.player:
+                        ctx.player.cycle_drone_class()
+                        ctx.selected_drone_override = ctx.player.drone_class_id
+                    elif event.key == pygame.K_v and ctx.player:
                         ctx.player.cycle_skin()
                         ctx.selected_skin_override = ctx.player.skin_theme
                     elif event.key == pygame.K_s:
@@ -471,7 +496,8 @@ class Game:
                     if event.key in (pygame.K_p, pygame.K_ESCAPE, pygame.K_SPACE):
                         ctx.state = STATE_PAUSED
                     elif event.key == pygame.K_e:
-                        self.combat_system.execute_emp_blast()
+                        if self.combat_system:
+                            self.combat_system.execute_emp_blast()
                     elif event.key in (pygame.K_f, pygame.K_q):
                         if ctx.player and ctx.player.trigger_overdrive():
                             self.audio_manager.play_overdrive()
@@ -481,13 +507,21 @@ class Game:
                         if ctx.player and ctx.player.trigger_roll(dir_x=1.0):
                             self.audio_manager.play_whoosh()
                             self.particle_manager.spawn_barrel_roll_rings(ctx.player.pos, radius=40, color=COLOR_CYAN)
-                    elif event.key in (pygame.K_k, pygame.K_c):
-                        if event.key == pygame.K_c and ctx.player:
+                    elif event.key in (pygame.K_k, pygame.K_c, pygame.K_v):
+                        if event.key == pygame.K_k and ctx.player:
+                            ctx.player.cycle_drone_class()
+                            ctx.selected_drone_override = ctx.player.drone_class_id
+                            ctx.selected_skin_override = ctx.player.skin_theme
+                            self.audio_manager.play_powerup()
+                            self.particle_manager.spawn_shockwave(ctx.player.pos, max_r=80, color=COLOR_CYAN)
+                        elif event.key == pygame.K_v and ctx.player:
                             ctx.player.cycle_skin()
                             ctx.selected_skin_override = ctx.player.skin_theme
-                        elif event.key == pygame.K_k and ctx.player:
+                            self.audio_manager.play_powerup()
+                        elif event.key == pygame.K_c and ctx.player:
                             if ctx.player.trigger_cloak():
                                 self.audio_manager.play_cloak()
+                                self.particle_manager.spawn_spark(ctx.player.pos, count=15, color=(147, 51, 234))
                     elif event.key in (pygame.K_1, pygame.K_KP1) and ctx.player: ctx.player.select_weapon(0)
                     elif event.key in (pygame.K_2, pygame.K_KP2) and ctx.player: ctx.player.select_weapon(1)
                     elif event.key in (pygame.K_3, pygame.K_KP3) and ctx.player: ctx.player.select_weapon(2)
@@ -580,7 +614,7 @@ class Game:
 
                 if ctx.state == STATE_MENU:
                     if cache.get('play') and cache['play'].collidepoint(mx, my):
-                        ctx.state = STATE_SECTOR_SELECT
+                        ctx.state = STATE_DRONE_SELECT
                         self.audio_manager.play_powerup()
                     elif cache.get('hangar') and cache['hangar'].collidepoint(mx, my):
                         self.previous_state = STATE_MENU
@@ -590,6 +624,19 @@ class Game:
                         ctx.state = STATE_SETTINGS
                     elif cache.get('exit') and cache['exit'].collidepoint(mx, my):
                         self.running = False
+
+                elif ctx.state == STATE_DRONE_SELECT:
+                    if cache.get('back') and cache['back'].collidepoint(mx, my):
+                        ctx.state = STATE_MENU
+                    elif 'drones' in cache:
+                        for idx, rect in cache['drones'].items():
+                            if rect.collidepoint(mx, my):
+                                ctx.player.apply_drone_class(idx)
+                                ctx.selected_drone_override = ctx.player.drone_class_id
+                                ctx.selected_skin_override = ctx.player.skin_theme
+                                self.audio_manager.play_powerup()
+                                ctx.state = STATE_SECTOR_SELECT
+                                break
 
                 elif ctx.state == STATE_SETTINGS:
                     if cache.get('fullscreen') and cache['fullscreen'].collidepoint(mx, my):
@@ -813,8 +860,14 @@ class Game:
                         if is_shooting and ctx.player.can_shoot():
                             fired_bullets = ctx.player.shoot((world_mx, world_my), level=ctx.current_sub_level, targets_group=ctx.target_group, particle_manager=self.particle_manager)
                             for b in fired_bullets: ctx.bullet_group.add(b)
-                            if fired_bullets:
+                            if fired_bullets and ctx.player.active_weapon != "beam":
                                 self.audio_manager.play_weapon(ctx.player.active_weapon)
+
+                        # Beam Audio Looping & Termination
+                        if getattr(ctx.player, "active_beam", None) and ctx.player.active_beam.alive():
+                            self.audio_manager.start_beam_sound()
+                        else:
+                            self.audio_manager.stop_beam_sound()
 
                         # Smooth Camera Tracking
                         self.camera.update((ctx.player.pos.x, ctx.player.pos.y), dt)
@@ -938,6 +991,10 @@ class Game:
 
         elif ctx.state == STATE_SECTOR_SELECT:
             self.ui_rects_cache = draw_mission_select_ui(canvas, ctx, ctx.scrap, mouse_pos=canvas_m_pos)
+
+        elif ctx.state == STATE_DRONE_SELECT:
+            self.background.draw_menu_backdrop(canvas)
+            self.ui_rects_cache = draw_drone_select_ui(canvas, canvas_m_pos, self.renderer.sprite_manager)
 
         elif ctx.state == STATE_MISSION_BRIEFING:
             self.ui_rects_cache = draw_mission_briefing(canvas, get_mission_data(self.pending_mission_id), ctx.scrap, mouse_pos=canvas_m_pos)

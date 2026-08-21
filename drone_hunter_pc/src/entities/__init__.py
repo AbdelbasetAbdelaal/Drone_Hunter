@@ -5,8 +5,9 @@ from src.entities.boss import (
     Boss, SkyDreadnoughtBoss, StealthMirageBoss, EMPDisrupterBoss, ColossusTitanMechBoss
 )
 from src.entities.bullet import (
-    Bullet, HomingMissile, PlasmaLaserBeam, TeslaArcBeam, ClusterTorpedo,
-    ClusterBomblet, EnemyBullet, EnemySniperBeam
+    Bullet, HomingMissile, ContinuousBeam, TeslaArcBeam, ClusterTorpedo,
+    HeavyPlasmaOrb, RailgunSlug, BarrageMissile, EMPPulse, EnemyBullet,
+    EnemySniperBeam, ClusterBomblet
 )
 from src.entities.powerup import PowerupItem
 from src.entities.obstacle import EnvironmentalObstacle

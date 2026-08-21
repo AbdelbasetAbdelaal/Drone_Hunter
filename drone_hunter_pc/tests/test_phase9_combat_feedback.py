@@ -401,6 +401,63 @@ class TestAssetBackedVFX(unittest.TestCase):
         self.assertFalse(center_color[:3] == (255, 255, 255),
                          f'Player center became white on hit: {center_color}')
 
+    def test_small_enemy_explosion_audio(self):
+        from src.audio.audio_manager import AudioManager
+        am = AudioManager(sound_enabled=True)
+        if not am.mixer_initialized:
+            self.skipTest("Audio mixer not initialized")
+        am.play_death_scout()
+        self.assertIsNotNone(am._sound_cache.get("death_scout"))
+
+    def test_heavy_enemy_explosion_audio(self):
+        from src.audio.audio_manager import AudioManager
+        am = AudioManager(sound_enabled=True)
+        if not am.mixer_initialized:
+            self.skipTest("Audio mixer not initialized")
+        am.play_death_heavy()
+        self.assertIsNotNone(am._sound_cache.get("death_heavy"))
+
+    def test_boss_explosion_audio(self):
+        from src.audio.audio_manager import AudioManager
+        am = AudioManager(sound_enabled=True)
+        if not am.mixer_initialized:
+            self.skipTest("Audio mixer not initialized")
+        am.play_boss_death()
+        self.assertIsNotNone(am._sound_cache.get("death_boss"))
+
+    def test_player_destruction_audio(self):
+        from src.audio.audio_manager import AudioManager
+        am = AudioManager(sound_enabled=True)
+        if not am.mixer_initialized:
+            self.skipTest("Audio mixer not initialized")
+        am.play_player_death()
+        self.assertIsNotNone(am._sound_cache.get("player_death"))
+
+    def test_explosion_audio_not_duplicated(self):
+        from src.audio.audio_manager import AudioManager
+        am = AudioManager(sound_enabled=True)
+        if not am.mixer_initialized:
+            self.skipTest("Audio mixer not initialized")
+        am.play_death("scout")
+        am.play_death("shooter")
+        am.play_death("heavy")
+        am.play_death("boss")
+        self.assertIsNotNone(am._sound_cache.get("death_scout"))
+        self.assertIsNotNone(am._sound_cache.get("death_shooter"))
+        self.assertIsNotNone(am._sound_cache.get("death_heavy"))
+        self.assertIsNotNone(am._sound_cache.get("death_boss"))
+
+    def test_explosion_audio_asset_exists(self):
+        import os
+        from src.audio.audio_manager import AUDIO_ASSET_MAP
+        base_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+        explosion_keys = ["explosion_small", "explosion_medium", "explosion_heavy", "explosion_boss", "explosion_player"]
+        for key in explosion_keys:
+            rel = AUDIO_ASSET_MAP.get(key)
+            self.assertIsNotNone(rel, f"AUDIO_ASSET_MAP missing {key}")
+            full = os.path.join(base_dir, rel)
+            self.assertTrue(os.path.isfile(full), f"Missing explosion asset: {full}")
+
 
 if __name__ == '__main__':
     unittest.main()

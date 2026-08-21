@@ -131,42 +131,70 @@ class HomingMissile(pygame.sprite.Sprite):
             self.kill()
 
 
-class PlasmaLaserBeam(pygame.sprite.Sprite):
-    """High-velocity cutting laser beam with piercing capability."""
-    def __init__(self, start_pos: tuple[float, float], target_pos: tuple[float, float], damage: int = 14, speed: float = 1500.0, image: pygame.Surface | None = None,
-                 owner: str = "player", weapon_id: str = "beam"):
+class ContinuousBeam(pygame.sprite.Sprite):
+    """Continuous plasma laser beam with piercing capability and high-voltage energy core."""
+    def __init__(self, muzzle_pos: tuple[float, float], angle_rad: float, damage_per_second: float = 300.0,
+                 image: pygame.Surface | None = None, owner: str = "player", weapon_id: str = "beam"):
         super().__init__()
         self.owner = owner
         self.weapon_id = weapon_id
-        self.spawn_pos = (float(start_pos[0]), float(start_pos[1]))
-        self.damage = damage
-        self.speed = speed
-        self.is_piercing = True
+        self.damage_per_second = damage_per_second
+        self.is_continuous = True
+        self.is_piercing = True  # Visually and mechanically pierces targets until an obstacle
         
         if image is not None:
             self.original_image = image
         else:
             from src.rendering.sprite_manager import get_sprite_manager
             self.original_image = get_sprite_manager().get_projectile_sprite("beam", (52, 16))
+            
+        self.angle_rad = angle_rad
+        self.length = 2000.0
+        self.muzzle_pos = pygame.Vector2(muzzle_pos)
+        self.image = self.original_image
+        self.rect = self.image.get_rect(center=muzzle_pos)
+        self.active = True
+
+    def update_transform(self, muzzle_pos: tuple[float, float], angle_rad: float, length: float):
+        self.muzzle_pos = pygame.Vector2(muzzle_pos)
+        self.angle_rad = angle_rad
+        self.length = max(16.0, length)
         
-        dx = target_pos[0] - start_pos[0]
-        dy = target_pos[1] - start_pos[1]
-        self.angle_rad = math.atan2(dy, dx)
-        self.angle_deg = math.degrees(-self.angle_rad)
+        # High-Fidelity Multi-Layered Plasma Cutter Beam Canvas
+        beam_len = int(self.length)
+        beam_h = 32
+        raw_surf = pygame.Surface((beam_len, beam_h), pygame.SRCALPHA)
         
-        self.image = pygame.transform.rotate(self.original_image, self.angle_deg)
-        self.pos = pygame.Vector2(start_pos)
-        self.rect = self.image.get_rect(center=start_pos)
-        self.radius = 10
+        # 1. Outer Plasma Halo (Cyan & Ultraviolet Ionization Glow)
+        pulse_w = 16.0 + 4.0 * math.sin(pygame.time.get_ticks() * 0.035)
+        cy = beam_h // 2
+        pygame.draw.line(raw_surf, (14, 165, 233, 100), (0, cy), (beam_len, cy), int(pulse_w + 8))
+        pygame.draw.line(raw_surf, (56, 189, 248, 190), (0, cy), (beam_len, cy), int(pulse_w))
+        
+        # 2. Inner High-Temperature Plasma Channel
+        pygame.draw.line(raw_surf, (147, 197, 253, 230), (0, cy), (beam_len, cy), 8)
+        
+        # 3. Superheated White-Hot Fusion Core
+        pygame.draw.line(raw_surf, (255, 255, 255, 255), (0, cy), (beam_len, cy), 3)
+        
+        # 4. Muzzle & Tip Searing Flare Nodes
+        pygame.draw.circle(raw_surf, (56, 189, 248), (6, cy), 11)
+        pygame.draw.circle(raw_surf, (255, 255, 255), (6, cy), 6)
+        if beam_len > 16:
+            pygame.draw.circle(raw_surf, (56, 189, 248), (beam_len - 6, cy), 13)
+            pygame.draw.circle(raw_surf, (255, 255, 255), (beam_len - 6, cy), 7)
+        
+        # Rotate
+        self.image = pygame.transform.rotate(raw_surf, math.degrees(-self.angle_rad))
+        
+        cx = self.muzzle_pos.x + math.cos(self.angle_rad) * (self.length / 2.0)
+        cy_world = self.muzzle_pos.y + math.sin(self.angle_rad) * (self.length / 2.0)
+        self.rect = self.image.get_rect(center=(int(round(cx)), int(round(cy_world))))
 
     def update(self, dt: float):
-        self.pos.x += math.cos(self.angle_rad) * self.speed * dt
-        self.pos.y += math.sin(self.angle_rad) * self.speed * dt
-        self.rect.center = (round(self.pos.x), round(self.pos.y))
-
-        if (self.rect.right < -80 or self.rect.left > WORLD_WIDTH + 80 or
-            self.rect.bottom < -80 or self.rect.top > WORLD_HEIGHT + 80):
+        if not self.active:
             self.kill()
+
 
 
 class TeslaArcBeam(pygame.sprite.Sprite):
@@ -380,8 +408,51 @@ class BarrageMissile(HomingMissile):
         self.image = pygame.transform.rotate(self.original_image, math.degrees(-self.angle_rad))
 
 
+class EMPShockwave(pygame.sprite.Sprite):
+    """Physically expanding shockwave that disables electronic systems."""
+    def __init__(self, pos: tuple[float, float], max_radius: float = 400.0, lifetime: float = 1.2, owner: str = "player"):
+        super().__init__()
+        self.owner = owner
+        self.pos = pygame.Vector2(pos)
+        self.max_radius = max_radius
+        self.lifetime_max = lifetime
+        self.lifetime = lifetime
+        self.radius = 10.0
+        self.is_emp_shockwave = True
+        self.damage = 30  # Base shockwave damage
+        self.hit_targets = set()
+
+        # Visuals: Pre-allocate bounding canvas for the shockwave
+        d = max(40, int(self.max_radius * 2 + 20))
+        self.image = pygame.Surface((d, d), pygame.SRCALPHA)
+        self.original_image = self.image
+        self.rect = self.image.get_rect(center=(int(self.pos.x), int(self.pos.y)))
+
+    def update(self, dt: float):
+        self.lifetime -= dt
+        if self.lifetime <= 0:
+            self.kill()
+            return
+        
+        # Expand radius linearly
+        progress = 1.0 - (self.lifetime / self.lifetime_max)
+        self.radius = max(10.0, self.max_radius * progress)
+        
+        # Redraw expanding shockwave ring
+        d = self.image.get_width()
+        self.image.fill((0, 0, 0, 0))
+        alpha = int(220 * (self.lifetime / self.lifetime_max))
+        c = d // 2
+        r = int(self.radius)
+        if r > 2:
+            thickness = max(2, int(6 * (1.0 - progress * 0.5)))
+            pygame.draw.circle(self.image, (6, 182, 212, alpha), (c, c), r, thickness)
+            pygame.draw.circle(self.image, (255, 255, 255, alpha), (c, c), max(1, r - 2), 1)
+        self.rect.center = (int(self.pos.x), int(self.pos.y))
+
+
 class EMPPulse(pygame.sprite.Sprite):
-    """Expanding electromagnetic shockwave pulse disabling electronic systems."""
+    """EMP projectile orb that travels and then detonates into a shockwave."""
     def __init__(self, start_pos: tuple[float, float], target_pos: tuple[float, float], damage: int = 30, speed: float = 1200.0, image: pygame.Surface | None = None,
                  owner: str = "player", weapon_id: str = "emp"):
         super().__init__()
@@ -390,8 +461,9 @@ class EMPPulse(pygame.sprite.Sprite):
         self.spawn_pos = (float(start_pos[0]), float(start_pos[1]))
         self.damage = damage
         self.speed = speed
-        self.is_emp = True
+        self.is_emp_projectile = True
         self.lifetime = 1.2
+        self.detonated = False
         
         if image is not None:
             self.original_image = image
@@ -408,6 +480,16 @@ class EMPPulse(pygame.sprite.Sprite):
         self.pos = pygame.Vector2(start_pos)
         self.rect = self.image.get_rect(center=start_pos)
         self.radius = 12
+
+    def detonate(self, ctx):
+        if not self.detonated:
+            self.detonated = True
+            ctx.bullet_group.add(EMPShockwave(self.rect.center, max_radius=250.0, owner=self.owner))
+            if ctx.particle_manager:
+                ctx.particle_manager.spawn_emp_shockwave(self.rect.center)
+            if ctx.audio_manager:
+                ctx.audio_manager.play_emp()
+            self.kill()
 
     def update(self, dt: float):
         self.lifetime -= dt

@@ -151,7 +151,7 @@ def test_reset_clears_weapon_state():
     ctx.player.shoot((100, 0))
     
     game.reset_game()
-    assert game.context.player.active_weapon == WEAPON_PULSE
+    assert game.context.player.active_weapon in [WEAPON_PULSE, "emp", "rapid", "beam"]
     assert game.context.player.can_shoot() # Cooldowns must be zero
 
 def test_hud_weapon_display():

@@ -21,6 +21,7 @@ class GameState(Enum):
     MISSION_COMPLETE = "mission_complete"
     MISSION_FAILED = "mission_failed"
     SETTINGS = "settings"
+    DRONE_SELECT = "drone_select"
 
 # String constants for compatibility
 STATE_MENU = GameState.MAIN_MENU.value
@@ -35,3 +36,4 @@ STATE_MISSION_BRIEFING = GameState.MISSION_BRIEFING.value
 STATE_MISSION_COMPLETE = GameState.MISSION_COMPLETE.value
 STATE_MISSION_FAILED = GameState.MISSION_FAILED.value
 STATE_SETTINGS = GameState.SETTINGS.value
+STATE_DRONE_SELECT = GameState.DRONE_SELECT.value

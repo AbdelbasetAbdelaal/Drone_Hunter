@@ -95,9 +95,9 @@ def draw_hangar_shop_ui(canvas: pygame.Surface, scrap: int, current_sector_idx: 
     # -------------------------------------------------------------------------
     # Drone Combat Class Showcase Profile Card
     # -------------------------------------------------------------------------
-    from src.data.game_data import DRONE_CLASSES
-    skin_idx = getattr(player, "skin_theme", 0) if player is not None else 0
-    c_info = DRONE_CLASSES.get(skin_idx, DRONE_CLASSES[0])
+    from src.data.game_data import get_drone_class_by_id, DRONE_SKINS
+    class_id = getattr(player, "drone_class_id", "striker") if player else "striker"
+    c_info = get_drone_class_by_id(class_id)
 
     profile_rect = pygame.Rect(30, 330, vw - 60, 260)
     pygame.draw.rect(canvas, (12, 18, 30), profile_rect, border_radius=8)
@@ -137,8 +137,15 @@ def draw_hangar_shop_ui(canvas: pygame.Surface, scrap: int, current_sector_idx: 
 
 
     # Controls hint
-    t_hint = font_sub.render("PRESS [C] TO CYCLE CHASSIS CLASS   •   PRESS [1-4] TO SELECT WEAPON", True, (130, 145, 165))
+    t_hint = font_sub.render("PRESS [C] CYCLE CHASSIS   •   PRESS [V] CYCLE VISUAL SKIN   •   PRESS [1-4] SELECT WEAPON", True, (130, 145, 165))
     canvas.blit(t_hint, (50, 508))
+    
+    # Render active visual skin info
+    if player:
+        skin_id = getattr(player, "skin_theme", 0)
+        skin_data = DRONE_SKINS[skin_id] if skin_id < len(DRONE_SKINS) else DRONE_SKINS[0]
+        t_skin = font_sub.render(f"ACTIVE SKIN: {skin_data['name']}", True, skin_data['primary_color'])
+        canvas.blit(t_skin, (vw - 320, 346))
 
     # -------------------------------------------------------------------------
     # Bottom Universal Navigation Bar

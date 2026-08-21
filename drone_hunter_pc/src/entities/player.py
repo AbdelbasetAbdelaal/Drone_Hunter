@@ -23,11 +23,11 @@ from src.data.game_data import (
     CLOAK_DURATION, CLOAK_COOLDOWN_MAX, OVERDRIVE_DURATION, OVERDRIVE_COOLDOWN_MAX,
     WEAPON_PULSE, WEAPON_SCATTER, WEAPON_MISSILE, WEAPON_RAPID, WEAPON_PLASMA,
     WEAPON_RAIL, WEAPON_BARRAGE, WEAPON_BEAM, WEAPON_TESLA, WEAPON_CLUSTER, WEAPON_EMP,
-    WEAPON_DEFS, DRONE_SKINS, DRONE_CLASSES
+    WEAPON_DEFS, DRONE_SKINS, DRONE_CLASSES, DRONE_CLASS_STRIKER
 )
 from src.entities.bullet import (
-    Bullet, HomingMissile, PlasmaLaserBeam, TeslaArcBeam, ClusterTorpedo,
-    HeavyPlasmaOrb, RailgunSlug, BarrageMissile
+    Bullet, HomingMissile, ContinuousBeam, TeslaArcBeam, ClusterTorpedo,
+    HeavyPlasmaOrb, RailgunSlug, BarrageMissile, EMPPulse
 )
 from src.rendering.player_renderer import PlayerRenderer
 from src.rendering.sprite_manager import get_sprite_manager
@@ -149,22 +149,25 @@ class Player(pygame.sprite.Sprite):
         self.radius = 28
         
         # Apply initial drone class profile
-        self.apply_drone_class(0)
+        self.drone_class_id = DRONE_CLASS_STRIKER
+        self.skin_theme = 0
+        self.set_drone_class(DRONE_CLASS_STRIKER)
 
-    def apply_drone_class(self, class_idx: int):
+    def set_drone_class(self, class_id: str):
         """Configures player statistics, weapon loadout, and weapon mounts for the selected drone class."""
-        self.skin_theme = max(0, min(len(DRONE_CLASSES) - 1, class_idx))
-        c_data = DRONE_CLASSES[self.skin_theme]
-        self.drone_class = c_data["class_id"]
-        self.max_speed = HORIZONTAL_SPEED * c_data["speed_mult"]
-        self.acceleration = 3600.0 * c_data["accel_mult"]
+        self.drone_class_id = class_id
+        from src.data.game_data import get_drone_class_by_id
+        c_data = get_drone_class_by_id(self.drone_class_id)
+        
+        self.max_speed = HORIZONTAL_SPEED * c_data.get("speed_mult", 1.0)
+        self.acceleration = 3600.0 * c_data.get("accel_mult", 1.0)
         self.drag = 8.5
         bonus_hp = getattr(self, "_upgrade_bonus_health", 0.0)
-        self.max_health = c_data["max_health"] + bonus_hp
+        self.max_health = c_data.get("max_health", 100) + bonus_hp
         self.health = self.max_health
         self.armor = c_data.get("armor", 0)
-        self.available_weapons = list(c_data["weapons"])
-        if self.active_weapon not in self.available_weapons:
+        self.available_weapons = list(c_data.get("weapons", []))
+        if self.active_weapon not in self.available_weapons and self.available_weapons:
             self.active_weapon = self.available_weapons[0]
             self.current_weapon_idx = 0
         for w in self.available_weapons:
@@ -172,12 +175,25 @@ class Player(pygame.sprite.Sprite):
                 self.weapon_cooldowns[w] = 0.0
         self._render_drone_sprite()
 
+    def apply_drone_class(self, class_idx: int):
+        """Legacy alias mapping int class_idx to set_drone_class for backward compatibility."""
+        mapping = ["striker", "interceptor", "assault", "arc", "command"]
+        idx = max(0, min(len(mapping) - 1, class_idx))
+        self.set_drone_class(mapping[idx])
+        self.set_visual_skin(idx)
+
+    def set_visual_skin(self, skin_idx: int):
+        """Sets the visual skin (color palette) for the drone."""
+        from src.data.game_data import DRONE_SKINS
+        self.skin_theme = max(0, min(len(DRONE_SKINS) - 1, skin_idx))
+        self._render_drone_sprite()
+
     def get_mount_world_pos(self, mount_name: str = "primary") -> tuple[float, float]:
         """Calculates rotated world coordinates for a local-space weapon mount point."""
-        drone_class = DRONE_CLASSES.get(self.skin_theme, DRONE_CLASSES[0])
+        from src.data.game_data import get_drone_class_by_id, DRONE_MOUNT_PROFILES
+        drone_class = get_drone_class_by_id(self.drone_class_id)
         class_id = drone_class.get("class_id", "striker")
         
-        from src.data.game_data import DRONE_MOUNT_PROFILES
         profile = DRONE_MOUNT_PROFILES.get(class_id, drone_class.get("mounts", {}))
         
         # Check alias fallbacks
@@ -258,7 +274,7 @@ class Player(pygame.sprite.Sprite):
         """Activates tactical stealth cloak."""
         if self.is_jammed:
             return False
-        if self.has_cloak_upgrade and self.cloak_cooldown <= 0.0 and not self.is_cloaked:
+        if self.cloak_cooldown <= 0.0 and not self.is_cloaked:
             self.is_cloaked = True
             self.cloak_timer = CLOAK_DURATION
             self.cloak_cooldown = CLOAK_COOLDOWN_MAX
@@ -300,13 +316,28 @@ class Player(pygame.sprite.Sprite):
         self.overclock_timer = max(self.overclock_timer, duration)
 
     def cycle_skin(self) -> int:
-        """Cycles aesthetic drone chassis theme and updates combat profile."""
-        next_skin = (self.skin_theme + 1) % len(DRONE_CLASSES)
-        self.apply_drone_class(next_skin)
+        """Cycles aesthetic drone chassis theme."""
+        from src.data.game_data import DRONE_SKINS
+        next_skin = (self.skin_theme + 1) % len(DRONE_SKINS)
+        self.set_visual_skin(next_skin)
         return self.skin_theme
 
+    def cycle_drone_class(self) -> str:
+        """Cycles through available drone combat classes and updates chassis aesthetics."""
+        from src.data.game_data import DRONE_CLASSES
+        class_ids = list(DRONE_CLASSES.keys())
+        try:
+            curr_idx = class_ids.index(self.drone_class_id)
+        except ValueError:
+            curr_idx = 0
+        next_idx = (curr_idx + 1) % len(class_ids)
+        next_id = class_ids[next_idx]
+        self.set_drone_class(next_id)
+        self.set_visual_skin(next_idx)
+        return self.drone_class_id
+
     def set_skin(self, index: int):
-        self.apply_drone_class(index)
+        self.set_visual_skin(index)
 
     def apply_shop_upgrades(self, upgrades: dict):
         """Applies persistent hangar upgrade statistics."""
@@ -337,7 +368,7 @@ class Player(pygame.sprite.Sprite):
         self.overdrive_cooldown_max = max(12.0, OVERDRIVE_COOLDOWN_MAX - (od_lvl * 3.0))
 
         # Re-apply current drone class weapon loadout and upgrade bonuses
-        self.apply_drone_class(self.skin_theme)
+        self.set_drone_class(self.drone_class_id)
 
 
     def take_damage(self, amount: float, source: str = "bullet") -> bool:
@@ -405,7 +436,7 @@ class Player(pygame.sprite.Sprite):
         sm = get_sprite_manager()
 
         from src.entities.bullet import (
-            Bullet, HomingMissile, PlasmaLaserBeam, TeslaArcBeam, ClusterTorpedo,
+            Bullet, HomingMissile, ContinuousBeam, TeslaArcBeam, ClusterTorpedo,
             HeavyPlasmaOrb, RailgunSlug, BarrageMissile, EMPPulse
         )
 
@@ -492,12 +523,17 @@ class Player(pygame.sprite.Sprite):
                 particle_manager.spawn_muzzle_flash(m_pos, self.aim_angle, self.active_weapon)
 
         elif self.active_weapon == WEAPON_BEAM:
-            m_pos = self.get_mount_world_pos("beam_emitter")
-            sprite = sm.get_projectile_sprite('beam', (52, 16))
-            t_pt = (m_pos[0] + fwd_dx, m_pos[1] + fwd_dy)
-            bullets.append(PlasmaLaserBeam(m_pos, t_pt, damage=dmg, speed=spd, image=sprite, owner="player", weapon_id=self.active_weapon))
-            if particle_manager:
-                particle_manager.spawn_muzzle_flash(m_pos, self.aim_angle, self.active_weapon)
+            self._fired_this_frame = True
+            if getattr(self, "active_beam", None) is None or not self.active_beam.alive():
+                m_pos = self.get_mount_world_pos("beam_emitter")
+                sprite = sm.get_projectile_sprite('beam', (52, 16))
+                from src.entities.bullet import ContinuousBeam
+                # Convert per-shot damage to high continuous DPS
+                dps = dmg * 24.0
+                self.active_beam = ContinuousBeam(m_pos, self.aim_angle, damage_per_second=dps, image=sprite, owner="player", weapon_id=self.active_weapon)
+                bullets.append(self.active_beam)
+                if particle_manager:
+                    particle_manager.spawn_muzzle_flash(m_pos, self.aim_angle, self.active_weapon)
 
         elif self.active_weapon == WEAPON_TESLA:
             m_pos = self.get_mount_world_pos("energy_center")
@@ -573,6 +609,16 @@ class Player(pygame.sprite.Sprite):
 
     def update(self, dt: float, targets_group=None) -> list[pygame.sprite.Sprite]:
         """Updates drone physics position, boundary clamping, timers, and energy regeneration."""
+        # Handle Continuous Beam Lifecycle
+        if getattr(self, "active_beam", None) is not None and self.active_beam.alive():
+            if not getattr(self, "_fired_this_frame", False) or self.active_weapon != WEAPON_BEAM:
+                self.active_beam.active = False
+                self.active_beam = None
+            else:
+                m_pos = self.get_mount_world_pos("beam_emitter")
+                self.active_beam.update_transform(m_pos, self.aim_angle, self.active_beam.length)
+        self._fired_this_frame = False
+
         # Position Update
         self.pos += self.velocity * dt
         

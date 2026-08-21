@@ -180,6 +180,7 @@ class Enemy(pygame.sprite.Sprite):
         self.color = self.color_outer
         self.alive = True
         self.hit_flash_timer = 0.0
+        self.emp_jammed_timer = 0.0
 
         if pos is None:
             spawn_x = random.randint(WORLD_WIDTH + 40, WORLD_WIDTH + 140)
@@ -259,11 +260,17 @@ class Enemy(pygame.sprite.Sprite):
             return []
 
         new_bullets = []
-        self.time_accum += dt
         if self.hit_flash_timer > 0:
             self.hit_flash_timer -= dt
         if self.contact_cooldown_timer > 0:
             self.contact_cooldown_timer -= dt
+
+        if self.emp_jammed_timer > 0:
+            self.emp_jammed_timer -= dt
+            self._render_sprite()
+            return new_bullets
+
+        self.time_accum += dt
 
         bullet_speed = 320.0 + self.sector_idx * 30.0
         pred_aim_x = player_pos[0] + player_vel[0] * 0.35

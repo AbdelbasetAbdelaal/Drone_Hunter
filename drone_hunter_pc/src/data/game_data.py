@@ -60,16 +60,10 @@ WEAPON_ASSETS = {
     "rapid": "weapons/laser_pulse.png",
     "scatter": "weapons/laser_scatter.png",
     "missile": "weapons/missile.png",
-    "light_missile": "weapons/missile.png",
-    "heavy_missile": "weapons/missile.png",
     "barrage": "weapons/missile.png",
-    "missile_barrage": "weapons/missile.png",
     "beam": "weapons/laser_beam.png",
-    "arc_beam": "weapons/laser_beam.png",
     "plasma": "weapons/laser_beam.png",
-    "heavy_cannon": "weapons/laser_beam.png",
     "rail": "weapons/laser_beam.png",
-    "precision": "weapons/laser_beam.png",
     "tesla": "weapons/tesla_orb.png",
     "cluster": "weapons/cluster_torpedo.png",
     "emp": "weapons/tesla_orb.png",
@@ -263,7 +257,7 @@ WEAPON_DEFS = {
         "slot": 2,
         "cooldown": 0.08,
         "energy_cost": 0.0,
-        "damage": 16,
+        "damage": 26,
         "speed": 1500.0,
         "projectile_speed": 1500.0,
         "projectiles_per_shot": 1,
@@ -276,7 +270,7 @@ WEAPON_DEFS = {
         "mount_profile": "beam_emitter",
         "behavior_type": "continuous_beam",
         "color": COLOR_BEAM,
-        "description": "Continuous high-frequency cutting beam searing through chassis.",
+        "description": "Continuous ultra-dense plasma laser searing through chassis and vaporizing incoming ordnance.",
         "icon": "〰️",
         "unlocked_default": True
     },
@@ -353,14 +347,6 @@ WEAPON_DEFS = {
         "unlocked_default": True
     }
 }
-
-# Weapon Name Aliases for Authoritative Loadout Resolution
-WEAPON_DEFS["light_missile"] = WEAPON_DEFS[WEAPON_MISSILE]
-WEAPON_DEFS["heavy_missile"] = WEAPON_DEFS[WEAPON_MISSILE]
-WEAPON_DEFS["precision"] = WEAPON_DEFS[WEAPON_RAIL]
-WEAPON_DEFS["heavy_cannon"] = WEAPON_DEFS[WEAPON_PLASMA]
-WEAPON_DEFS["arc_beam"] = WEAPON_DEFS[WEAPON_BEAM]
-WEAPON_DEFS["missile_barrage"] = WEAPON_DEFS[WEAPON_BARRAGE]
 
 # -----------------------------------------------------------------------------
 # Drone Specific Mount Profiles & Local-Space Hardpoints (Calibrated for 176x152)
@@ -466,7 +452,7 @@ DRONE_LOADOUTS = {
 }
 
 DRONE_CLASSES = {
-    0: {
+    DRONE_CLASS_STRIKER: {
         "class_id": DRONE_CLASS_STRIKER,
         "name": "STRIKER",
         "title": "BALANCED FRONTLINE DRONE",
@@ -485,7 +471,7 @@ DRONE_CLASSES = {
         "role": "BALANCED / ACCURATE / VERSATILE"
     },
 
-    1: {
+    DRONE_CLASS_INTERCEPTOR: {
         "class_id": DRONE_CLASS_INTERCEPTOR,
         "name": "INTERCEPTOR",
         "title": "FAST ATTACK / INTERCEPTION",
@@ -505,7 +491,7 @@ DRONE_CLASSES = {
         },
         "role": "FAST / AGILE / HIGH DPS / LOW SURVIVABILITY"
     },
-    2: {
+    DRONE_CLASS_ASSAULT: {
         "class_id": DRONE_CLASS_ASSAULT,
         "name": "ASSAULT",
         "title": "HEAVY ATTACK DREADNOUGHT",
@@ -527,7 +513,7 @@ DRONE_CLASSES = {
         },
         "role": "HEAVY / POWERFUL / HIGH DURABILITY"
     },
-    3: {
+    DRONE_CLASS_ARC: {
         "class_id": DRONE_CLASS_ARC,
         "name": "ARC",
         "title": "ENERGY / AREA CONTROL",
@@ -549,7 +535,7 @@ DRONE_CLASSES = {
         },
         "role": "ENERGY / CONTROL / AREA DAMAGE"
     },
-    4: {
+    DRONE_CLASS_COMMAND: {
         "class_id": DRONE_CLASS_COMMAND,
         "name": "COMMAND",
         "title": "ADVANCED ENDGAME PLATFORM",
@@ -577,17 +563,21 @@ DRONE_CLASSES = {
 
 def get_drone_class_by_id(class_id: str) -> dict:
     """Returns the authoritative drone class configuration for a given class ID."""
-    for c in DRONE_CLASSES.values():
-        if c["class_id"] == class_id:
-            return c
-    return DRONE_CLASSES[0]
+    return DRONE_CLASSES.get(class_id, DRONE_CLASSES[DRONE_CLASS_STRIKER])
 
 
 def get_drone_loadout(class_id_or_index: str | int) -> dict[str, str]:
     """Returns the authoritative deterministic loadout mapping for a drone class."""
     if isinstance(class_id_or_index, int):
-        c = DRONE_CLASSES.get(class_id_or_index, DRONE_CLASSES[0])
-        return c["loadout"]
+        # Legacy fallback for old save files / tests
+        mapping = {
+            0: DRONE_CLASS_STRIKER,
+            1: DRONE_CLASS_INTERCEPTOR,
+            2: DRONE_CLASS_ASSAULT,
+            3: DRONE_CLASS_ARC,
+            4: DRONE_CLASS_COMMAND
+        }
+        class_id_or_index = mapping.get(class_id_or_index, DRONE_CLASS_STRIKER)
     return DRONE_LOADOUTS.get(class_id_or_index, DRONE_LOADOUTS[DRONE_CLASS_STRIKER])
 
 
