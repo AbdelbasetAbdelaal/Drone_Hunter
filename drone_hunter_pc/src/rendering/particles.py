@@ -20,7 +20,7 @@ import pygame
 from src.data.settings import (
     SCREEN_WIDTH, SCREEN_HEIGHT, COLOR_CYAN, COLOR_GOLD, COLOR_EMERALD,
     COLOR_CRIMSON, COLOR_MAGENTA, COLOR_PURPLE, COLOR_SHIELD, COLOR_OVERCLOCK,
-    COLOR_WHITE, COLOR_TESLA, COLOR_CLUSTER, COLOR_MISSILE
+    COLOR_WHITE, COLOR_TESLA, COLOR_CLUSTER, COLOR_MISSILE, COLOR_BEAM
 )
 from src.data.game_data import (
     TARGET_TYPE_SCOUT, TARGET_TYPE_SHOOTER, TARGET_TYPE_HEAVY,
@@ -252,18 +252,66 @@ class ParticleManager:
             rad_min, rad_max = 1.5, 3.0
             life_min, life_max = 0.03, 0.07
             col = COLOR_CYAN
+        elif weapon_type == "rapid":
+            count = 4
+            spd_min, spd_max = 160.0, 320.0
+            rad_min, rad_max = 1.5, 2.5
+            life_min, life_max = 0.02, 0.05
+            col = (250, 204, 21)
         elif weapon_type == "scatter":
             count = 6
             spd_min, spd_max = 100.0, 240.0
             rad_min, rad_max = 2.0, 3.5
             life_min, life_max = 0.03, 0.07
             col = COLOR_GOLD
-        elif weapon_type == "missile":
+        elif weapon_type in ("missile", "light_missile", "heavy_missile"):
             count = 5
             spd_min, spd_max = 80.0, 200.0
             rad_min, rad_max = 2.5, 4.5
             life_min, life_max = 0.06, 0.12
             col = COLOR_MISSILE
+        elif weapon_type in ("plasma", "heavy_cannon"):
+            count = 7
+            spd_min, spd_max = 60.0, 180.0
+            rad_min, rad_max = 3.0, 5.5
+            life_min, life_max = 0.05, 0.12
+            col = (217, 70, 239)
+        elif weapon_type in ("rail", "precision"):
+            count = 8
+            spd_min, spd_max = 220.0, 450.0
+            rad_min, rad_max = 2.0, 4.0
+            life_min, life_max = 0.04, 0.09
+            col = (224, 242, 254)
+        elif weapon_type in ("barrage", "missile_barrage"):
+            count = 6
+            spd_min, spd_max = 90.0, 220.0
+            rad_min, rad_max = 2.0, 4.0
+            life_min, life_max = 0.05, 0.10
+            col = COLOR_MISSILE
+        elif weapon_type in ("beam", "arc_beam"):
+            count = 3
+            spd_min, spd_max = 140.0, 260.0
+            rad_min, rad_max = 1.5, 3.0
+            life_min, life_max = 0.03, 0.06
+            col = COLOR_BEAM
+        elif weapon_type == "tesla":
+            count = 5
+            spd_min, spd_max = 120.0, 250.0
+            rad_min, rad_max = 1.5, 3.0
+            life_min, life_max = 0.04, 0.08
+            col = COLOR_TESLA
+        elif weapon_type == "cluster":
+            count = 6
+            spd_min, spd_max = 80.0, 190.0
+            rad_min, rad_max = 2.5, 4.5
+            life_min, life_max = 0.05, 0.10
+            col = COLOR_CLUSTER
+        elif weapon_type == "emp":
+            count = 8
+            spd_min, spd_max = 140.0, 300.0
+            rad_min, rad_max = 2.0, 4.0
+            life_min, life_max = 0.06, 0.14
+            col = (6, 182, 212)
         else:
             count = 4
             spd_min, spd_max = 120.0, 260.0
@@ -271,8 +319,8 @@ class ParticleManager:
             life_min, life_max = 0.03, 0.07
             col = COLOR_CYAN
 
-        base_x = cx + fwd_x * 22
-        base_y = cy + fwd_y * 22
+        base_x = cx + fwd_x * 12
+        base_y = cy + fwd_y * 12
         for _ in range(count):
             ang = random.uniform(0, math.tau)
             spd = random.uniform(spd_min, spd_max)
@@ -284,6 +332,31 @@ class ParticleManager:
             life = random.uniform(life_min, life_max)
             self.particles.add(Particle((rx, ry), vel, col, rad, life, is_spark=True))
         self._enforce_particle_cap()
+
+    def spawn_weapon_impact(self, pos: tuple[float, float], weapon_type: str):
+        """Spawns weapon-specific visual impact burst."""
+        if weapon_type in ("missile", "light_missile", "heavy_missile", "barrage"):
+            self.spawn_explosion(pos, count=24, color=COLOR_MISSILE)
+        elif weapon_type in ("plasma", "heavy_cannon"):
+            self.spawn_explosion(pos, count=28, color=(217, 70, 239))
+        elif weapon_type in ("rail", "precision"):
+            self.spawn_spark(pos, count=16, color=(224, 242, 254))
+        elif weapon_type == "tesla":
+            self.spawn_spark(pos, count=14, color=COLOR_TESLA)
+        elif weapon_type == "cluster":
+            self.spawn_cluster_explosion(pos)
+        elif weapon_type == "emp":
+            self.spawn_emp_shockwave(pos)
+        elif weapon_type == "scatter":
+            self.spawn_spark(pos, count=12, color=COLOR_GOLD)
+        else:
+            self.spawn_spark(pos, count=8, color=COLOR_CYAN)
+
+    def spawn_cluster_burst(self, pos: tuple[float, float]):
+        """Alias for cluster explosion."""
+        self.spawn_cluster_explosion(pos)
+
+
 
     def spawn_enemy_hit_sparks(self, pos: tuple[float, float], enemy_type: str, damage: int):
         if enemy_type == TARGET_TYPE_SCOUT:

@@ -35,6 +35,30 @@ CHANNEL_UI = 3
 CHANNELS_WEAPONS = [4, 5, 6, 7]
 CHANNELS_SFX = list(range(8, 24))
 
+# Authoritative Audio Asset Map for production audio file discovery & safe fallback
+AUDIO_ASSET_MAP = {
+    "pulse": "assets/audio/pulse_fire.wav",
+    "laser": "assets/audio/pulse_fire.wav",
+    "rapid": "assets/audio/rapid_fire.wav",
+    "scatter": "assets/audio/scatter_fire.wav",
+    "missile": "assets/audio/missile_launch.wav",
+    "plasma": "assets/audio/plasma_fire.wav",
+    "rail": "assets/audio/rail_fire.wav",
+    "barrage": "assets/audio/barrage_launch.wav",
+    "beam": "assets/audio/beam_loop.wav",
+    "tesla": "assets/audio/tesla_arc.wav",
+    "cluster": "assets/audio/cluster_launch.wav",
+    "emp": "assets/audio/emp_discharge.wav",
+    "explosion_small": "assets/audio/explosion_small.wav",
+    "explosion_medium": "assets/audio/explosion_medium.wav",
+    "explosion_heavy": "assets/audio/explosion_heavy.wav",
+    "explosion_energy": "assets/audio/explosion_energy.wav",
+    "explosion_boss": "assets/audio/explosion_boss.wav",
+    "explosion_player": "assets/audio/explosion_player.wav",
+    "mission_success": "assets/audio/mission_success.wav",
+    "mission_failure": "assets/audio/mission_failure.wav",
+}
+
 
 class AudioManager:
     """
@@ -47,6 +71,7 @@ class AudioManager:
         self._sound_cache: dict[str, pygame.mixer.Sound] = {}
         self._last_played_times: dict[str, int] = {}
         self._engine_channel: pygame.mixer.Channel | None = None
+        self._beam_channel: pygame.mixer.Channel | None = None
         self._weapon_channel_idx = 0
         self._sfx_channel_idx = 0
         
@@ -65,65 +90,84 @@ class AudioManager:
         except Exception:
             self.mixer_initialized = False
 
+    def _load_or_synthesize(self, sound_key: str, synth_func):
+        """Attempts to load production audio file from AUDIO_ASSET_MAP; safely falls back to procedural synth."""
+        asset_rel = AUDIO_ASSET_MAP.get(sound_key)
+        if asset_rel:
+            import os
+            base_dir = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+            full_path = os.path.join(base_dir, asset_rel)
+            if os.path.isfile(full_path):
+                try:
+                    return pygame.mixer.Sound(full_path)
+                except Exception:
+                    pass
+        if synth_func is not None:
+            try:
+                return synth_func()
+            except Exception:
+                pass
+        return None
+
     def _preload_sounds(self):
-        """Pre-caches all procedural waveforms at initialization for zero runtime disk I/O / synthesis."""
+        """Pre-caches all waveforms (production files or procedural waveforms) at initialization."""
         if not self.mixer_initialized:
             return
 
         # Weapons
-        self._sound_cache["laser"] = generate_laser_sound()
-        self._sound_cache["rapid"] = generate_rapid_sound()
-        self._sound_cache["scatter"] = generate_scatter_sound()
-        self._sound_cache["missile"] = generate_missile_sound()
-        self._sound_cache["barrage"] = generate_barrage_sound()
-        self._sound_cache["plasma"] = generate_plasma_sound()
-        self._sound_cache["rail"] = generate_rail_sound()
-        self._sound_cache["beam"] = generate_beam_sound()
-        self._sound_cache["tesla"] = generate_tesla_sound()
-        self._sound_cache["cluster"] = generate_cluster_sound()
-        self._sound_cache["sniper"] = generate_sniper_sound()
-        self._sound_cache["emp"] = generate_emp_sound()
+        self._sound_cache["laser"] = self._load_or_synthesize("laser", generate_laser_sound)
+        self._sound_cache["rapid"] = self._load_or_synthesize("rapid", generate_rapid_sound)
+        self._sound_cache["scatter"] = self._load_or_synthesize("scatter", generate_scatter_sound)
+        self._sound_cache["missile"] = self._load_or_synthesize("missile", generate_missile_sound)
+        self._sound_cache["barrage"] = self._load_or_synthesize("barrage", generate_barrage_sound)
+        self._sound_cache["plasma"] = self._load_or_synthesize("plasma", generate_plasma_sound)
+        self._sound_cache["rail"] = self._load_or_synthesize("rail", generate_rail_sound)
+        self._sound_cache["beam"] = self._load_or_synthesize("beam", generate_beam_sound)
+        self._sound_cache["tesla"] = self._load_or_synthesize("tesla", generate_tesla_sound)
+        self._sound_cache["cluster"] = self._load_or_synthesize("cluster", generate_cluster_sound)
+        self._sound_cache["sniper"] = self._load_or_synthesize("rail", generate_sniper_sound)
+        self._sound_cache["emp"] = self._load_or_synthesize("emp", generate_emp_sound)
 
         # Impacts
-        self._sound_cache["hit_scout"] = generate_hit_scout_sound()
-        self._sound_cache["hit_shooter"] = generate_hit_shooter_sound()
-        self._sound_cache["hit_heavy"] = generate_hit_heavy_sound()
-        self._sound_cache["hit_shield"] = generate_hit_shield_sound()
-        self._sound_cache["hit_boss"] = generate_hit_boss_sound()
-        self._sound_cache["hit"] = generate_hit_sound()
+        self._sound_cache["hit_scout"] = self._load_or_synthesize("hit_scout", generate_hit_scout_sound)
+        self._sound_cache["hit_shooter"] = self._load_or_synthesize("hit_shooter", generate_hit_shooter_sound)
+        self._sound_cache["hit_heavy"] = self._load_or_synthesize("hit_heavy", generate_hit_heavy_sound)
+        self._sound_cache["hit_shield"] = self._load_or_synthesize("hit_shield", generate_hit_shield_sound)
+        self._sound_cache["hit_boss"] = self._load_or_synthesize("hit_boss", generate_hit_boss_sound)
+        self._sound_cache["hit"] = self._load_or_synthesize("hit", generate_hit_sound)
 
         # Destructions
-        self._sound_cache["death_scout"] = generate_death_scout_sound()
-        self._sound_cache["death_shooter"] = generate_death_shooter_sound()
-        self._sound_cache["death_heavy"] = generate_death_heavy_sound()
-        self._sound_cache["death_shield"] = generate_death_shield_sound()
-        self._sound_cache["death_boss"] = generate_death_boss_sound()
-        self._sound_cache["explosion"] = generate_explosion_sound()
+        self._sound_cache["death_scout"] = self._load_or_synthesize("explosion_small", generate_death_scout_sound)
+        self._sound_cache["death_shooter"] = self._load_or_synthesize("explosion_medium", generate_death_shooter_sound)
+        self._sound_cache["death_heavy"] = self._load_or_synthesize("explosion_heavy", generate_death_heavy_sound)
+        self._sound_cache["death_shield"] = self._load_or_synthesize("explosion_energy", generate_death_shield_sound)
+        self._sound_cache["death_boss"] = self._load_or_synthesize("explosion_boss", generate_death_boss_sound)
+        self._sound_cache["explosion"] = self._load_or_synthesize("explosion_medium", generate_explosion_sound)
 
         # Player
-        self._sound_cache["player_hit"] = generate_player_hit_sound()
-        self._sound_cache["player_death"] = generate_player_death_sound()
-        self._sound_cache["roll"] = generate_roll_sound()
-        self._sound_cache["engine_hum"] = generate_engine_hum_sound()
-        self._sound_cache["overdrive"] = generate_overdrive_sound()
-        self._sound_cache["cloak"] = generate_cloak_sound()
-        self._sound_cache["powerup"] = generate_powerup_sound()
+        self._sound_cache["player_hit"] = self._load_or_synthesize("player_hit", generate_player_hit_sound)
+        self._sound_cache["player_death"] = self._load_or_synthesize("explosion_player", generate_player_death_sound)
+        self._sound_cache["roll"] = self._load_or_synthesize("roll", generate_roll_sound)
+        self._sound_cache["engine_hum"] = self._load_or_synthesize("engine_hum", generate_engine_hum_sound)
+        self._sound_cache["overdrive"] = self._load_or_synthesize("overdrive", generate_overdrive_sound)
+        self._sound_cache["cloak"] = self._load_or_synthesize("cloak", generate_cloak_sound)
+        self._sound_cache["powerup"] = self._load_or_synthesize("powerup", generate_powerup_sound)
 
         # Boss
-        self._sound_cache["boss_alert"] = generate_boss_alert_sound()
-        self._sound_cache["boss_attack"] = generate_boss_attack_sound()
-        self._sound_cache["boss_phase_2"] = generate_boss_phase_transition_sound(2)
-        self._sound_cache["boss_phase_3"] = generate_boss_phase_transition_sound(3)
-        self._sound_cache["boss_phase_4"] = generate_boss_phase_transition_sound(4)
+        self._sound_cache["boss_alert"] = self._load_or_synthesize("boss_alert", generate_boss_alert_sound)
+        self._sound_cache["boss_attack"] = self._load_or_synthesize("boss_attack", generate_boss_attack_sound)
+        self._sound_cache["boss_phase_2"] = self._load_or_synthesize("boss_phase_2", lambda: generate_boss_phase_transition_sound(2))
+        self._sound_cache["boss_phase_3"] = self._load_or_synthesize("boss_phase_3", lambda: generate_boss_phase_transition_sound(3))
+        self._sound_cache["boss_phase_4"] = self._load_or_synthesize("boss_phase_4", lambda: generate_boss_phase_transition_sound(4))
 
         # UI
-        self._sound_cache["ui_click"] = generate_ui_click_sound()
-        self._sound_cache["ui_hover"] = generate_ui_hover_sound()
-        self._sound_cache["mission_start"] = generate_mission_start_sound()
-        self._sound_cache["mission_complete"] = generate_mission_complete_sound()
-        self._sound_cache["game_over"] = generate_game_over_sound()
-        self._sound_cache["victory"] = generate_victory_sound()
-        self._sound_cache["buy"] = generate_buy_sound()
+        self._sound_cache["ui_click"] = self._load_or_synthesize("ui_click", generate_ui_click_sound)
+        self._sound_cache["ui_hover"] = self._load_or_synthesize("ui_hover", generate_ui_hover_sound)
+        self._sound_cache["mission_start"] = self._load_or_synthesize("mission_start", generate_mission_start_sound)
+        self._sound_cache["mission_complete"] = self._load_or_synthesize("mission_success", generate_mission_complete_sound)
+        self._sound_cache["game_over"] = self._load_or_synthesize("mission_failure", generate_game_over_sound)
+        self._sound_cache["victory"] = self._load_or_synthesize("mission_success", generate_victory_sound)
+        self._sound_cache["buy"] = self._load_or_synthesize("buy", generate_buy_sound)
 
     def _play_cached(self, sound_key: str, min_interval_ms: int = 40, channel_id: int | None = None, volume_scale: float = 1.0):
         """Plays a pre-cached sound with anti-spam rate limiting and channel assignment."""
@@ -147,42 +191,45 @@ class AudioManager:
                 ch = pygame.mixer.Channel(channel_id)
                 ch.play(snd)
             else:
-                # Use rotating SFX pool
+                # Round-robin allocation among SFX channels
                 ch_idx = CHANNELS_SFX[self._sfx_channel_idx]
                 self._sfx_channel_idx = (self._sfx_channel_idx + 1) % len(CHANNELS_SFX)
-                ch = pygame.mixer.Channel(ch_idx)
-                ch.play(snd)
+                pygame.mixer.Channel(ch_idx).play(snd)
 
             self._last_played_times[sound_key] = now
         except Exception:
             pass
 
     # =========================================================================
-    # WEAPON AUDIO METHODS
+    # WEAPON AUDIO DISPATCH & METHODS
     # =========================================================================
-    def play_weapon(self, weapon_type: str):
-        """Dispatches audio for any given weapon identifier."""
-        if weapon_type in ("pulse", "laser"):
+    def play_weapon(self, weapon_id: str):
+        """Dispatches realistic weapon audio based on authoritative weapon_id."""
+        from src.data.game_data import WEAPON_DEFS
+        w_def = WEAPON_DEFS.get(weapon_id, {})
+        audio_id = w_def.get("audio_id", weapon_id)
+
+        if audio_id in ("laser", "pulse"):
             self.play_laser()
-        elif weapon_type == "rapid":
+        elif audio_id == "rapid":
             self.play_rapid()
-        elif weapon_type == "scatter":
+        elif audio_id == "scatter":
             self.play_scatter()
-        elif weapon_type == "missile":
+        elif audio_id in ("missile", "heavy_missile", "light_missile"):
             self.play_missile()
-        elif weapon_type == "barrage":
+        elif audio_id in ("barrage", "missile_barrage"):
             self.play_barrage()
-        elif weapon_type == "plasma":
+        elif audio_id in ("plasma", "heavy_cannon"):
             self.play_plasma()
-        elif weapon_type in ("rail", "sniper"):
+        elif audio_id in ("rail", "precision", "sniper"):
             self.play_rail()
-        elif weapon_type == "beam":
+        elif audio_id in ("beam", "arc_beam"):
             self.play_beam()
-        elif weapon_type == "tesla":
+        elif audio_id == "tesla":
             self.play_tesla()
-        elif weapon_type == "cluster":
+        elif audio_id == "cluster":
             self.play_cluster()
-        elif weapon_type == "emp":
+        elif audio_id == "emp":
             self.play_emp()
         else:
             self.play_laser()
@@ -233,6 +280,26 @@ class AudioManager:
         """Plasma Cutting Laser fire sound."""
         self._play_cached("beam", min_interval_ms=60, volume_scale=0.80)
 
+    def start_beam_sound(self):
+        """Starts looping beam audio on dedicated continuous channel."""
+        if not self.sound_enabled or not self.mixer_initialized:
+            return
+        if self._beam_channel is None:
+            self._beam_channel = pygame.mixer.Channel(7)
+        if not self._beam_channel.get_busy():
+            snd = self._sound_cache.get("beam")
+            if snd:
+                snd.set_volume(self.sfx_volume * self.master_volume * 0.75)
+                self._beam_channel.play(snd, loops=-1)
+
+    def stop_beam_sound(self):
+        """Stops looping beam audio."""
+        if self._beam_channel is not None:
+            try:
+                self._beam_channel.stop()
+            except Exception:
+                pass
+
     def play_tesla(self):
         """Tesla Arc lightning sound."""
         self._play_cached("tesla", min_interval_ms=60, volume_scale=0.90)
@@ -249,6 +316,26 @@ class AudioManager:
         """EMP blast wave sound."""
         self._play_cached("emp", min_interval_ms=120, channel_id=CHANNEL_PLAYER, volume_scale=1.0)
 
+
+    # =========================================================================
+    # CATEGORIZED EXPLOSION METHODS
+    # =========================================================================
+    def play_explosion_category(self, category: str):
+        """Dispatches categorized explosion sound by target/event intensity."""
+        cat_map = {
+            "SMALL_EXPLOSION": ("death_scout", 45, 0.80),
+            "MEDIUM_EXPLOSION": ("death_shooter", 45, 0.85),
+            "HEAVY_EXPLOSION": ("death_heavy", 50, 1.0),
+            "ENERGY_EXPLOSION": ("death_shield", 50, 0.90),
+            "BOSS_EXPLOSION": ("death_boss", 60, 1.0),
+            "PLAYER_EXPLOSION": ("player_death", 100, 1.0),
+        }
+        entry = cat_map.get(category)
+        if entry:
+            sound_name, min_int, vol = entry
+            self._play_cached(sound_name, min_interval_ms=min_int, volume_scale=vol)
+        else:
+            self.play_explosion()
 
     # =========================================================================
     # TARGET-SPECIFIC IMPACT METHODS

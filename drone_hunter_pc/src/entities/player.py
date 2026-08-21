@@ -175,8 +175,14 @@ class Player(pygame.sprite.Sprite):
     def get_mount_world_pos(self, mount_name: str = "primary") -> tuple[float, float]:
         """Calculates rotated world coordinates for a local-space weapon mount point."""
         drone_class = DRONE_CLASSES.get(self.skin_theme, DRONE_CLASSES[0])
-        mounts = drone_class.get("mounts", {})
-        fwd_off, lat_off = mounts.get(mount_name, mounts.get("primary", (38.0, 0.0)))
+        class_id = drone_class.get("class_id", "striker")
+        
+        from src.data.game_data import DRONE_MOUNT_PROFILES
+        profile = DRONE_MOUNT_PROFILES.get(class_id, drone_class.get("mounts", {}))
+        
+        # Check alias fallbacks
+        fallback = profile.get("primary", (38.0, 0.0))
+        fwd_off, lat_off = profile.get(mount_name, fallback)
         
         cos_a = math.cos(self.aim_angle)
         sin_a = math.sin(self.aim_angle)
@@ -399,11 +405,11 @@ class Player(pygame.sprite.Sprite):
 
         from src.entities.bullet import (
             Bullet, HomingMissile, PlasmaLaserBeam, TeslaArcBeam, ClusterTorpedo,
-            HeavyPlasmaOrb, RailgunSlug, BarrageMissile
+            HeavyPlasmaOrb, RailgunSlug, BarrageMissile, EMPPulse
         )
 
         if self.active_weapon == WEAPON_PULSE:
-            m_pos = self.get_mount_world_pos("primary")
+            m_pos = self.get_mount_world_pos("primary_front_center")
             sprite = sm.get_projectile_sprite('pulse', (40, 12))
             t_pt = (m_pos[0] + math.cos(self.aim_angle) * 1000.0, m_pos[1] + math.sin(self.aim_angle) * 1000.0)
             bullets.append(Bullet(m_pos, t_pt, speed=spd, damage=dmg, color=col, image=sprite))
@@ -463,28 +469,28 @@ class Player(pygame.sprite.Sprite):
                 particle_manager.spawn_muzzle_flash(pod_r, self.aim_angle, self.active_weapon)
 
         elif self.active_weapon == WEAPON_PLASMA:
-            m_pos = self.get_mount_world_pos("primary")
+            m_pos = self.get_mount_world_pos("heavy_front_center")
             sprite = sm.get_projectile_sprite('plasma', (36, 36))
             bullets.append(HeavyPlasmaOrb(m_pos, target_pos, damage=dmg, speed=spd, image=sprite))
             if particle_manager:
                 particle_manager.spawn_muzzle_flash(m_pos, self.aim_angle, self.active_weapon)
 
         elif self.active_weapon == WEAPON_RAIL:
-            m_pos = self.get_mount_world_pos("primary")
+            m_pos = self.get_mount_world_pos("rail_front")
             sprite = sm.get_projectile_sprite('sniper', (64, 14))
             bullets.append(RailgunSlug(m_pos, target_pos, damage=dmg, speed=spd, image=sprite))
             if particle_manager:
                 particle_manager.spawn_muzzle_flash(m_pos, self.aim_angle, self.active_weapon)
 
         elif self.active_weapon == WEAPON_BEAM:
-            m_pos = self.get_mount_world_pos("primary")
+            m_pos = self.get_mount_world_pos("beam_emitter")
             sprite = sm.get_projectile_sprite('beam', (44, 8))
             bullets.append(PlasmaLaserBeam(m_pos, target_pos, damage=dmg, speed=spd, image=sprite))
             if particle_manager:
                 particle_manager.spawn_muzzle_flash(m_pos, self.aim_angle, self.active_weapon)
 
         elif self.active_weapon == WEAPON_TESLA:
-            m_pos = self.get_mount_world_pos("primary")
+            m_pos = self.get_mount_world_pos("energy_center")
             sprite = sm.get_projectile_sprite('tesla', (32, 10))
             bullets.append(TeslaArcBeam(m_pos, target_pos, damage=dmg, speed=spd, image=sprite))
             if particle_manager:
@@ -497,14 +503,13 @@ class Player(pygame.sprite.Sprite):
                 particle_manager.spawn_muzzle_flash(m_pos, self.aim_angle, self.active_weapon)
 
         elif self.active_weapon == WEAPON_EMP:
-            m_pos = self.get_mount_world_pos("primary")
-            sprite = sm.get_projectile_sprite('pulse', (40, 12))
-            t_pt = (m_pos[0] + math.cos(self.aim_angle) * 1000.0, m_pos[1] + math.sin(self.aim_angle) * 1000.0)
-            bullets.append(Bullet(m_pos, t_pt, speed=spd, damage=dmg, color=(6, 182, 212), image=sprite))
+            m_pos = self.get_mount_world_pos("energy_center")
+            bullets.append(EMPPulse(m_pos, target_pos, damage=dmg, speed=spd))
             if particle_manager:
                 particle_manager.spawn_muzzle_flash(m_pos, self.aim_angle, self.active_weapon)
 
         return bullets
+
 
 
     def handle_input(self, keys, dt: float, mouse_pos: tuple[float, float] = None):

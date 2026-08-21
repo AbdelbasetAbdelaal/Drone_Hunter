@@ -369,8 +369,49 @@ class BarrageMissile(HomingMissile):
         self.image = pygame.transform.rotate(self.original_image, math.degrees(-self.angle_rad))
 
 
+class EMPPulse(pygame.sprite.Sprite):
+    """Expanding electromagnetic shockwave pulse disabling electronic systems."""
+    def __init__(self, start_pos: tuple[float, float], target_pos: tuple[float, float], damage: int = 30, speed: float = 1200.0, image: pygame.Surface | None = None):
+        super().__init__()
+        self.damage = damage
+        self.speed = speed
+        self.is_emp = True
+        self.lifetime = 1.2
+        
+        if image is not None:
+            self.original_image = image
+        else:
+            self.original_image = pygame.Surface((36, 16), pygame.SRCALPHA)
+            pygame.draw.ellipse(self.original_image, (6, 182, 212, 140), (0, 0, 36, 16))
+            pygame.draw.ellipse(self.original_image, (56, 189, 248), (4, 2, 28, 12), 2)
+            pygame.draw.ellipse(self.original_image, COLOR_WHITE, (10, 5, 16, 6))
+        
+        dx = target_pos[0] - start_pos[0]
+        dy = target_pos[1] - start_pos[1]
+        self.angle_rad = math.atan2(dy, dx)
+        self.angle_deg = math.degrees(-self.angle_rad)
+        
+        self.image = pygame.transform.rotate(self.original_image, self.angle_deg)
+        self.pos = pygame.Vector2(start_pos)
+        self.rect = self.image.get_rect(center=start_pos)
+        self.radius = 12
+
+    def update(self, dt: float):
+        self.lifetime -= dt
+        if self.lifetime <= 0:
+            self.kill()
+            return
+        self.pos.x += math.cos(self.angle_rad) * self.speed * dt
+        self.pos.y += math.sin(self.angle_rad) * self.speed * dt
+        self.rect.center = (round(self.pos.x), round(self.pos.y))
+
+        if (self.rect.right < -80 or self.rect.left > WORLD_WIDTH + 80 or
+            self.rect.bottom < -80 or self.rect.top > WORLD_HEIGHT + 80):
+            self.kill()
+
 
 class EnemyBullet(pygame.sprite.Sprite):
+
     """Hostile enemy projectile."""
     _cached_default_image = None
 

@@ -758,16 +758,17 @@ class Game:
                     self.combat_director.update(dt, ctx)
                     mission_done = self.mission_system.update(dt, ctx, self.combat_director, self.boss_system)
                     if mission_done:
-
                         if self.mission_system.is_mission_success:
                             if getattr(ctx, "campaign_completed", False) and self.mission_system.active_mission_id == "S5_M5":
                                 ctx.state = STATE_VICTORY
+                                self.audio_manager.play_victory()
                             else:
                                 ctx.state = STATE_MISSION_COMPLETE
-                            self.audio_manager.play_powerup()
+                                self.audio_manager.play_mission_complete()
                             self.save_progress()
                         else:
                             ctx.state = STATE_MISSION_FAILED
+                            self.audio_manager.play_game_over()
                     if ctx.state in (STATE_MISSION_COMPLETE, STATE_MISSION_FAILED, STATE_VICTORY):
                         return
                 else:
@@ -828,6 +829,7 @@ class Game:
 
                 # Check Player Death
                 if ctx.player and not ctx.player.alive and ctx.state == STATE_PLAYING:
+                    self.audio_manager.play_player_death()
                     if self.mission_system.active_mission_id is not None:
                         self.mission_system.trigger_failure()
                         ctx.state = STATE_MISSION_FAILED
