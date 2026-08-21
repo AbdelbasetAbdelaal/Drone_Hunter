@@ -554,6 +554,68 @@ class TestPhase6Bosses(unittest.TestCase):
         self.assertEqual(game.context.bosses_defeated, [BOSS_ASSEMBLY_WARDEN])
         self.assertIn("S2_M1", game.context.missions["unlocked"])
 
+    # -------------------------------------------------------------------------
+    # 23. High-Fidelity Boss Chassis Opacity & Visual Regression Verification
+    # -------------------------------------------------------------------------
+    def test_boss_sprites_load_and_contain_opaque_chassis(self):
+        """Verify get_boss_sprite returns valid, non-empty, visible opaque surfaces for all boss IDs."""
+        from src.rendering.sprite_manager import get_sprite_manager
+        sm = get_sprite_manager()
+
+        boss_ids = [
+            BOSS_ASSEMBLY_WARDEN, BOSS_CORE_EXECUTOR, BOSS_REACTOR_TITAN,
+            BOSS_DEFENSE_COMMANDER, BOSS_DRONE_OVERLORD
+        ]
+
+        for b_id in boss_ids:
+            surf = sm.get_boss_sprite(b_id, phase=1, target_size=(180, 180))
+            self.assertIsNotNone(surf, f"Boss sprite for {b_id} must not be None")
+            w, h = surf.get_size()
+            self.assertEqual((w, h), (180, 180))
+            
+            # Count solid/opaque pixels (alpha > 100)
+            opaque_count = sum(1 for x in range(w) for y in range(h) if surf.get_at((x, y))[3] > 100)
+            self.assertGreater(opaque_count, 10000, f"Boss {b_id} must have >10000 opaque pixels (got {opaque_count})")
+
+    def test_sector_boss_image_preserves_opaque_chassis_all_phases(self):
+        """Verify SectorBoss.image preserves opaque hero artwork across all phases without VFX destruction."""
+        boss_configs = [
+            ASSEMBLY_WARDEN_CONFIG, CORE_EXECUTOR_CONFIG, REACTOR_TITAN_CONFIG,
+            DEFENSE_COMMANDER_CONFIG, DRONE_OVERLORD_CONFIG
+        ]
+
+        for cfg in boss_configs:
+            boss = SectorBoss(cfg, pos=(500, 400))
+            self.assertGreaterEqual(boss.image.get_width(), 180)
+            self.assertGreaterEqual(boss.image.get_height(), 180)
+
+            for p_idx in range(len(cfg.phases)):
+                boss._apply_phase(p_idx)
+                boss._render_sprite()
+                w, h = boss.image.get_size()
+                opaque_count = sum(1 for x in range(w) for y in range(h) if boss.image.get_at((x, y))[3] > 100)
+                self.assertGreater(opaque_count, 10000,
+                    f"Boss {cfg.name} Phase {p_idx+1} must retain opaque chassis (>10000 pixels, got {opaque_count})")
+
+    def test_boss_hit_flash_preserves_alpha_and_resets(self):
+        """Verify hit flash on boss maintains opacity and properly reverts to base chassis."""
+        boss = SectorBoss(ASSEMBLY_WARDEN_CONFIG, pos=(500, 400))
+        w, h = boss.image.get_size()
+        initial_opaque = sum(1 for x in range(w) for y in range(h) if boss.image.get_at((x, y))[3] > 100)
+
+        # Trigger hit flash
+        boss.hit_flash_timer = 0.12
+        boss._render_sprite()
+        flash_opaque = sum(1 for x in range(w) for y in range(h) if boss.image.get_at((x, y))[3] > 100)
+        self.assertGreater(flash_opaque, 10000)
+
+        # Update to expire hit flash
+        boss.update(0.15)
+        self.assertEqual(boss.hit_flash_timer, 0.0)
+        post_opaque = sum(1 for x in range(w) for y in range(h) if boss.image.get_at((x, y))[3] > 100)
+        self.assertEqual(initial_opaque, post_opaque)
+
 
 if __name__ == "__main__":
     unittest.main()
+

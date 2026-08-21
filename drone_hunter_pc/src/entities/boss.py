@@ -109,6 +109,7 @@ class SectorBoss(pygame.sprite.Sprite):
         self._cached_base_surf = None
         self._last_phase_rendered = -1
         self._last_shield_state = False
+        self._last_hit_flash = False
 
         # Apply initial phase
         self._apply_phase(0)
@@ -215,9 +216,9 @@ class SectorBoss(pygame.sprite.Sprite):
 
         self.time_accum += dt
         if self.hit_flash_timer > 0:
-            self.hit_flash_timer -= dt
+            self.hit_flash_timer = max(0.0, self.hit_flash_timer - dt)
         if self.contact_cooldown_timer > 0:
-            self.contact_cooldown_timer -= dt
+            self.contact_cooldown_timer = max(0.0, self.contact_cooldown_timer - dt)
 
         # EMP shockwave mechanic for EMP Disrupter / EMP bosses
         if getattr(self, "is_emp_expanding", False) and player_obj:
@@ -255,10 +256,13 @@ class SectorBoss(pygame.sprite.Sprite):
         # ---------------------------------------------------------------------
         # 3. SPRITE DIRTY CHECK & REBUILD
         # ---------------------------------------------------------------------
-        if self._sprite_dirty or (self.current_phase_idx != self._last_phase_rendered) or (self.is_shielded != self._last_shield_state):
+        current_hit = self.hit_flash_timer > 0
+        flash_changed = current_hit != self._last_hit_flash
+        if self._sprite_dirty or (self.current_phase_idx != self._last_phase_rendered) or (self.is_shielded != self._last_shield_state) or flash_changed:
             self._render_sprite()
             self._last_phase_rendered = self.current_phase_idx
             self._last_shield_state = self.is_shielded
+            self._last_hit_flash = current_hit
             self._sprite_dirty = False
 
         return new_bullets
@@ -468,21 +472,20 @@ class SectorBoss(pygame.sprite.Sprite):
 
     def _render_sprite(self):
         """Builds 2D industrial sci-fi dreadnought visual for the boss at enlarged HD scale."""
-        s = int(self.size * 1.6)
+        s = max(180, int(self.size * 1.8))
         surf = pygame.Surface((s, s), pygame.SRCALPHA)
         center = (s // 2, s // 2)
         half = s // 2
 
         from src.rendering.sprite_manager import get_sprite_manager
-        import math as _math
         sm = get_sprite_manager()
 
-        # Render 2D Production Boss Chassis with Phase Damage Overlays
+        # 1. PRIMARY HERO VISUAL: 2D Production Boss Chassis (Opaque High-Fidelity Artwork)
         boss_phase = self.current_phase_idx + 1
         boss_surf = sm.get_boss_sprite(self.boss_id, phase=boss_phase, target_size=(s, s))
         surf.blit(boss_surf, (0, 0))
 
-        # ── BOSS IDENTITY VFX: Phase-Reactive Dominant Emissive Ring ──
+        # 2. SECONDARY PHASE VFX: Non-destructive perimeter energy accent on separate overlay
         # Phase color language: Phase 1=blue, Phase 2=amber, Phase 3=crimson, Phase 4=violet
         phase_colors = [
             (56, 189, 248),    # Phase 1 — Cool Blue (operational)
@@ -491,30 +494,28 @@ class SectorBoss(pygame.sprite.Sprite):
             (217, 70, 239),    # Phase 4 — Violet (unstable/final)
         ]
         p_col = phase_colors[min(self.current_phase_idx, len(phase_colors) - 1)]
-        time_ms = pygame.time.get_ticks() * 0.001
-        ring_alpha = int(140 + 80 * _math.sin(time_ms * 3.5 + self.current_phase_idx * 1.3))
-        inner_alpha = int(50 + 35 * _math.sin(time_ms * 5.0))
 
-        # Outer emissive ring (phase color, pulsing, non-opaque)
-        outer_r = half - 6
+        vfx_overlay = pygame.Surface((s, s), pygame.SRCALPHA)
+
+        # Thin outer perimeter ring (secondary boundary indicator)
+        outer_r = half - 4
         if outer_r > 8:
-            pygame.draw.circle(surf, (*p_col, max(0, min(255, ring_alpha))), center, outer_r, 4)
-            # Subtle inner glow fill
-            pygame.draw.circle(surf, (*p_col, max(0, min(60, inner_alpha))), center, outer_r - 8, 0)
+            pygame.draw.circle(vfx_overlay, (*p_col, 150), center, outer_r, 3)
 
-        # Weapon emitter core glow (forward-facing bright dot — weapon identity)
-        weapon_alpha = int(180 + 75 * _math.sin(time_ms * 7.0))
+        # Weapon emitter core accent at forward hardpoint (subtle glow dot)
         wx = center[0]
-        wy = center[1] - half // 2  # Top-center = weapon facing forward
-        pygame.draw.circle(surf, (*p_col, max(0, min(255, weapon_alpha))), (wx, wy), 7)
-        pygame.draw.circle(surf, (255, 255, 255, max(0, min(255, weapon_alpha))), (wx, wy), 4)
+        wy = center[1] - half // 2
+        pygame.draw.circle(vfx_overlay, (*p_col, 180), (wx, wy), 4)
+        pygame.draw.circle(vfx_overlay, (255, 255, 255, 220), (wx, wy), 2)
 
-        # Shield Bubble Aura if Shielded
+        # 3. Shield Bubble Aura if Shielded
         if self.is_shielded:
-            pygame.draw.circle(surf, (56, 189, 248, 140), center, half - 3, 4)
-            pygame.draw.circle(surf, (255, 255, 255, 120), center, half - 8, 2)
+            pygame.draw.circle(vfx_overlay, (56, 189, 248, 140), center, half - 2, 3)
+            pygame.draw.circle(vfx_overlay, (255, 255, 255, 110), center, half - 6, 1)
 
-        # Hit Flash Overlay (Alpha-Safe Mask to preserve transparent background)
+        surf.blit(vfx_overlay, (0, 0))
+
+        # 4. Hit Flash Overlay (Alpha-Safe Mask to preserve transparent background)
         if self.hit_flash_timer > 0:
             mask = pygame.mask.from_surface(surf)
             flash_surf = mask.to_surface(setcolor=(255, 255, 255, 140), unsetcolor=(0, 0, 0, 0))
@@ -522,6 +523,7 @@ class SectorBoss(pygame.sprite.Sprite):
 
         self.image = surf
         self.rect = self.image.get_rect(center=self.rect.center)
+
 
 
 
