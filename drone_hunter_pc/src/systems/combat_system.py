@@ -106,6 +106,8 @@ class CombatSystem:
                     dist = math.hypot(cx - proj_x, cy - proj_y)
                     
                     if dist <= target.radius + 8.0:
+                        if not getattr(target, "alive", False):
+                            continue
                         # Enemy is hit by continuous beam
                         is_shielded = False
                         for ally in shield_drones:
@@ -145,6 +147,8 @@ class CombatSystem:
                         continue
                     dist = math.hypot(target.pos.x - b.pos.x, target.pos.y - b.pos.y)
                     if dist <= target.radius + b.radius:
+                        if not getattr(target, "alive", False):
+                            continue
                         b.hit_targets.add(target)
                         is_dead = target.take_damage(b.damage, source="emp")
                         if not getattr(target, "is_boss", False):

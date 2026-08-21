@@ -537,7 +537,9 @@ class AudioManager:
         self.play_buy()
 
     def play_warning(self):
-        """Low health warning."""
+        """Low health warning.
+        TODO: Replace with a dedicated warning asset when available.
+        Currently aliases player_hit as a placeholder."""
         self._play_cached("player_hit", min_interval_ms=120, channel_id=CHANNEL_PLAYER, volume_scale=0.85)
 
     def play_sector_ambient(self, sector_idx: int):

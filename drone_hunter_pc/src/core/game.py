@@ -73,6 +73,7 @@ class Game:
 
         self.clock = GameClock()
         self.context = GameContext()
+        self.is_fullscreen = False
         self.renderer = GameRenderer()
         self.background = ParallaxBackground()
         self.particle_manager = ParticleManager()
@@ -954,6 +955,7 @@ class Game:
                         ctx.state = STATE_MISSION_FAILED
                     else:
                         ctx.state = STATE_GAME_OVER
+                    self.save_progress()
                     if ctx.state in (STATE_MISSION_COMPLETE, STATE_MISSION_FAILED, STATE_GAME_OVER):
                         return
 
@@ -964,7 +966,7 @@ class Game:
                     director_finished = (self.combat_director.state == "complete" and len(living_enemies) == 0 and ctx.level_score >= 1200)
                     if stage_complete or director_finished:
                         ctx.state = STATE_LEVEL_CLEAR
-                        self.audio_manager.play_powerup()
+                        self.audio_manager.play_mission_complete()
                         self.save_progress()
         else:
             self.audio_manager.stop_engine_sound()
