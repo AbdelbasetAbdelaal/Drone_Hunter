@@ -126,7 +126,7 @@ class AudioManager:
         self._sound_cache["beam"] = self._load_or_synthesize("beam", generate_beam_sound)
         self._sound_cache["tesla"] = self._load_or_synthesize("tesla", generate_tesla_sound)
         self._sound_cache["cluster"] = self._load_or_synthesize("cluster", generate_cluster_sound)
-        self._sound_cache["sniper"] = self._load_or_synthesize("rail", generate_sniper_sound)
+        self._sound_cache["sniper"] = self._load_or_synthesize(None, generate_sniper_sound)
         self._sound_cache["emp"] = self._load_or_synthesize("emp", generate_emp_sound)
 
         # Impacts

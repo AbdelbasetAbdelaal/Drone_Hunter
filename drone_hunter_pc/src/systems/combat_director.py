@@ -12,8 +12,9 @@ from src.systems.encounter_system import (
 
 class CombatDirector:
     """Controls the pacing, ordering, and escalation of encounters."""
-    def __init__(self, encounter_system: EncounterSystem):
+    def __init__(self, encounter_system: EncounterSystem, test_mode: bool = False):
         self.encounter_system = encounter_system
+        self.test_mode = test_mode
         self.state = "idle" # idle, intro, encounter, relief, complete
         self.encounter_index = 0
         self.pressure_level = 0
@@ -85,9 +86,12 @@ class CombatDirector:
             return
             
         if self.state == "intro":
-            self.timer -= dt
-            if self.timer <= 0:
+            if self.test_mode:
                 self._start_next_encounter()
+            else:
+                self.timer -= dt
+                if self.timer <= 0:
+                    self._start_next_encounter()
                 
         elif self.state == "encounter":
             # Delegate updating to the EncounterSystem

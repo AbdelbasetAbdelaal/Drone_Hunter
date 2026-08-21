@@ -274,7 +274,7 @@ class TestPhase2AScoutAndEncounter(unittest.TestCase):
 
     def test_sector_1_stage_1_does_start_scout_encounter(self):
         """Cyber Factory Sector 1 Stage 1 is IDLE after reset, and starts WAITING on game update."""
-        game = Game()
+        game = Game(test_mode=True)
         ctx = game.context
         ctx.current_sector_idx = 1
         ctx.current_sub_level = 1
@@ -292,7 +292,7 @@ class TestPhase2AScoutAndEncounter(unittest.TestCase):
 
     def test_sector_1_stage_1_starts_exactly_once(self):
         """Verify that repeated game updates do not re-trigger start()."""
-        game = Game()
+        game = Game(test_mode=True)
         ctx = game.context
         ctx.current_sector_idx = 1
         ctx.current_sub_level = 1

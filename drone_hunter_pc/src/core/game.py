@@ -60,7 +60,8 @@ from src.ui.hangar import draw_hangar_shop_ui
 class Game:
     DEBUG_PROFILE = False
 
-    def __init__(self):
+    def __init__(self, test_mode: bool = False):
+        self._test_mode = test_mode
         pygame.init()
         pygame.font.init()
         try: pygame.joystick.init()
@@ -79,7 +80,7 @@ class Game:
         self.save_system = SaveSystem()
         self.spawner = Spawner()
         self.encounter_system = EncounterSystem()
-        self.combat_director = CombatDirector(self.encounter_system)
+        self.combat_director = CombatDirector(self.encounter_system, test_mode=self._test_mode)
         self.mission_system = MissionSystem()
         self.boss_system = BossSystem()
         self.pending_mission_id = 'S1_M1'
@@ -896,15 +897,11 @@ class Game:
                         return
                 else:
                     if ctx.current_sector_idx == 1 and ctx.current_sub_level == 1:
-                        import sys
-                        if "pytest" in sys.modules:
-                            if self.encounter_system.state == "idle": self.encounter_system.start()
-                            if self.encounter_system.is_active: self.encounter_system.update(dt, ctx)
-                            else: self.spawner.update(dt, ctx)
-                        else:
-                            if self.combat_director.state == "idle": self.combat_director.start()
-                            self.combat_director.update(dt, ctx)
-                            if not self.combat_director.is_suppressing_spawner: self.spawner.update(dt, ctx)
+                        if self.combat_director.state == "idle":
+                            self.combat_director.start()
+                        self.combat_director.update(dt, ctx)
+                        if not self.combat_director.is_suppressing_spawner:
+                            self.spawner.update(dt, ctx)
                     else:
                         self.spawner.update(dt, ctx)
 
