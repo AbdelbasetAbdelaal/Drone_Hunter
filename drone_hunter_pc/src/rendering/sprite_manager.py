@@ -194,21 +194,12 @@ class SpriteManager:
                 return fallback
             scaled = pygame.transform.smoothscale(raw, target_size)
 
-        if state == 'hit':
-            hit_surf = scaled.copy()
-            mask = pygame.mask.from_surface(scaled)
-            tint = mask.to_surface(setcolor=(255, 255, 255, 140), unsetcolor=(0, 0, 0, 0))
-            hit_surf.blit(tint, (0, 0), special_flags=pygame.BLEND_RGBA_ADD)
-            scaled = hit_surf
-
         self._skin_cache[cache_key] = scaled
         return scaled
 
     def get_rotated_player_sprite(self, state: str = 'idle', skin_idx: int = 0, angle_deg: float = 0.0, target_size: tuple[int, int] = (176, 152)) -> pygame.Surface:
         """Returns pre-cached, rotated player sprite from bounded rotation cache without state duplication."""
-        # Unify non-hit states to avoid duplicate rotation tables
-        state_key = 'hit' if state == 'hit' else 'base'
-        base_key = ('player', state_key, max(0, min(4, skin_idx)), target_size)
+        base_key = ('player', 'base', max(0, min(4, skin_idx)), target_size)
         base_sprite = self.get_player_sprite(state=state, skin_idx=skin_idx, target_size=target_size)
         return self._get_or_create_rotated_surface(base_key, base_sprite, angle_deg)
 

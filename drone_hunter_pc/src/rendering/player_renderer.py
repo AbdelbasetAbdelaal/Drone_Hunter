@@ -45,9 +45,7 @@ class PlayerRenderer:
 
         # 1. Determine Visual State
         tilt_y = getattr(player, "tilt_y", 0.0)
-        if player.damage_flash_timer > 0:
-            state = "hit"
-        elif player.muzzle_flash_timer > 0:
+        if player.muzzle_flash_timer > 0:
             state = "fire"
         elif tilt_y < -6.0:
             state = "bank_left"
@@ -163,16 +161,15 @@ class PlayerRenderer:
             pygame.draw.circle(od_surf, (255, 204, 21, pulse_a), (od_r + 5, od_r + 5), od_r, 3)
             canvas.blit(od_surf, (int(round(screen_x)) - od_r - 5, int(round(screen_y)) - od_r - 5))
 
-        # 8. High-Fidelity Damage Hit Flash Overlay
+        # 8. Subtle Localized Hit Impact (Cyan/Blue Energy Burst — No Full-Sprite White Flash)
         if player.damage_flash_timer > 0:
-            hit_pct = max(0.0, min(1.0, player.damage_flash_timer / 0.12))
-            hit_alpha = int(180 * hit_pct)
-            hit_size = (100, 70)
-            hit_sprite = self.sprite_manager.get_player_state_sprite('hit', skin_idx, hit_size)
-            hit_surf = hit_sprite.copy()
-            hit_surf.set_alpha(hit_alpha)
-            hit_rect = hit_surf.get_rect(center=(int(round(screen_x)), int(round(screen_y))))
-            canvas.blit(hit_surf, hit_rect)
+            hit_pct = max(0.0, min(1.0, player.damage_flash_timer / 0.10))
+            impact_alpha = int(90 * hit_pct)
+            impact_radius = int(18 + 14 * hit_pct)
+            pygame.draw.circle(canvas, (14, 165, 233, max(0, min(255, impact_alpha))),
+                               (int(round(screen_x)), int(round(screen_y))), impact_radius)
+            pygame.draw.circle(canvas, (200, 240, 255, max(0, min(255, impact_alpha // 2))),
+                               (int(round(screen_x)), int(round(screen_y))), max(1, impact_radius // 3))
 
         # 9. Player Destruction Sequence (High-Fidelity Asset)
         if getattr(player, "is_destroyed", False) and player.destruction_timer > 0:

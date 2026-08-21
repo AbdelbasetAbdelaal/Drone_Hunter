@@ -374,6 +374,33 @@ class TestAssetBackedVFX(unittest.TestCase):
             pm.update(0.016)
         self.assertEqual(len(pm.explosion_overlays), 0)
 
+    def test_player_hit_does_not_tint_sprite_white(self):
+        from src.rendering.sprite_manager import get_sprite_manager
+        sm = get_sprite_manager()
+        normal = sm.get_player_sprite(state='idle', skin_idx=0, target_size=(176, 152))
+        hit = sm.get_player_sprite(state='hit', skin_idx=0, target_size=(176, 152))
+        self.assertEqual(normal.get_size(), hit.get_size())
+        sample_pixels = 25
+        for x in range(0, normal.get_width(), max(1, normal.get_width() // sample_pixels)):
+            for y in range(0, normal.get_height(), max(1, normal.get_height() // sample_pixels)):
+                n = normal.get_at((x, y))
+                h = hit.get_at((x, y))
+                self.assertEqual(n, h, f'Pixel at ({x},{y}) changed: {n} vs {h}')
+
+    def test_player_renderer_preserves_artwork_on_hit(self):
+        from src.rendering.player_renderer import PlayerRenderer
+        from src.entities.player import Player
+        canvas = pygame.Surface((400, 400), pygame.SRCALPHA)
+        p = Player((200, 200))
+        p.damage_flash_timer = 0.10
+        pr = PlayerRenderer()
+        pr.draw_player(canvas, p, camera_offset=(0, 0))
+        px = int(round(p.pos.x))
+        py = int(round(p.pos.y))
+        center_color = canvas.get_at((px, py))
+        self.assertFalse(center_color[:3] == (255, 255, 255),
+                         f'Player center became white on hit: {center_color}')
+
 
 if __name__ == '__main__':
     unittest.main()
