@@ -84,6 +84,8 @@ class GameContext:
         # Bullet-Time & Time-Scale Mechanism (Fixes Bug 2)
         self.slowmo_timer: float = 0.0
         self.time_scale: float = 1.0
+        self.hit_stop_timer: float = 0.0
+        self.hit_stop_duration: float = 0.0
 
         # Visual FX & Camera Shake
         self.damage_flash_timer: float = 0.0
@@ -113,6 +115,11 @@ class GameContext:
         """Activates bullet-time slow motion across enemy systems."""
         self.slowmo_timer = duration
         self.time_scale = 0.40
+
+    def trigger_hit_stop(self, duration: float = 0.05):
+        """Triggers a brief hit-stop freeze for impactful combat feedback."""
+        self.hit_stop_timer = max(self.hit_stop_timer, duration)
+        self.hit_stop_duration = max(self.hit_stop_duration, duration)
 
     def add_score(self, pts: int):
         """Adds points with combo multiplier and difficulty multiplier."""

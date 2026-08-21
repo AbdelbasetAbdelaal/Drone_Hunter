@@ -15,10 +15,10 @@ from src.data.settings import (
 # -----------------------------------------------------------------------------
 # Player Physics & Combat Constants
 # -----------------------------------------------------------------------------
-HORIZONTAL_SPEED = 420.0
-VERTICAL_SPEED = 360.0
-ACCELERATION = 2600.0
-FRICTION = 14.0
+HORIZONTAL_SPEED = 520.0
+VERTICAL_SPEED = 460.0
+ACCELERATION = 3800.0
+FRICTION = 6.0
 
 PLAYER_MAX_HEALTH = 100
 PLAYER_MAX_ENERGY = 100.0

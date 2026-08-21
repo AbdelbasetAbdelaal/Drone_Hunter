@@ -27,15 +27,24 @@ class Camera2D:
         
         # Camera smoothness (higher = more responsive, lower = floatier)
         self.smooth_speed = 6.5
+        self.shake_offset_x = 0.0
+        self.shake_offset_y = 0.0
 
     def set_viewport_size(self, vw: int, vh: int):
         """Updates viewport dimensions when window is resized."""
         self.viewport_width = max(320, vw)
         self.viewport_height = max(240, vh)
 
-    def update(self, target_pos: tuple[float, float], dt: float):
+    def update(self, target_pos: tuple[float, float], dt: float, shake_intensity: float = 0.0, shake_time: float = 0.0):
         """Smoothly interpolates camera toward target position, clamping to arena bounds."""
         tx, ty = target_pos
+        
+        # Apply screen shake offset
+        if shake_time > 0.0 and shake_intensity > 0.0:
+            shake_x = random.uniform(-shake_intensity, shake_intensity)
+            shake_y = random.uniform(-shake_intensity, shake_intensity)
+            tx += shake_x
+            ty += shake_y
         
         # Lerp camera center toward target
         lerp_factor = min(1.0, self.smooth_speed * dt)

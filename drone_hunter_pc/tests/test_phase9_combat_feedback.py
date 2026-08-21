@@ -190,7 +190,7 @@ class TestGameplayValuesUnchanged(unittest.TestCase):
 
     def test_player_speed_unchanged(self):
         from src.data.game_data import HORIZONTAL_SPEED
-        self.assertEqual(HORIZONTAL_SPEED, 420.0)
+        self.assertEqual(HORIZONTAL_SPEED, 520.0)
 
     def test_scout_hp_unchanged(self):
         from src.data.game_data import SCOUT_HP

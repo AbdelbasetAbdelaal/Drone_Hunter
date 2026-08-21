@@ -864,6 +864,12 @@ class Game:
                             for b in fired_bullets: ctx.bullet_group.add(b)
                             if fired_bullets and ctx.player.active_weapon != "beam":
                                 self.audio_manager.play_weapon(ctx.player.active_weapon)
+                                if ctx.player.active_weapon in ("rail", "plasma", "barrage"):
+                                    ctx.trigger_shake(2.5, 0.10)
+                                elif ctx.player.active_weapon in ("missile", "scatter"):
+                                    ctx.trigger_shake(1.8, 0.08)
+                                else:
+                                    ctx.trigger_shake(1.2, 0.06)
 
                         # Beam Audio Looping & Termination
                         if getattr(ctx.player, "active_beam", None) and ctx.player.active_beam.alive():
@@ -872,7 +878,12 @@ class Game:
                             self.audio_manager.stop_beam_sound()
 
                         # Smooth Camera Tracking
-                        self.camera.update((ctx.player.pos.x, ctx.player.pos.y), dt)
+                        self.camera.update(
+                            (ctx.player.pos.x, ctx.player.pos.y),
+                            dt,
+                            shake_intensity=ctx.screen_shake_intensity,
+                            shake_time=ctx.screen_shake_time
+                        )
                     else:
                         self.audio_manager.stop_engine_sound()
                         # Player is exploding: continue updating destruction timer and maintain camera focus
@@ -908,6 +919,14 @@ class Game:
 
                 # 3. Enemies & Projectiles (Scaled by bullet-time slowmo factor)
                 effective_enemy_dt = dt * ctx.time_scale
+
+                # Expire screen shake and hit stop timers
+                if ctx.screen_shake_time > 0.0:
+                    ctx.screen_shake_time = max(0.0, ctx.screen_shake_time - dt)
+                    if ctx.screen_shake_time <= 0.0:
+                        ctx.screen_shake_intensity = 0.0
+                if ctx.hit_stop_timer > 0.0:
+                    ctx.hit_stop_timer = max(0.0, ctx.hit_stop_timer - dt)
 
                 prev_boss_phase = {}
                 for target in list(ctx.target_group):
@@ -946,7 +965,12 @@ class Game:
                         b.update(dt)
 
                 # 4. Combat & Collision Resolution
-                self.combat_system.update_combat(dt)
+                # Apply hit-stop freeze for impactful feedback
+                effective_combat_dt = dt
+                if ctx.hit_stop_timer > 0.0:
+                    effective_combat_dt = 0.0
+                    ctx.hit_stop_timer = max(0.0, ctx.hit_stop_timer - dt)
+                self.combat_system.update_combat(effective_combat_dt)
 
                 # Check Player Death transition AFTER destruction animation finishes
                 if ctx.player and getattr(ctx.player, "is_destroyed", False) and ctx.player.destruction_timer <= 0.0 and ctx.state == STATE_PLAYING:

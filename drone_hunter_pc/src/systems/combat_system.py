@@ -251,6 +251,8 @@ class CombatSystem:
                         ctx.audio_manager.play_death(death_type)
                     shake_intensity = 3.0 if not getattr(target, "is_boss", False) else 4.0
                     ctx.trigger_shake(shake_intensity, 0.2)
+                    if getattr(ctx, "hit_stop_timer", 0.0) <= 0.0:
+                        ctx.trigger_hit_stop(0.04 if not getattr(target, "is_boss", False) else 0.08)
                     earned_pts = ctx.add_score(target.score_value)
                     
                     if target.enemy_type == TARGET_TYPE_SCOUT:

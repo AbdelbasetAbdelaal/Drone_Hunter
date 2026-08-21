@@ -9,7 +9,7 @@ and multi-phase Boss Dreadnought introductions.
 import math
 import random
 import pygame
-from src.data.settings import SCREEN_WIDTH, SCREEN_HEIGHT
+from src.data.settings import SCREEN_WIDTH, SCREEN_HEIGHT, WORLD_WIDTH, WORLD_HEIGHT
 from src.data.game_data import (
     TARGET_TYPE_STANDARD, TARGET_TYPE_FAST, TARGET_TYPE_ARMORED, TARGET_TYPE_SHOOTER,
     TARGET_TYPE_TURRET, TARGET_TYPE_VEHICLE, TARGET_TYPE_CHASER, TARGET_TYPE_SWARM,
@@ -56,7 +56,7 @@ class WaveManager:
 
 
 class Spawner:
-    def __init__(self, base_min_interval: float = 1.2, base_max_interval: float = 2.6):
+    def __init__(self, base_min_interval: float = 0.7, base_max_interval: float = 1.5):
         self.base_min_interval = base_min_interval
         self.base_max_interval = base_max_interval
         self.timer = 0.0
@@ -91,23 +91,30 @@ class Spawner:
 
         if self.timer >= self.next_interval:
             self.timer = 0.0
-            interval_reduction = min(0.6, (self.level - 1) * 0.06 + (current_wave - 1) * 0.12)
-            cur_min = max(0.5, self.base_min_interval - interval_reduction)
-            cur_max = max(1.0, self.base_max_interval - interval_reduction)
+            interval_reduction = min(0.5, (self.level - 1) * 0.08 + (current_wave - 1) * 0.10)
+            cur_min = max(0.4, self.base_min_interval - interval_reduction)
+            cur_max = max(0.8, self.base_max_interval - interval_reduction)
             self.next_interval = random.uniform(cur_min, cur_max)
 
-            # Spawn 1-2 enemies
-            spawn_count = 2 if (current_wave >= 3 and random.random() < 0.40) else 1
-            for _ in range(spawn_count):
+            # Spawn 1-3 enemies with formation support
+            spawn_count = min(3, 1 + (current_wave >= 3 and random.random() < 0.50) + (current_wave >= 4 and random.random() < 0.30))
+            formation = random.choice(["v_formation", "line", "wedge", "random"])
+            base_pos = self._get_edge_spawn(formation if formation != "random" else "random")
+            
+            for i in range(spawn_count):
                 e_type = self._select_enemy_type(current_wave)
                 spd_bonus = (self.level - 1) * 6.0
+                spawn_pos = self._apply_formation_offset(base_pos, i, spawn_count, formation)
+                # Clamp spawn position to world bounds
+                spawn_pos = (max(60.0, min(WORLD_WIDTH - 60.0, spawn_pos[0])), max(60.0, min(WORLD_HEIGHT - 60.0, spawn_pos[1])))
                 enemy = Enemy(
                     enemy_type=e_type,
                     speed_bonus=spd_bonus,
                     level=self.level,
                     sector_idx=self.sector_idx,
                     hp_multiplier=hp_mult,
-                    speed_multiplier=spd_mult
+                    speed_multiplier=spd_mult,
+                    pos=spawn_pos
                 )
                 context.target_group.add(enemy)
 
@@ -142,3 +149,50 @@ class Spawner:
             return SkyDreadnoughtBoss(level=self.level, sector_idx=3, hp_multiplier=hp_mult, speed_multiplier=spd_mult)
         else: # Sector 4: Final Colossus Titan
             return ColossusTitanMechBoss(level=self.level, sector_idx=4, hp_multiplier=hp_mult, speed_multiplier=spd_mult)
+
+    def _get_edge_spawn(self, formation: str = "random") -> tuple[float, float]:
+        """Returns a deterministic edge spawn position based on formation type."""
+        margin = 80.0
+        if formation == "left":
+            return (margin, random.uniform(margin, WORLD_HEIGHT - margin))
+        elif formation == "right":
+            return (WORLD_WIDTH - margin, random.uniform(margin, WORLD_HEIGHT - margin))
+        elif formation == "top":
+            return (random.uniform(margin, WORLD_WIDTH - margin), margin)
+        elif formation == "bottom":
+            return (random.uniform(margin, WORLD_WIDTH - margin), WORLD_HEIGHT - margin)
+        elif formation == "v_formation":
+            # V-formation spawn point (top center)
+            return (WORLD_WIDTH / 2.0, margin)
+        elif formation == "line_left":
+            return (margin, WORLD_HEIGHT / 2.0)
+        elif formation == "line_right":
+            return (WORLD_WIDTH - margin, WORLD_HEIGHT / 2.0)
+        else:
+            # Random edge
+            edge = random.choice(["left", "right", "top", "bottom"])
+            return self._get_edge_spawn(edge)
+
+    def _apply_formation_offset(self, base_pos: tuple[float, float], index: int, total: int, formation: str = "v_formation") -> tuple[float, float]:
+        """Calculates offset from base spawn position for formation placement."""
+        bx, by = base_pos
+        spacing = 90.0
+        if formation == "v_formation":
+            # V-shape: left wing goes down-left, right wing goes down-right
+            if index == 0:
+                return (bx, by)
+            elif index % 2 == 1:
+                return (bx - spacing * (index + 1) // 2, by + spacing * (index + 1) // 2)
+            else:
+                return (bx + spacing * (index // 2), by + spacing * (index // 2))
+        elif formation == "line":
+            # Horizontal line
+            start_x = max(100.0, bx - (total - 1) * spacing / 2.0)
+            return (start_x + index * spacing, by)
+        elif formation == "wedge":
+            # Wedge: narrow at top, wide at bottom
+            width = spacing * index
+            return (bx - width, by + index * spacing * 0.7)
+        else:
+            # No formation, random scatter
+            return (bx + random.uniform(-40, 40), by + random.uniform(-40, 40))
