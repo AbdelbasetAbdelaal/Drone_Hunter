@@ -19,11 +19,21 @@ SAMPLE_RATE = 22050
 
 
 def _build_sound(samples: list[int] | array.array) -> pygame.mixer.Sound | None:
-    """Safely converts 16-bit PCM integer samples to a pygame Sound object."""
+    """Safely converts 16-bit PCM integer samples to a stereo/mono pygame Sound object."""
     try:
-        if not pygame.mixer.get_init():
+        init_params = pygame.mixer.get_init()
+        if not init_params:
             return None
-        buf = array.array("h", [max(-32767, min(32767, int(s))) for s in samples])
+        channels = init_params[2] if len(init_params) > 2 else 2
+        clamped = [max(-32767, min(32767, int(s))) for s in samples]
+        if channels == 2:
+            stereo_samples = []
+            for s in clamped:
+                stereo_samples.append(s)
+                stereo_samples.append(s)
+            buf = array.array("h", stereo_samples)
+        else:
+            buf = array.array("h", clamped)
         return pygame.mixer.Sound(buffer=buf)
     except Exception:
         return None
@@ -342,102 +352,165 @@ def generate_hit_sound() -> pygame.mixer.Sound | None:
 
 
 # =============================================================================
-# 3. REALISTIC DESTRUCTION SFX GENERATORS
+# 3. REALISTIC PHYSICAL DESTRUCTION SFX GENERATORS (LOW-PASS FILTERED + SUB-BASS)
 # =============================================================================
 
 def generate_death_scout_sound() -> pygame.mixer.Sound | None:
-    """Scout Destruction: Fast electronic pop + fragmentation."""
+    """Scout Destruction: Snappy kinetic pressure crack + high-velocity fragmentation."""
     try:
-        duration = 0.22
-        num_samples = int(SAMPLE_RATE * duration)
+        init_params = pygame.mixer.get_init()
+        sr = init_params[0] if init_params else SAMPLE_RATE
+        duration = 0.32
+        num_samples = int(sr * duration)
         samples = []
+        lp_state = 0.0
         for i in range(num_samples):
-            t = i / SAMPLE_RATE
-            env = (1.0 - t / duration) ** 1.2
-            noise = ((i * 61) % 2000 - 1000) / 1000.0
-            freq = 550.0 * (1.0 - t / duration) + 140.0
-            val = (noise * 0.65 + math.sin(2.0 * math.pi * freq * t) * 0.35) * 20000.0 * env
-            samples.append(val)
+            t = i / sr
+            env = (1.0 - t / duration) ** 1.3
+            raw_noise = (((i * 982451653 + 12345) % 65536) - 32768) / 32768.0
+            cutoff = 2400.0 * (1.0 - t / duration) ** 1.8 + 140.0
+            alpha = min(1.0, 2.0 * math.pi * cutoff / sr)
+            lp_state += alpha * (raw_noise - lp_state)
+
+            snap = math.exp(-t * 95.0) * math.sin(2.0 * math.pi * 480.0 * t) * 0.85
+            pitch = 140.0 * math.exp(-t * 9.0) + 55.0
+            sub = math.sin(2.0 * math.pi * pitch * t) * 0.6 * math.exp(-t * 5.0)
+            shrapnel = (((i * 73) % 2000 - 1000) / 1000.0) * 0.2 * math.exp(-t * 22.0)
+
+            val = (snap + sub + lp_state * 0.55 + shrapnel) * 26000.0 * env
+            samples.append(int(val))
         return _build_sound(samples)
     except Exception:
         return None
 
 
 def generate_death_shooter_sound() -> pygame.mixer.Sound | None:
-    """Shooter Destruction: Metallic burst and fragmentation explosion."""
+    """Shooter Destruction: Heavy explosive blast with low-pass fireball roar and rolling crackle."""
     try:
-        duration = 0.28
-        num_samples = int(SAMPLE_RATE * duration)
+        init_params = pygame.mixer.get_init()
+        sr = init_params[0] if init_params else SAMPLE_RATE
+        duration = 0.46
+        num_samples = int(sr * duration)
         samples = []
+        lp_state = 0.0
         for i in range(num_samples):
-            t = i / SAMPLE_RATE
-            env = (1.0 - t / duration) ** 0.95
-            noise = ((i * 73) % 2000 - 1000) / 1000.0
-            sub = math.sin(2.0 * math.pi * (140.0 * (1.0 - t / duration) + 50.0) * t) * 0.4
-            val = (noise * 0.65 + sub) * 22000.0 * env
-            samples.append(val)
+            t = i / sr
+            env = (1.0 - t / duration) ** 1.15
+            raw_noise = (((i * 15973347 + 654321) % 65536) - 32768) / 32768.0
+            cutoff = 1900.0 * (1.0 - t / duration) ** 1.6 + 95.0
+            alpha = min(1.0, 2.0 * math.pi * cutoff / sr)
+            lp_state += alpha * (raw_noise - lp_state)
+
+            snap = math.exp(-t * 80.0) * math.sin(2.0 * math.pi * 320.0 * t) * 0.95
+            pitch = 110.0 * math.exp(-t * 7.0) + 42.0
+            sub = math.sin(2.0 * math.pi * pitch * t) * 0.75 * math.exp(-t * 3.5)
+            rumble = math.sin(2.0 * math.pi * 32.0 * t) * 0.3 * lp_state
+
+            val = (snap + sub + lp_state * 0.65 + rumble) * 29000.0 * env
+            samples.append(int(val))
         return _build_sound(samples)
     except Exception:
         return None
 
 
 def generate_death_heavy_sound() -> pygame.mixer.Sound | None:
-    """Heavy Destruction: Deep mechanical hull rupture + low sub-bass explosion."""
+    """Heavy Destruction: Massive armored chassis rupture, deep 35Hz sub-bass shockwave, cascading groan."""
     try:
-        duration = 0.42
-        num_samples = int(SAMPLE_RATE * duration)
+        init_params = pygame.mixer.get_init()
+        sr = init_params[0] if init_params else SAMPLE_RATE
+        duration = 0.68
+        num_samples = int(sr * duration)
         samples = []
+        lp1 = 0.0
+        lp2 = 0.0
         for i in range(num_samples):
-            t = i / SAMPLE_RATE
-            env = (1.0 - t / duration) ** 0.7
-            noise = ((i * 43) % 2000 - 1000) / 1000.0
-            sub_bass = math.sin(2.0 * math.pi * (90.0 * (1.0 - t / duration) + 35.0) * t) * 0.65
-            val = (noise * 0.45 + sub_bass) * 25000.0 * env
-            samples.append(val)
+            t = i / sr
+            env = (1.0 - t / duration) ** 0.9
+            raw_noise = (((i * 87654321 + 112233) % 65536) - 32768) / 32768.0
+            cutoff = 1400.0 * (1.0 - t / duration) ** 1.5 + 65.0
+            alpha = min(1.0, 2.0 * math.pi * cutoff / sr)
+            lp1 += alpha * (raw_noise - lp1)
+            lp2 += alpha * (lp1 - lp2)  # 2-pole filtered deep bass body
+
+            concussion = math.exp(-t * 60.0) * math.sin(2.0 * math.pi * 180.0 * t) * 1.1
+            pitch = 85.0 * math.exp(-t * 5.0) + 34.0
+            sub1 = math.sin(2.0 * math.pi * pitch * t) * 0.85 * math.exp(-t * 2.2)
+            sub2 = math.sin(2.0 * math.pi * 24.0 * t) * 0.45 * math.exp(-t * 1.8)
+            groan = math.sin(2.0 * math.pi * (160.0 * (1.0 - t / duration) + 50.0) * t) * 0.25 * lp1
+
+            val = (concussion + sub1 + sub2 + lp2 * 0.8 + groan) * 31000.0 * env
+            samples.append(int(val))
         return _build_sound(samples)
     except Exception:
         return None
 
 
 def generate_death_shield_sound() -> pygame.mixer.Sound | None:
-    """Shield Elite Destruction: Energy collapse implosion + dispersion zap."""
+    """Shield Elite Destruction: High-energy electromagnetic collapse, sizzle, and resonant bass release."""
     try:
-        duration = 0.32
-        num_samples = int(SAMPLE_RATE * duration)
+        init_params = pygame.mixer.get_init()
+        sr = init_params[0] if init_params else SAMPLE_RATE
+        duration = 0.52
+        num_samples = int(sr * duration)
         samples = []
+        lp_state = 0.0
         for i in range(num_samples):
-            t = i / SAMPLE_RATE
-            env = (1.0 - t / duration) ** 0.8
-            freq = 900.0 * (1.0 - t / duration) + 160.0
-            mod = math.sin(2.0 * math.pi * 55.0 * t)
-            noise = ((i * 53) % 2000 - 1000) / 1000.0 * 0.35
-            val = (math.sin(2.0 * math.pi * freq * t) * 0.7 * mod + noise) * 21000.0 * env
-            samples.append(val)
+            t = i / sr
+            env = (1.0 - t / duration) ** 1.05
+            raw_noise = (((i * 33445566 + 778899) % 65536) - 32768) / 32768.0
+            cutoff = 2200.0 * (1.0 - t / duration) ** 1.7 + 90.0
+            alpha = min(1.0, 2.0 * math.pi * cutoff / sr)
+            lp_state += alpha * (raw_noise - lp_state)
+
+            mod_freq = 750.0 * (1.0 - (t / duration) ** 1.5) + 80.0
+            sizzle = math.sin(2.0 * math.pi * mod_freq * t) * math.sin(2.0 * math.pi * 55.0 * t) * 0.65
+            sub = math.sin(2.0 * math.pi * (95.0 * (1.0 - t / duration) + 38.0) * t) * 0.7 * math.exp(-t * 3.0)
+
+            val = (sizzle + sub + lp_state * 0.6) * 28000.0 * env
+            samples.append(int(val))
         return _build_sound(samples)
     except Exception:
         return None
 
 
 def generate_death_boss_sound() -> pygame.mixer.Sound | None:
-    """Boss Destruction: Massive cinematic multi-layered dreadnought explosion."""
+    """Boss Destruction: Multi-stage catastrophic dreadnought detonation, seismic rumble, and rolling thunder."""
     try:
-        duration = 0.75
-        num_samples = int(SAMPLE_RATE * duration)
+        init_params = pygame.mixer.get_init()
+        sr = init_params[0] if init_params else SAMPLE_RATE
+        duration = 1.15
+        num_samples = int(sr * duration)
         samples = []
+        lp1 = 0.0
+        lp2 = 0.0
         for i in range(num_samples):
-            t = i / SAMPLE_RATE
-            env = (1.0 - t / duration) ** 0.6
-            noise = ((i * 31) % 2000 - 1000) / 1000.0
-            sub_bass = math.sin(2.0 * math.pi * (70.0 * (1.0 - (t / duration) * 0.7) + 25.0) * t) * 0.7
-            val = (noise * 0.4 + sub_bass) * 28000.0 * env
-            samples.append(val)
+            t = i / sr
+            env = (1.0 - t / duration) ** 0.75
+            raw_noise = (((i * 99887766 + 554433) % 65536) - 32768) / 32768.0
+            cutoff = 1600.0 * (1.0 - t / duration) ** 1.3 + 55.0
+            alpha = min(1.0, 2.0 * math.pi * cutoff / sr)
+            lp1 += alpha * (raw_noise - lp1)
+            lp2 += alpha * (lp1 - lp2)
+
+            # Stage 1: Initial massive detonation wavefront
+            blast1 = math.exp(-t * 40.0) * math.sin(2.0 * math.pi * 120.0 * t) * 1.2
+            # Stage 2: Secondary internal breach explosions
+            t_sub = max(0.0, t - 0.22)
+            blast2 = math.exp(-t_sub * 25.0) * math.sin(2.0 * math.pi * 75.0 * t_sub) * 0.85 if t >= 0.22 else 0.0
+            # Seismic sub-bass thunder (30Hz - 60Hz)
+            sub = math.sin(2.0 * math.pi * 32.0 * t) * 0.9 * math.exp(-t * 1.2)
+            sub_octave = math.sin(2.0 * math.pi * 20.0 * t) * 0.5 * math.exp(-t * 0.9)
+            thunder_rumble = math.sin(2.0 * math.pi * 16.0 * t) * 0.35 * lp2
+
+            val = (blast1 + blast2 + sub + sub_octave + lp2 * 0.9 + thunder_rumble) * 32000.0 * env
+            samples.append(int(val))
         return _build_sound(samples)
     except Exception:
         return None
 
 
 def generate_explosion_sound() -> pygame.mixer.Sound | None:
-    """Generic Explosion Fallback."""
+    """Generic Heavy Military Explosion."""
     return generate_death_shooter_sound()
 
 
@@ -464,23 +537,32 @@ def generate_player_hit_sound() -> pygame.mixer.Sound | None:
 
 
 def generate_player_death_sound() -> pygame.mixer.Sound | None:
-    """Player Destruction: Emergency power failure -> terminal catastrophic core breach."""
+    """Player Destruction: Catastrophic core breach, explosive decompression, and low-frequency hull loss."""
     try:
-        duration = 0.65
-        num_samples = int(SAMPLE_RATE * duration)
+        init_params = pygame.mixer.get_init()
+        sr = init_params[0] if init_params else SAMPLE_RATE
+        duration = 0.85
+        num_samples = int(sr * duration)
         samples = []
+        lp_state = 0.0
         for i in range(num_samples):
-            t = i / SAMPLE_RATE
-            env = (1.0 - t / duration) ** 0.65
-            if t < 0.16:
-                freq = 1300.0 * (1.0 - t / 0.16) + 180.0
-                val = math.sin(2.0 * math.pi * freq * t) * 22000.0
+            t = i / sr
+            env = (1.0 - t / duration) ** 0.85
+            raw_noise = (((i * 6543219 + 789123) % 65536) - 32768) / 32768.0
+            cutoff = 2000.0 * (1.0 - t / duration) ** 1.6 + 70.0
+            alpha = min(1.0, 2.0 * math.pi * cutoff / sr)
+            lp_state += alpha * (raw_noise - lp_state)
+
+            if t < 0.10:
+                whine = math.sin(2.0 * math.pi * (1600.0 * (1.0 - t / 0.10) + 200.0) * t) * 0.75
             else:
-                t_exp = t - 0.16
-                noise = ((i * 41) % 2000 - 1000) / 1000.0
-                sub = math.sin(2.0 * math.pi * 60.0 * t_exp) * 0.6
-                val = (noise * 0.5 + sub) * 27000.0 * (1.0 - t_exp / 0.49)
-            samples.append(val * env)
+                whine = 0.0
+
+            blast = math.exp(-t * 50.0) * math.sin(2.0 * math.pi * 140.0 * t) * 1.1
+            sub = math.sin(2.0 * math.pi * 38.0 * t) * 0.85 * math.exp(-t * 1.8)
+
+            val = (whine + blast + sub + lp_state * 0.75) * 30000.0 * env
+            samples.append(int(val))
         return _build_sound(samples)
     except Exception:
         return None

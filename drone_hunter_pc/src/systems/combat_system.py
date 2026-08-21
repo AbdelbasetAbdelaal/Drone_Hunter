@@ -127,6 +127,8 @@ class CombatSystem:
                     b.kill()
 
                 if ctx.particle_manager:
+                    w_id = getattr(b, "weapon_id", "pulse")
+                    ctx.particle_manager.spawn_weapon_impact(b.rect.center, w_id)
                     etype = getattr(target, "enemy_type", "")
                     if etype in (TARGET_TYPE_HEAVY, TARGET_TYPE_ARMORED):
                         ctx.particle_manager.spawn_heavy_impact(b.rect.center)
@@ -196,12 +198,7 @@ class CombatSystem:
                     if ctx.audio_manager: ctx.audio_manager.play_player_death()
                     if ctx.particle_manager:
                         ctx.particle_manager.spawn_player_destruction(player.rect.center)
-                    ctx.trigger_shake(5.0, 0.4)
-                    if hasattr(ctx, "mission_system") and ctx.mission_system and ctx.mission_system.active_mission_id is not None:
-                        ctx.mission_system.trigger_failure()
-                        ctx.state = STATE_MISSION_FAILED
-                    else:
-                        ctx.state = STATE_GAME_OVER
+                    ctx.trigger_shake(10.0, 0.7)
 
         # 3B. Hostile Enemies vs Player Drone (Contact Damage with Cooldown)
         if player.alive and not player.is_invulnerable and not player.is_cloaked:
@@ -227,12 +224,7 @@ class CombatSystem:
                         if ctx.audio_manager: ctx.audio_manager.play_player_death()
                         if ctx.particle_manager:
                             ctx.particle_manager.spawn_player_destruction(player.rect.center)
-                        ctx.trigger_shake(5.0, 0.4)
-                        if hasattr(ctx, "mission_system") and ctx.mission_system and ctx.mission_system.active_mission_id is not None:
-                            ctx.mission_system.trigger_failure()
-                            ctx.state = STATE_MISSION_FAILED
-                        else:
-                            ctx.state = STATE_GAME_OVER
+                        ctx.trigger_shake(10.0, 0.7)
 
         # 4. Hazards vs Player
         if player.alive and not player.is_cloaked:
@@ -247,12 +239,7 @@ class CombatSystem:
                         if ctx.audio_manager: ctx.audio_manager.play_player_death()
                         if ctx.particle_manager:
                             ctx.particle_manager.spawn_player_destruction(player.rect.center)
-                        ctx.trigger_shake(5.0, 0.4)
-                        if hasattr(ctx, "mission_system") and ctx.mission_system and ctx.mission_system.active_mission_id is not None:
-                            ctx.mission_system.trigger_failure()
-                            ctx.state = STATE_MISSION_FAILED
-                        else:
-                            ctx.state = STATE_GAME_OVER
+                        ctx.trigger_shake(10.0, 0.7)
 
 
         # 5. Player vs Power-up Items

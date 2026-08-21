@@ -757,16 +757,12 @@ class Game:
 
                 elif ctx.state == STATE_PLAYING:
                     if event.button == 1 and ctx.player and ctx.player.can_shoot():
-                        cam_ox, cam_oy = self.camera.get_offset()
-                        world_mx, world_my = mx + cam_ox, my + cam_oy
+                        canvas_mx, canvas_my = self.get_canvas_mouse_pos()
+                        world_mx, world_my = self.camera.screen_to_world(canvas_mx, canvas_my)
                         fired_bullets = ctx.player.shoot((world_mx, world_my), level=ctx.current_sub_level, targets_group=ctx.target_group, particle_manager=self.particle_manager)
                         for b in fired_bullets: ctx.bullet_group.add(b)
-                        if ctx.player.active_weapon == "pulse": self.audio_manager.play_laser()
-                        elif ctx.player.active_weapon == "scatter": self.audio_manager.play_scatter()
-                        elif ctx.player.active_weapon == "missile": self.audio_manager.play_missile()
-                        elif ctx.player.active_weapon == "beam": self.audio_manager.play_beam()
-                        elif ctx.player.active_weapon == "tesla": self.audio_manager.play_tesla()
-                        elif ctx.player.active_weapon == "cluster": self.audio_manager.play_cluster()
+                        if fired_bullets:
+                            self.audio_manager.play_weapon(ctx.player.active_weapon)
                     elif event.button == 3: # Right click -> EMP
                         self.combat_system.execute_emp_blast()
                     elif event.button == 2 and ctx.player: # Middle click -> Overdrive
@@ -787,44 +783,46 @@ class Game:
             self.particle_manager.spawn_weather(sec_info.get("weather", "clear"))
             self.particle_manager.update(dt)
 
-            if ctx.state == STATE_PLAYING:
-                # 1. Player Input & Update
+            if ctx.state == STATE_PLAYING:                # 1. Player Input & Update
                 keys = pygame.key.get_pressed()
-                if ctx.player and ctx.player.alive:
-                    canvas_mx, canvas_my = self.get_canvas_mouse_pos()
-                    world_mx, world_my = self.camera.screen_to_world(canvas_mx, canvas_my)
-                    ctx.player.handle_input(keys, dt, mouse_pos=(world_mx, world_my))
+                if ctx.player:
+                    if ctx.player.alive:
+                        canvas_mx, canvas_my = self.get_canvas_mouse_pos()
+                        world_mx, world_my = self.camera.screen_to_world(canvas_mx, canvas_my)
+                        ctx.player.handle_input(keys, dt, mouse_pos=(world_mx, world_my))
 
-                    # Spawn particle trail when accelerating or high velocity
-                    if ctx.player.is_accelerating or ctx.player.velocity.length_squared() > 10000.0:
-                        cos_a = math.cos(ctx.player.aim_angle)
-                        sin_a = math.sin(ctx.player.aim_angle)
-                        rear_x = ctx.player.pos.x - cos_a * 24.0
-                        rear_y = ctx.player.pos.y - sin_a * 24.0
-                        self.particle_manager.spawn_drone_trail((rear_x, rear_y))
+                        # Spawn particle trail when accelerating or high velocity
+                        if ctx.player.is_accelerating or ctx.player.velocity.length_squared() > 10000.0:
+                            cos_a = math.cos(ctx.player.aim_angle)
+                            sin_a = math.sin(ctx.player.aim_angle)
+                            rear_x = ctx.player.pos.x - cos_a * 24.0
+                            rear_y = ctx.player.pos.y - sin_a * 24.0
+                            self.particle_manager.spawn_drone_trail((rear_x, rear_y))
 
-                    wm_bullets = ctx.player.update(dt, targets_group=ctx.target_group)
-                    for wb in wm_bullets: ctx.bullet_group.add(wb)
+                        wm_bullets = ctx.player.update(dt, targets_group=ctx.target_group)
+                        for wb in wm_bullets: ctx.bullet_group.add(wb)
 
-                    # Dynamic ion engine audio modulation
-                    speed = ctx.player.velocity.length()
-                    speed_ratio = speed / max(1.0, ctx.player.max_speed)
-                    self.audio_manager.update_engine_sound(speed_ratio, ctx.player.is_accelerating)
+                        # Dynamic ion engine audio modulation
+                        speed = ctx.player.velocity.length()
+                        speed_ratio = speed / max(1.0, ctx.player.max_speed)
+                        self.audio_manager.update_engine_sound(speed_ratio, ctx.player.is_accelerating)
 
-                    # Player Weapon Shooting (Mouse Left Click or Spacebar)
-                    mouse_pressed = pygame.mouse.get_pressed()
-                    is_shooting = mouse_pressed[0] or (keys[pygame.K_SPACE] if isinstance(keys, (list, tuple, dict)) or hasattr(keys, '__getitem__') else False)
-                    if is_shooting and ctx.player.can_shoot():
-                        fired_bullets = ctx.player.shoot((world_mx, world_my), level=ctx.current_sub_level, targets_group=ctx.target_group, particle_manager=self.particle_manager)
-                        for b in fired_bullets: ctx.bullet_group.add(b)
-                        if fired_bullets:
-                            self.audio_manager.play_weapon(ctx.player.active_weapon)
+                        # Player Weapon Shooting (Mouse Left Click or Spacebar)
+                        mouse_pressed = pygame.mouse.get_pressed()
+                        is_shooting = mouse_pressed[0] or (keys[pygame.K_SPACE] if isinstance(keys, (list, tuple, dict)) or hasattr(keys, '__getitem__') else False)
+                        if is_shooting and ctx.player.can_shoot():
+                            fired_bullets = ctx.player.shoot((world_mx, world_my), level=ctx.current_sub_level, targets_group=ctx.target_group, particle_manager=self.particle_manager)
+                            for b in fired_bullets: ctx.bullet_group.add(b)
+                            if fired_bullets:
+                                self.audio_manager.play_weapon(ctx.player.active_weapon)
 
-
-                    # Smooth Camera Tracking
-                    self.camera.update((ctx.player.pos.x, ctx.player.pos.y), dt)
-                else:
-                    self.audio_manager.stop_engine_sound()
+                        # Smooth Camera Tracking
+                        self.camera.update((ctx.player.pos.x, ctx.player.pos.y), dt)
+                    else:
+                        self.audio_manager.stop_engine_sound()
+                        # Player is exploding: continue updating destruction timer and maintain camera focus
+                        ctx.player.update(dt, targets_group=ctx.target_group)
+                        self.camera.update((ctx.player.pos.x, ctx.player.pos.y), dt)
 
                 # 2. Phase 5 & 6 Mission System & Boss Orchestration overrides Spawner
                 if self.mission_system.active_mission_id is not None:
@@ -838,7 +836,6 @@ class Game:
                             else:
                                 ctx.state = STATE_MISSION_COMPLETE
                                 self.audio_manager.play_mission_complete()
-                            self.save_progress()
                         else:
                             ctx.state = STATE_MISSION_FAILED
                             self.audio_manager.play_game_over()
@@ -900,9 +897,8 @@ class Game:
                 # 4. Combat & Collision Resolution
                 self.combat_system.update_combat(dt)
 
-                # Check Player Death
-                if ctx.player and not ctx.player.alive and ctx.state == STATE_PLAYING:
-                    self.audio_manager.play_player_death()
+                # Check Player Death transition AFTER destruction animation finishes
+                if ctx.player and getattr(ctx.player, "is_destroyed", False) and ctx.player.destruction_timer <= 0.0 and ctx.state == STATE_PLAYING:
                     if self.mission_system.active_mission_id is not None:
                         self.mission_system.trigger_failure()
                         ctx.state = STATE_MISSION_FAILED

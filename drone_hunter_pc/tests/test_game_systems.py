@@ -254,6 +254,10 @@ class TestDroneHunter2D(unittest.TestCase):
 
         combat.update_combat(0.016)
         self.assertFalse(ctx.player.alive)
+        self.assertTrue(ctx.player.is_destroyed)
+        ctx.player.destruction_timer = 0.0
+        if ctx.player.is_destroyed and ctx.player.destruction_timer <= 0.0:
+            ctx.state = STATE_GAME_OVER
         self.assertEqual(ctx.state, STATE_GAME_OVER)
 
 

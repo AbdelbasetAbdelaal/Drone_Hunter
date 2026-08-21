@@ -188,9 +188,9 @@ class PlayerRenderer:
 
         # 9. Player Destruction Sequence (High-Fidelity Asset)
         if getattr(player, "is_destroyed", False) and player.destruction_timer > 0:
-            progress = 1.0 - (player.destruction_timer / 0.5)
-            destroy_alpha = int(255 * max(0.0, 1.0 - progress * 1.4))
-            destroy_size = int(100 + progress * 80)
+            progress = 1.0 - (player.destruction_timer / 1.4)
+            destroy_alpha = int(255 * max(0.0, 1.0 - progress * 1.1))
+            destroy_size = int(110 + progress * 95)
             destroy_sprite = self.sprite_manager.get_player_state_sprite('destroy', skin_idx, (destroy_size, destroy_size))
             destroy_surf = destroy_sprite.copy()
             destroy_surf.set_alpha(destroy_alpha)

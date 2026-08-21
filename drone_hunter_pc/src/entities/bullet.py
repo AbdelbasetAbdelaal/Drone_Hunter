@@ -36,9 +36,9 @@ class Bullet(pygame.sprite.Sprite):
         if image is not None:
             self.original_image = image
         else:
-            self.original_image = pygame.Surface((22, 6), pygame.SRCALPHA)
-            pygame.draw.rect(self.original_image, color, (0, 0, 22, 6), border_radius=3)
-            pygame.draw.rect(self.original_image, COLOR_WHITE, (4, 1, 14, 4), border_radius=2)
+            from src.rendering.sprite_manager import get_sprite_manager
+            sz = (28, 8) if weapon_id == "rapid" else ((32, 10) if weapon_id == "scatter" else (36, 12))
+            self.original_image = get_sprite_manager().get_projectile_sprite(self.weapon_id, sz)
         
         dx = target_pos[0] - start_pos[0]
         dy = target_pos[1] - start_pos[1]
@@ -80,9 +80,8 @@ class HomingMissile(pygame.sprite.Sprite):
         if image is not None:
             self.original_image = image
         else:
-            self.original_image = pygame.Surface((28, 10), pygame.SRCALPHA)
-            pygame.draw.polygon(self.original_image, COLOR_MISSILE, [(28, 5), (0, 0), (4, 5), (0, 10)])
-            pygame.draw.rect(self.original_image, COLOR_WHITE, (14, 3, 10, 4))
+            from src.rendering.sprite_manager import get_sprite_manager
+            self.original_image = get_sprite_manager().get_projectile_sprite("missile", (44, 16))
         
         dx = target_pos[0] - start_pos[0]
         dy = target_pos[1] - start_pos[1]
@@ -147,9 +146,8 @@ class PlasmaLaserBeam(pygame.sprite.Sprite):
         if image is not None:
             self.original_image = image
         else:
-            self.original_image = pygame.Surface((44, 8), pygame.SRCALPHA)
-            pygame.draw.rect(self.original_image, COLOR_BEAM, (0, 0, 44, 8), border_radius=4)
-            pygame.draw.rect(self.original_image, COLOR_WHITE, (6, 2, 32, 4), border_radius=2)
+            from src.rendering.sprite_manager import get_sprite_manager
+            self.original_image = get_sprite_manager().get_projectile_sprite("beam", (52, 16))
         
         dx = target_pos[0] - start_pos[0]
         dy = target_pos[1] - start_pos[1]
@@ -186,10 +184,8 @@ class TeslaArcBeam(pygame.sprite.Sprite):
         if image is not None:
             self.original_image = image
         else:
-            self.original_image = pygame.Surface((32, 10), pygame.SRCALPHA)
-            points = [(0, 5), (10, 0), (14, 4), (24, 1), (32, 5), (22, 9), (18, 5), (8, 10)]
-            pygame.draw.polygon(self.original_image, COLOR_TESLA, points)
-            pygame.draw.polygon(self.original_image, COLOR_WHITE, [(4, 5), (11, 2), (15, 5), (23, 3), (28, 5), (21, 7), (9, 7)])
+            from src.rendering.sprite_manager import get_sprite_manager
+            self.original_image = get_sprite_manager().get_projectile_sprite("tesla", (36, 36))
         
         dx = target_pos[0] - start_pos[0]
         dy = target_pos[1] - start_pos[1]
@@ -225,9 +221,8 @@ class ClusterBomblet(pygame.sprite.Sprite):
         if image is not None:
             self.image = image
         else:
-            self.image = pygame.Surface((12, 12), pygame.SRCALPHA)
-            pygame.draw.circle(self.image, COLOR_CLUSTER, (6, 6), 6)
-            pygame.draw.circle(self.image, (255, 230, 100), (6, 6), 3)
+            from src.rendering.sprite_manager import get_sprite_manager
+            self.image = get_sprite_manager().get_projectile_sprite("cluster", (18, 18))
         self.pos = pygame.Vector2(pos)
         self.rect = self.image.get_rect(center=pos)
         self.radius = 6
@@ -248,18 +243,6 @@ class ClusterBomblet(pygame.sprite.Sprite):
 
 class ClusterTorpedo(pygame.sprite.Sprite):
     """Heavy ballistic torpedo that splits into 6 bomblets."""
-    _cached_default_image = None
-
-    @classmethod
-    def _get_default_image(cls) -> pygame.Surface | None:
-        if cls._cached_default_image is None:
-            try:
-                from src.rendering.sprite_manager import get_sprite_manager
-                cls._cached_default_image = get_sprite_manager().get_projectile_sprite('cluster', (34, 14))
-            except Exception:
-                cls._cached_default_image = None
-        return cls._cached_default_image
-
     def __init__(self, start_pos: tuple[float, float], target_pos: tuple[float, float], damage: int = 80, speed: float = 520.0, image: pygame.Surface | None = None,
                  owner: str = "player", weapon_id: str = "cluster"):
         super().__init__()
@@ -274,12 +257,8 @@ class ClusterTorpedo(pygame.sprite.Sprite):
         if image is not None:
             self.original_image = image
         else:
-            self.original_image = ClusterTorpedo._get_default_image()
-            if self.original_image is None:
-                self.original_image = pygame.Surface((34, 14), pygame.SRCALPHA)
-                pygame.draw.ellipse(self.original_image, COLOR_CLUSTER, (0, 0, 34, 14))
-                pygame.draw.ellipse(self.original_image, COLOR_WHITE, (10, 3, 14, 8))
-                pygame.draw.rect(self.original_image, (239, 68, 68), (0, 4, 6, 6))
+            from src.rendering.sprite_manager import get_sprite_manager
+            self.original_image = get_sprite_manager().get_projectile_sprite("cluster", (48, 20))
         
         dx = target_pos[0] - start_pos[0]
         dy = target_pos[1] - start_pos[1]
@@ -329,10 +308,8 @@ class HeavyPlasmaOrb(pygame.sprite.Sprite):
         if image is not None:
             self.original_image = image
         else:
-            self.original_image = pygame.Surface((28, 28), pygame.SRCALPHA)
-            pygame.draw.circle(self.original_image, (168, 85, 247, 100), (14, 14), 14)
-            pygame.draw.circle(self.original_image, (217, 70, 239), (14, 14), 10)
-            pygame.draw.circle(self.original_image, COLOR_WHITE, (14, 14), 5)
+            from src.rendering.sprite_manager import get_sprite_manager
+            self.original_image = get_sprite_manager().get_projectile_sprite("plasma", (48, 22))
         
         dx = target_pos[0] - start_pos[0]
         dy = target_pos[1] - start_pos[1]
@@ -367,10 +344,8 @@ class RailgunSlug(pygame.sprite.Sprite):
         if image is not None:
             self.original_image = image
         else:
-            self.original_image = pygame.Surface((56, 8), pygame.SRCALPHA)
-            pygame.draw.rect(self.original_image, (186, 230, 253), (0, 1, 56, 6), border_radius=3)
-            pygame.draw.rect(self.original_image, COLOR_WHITE, (8, 2, 44, 4), border_radius=2)
-            pygame.draw.circle(self.original_image, (56, 189, 248), (52, 4), 4)
+            from src.rendering.sprite_manager import get_sprite_manager
+            self.original_image = get_sprite_manager().get_projectile_sprite("rail", (64, 16))
         
         dx = target_pos[0] - start_pos[0]
         dy = target_pos[1] - start_pos[1]
@@ -396,6 +371,9 @@ class BarrageMissile(HomingMissile):
     """High-agility guided micro-missile fired in staggered salvos."""
     def __init__(self, start_pos: tuple[float, float], target_pos: tuple[float, float], angle_offset_deg: float = 0.0, damage: int = 38, speed: float = 620.0, image: pygame.Surface | None = None,
                  owner: str = "player", weapon_id: str = "barrage"):
+        if image is None:
+            from src.rendering.sprite_manager import get_sprite_manager
+            image = get_sprite_manager().get_projectile_sprite("barrage", (34, 12))
         super().__init__(start_pos, target_pos, damage=damage, speed=speed, image=image, owner=owner, weapon_id=weapon_id)
         self.turn_rate = 11.0
         self.angle_rad += math.radians(angle_offset_deg)
@@ -418,10 +396,8 @@ class EMPPulse(pygame.sprite.Sprite):
         if image is not None:
             self.original_image = image
         else:
-            self.original_image = pygame.Surface((36, 16), pygame.SRCALPHA)
-            pygame.draw.ellipse(self.original_image, (6, 182, 212, 140), (0, 0, 36, 16))
-            pygame.draw.ellipse(self.original_image, (56, 189, 248), (4, 2, 28, 12), 2)
-            pygame.draw.ellipse(self.original_image, COLOR_WHITE, (10, 5, 16, 6))
+            from src.rendering.sprite_manager import get_sprite_manager
+            self.original_image = get_sprite_manager().get_projectile_sprite("emp", (38, 38))
         
         dx = target_pos[0] - start_pos[0]
         dy = target_pos[1] - start_pos[1]
@@ -448,7 +424,6 @@ class EMPPulse(pygame.sprite.Sprite):
 
 
 class EnemyBullet(pygame.sprite.Sprite):
-
     """Hostile enemy projectile."""
     _cached_default_image = None
 
@@ -457,7 +432,7 @@ class EnemyBullet(pygame.sprite.Sprite):
         if cls._cached_default_image is None:
             try:
                 from src.rendering.sprite_manager import get_sprite_manager
-                cls._cached_default_image = get_sprite_manager().get_projectile_sprite('enemy', (16, 6))
+                cls._cached_default_image = get_sprite_manager().get_projectile_sprite('scatter', (20, 20))
             except Exception:
                 cls._cached_default_image = None
         return cls._cached_default_image
@@ -478,9 +453,9 @@ class EnemyBullet(pygame.sprite.Sprite):
         else:
             self.original_image = EnemyBullet._get_default_image()
             if self.original_image is None:
-                self.original_image = pygame.Surface((16, 6), pygame.SRCALPHA)
-                pygame.draw.rect(self.original_image, COLOR_CRIMSON, (0, 0, 16, 6), border_radius=3)
-                pygame.draw.rect(self.original_image, (255, 200, 200), (3, 1, 10, 4), border_radius=2)
+                from src.rendering.sprite_manager import get_sprite_manager
+                self.original_image = get_sprite_manager().get_projectile_sprite("scatter", (20, 20))
+                EnemyBullet._cached_default_image = self.original_image
         
         dx = target_pos[0] - start_pos[0]
         dy = target_pos[1] - start_pos[1]
@@ -512,18 +487,6 @@ class EnemyBullet(pygame.sprite.Sprite):
 
 class EnemySniperBeam(pygame.sprite.Sprite):
     """Supersonic railgun beam fired by Sniper Drones."""
-    _cached_default_image = None
-
-    @classmethod
-    def _get_default_image(cls) -> pygame.Surface | None:
-        if cls._cached_default_image is None:
-            try:
-                from src.rendering.sprite_manager import get_sprite_manager
-                cls._cached_default_image = get_sprite_manager().get_projectile_sprite('beam', (36, 6))
-            except Exception:
-                cls._cached_default_image = None
-        return cls._cached_default_image
-
     def __init__(self, start_pos: tuple[float, float], target_pos: tuple[float, float], speed: float = 1200.0, damage: int = 35, image: pygame.Surface | None = None,
                  owner: str = "enemy", weapon_id: str = "sniper_beam"):
         super().__init__()
@@ -537,11 +500,8 @@ class EnemySniperBeam(pygame.sprite.Sprite):
         if image is not None:
             self.original_image = image
         else:
-            self.original_image = EnemySniperBeam._get_default_image()
-            if self.original_image is None:
-                self.original_image = pygame.Surface((36, 6), pygame.SRCALPHA)
-                pygame.draw.rect(self.original_image, COLOR_NEON_RED, (0, 0, 36, 6), border_radius=3)
-                pygame.draw.rect(self.original_image, COLOR_WHITE, (6, 1, 24, 4), border_radius=2)
+            from src.rendering.sprite_manager import get_sprite_manager
+            self.original_image = get_sprite_manager().get_projectile_sprite("beam", (48, 12))
         
         dx = target_pos[0] - start_pos[0]
         dy = target_pos[1] - start_pos[1]

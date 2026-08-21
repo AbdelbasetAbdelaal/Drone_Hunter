@@ -354,10 +354,11 @@ class Player(pygame.sprite.Sprite):
         effective_damage = max(1.0, float(amount) - self.armor)
         self.health = max(0.0, self.health - effective_damage)
         if self.health <= 0.0:
-            self.alive = False
-            self.is_destroyed = True
-            self.destruction_timer = 0.5
-            return True
+            if not self.is_destroyed:
+                self.alive = False
+                self.is_destroyed = True
+                self.destruction_timer = 1.4
+                return True
         return False
 
     def can_shoot(self) -> bool:
@@ -408,10 +409,13 @@ class Player(pygame.sprite.Sprite):
             HeavyPlasmaOrb, RailgunSlug, BarrageMissile, EMPPulse
         )
 
+        fwd_dx = math.cos(self.aim_angle) * 1500.0
+        fwd_dy = math.sin(self.aim_angle) * 1500.0
+
         if self.active_weapon == WEAPON_PULSE:
             m_pos = self.get_mount_world_pos("primary_front_center")
             sprite = sm.get_projectile_sprite('pulse', (40, 12))
-            t_pt = (m_pos[0] + math.cos(self.aim_angle) * 1000.0, m_pos[1] + math.sin(self.aim_angle) * 1000.0)
+            t_pt = (m_pos[0] + fwd_dx, m_pos[1] + fwd_dy)
             bullets.append(Bullet(m_pos, t_pt, speed=spd, damage=dmg, color=col, image=sprite, owner="player", weapon_id=self.active_weapon))
             if self.overdrive_timer > 0.0:
                 od_dmg = int(dmg * 1.25)
@@ -425,7 +429,7 @@ class Player(pygame.sprite.Sprite):
             self._rapid_side = (self._rapid_side + 1) % 2
             m_pos = self.get_mount_world_pos(mount_key)
             sprite = sm.get_projectile_sprite('pulse', (32, 10))
-            t_pt = (m_pos[0] + math.cos(self.aim_angle) * 1000.0, m_pos[1] + math.sin(self.aim_angle) * 1000.0)
+            t_pt = (m_pos[0] + fwd_dx, m_pos[1] + fwd_dy)
             bullets.append(Bullet(m_pos, t_pt, speed=spd, damage=dmg, color=col, image=sprite, owner="player", weapon_id=self.active_weapon))
             if particle_manager:
                 particle_manager.spawn_muzzle_flash(m_pos, self.aim_angle, self.active_weapon)
@@ -441,7 +445,7 @@ class Player(pygame.sprite.Sprite):
             for i in range(proj_count):
                 ang = start_ang + step * i
                 origin = left_pos if i % 2 == 0 else right_pos
-                t_pt = (origin[0] + math.cos(self.aim_angle) * 1000.0, origin[1] + math.sin(self.aim_angle) * 1000.0)
+                t_pt = (origin[0] + fwd_dx, origin[1] + fwd_dy)
                 bullets.append(Bullet(origin, t_pt, angle_offset_deg=ang, speed=spd, damage=dmg, color=col, image=sprite, owner="player", weapon_id=self.active_weapon))
             if particle_manager:
                 particle_manager.spawn_muzzle_flash(left_pos, self.aim_angle, self.active_weapon)
@@ -452,7 +456,8 @@ class Player(pygame.sprite.Sprite):
             self._missile_side = (self._missile_side + 1) % 2
             m_pos = self.get_mount_world_pos(mount_key)
             sprite = sm.get_projectile_sprite('missile', (45, 16))
-            bullets.append(HomingMissile(m_pos, target_pos, damage=dmg, speed=spd, image=sprite, owner="player", weapon_id=self.active_weapon))
+            t_pt = (m_pos[0] + fwd_dx, m_pos[1] + fwd_dy)
+            bullets.append(HomingMissile(m_pos, t_pt, damage=dmg, speed=spd, image=sprite, owner="player", weapon_id=self.active_weapon))
             if particle_manager:
                 particle_manager.spawn_muzzle_flash(m_pos, self.aim_angle, self.active_weapon)
 
@@ -460,10 +465,12 @@ class Player(pygame.sprite.Sprite):
             pod_l = self.get_mount_world_pos("pod_left")
             pod_r = self.get_mount_world_pos("pod_right")
             sprite = sm.get_projectile_sprite('missile', (36, 12))
-            bullets.append(BarrageMissile(pod_l, target_pos, angle_offset_deg=-12.0, damage=dmg, speed=spd, image=sprite, owner="player", weapon_id=self.active_weapon))
-            bullets.append(BarrageMissile(pod_l, target_pos, angle_offset_deg=-4.0, damage=dmg, speed=spd * 0.95, image=sprite, owner="player", weapon_id=self.active_weapon))
-            bullets.append(BarrageMissile(pod_r, target_pos, angle_offset_deg=4.0, damage=dmg, speed=spd * 0.95, image=sprite, owner="player", weapon_id=self.active_weapon))
-            bullets.append(BarrageMissile(pod_r, target_pos, angle_offset_deg=12.0, damage=dmg, speed=spd, image=sprite, owner="player", weapon_id=self.active_weapon))
+            t_pt_l = (pod_l[0] + fwd_dx, pod_l[1] + fwd_dy)
+            t_pt_r = (pod_r[0] + fwd_dx, pod_r[1] + fwd_dy)
+            bullets.append(BarrageMissile(pod_l, t_pt_l, angle_offset_deg=-12.0, damage=dmg, speed=spd, image=sprite, owner="player", weapon_id=self.active_weapon))
+            bullets.append(BarrageMissile(pod_l, t_pt_l, angle_offset_deg=-4.0, damage=dmg, speed=spd * 0.95, image=sprite, owner="player", weapon_id=self.active_weapon))
+            bullets.append(BarrageMissile(pod_r, t_pt_r, angle_offset_deg=4.0, damage=dmg, speed=spd * 0.95, image=sprite, owner="player", weapon_id=self.active_weapon))
+            bullets.append(BarrageMissile(pod_r, t_pt_r, angle_offset_deg=12.0, damage=dmg, speed=spd, image=sprite, owner="player", weapon_id=self.active_weapon))
             if particle_manager:
                 particle_manager.spawn_muzzle_flash(pod_l, self.aim_angle, self.active_weapon)
                 particle_manager.spawn_muzzle_flash(pod_r, self.aim_angle, self.active_weapon)
@@ -471,40 +478,46 @@ class Player(pygame.sprite.Sprite):
         elif self.active_weapon == WEAPON_PLASMA:
             m_pos = self.get_mount_world_pos("heavy_front_center")
             sprite = sm.get_projectile_sprite('plasma', (36, 36))
-            bullets.append(HeavyPlasmaOrb(m_pos, target_pos, damage=dmg, speed=spd, image=sprite, owner="player", weapon_id=self.active_weapon))
+            t_pt = (m_pos[0] + fwd_dx, m_pos[1] + fwd_dy)
+            bullets.append(HeavyPlasmaOrb(m_pos, t_pt, damage=dmg, speed=spd, image=sprite, owner="player", weapon_id=self.active_weapon))
             if particle_manager:
                 particle_manager.spawn_muzzle_flash(m_pos, self.aim_angle, self.active_weapon)
 
         elif self.active_weapon == WEAPON_RAIL:
             m_pos = self.get_mount_world_pos("rail_front")
-            sprite = sm.get_projectile_sprite('sniper', (64, 14))
-            bullets.append(RailgunSlug(m_pos, target_pos, damage=dmg, speed=spd, image=sprite, owner="player", weapon_id=self.active_weapon))
+            sprite = sm.get_projectile_sprite('rail', (64, 14))
+            t_pt = (m_pos[0] + fwd_dx, m_pos[1] + fwd_dy)
+            bullets.append(RailgunSlug(m_pos, t_pt, damage=dmg, speed=spd, image=sprite, owner="player", weapon_id=self.active_weapon))
             if particle_manager:
                 particle_manager.spawn_muzzle_flash(m_pos, self.aim_angle, self.active_weapon)
 
         elif self.active_weapon == WEAPON_BEAM:
             m_pos = self.get_mount_world_pos("beam_emitter")
-            sprite = sm.get_projectile_sprite('beam', (44, 8))
-            bullets.append(PlasmaLaserBeam(m_pos, target_pos, damage=dmg, speed=spd, image=sprite, owner="player", weapon_id=self.active_weapon))
+            sprite = sm.get_projectile_sprite('beam', (52, 16))
+            t_pt = (m_pos[0] + fwd_dx, m_pos[1] + fwd_dy)
+            bullets.append(PlasmaLaserBeam(m_pos, t_pt, damage=dmg, speed=spd, image=sprite, owner="player", weapon_id=self.active_weapon))
             if particle_manager:
                 particle_manager.spawn_muzzle_flash(m_pos, self.aim_angle, self.active_weapon)
 
         elif self.active_weapon == WEAPON_TESLA:
             m_pos = self.get_mount_world_pos("energy_center")
-            sprite = sm.get_projectile_sprite('tesla', (32, 10))
-            bullets.append(TeslaArcBeam(m_pos, target_pos, damage=dmg, speed=spd, image=sprite, owner="player", weapon_id=self.active_weapon))
+            sprite = sm.get_projectile_sprite('tesla', (34, 34))
+            t_pt = (m_pos[0] + fwd_dx, m_pos[1] + fwd_dy)
+            bullets.append(TeslaArcBeam(m_pos, t_pt, damage=dmg, speed=spd, image=sprite, owner="player", weapon_id=self.active_weapon))
             if particle_manager:
                 particle_manager.spawn_muzzle_flash(m_pos, self.aim_angle, self.active_weapon)
 
         elif self.active_weapon == WEAPON_CLUSTER:
             m_pos = self.get_mount_world_pos("primary")
-            bullets.append(ClusterTorpedo(m_pos, target_pos, damage=dmg, speed=spd, owner="player", weapon_id=self.active_weapon))
+            t_pt = (m_pos[0] + fwd_dx, m_pos[1] + fwd_dy)
+            bullets.append(ClusterTorpedo(m_pos, t_pt, damage=dmg, speed=spd, owner="player", weapon_id=self.active_weapon))
             if particle_manager:
                 particle_manager.spawn_muzzle_flash(m_pos, self.aim_angle, self.active_weapon)
 
         elif self.active_weapon == WEAPON_EMP:
             m_pos = self.get_mount_world_pos("energy_center")
-            bullets.append(EMPPulse(m_pos, target_pos, damage=dmg, speed=spd, owner="player", weapon_id=self.active_weapon))
+            t_pt = (m_pos[0] + fwd_dx, m_pos[1] + fwd_dy)
+            bullets.append(EMPPulse(m_pos, t_pt, damage=dmg, speed=spd, owner="player", weapon_id=self.active_weapon))
             if particle_manager:
                 particle_manager.spawn_muzzle_flash(m_pos, self.aim_angle, self.active_weapon)
 

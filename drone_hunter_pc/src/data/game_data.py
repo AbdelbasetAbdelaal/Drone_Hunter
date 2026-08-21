@@ -52,6 +52,41 @@ WEAPON_TESLA = "tesla"
 WEAPON_CLUSTER = "cluster"
 WEAPON_EMP = "emp"
 
+# -----------------------------------------------------------------------------
+# Authoritative Production Asset Registries
+# -----------------------------------------------------------------------------
+WEAPON_ASSETS = {
+    "pulse": "weapons/laser_pulse.png",
+    "rapid": "weapons/laser_pulse.png",
+    "scatter": "weapons/laser_scatter.png",
+    "missile": "weapons/missile.png",
+    "light_missile": "weapons/missile.png",
+    "heavy_missile": "weapons/missile.png",
+    "barrage": "weapons/missile.png",
+    "missile_barrage": "weapons/missile.png",
+    "beam": "weapons/laser_beam.png",
+    "arc_beam": "weapons/laser_beam.png",
+    "plasma": "weapons/laser_beam.png",
+    "heavy_cannon": "weapons/laser_beam.png",
+    "rail": "weapons/laser_beam.png",
+    "precision": "weapons/laser_beam.png",
+    "tesla": "weapons/tesla_orb.png",
+    "cluster": "weapons/cluster_torpedo.png",
+    "emp": "weapons/tesla_orb.png",
+}
+
+VFX_ASSETS = {
+    "explosion_small": "vfx/explosion_1.png",
+    "explosion_1": "vfx/explosion_1.png",
+    "explosion_heavy": "vfx/explosion_2.png",
+    "explosion_2": "vfx/explosion_2.png",
+    "shockwave": "vfx/shockwave.png",
+    "shield": "vfx/shield_bubble.png",
+    "shield_bubble": "vfx/shield_bubble.png",
+    "engine": "vfx/engine_flame.png",
+    "engine_flame": "vfx/engine_flame.png",
+}
+
 WEAPON_DEFS = {
     WEAPON_PULSE: {
         "weapon_id": WEAPON_PULSE,
@@ -162,7 +197,7 @@ WEAPON_DEFS = {
         "projectiles_per_shot": 1,
         "spread_deg": 0.0,
         "projectile_type": "plasma",
-        "projectile_asset": "weapons/laser_pulse.png",
+        "projectile_asset": "weapons/laser_beam.png",
         "muzzle_vfx": "muzzle_plasma",
         "impact_vfx": "impact_plasma",
         "audio_id": "plasma",
@@ -186,7 +221,7 @@ WEAPON_DEFS = {
         "projectiles_per_shot": 1,
         "spread_deg": 0.0,
         "projectile_type": "rail",
-        "projectile_asset": "weapons/laser_pulse.png",
+        "projectile_asset": "weapons/laser_beam.png",
         "muzzle_vfx": "muzzle_rail",
         "impact_vfx": "impact_rail",
         "audio_id": "rail",
@@ -306,7 +341,7 @@ WEAPON_DEFS = {
         "projectiles_per_shot": 1,
         "spread_deg": 0.0,
         "projectile_type": "emp",
-        "projectile_asset": "weapons/laser_pulse.png",
+        "projectile_asset": "weapons/tesla_orb.png",
         "muzzle_vfx": "muzzle_emp",
         "impact_vfx": "impact_emp",
         "audio_id": "emp",

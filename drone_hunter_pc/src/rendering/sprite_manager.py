@@ -1,8 +1,12 @@
 import os
 import math
+import logging
 from collections import OrderedDict
 import pygame
 from src.data.settings import COLOR_CYAN, COLOR_GOLD, COLOR_CRIMSON, COLOR_EMERALD, COLOR_WHITE
+from src.data.game_data import WEAPON_ASSETS, VFX_ASSETS
+
+logger = logging.getLogger(__name__)
 
 class SpriteManager:
     _instance = None
@@ -57,38 +61,86 @@ class SpriteManager:
             cls._instance._initialized = False
         return cls._instance
 
-    def __init__(self, assets_dir: str = 'drone_hunter_pc/assets/sprites'):
+    def __init__(self, assets_dir: str = None):
         if getattr(self, '_initialized', False):
             return
 
-        self.base_dir = assets_dir
-        if not os.path.exists(self.base_dir):
-            alt = os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(__file__))), 'assets', 'sprites')
-            if os.path.exists(alt):
-                self.base_dir = alt
+        proj_root = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+        if assets_dir and os.path.exists(assets_dir):
+            self.base_dir = os.path.abspath(assets_dir)
+        else:
+            default_candidates = [
+                os.path.join(proj_root, 'assets', 'sprites'),
+                os.path.abspath('assets/sprites'),
+                os.path.abspath('drone_hunter_pc/assets/sprites'),
+            ]
+            self.base_dir = default_candidates[0]
+            for dc in default_candidates:
+                if os.path.exists(dc):
+                    self.base_dir = dc
+                    break
 
         self._canonical_cache: dict[str, pygame.Surface] = {}
         self._raw_cache: dict[str, pygame.Surface] = {}
         self._skin_cache: dict[tuple, pygame.Surface] = {}
         self._rotated_cache: OrderedDict[tuple, pygame.Surface] = OrderedDict()
 
+        # Asset usage diagnostics telemetry (tracks actual render usage)
+        self.weapon_asset_usage: dict[str, int] = {}
+        self.vfx_asset_usage: dict[str, int] = {}
+
         self._initialized = True
         self._preload_high_fidelity_canonical_assets()
+        self.validate_weapon_assets()
+        self.validate_vfx_assets()
+
+    def validate_weapon_assets(self) -> dict[str, bool]:
+        """Preloads and validates all authoritative production weapon PNG assets."""
+        results = {}
+        for w_id, rel_path in WEAPON_ASSETS.items():
+            base_name = os.path.basename(rel_path)
+            surf = self._load_raw_image(rel_path)
+            if surf is not None:
+                results[w_id] = True
+                if base_name not in self.weapon_asset_usage:
+                    self.weapon_asset_usage[base_name] = 0
+                logger.info(f"[ASSET] weapon loaded: {base_name}")
+            else:
+                results[w_id] = False
+                logger.error(f"[ASSET ERROR] Missing: {rel_path}")
+        return results
+
+    def validate_vfx_assets(self) -> dict[str, bool]:
+        """Preloads and validates all authoritative production VFX PNG assets."""
+        results = {}
+        for v_id, rel_path in VFX_ASSETS.items():
+            base_name = os.path.basename(rel_path)
+            surf = self._load_raw_image(rel_path)
+            if surf is not None:
+                results[v_id] = True
+                if base_name not in self.vfx_asset_usage:
+                    self.vfx_asset_usage[base_name] = 0
+                logger.info(f"[ASSET] VFX loaded: {base_name}")
+            else:
+                results[v_id] = False
+                logger.error(f"[ASSET ERROR] Missing: {rel_path}")
+        return results
 
     def _resolve_file_path(self, rel_path: str) -> str | None:
         candidates = [
             os.path.join(self.base_dir, rel_path),
-            os.path.join(os.path.dirname(self.base_dir), 'high_fidelity', rel_path),
             os.path.join(os.path.dirname(self.base_dir), rel_path),
+            os.path.join(os.path.dirname(self.base_dir), 'high_fidelity', rel_path),
+            os.path.join('assets', 'sprites', rel_path),
+            os.path.join('drone_hunter_pc', 'assets', 'sprites', rel_path),
             os.path.join('Drone_Hunter_Phase8_2D_Assets_v04_HighFidelity', 'production', rel_path),
         ]
         for c in candidates:
             if os.path.exists(c):
-                return c
+                return os.path.abspath(c)
         return None
 
     def _load_canonical_asset(self, rel_path: str, rotate_deg: int, canonical_size: tuple[int, int]) -> pygame.Surface | None:
-        """Loads a 2048 PNG source, immediately converts alpha and downscales to canonical size, freeing the 2048 surface."""
         if rel_path in self._canonical_cache:
             return self._canonical_cache[rel_path]
 
@@ -98,10 +150,8 @@ class SpriteManager:
 
         try:
             raw_surf = pygame.image.load(full_path)
-            if pygame.display.get_surface():
+            if pygame.display.get_surface() is not None:
                 raw_surf = raw_surf.convert_alpha()
-            else:
-                raw_surf = raw_surf.convert_alpha() if pygame.get_init() else raw_surf
 
             if rotate_deg != 0:
                 raw_surf = pygame.transform.rotate(raw_surf, rotate_deg)
@@ -109,11 +159,11 @@ class SpriteManager:
             canonical = pygame.transform.smoothscale(raw_surf, canonical_size)
             self._canonical_cache[rel_path] = canonical
             return canonical
-        except Exception:
+        except Exception as e:
+            logger.error(f"[ASSET ERROR] Failed loading canonical {rel_path}: {e}")
             return None
 
     def _load_raw_image(self, rel_path: str) -> pygame.Surface | None:
-        """Legacy helper for fallback sprites."""
         if rel_path in self._raw_cache:
             return self._raw_cache[rel_path]
 
@@ -123,15 +173,15 @@ class SpriteManager:
 
         try:
             surf = pygame.image.load(full_path)
-            if pygame.display.get_surface():
+            if pygame.display.get_surface() is not None:
                 surf = surf.convert_alpha()
             self._raw_cache[rel_path] = surf
             return surf
-        except Exception:
+        except Exception as e:
+            logger.error(f"[ASSET ERROR] Failed loading raw {rel_path}: {e}")
             return None
 
     def _preload_high_fidelity_canonical_assets(self):
-        """Preloads canonical gameplay master assets at launch for zero runtime disk I/O."""
         for rel in self.HIGH_FIDELITY_PLAYER_MAP.values():
             self._load_canonical_asset(rel, 270, self.CANONICAL_PLAYER_SIZE)
 
@@ -143,7 +193,6 @@ class SpriteManager:
             self._load_canonical_asset(rel, 0, self.CANONICAL_BOSS_SIZE)
 
     def _get_or_create_rotated_surface(self, base_key: tuple, base_surf: pygame.Surface, angle_deg: float) -> pygame.Surface:
-        """Retrieves or creates a rotated surface with bounded LRU caching and 6-deg angle quantization."""
         quantized_angle = int(round(angle_deg / self.ANGLE_STEP)) * self.ANGLE_STEP % 360
         cache_key = (base_key, quantized_angle)
 
@@ -159,9 +208,6 @@ class SpriteManager:
 
         return rotated
 
-    # -------------------------------------------------------------------------
-    # PLAYER DRONES (High-Fidelity Large Variants 0..4)
-    # -------------------------------------------------------------------------
     def get_player_sprite(self, state: str = 'idle', skin_idx: int = 0, target_size: tuple[int, int] = (176, 152)) -> pygame.Surface:
         idx = max(0, min(4, skin_idx))
         cache_key = ('player', state, idx, target_size)
@@ -198,14 +244,10 @@ class SpriteManager:
         return scaled
 
     def get_rotated_player_sprite(self, state: str = 'idle', skin_idx: int = 0, angle_deg: float = 0.0, target_size: tuple[int, int] = (176, 152)) -> pygame.Surface:
-        """Returns pre-cached, rotated player sprite from bounded rotation cache without state duplication."""
         base_key = ('player', 'base', max(0, min(4, skin_idx)), target_size)
         base_sprite = self.get_player_sprite(state=state, skin_idx=skin_idx, target_size=target_size)
         return self._get_or_create_rotated_surface(base_key, base_sprite, angle_deg)
 
-    # -------------------------------------------------------------------------
-    # SCOUT COMBAT DRONE (High-Fidelity 2D)
-    # -------------------------------------------------------------------------
     def get_scout_sprite(self, state: str = 'idle', target_size: tuple[int, int] = (52, 46)) -> pygame.Surface:
         cache_key = ('scout', state, target_size)
         if cache_key in self._skin_cache:
@@ -248,9 +290,6 @@ class SpriteManager:
         base_sprite = self.get_scout_sprite(state=state, target_size=target_size)
         return self._get_or_create_rotated_surface(base_key, base_sprite, angle_deg)
 
-    # -------------------------------------------------------------------------
-    # SHOOTER COMBAT DRONE (High-Fidelity 2D)
-    # -------------------------------------------------------------------------
     def get_shooter_sprite(self, state: str = 'idle', target_size: tuple[int, int] = (52, 48)) -> pygame.Surface:
         cache_key = ('shooter', state, target_size)
         if cache_key in self._skin_cache:
@@ -293,9 +332,6 @@ class SpriteManager:
         base_sprite = self.get_shooter_sprite(state=state, target_size=target_size)
         return self._get_or_create_rotated_surface(base_key, base_sprite, angle_deg)
 
-    # -------------------------------------------------------------------------
-    # HEAVY COMBAT DRONE (High-Fidelity 2D)
-    # -------------------------------------------------------------------------
     def get_heavy_sprite(self, state: str = 'idle', target_size: tuple[int, int] = (64, 60)) -> pygame.Surface:
         cache_key = ('heavy', state, target_size)
         if cache_key in self._skin_cache:
@@ -338,9 +374,6 @@ class SpriteManager:
         base_sprite = self.get_heavy_sprite(state=state, target_size=target_size)
         return self._get_or_create_rotated_surface(base_key, base_sprite, angle_deg)
 
-    # -------------------------------------------------------------------------
-    # SHIELD / ELITE DRONE (High-Fidelity 2D)
-    # -------------------------------------------------------------------------
     def get_shield_drone_sprite(self, state: str = 'idle', target_size: tuple[int, int] = (54, 50)) -> pygame.Surface:
         cache_key = ('shield_elite', state, target_size)
         if cache_key in self._skin_cache:
@@ -378,9 +411,6 @@ class SpriteManager:
         base_sprite = self.get_shield_drone_sprite(state=state, target_size=target_size)
         return self._get_or_create_rotated_surface(base_key, base_sprite, angle_deg)
 
-    # -------------------------------------------------------------------------
-    # ALL 5 BOSS COMBAT PLATFORMS (High-Fidelity 2D)
-    # -------------------------------------------------------------------------
     def get_boss_sprite(self, boss_key: str, phase: int = 1, target_size: tuple[int, int] = (140, 140)) -> pygame.Surface:
         cache_key = ('boss', boss_key, phase, target_size)
         if cache_key in self._skin_cache:
@@ -431,7 +461,6 @@ class SpriteManager:
         base_sprite = self.get_boss_sprite(boss_key=boss_key, phase=phase, target_size=target_size)
         return self._get_or_create_rotated_surface(base_key, base_sprite, angle_deg)
 
-
     def get_rotated_surface(self, surf: pygame.Surface, angle_deg: float) -> pygame.Surface:
         quantized_angle = int(round(angle_deg / self.ANGLE_STEP)) * self.ANGLE_STEP % 360
         surf_id = id(surf)
@@ -453,25 +482,28 @@ class SpriteManager:
     def get_projectile_sprite(self, proj_type: str, target_size: tuple[int, int]) -> pygame.Surface:
         cache_key = ('proj', proj_type, target_size)
         if cache_key in self._skin_cache:
+            rel = WEAPON_ASSETS.get(proj_type, proj_type if proj_type.endswith('.png') else 'weapons/laser_pulse.png')
+            base_name = os.path.basename(rel)
+            self.weapon_asset_usage[base_name] = self.weapon_asset_usage.get(base_name, 0) + 1
             return self._skin_cache[cache_key]
 
-        file_map = {
-            'pulse': 'weapons/laser_pulse.png',
-            'scatter': 'weapons/laser_scatter.png',
-            'missile': 'weapons/missile.png',
-            'enemy': 'weapons/enemy_bullet.png',
-            'beam': 'weapons/laser_beam.png',
-            'tesla': 'weapons/tesla_orb.png',
-            'cluster': 'weapons/cluster_torpedo.png',
-        }
-        rel = file_map.get(proj_type, 'weapons/laser_pulse.png')
+        rel = WEAPON_ASSETS.get(proj_type)
+        if not rel:
+            if proj_type.startswith('weapons/') or proj_type.endswith('.png'):
+                rel = proj_type
+            else:
+                rel = WEAPON_ASSETS.get('pulse', 'weapons/laser_pulse.png')
+
         raw = self._load_raw_image(rel)
+        base_name = os.path.basename(rel)
         if raw is None:
+            logger.error(f"[ASSET ERROR] Missing weapon sprite: {rel}")
             fallback = pygame.Surface(target_size, pygame.SRCALPHA)
             pygame.draw.circle(fallback, (56, 189, 248), (target_size[0] // 2, target_size[1] // 2), target_size[0] // 2)
             self._skin_cache[cache_key] = fallback
             return fallback
 
+        self.weapon_asset_usage[base_name] = self.weapon_asset_usage.get(base_name, 0) + 1
         scaled = pygame.transform.smoothscale(raw, target_size)
         self._skin_cache[cache_key] = scaled
         return scaled
@@ -479,14 +511,27 @@ class SpriteManager:
     def get_vfx_sprite(self, name: str, target_size: tuple[int, int]) -> pygame.Surface:
         cache_key = ('vfx', name, target_size)
         if cache_key in self._skin_cache:
+            rel = VFX_ASSETS.get(name, f'vfx/{name}.png' if not name.startswith('vfx/') else name)
+            base_name = os.path.basename(rel)
+            self.vfx_asset_usage[base_name] = self.vfx_asset_usage.get(base_name, 0) + 1
             return self._skin_cache[cache_key]
 
-        raw = self._load_raw_image(f'vfx/{name}.png')
+        rel = VFX_ASSETS.get(name)
+        if not rel:
+            if name.startswith('vfx/') or name.endswith('.png'):
+                rel = name
+            else:
+                rel = f'vfx/{name}.png'
+
+        raw = self._load_raw_image(rel)
+        base_name = os.path.basename(rel)
         if raw is None:
+            logger.error(f"[ASSET ERROR] Missing VFX sprite: {rel}")
             fallback = pygame.Surface(target_size, pygame.SRCALPHA)
             self._skin_cache[cache_key] = fallback
             return fallback
 
+        self.vfx_asset_usage[base_name] = self.vfx_asset_usage.get(base_name, 0) + 1
         scaled = pygame.transform.smoothscale(raw, target_size)
         self._skin_cache[cache_key] = scaled
         return scaled
@@ -511,11 +556,13 @@ class SpriteManager:
     # -------------------------------------------------------------------------
     def get_cache_stats(self) -> dict:
         return {
-            "canonical_surfaces": len(self._canonical_cache),
-            "scaled_surfaces": len(self._skin_cache),
-            "rotated_surfaces": len(self._rotated_cache),
-            "max_rotation_capacity": self.MAX_ROTATION_ENTRIES,
-            "angle_step": self.ANGLE_STEP,
+            'canonical_surfaces': len(self._canonical_cache),
+            'scaled_surfaces': len(self._skin_cache),
+            'rotated_surfaces': len(self._rotated_cache),
+            'max_rotation_capacity': self.MAX_ROTATION_ENTRIES,
+            'angle_step': self.ANGLE_STEP,
+            'weapon_asset_usage': dict(self.weapon_asset_usage),
+            'vfx_asset_usage': dict(self.vfx_asset_usage),
         }
 
     def clear_rotation_cache(self):
@@ -529,5 +576,3 @@ def get_sprite_manager() -> SpriteManager:
     if _sprite_manager is None:
         _sprite_manager = SpriteManager()
     return _sprite_manager
-
-

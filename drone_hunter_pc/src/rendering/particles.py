@@ -5,13 +5,13 @@
 High-performance 2D particle simulation, explosive shockwaves, lightning arcs,
 floating combat text, and dynamic atmospheric weather with camera offset support.
 
-Phase 9 additions:
-- Class-aware enemy hit sparks (Scout/Shooter/Heavy/Shield/Boss)
-- Bounded ring pulse overlays
-- Weapon-flavored muzzle bursts
-- Boss phase transition burst
-- Player destruction sequence
-All new effects have strict particle caps and finite lifetimes.
+Phase 9 & Real Asset Integration:
+- Authoritative VFX PNG pipeline for explosions and shockwaves (explosion_1, explosion_2, shockwave)
+- Smooth scaling and alpha fading for explosion overlays
+- Class-aware enemy destruction (Scout/Shooter -> explosion_1, Heavy/Elite -> explosion_2 + shockwave)
+- Boss & Player destruction sequences with layered explosion_2 and shockwave PNGs
+- Weapon-specific impact bursts with production VFX sprites
+- Strict particle caps and finite lifetimes
 """
 
 import math
@@ -27,9 +27,8 @@ from src.data.game_data import (
     TARGET_TYPE_ARMORED, TARGET_TYPE_SHIELD_DRONE, TARGET_TYPE_BOSS
 )
 
-# ── Phase 9 Particle Caps ──────────────────────────────────────────────────────
-MAX_COMBAT_PARTICLES = 300   # hard cap on the particles group
-MAX_RING_PULSES       = 6    # max simultaneous ring pulse overlays
+MAX_COMBAT_PARTICLES = 300
+MAX_RING_PULSES = 6
 
 
 class Particle(pygame.sprite.Sprite):
@@ -133,32 +132,52 @@ class LightningArc:
 
 
 class ExplosionOverlay:
-    def __init__(self, pos: tuple[float, float], sprite: pygame.Surface, lifetime: float = 0.4, max_size: int = 64):
+    """Renders authoritative production VFX PNG assets (explosions, shockwaves) with smooth scale and alpha animation."""
+    def __init__(self, pos: tuple[float, float], sprite: pygame.Surface | None = None, sprite_name: str = "explosion_1",
+                 lifetime: float = 0.45, max_size: int = 80, start_size: int | None = None, is_shockwave: bool = False, rotation_deg: float = 0.0):
         self.pos = pygame.Vector2(pos)
         self.sprite = sprite
+        self.asset_id = sprite_name
         self.lifetime = lifetime
         self.max_lifetime = lifetime
         self.max_size = max_size
-        self.current_size = max_size * 0.3
+        self.start_size = start_size if start_size is not None else int(max_size * (0.15 if is_shockwave else 0.35))
+        self.is_shockwave = is_shockwave
+        self.rotation_deg = rotation_deg
 
     def update(self, dt: float) -> bool:
         self.lifetime -= dt
-        if self.lifetime <= 0:
-            return False
-        progress = 1.0 - (self.lifetime / self.max_lifetime)
-        self.current_size = self.max_size * (0.3 + 0.7 * progress)
-        return True
+        return self.lifetime > 0
 
     def draw(self, surface: pygame.Surface, camera_offset: tuple[float, float] = (0.0, 0.0)):
-        pct = max(0.0, min(1.0, self.lifetime / self.max_lifetime))
-        alpha = int(255 * pct)
-        ox, oy = camera_offset
-        sz = int(self.current_size)
-        if sz > 0 and alpha > 10:
-            scaled = pygame.transform.smoothscale(self.sprite, (sz, sz))
-            scaled.set_alpha(alpha)
-            rect = scaled.get_rect(center=(int(round(self.pos.x - ox)), int(round(self.pos.y - oy))))
-            surface.blit(scaled, rect)
+        if self.lifetime <= 0:
+            return
+        pct = max(0.0, min(1.0, 1.0 - (self.lifetime / self.max_lifetime)))
+        # Smooth outward expansion
+        scale_pct = math.sin(pct * math.pi * 0.5)
+        current_sz = int(self.start_size + (self.max_size - self.start_size) * scale_pct)
+        # Smooth alpha falloff
+        alpha_pct = 1.0 - (pct ** 1.4)
+        alpha = int(255 * max(0.0, min(1.0, alpha_pct)))
+
+        if current_sz <= 0 or alpha < 8:
+            return
+
+        from src.rendering.sprite_manager import get_sprite_manager
+        sm = get_sprite_manager()
+        img = self.sprite if self.sprite else sm.get_vfx_sprite(self.asset_id, (current_sz, current_sz))
+
+        if img is not None:
+            if img.get_size() != (current_sz, current_sz):
+                img = pygame.transform.smoothscale(img, (current_sz, current_sz))
+            rendered = img.copy()
+            rendered.set_alpha(alpha)
+            if self.rotation_deg != 0.0:
+                rendered = pygame.transform.rotate(rendered, self.rotation_deg)
+
+            ox, oy = camera_offset
+            rect = rendered.get_rect(center=(int(round(self.pos.x - ox)), int(round(self.pos.y - oy))))
+            surface.blit(rendered, rect)
 
 
 class ParticleManager:
@@ -188,35 +207,36 @@ class ParticleManager:
             self.particles.add(Particle(pos, vel, color, rad, life, is_spark=True))
         self._enforce_particle_cap()
 
-    def spawn_explosion(self, pos: tuple[float, float], count: int = 24, color: tuple[int, int, int] = COLOR_GOLD, sprite_name: str | None = None, max_size: int = 64):
-        for _ in range(count):
+    def spawn_explosion(self, pos: tuple[float, float], count: int = 24, color: tuple[int, int, int] = COLOR_GOLD, sprite_name: str = 'explosion_1', max_size: int = 80):
+        # 1. Primary visual: Real production explosion PNG overlay
+        rot = random.uniform(0, 360.0)
+        self.explosion_overlays.append(ExplosionOverlay(pos, sprite_name=sprite_name, lifetime=0.45, max_size=max_size, rotation_deg=rot))
+
+        # 2. Secondary enhancement: Bounded ambient debris particles
+        for _ in range(min(count, 20)):
             ang = random.uniform(0, math.tau)
-            spd = random.uniform(80.0, 320.0)
+            spd = random.uniform(80.0, 300.0)
             vel = (math.cos(ang) * spd, math.sin(ang) * spd)
-            rad = random.uniform(3.0, 7.0)
-            life = random.uniform(0.25, 0.55)
+            rad = random.uniform(2.5, 5.5)
+            life = random.uniform(0.20, 0.45)
             self.particles.add(Particle(pos, vel, color, rad, life))
         self._enforce_particle_cap()
-        if sprite_name and self.sprite_manager:
-            exp_sprite = self.sprite_manager.get_vfx_sprite(sprite_name, (max_size, max_size))
-            self.explosion_overlays.append(ExplosionOverlay(pos, exp_sprite, lifetime=0.4, max_size=max_size))
 
     def spawn_enemy_death(self, pos: tuple[float, float], color: tuple[int, int, int], enemy_type: str = ""):
         if enemy_type in (TARGET_TYPE_HEAVY, TARGET_TYPE_ARMORED):
-            max_size = 110
+            self.spawn_explosion(pos, count=24, color=color, sprite_name='explosion_2', max_size=110)
         elif enemy_type == TARGET_TYPE_SHIELD_DRONE:
-            max_size = 100
+            self.spawn_explosion(pos, count=22, color=color, sprite_name='explosion_2', max_size=100)
         elif enemy_type == TARGET_TYPE_SCOUT:
-            max_size = 78
+            self.spawn_explosion(pos, count=18, color=color, sprite_name='explosion_1', max_size=78)
         else:
-            max_size = 88
-        self.spawn_explosion(pos, count=28, color=color, sprite_name='explosion_1', max_size=max_size)
-        self.spawn_spark(pos, count=16, color=COLOR_WHITE)
+            self.spawn_explosion(pos, count=20, color=color, sprite_name='explosion_1', max_size=88)
+        self.spawn_spark(pos, count=14, color=COLOR_WHITE)
 
     def spawn_boss_explosion(self, pos: tuple[float, float]):
-        self.spawn_explosion(pos, count=55, color=COLOR_GOLD, sprite_name='explosion_2', max_size=210)
-        self.spawn_explosion(pos, count=35, color=COLOR_CRIMSON, sprite_name='explosion_2', max_size=180)
-        self.spawn_spark(pos, count=30, color=COLOR_WHITE)
+        self.spawn_explosion(pos, count=45, color=COLOR_GOLD, sprite_name='explosion_2', max_size=210)
+        self.spawn_explosion(pos, count=30, color=COLOR_CRIMSON, sprite_name='explosion_2', max_size=180)
+        self.spawn_spark(pos, count=28, color=COLOR_WHITE)
 
     def spawn_drone_trail(self, pos: tuple[float, float]):
         vel = (random.uniform(-10.0, 10.0), random.uniform(-10.0, 10.0))
@@ -227,13 +247,22 @@ class ParticleManager:
         self.lightning_arcs.append(LightningArc(start_pos, end_pos, color))
 
     def spawn_cluster_explosion(self, pos: tuple[float, float]):
-        self.spawn_explosion(pos, count=30, color=COLOR_CLUSTER)
+        self.spawn_explosion(pos, count=20, color=COLOR_CLUSTER, sprite_name='explosion_1', max_size=75)
+        self.spawn_shockwave(pos, max_r=90, color=COLOR_CLUSTER)
 
     def spawn_emp_shockwave(self, pos: tuple[float, float]):
-        self.spawn_explosion(pos, count=45, color=COLOR_CYAN)
+        self.spawn_explosion(pos, count=25, color=COLOR_CYAN, sprite_name='explosion_2', max_size=110)
+        self.spawn_shockwave(pos, max_r=130, color=COLOR_CYAN)
 
-    def spawn_shockwave(self, pos: tuple[float, float], max_r: int = 500, color: tuple[int, int, int] = (250, 204, 21)):
-        self.spawn_explosion(pos, count=35, color=color)
+    def spawn_shockwave(self, pos: tuple[float, float], max_r: int = 160, color: tuple[int, int, int] = (250, 204, 21)):
+        # Primary visual: Real shockwave PNG overlay originating at actual impact location
+        self.explosion_overlays.append(ExplosionOverlay(pos, sprite_name='shockwave', lifetime=0.38, max_size=max_r, is_shockwave=True))
+        for _ in range(12):
+            ang = random.uniform(0, math.tau)
+            spd = random.uniform(80.0, 220.0)
+            vel = (math.cos(ang) * spd, math.sin(ang) * spd)
+            self.particles.add(Particle(pos, vel, color, random.uniform(2.0, 4.0), 0.25, is_spark=True))
+        self._enforce_particle_cap()
 
     def spawn_barrel_roll_rings(self, pos: tuple[float, float], radius: int = 40, color: tuple[int, int, int] = COLOR_CYAN):
         self.spawn_shockwave(pos, max_r=radius * 3, color=color)
@@ -334,29 +363,32 @@ class ParticleManager:
         self._enforce_particle_cap()
 
     def spawn_weapon_impact(self, pos: tuple[float, float], weapon_type: str):
-        """Spawns weapon-specific visual impact burst."""
+        """Spawns weapon-specific visual impact burst using real explosion and shockwave PNGs."""
         if weapon_type in ("missile", "light_missile", "heavy_missile", "barrage"):
-            self.spawn_explosion(pos, count=24, color=COLOR_MISSILE)
+            self.spawn_explosion(pos, count=18, color=COLOR_MISSILE, sprite_name='explosion_2', max_size=85)
+            if weapon_type == "heavy_missile":
+                self.spawn_shockwave(pos, max_r=110, color=COLOR_MISSILE)
         elif weapon_type in ("plasma", "heavy_cannon"):
-            self.spawn_explosion(pos, count=28, color=(217, 70, 239))
+            self.spawn_explosion(pos, count=20, color=(217, 70, 239), sprite_name='explosion_2', max_size=95)
         elif weapon_type in ("rail", "precision"):
-            self.spawn_spark(pos, count=16, color=(224, 242, 254))
+            self.spawn_explosion(pos, count=12, color=(224, 242, 254), sprite_name='explosion_1', max_size=55)
+            self.spawn_spark(pos, count=14, color=(224, 242, 254))
         elif weapon_type == "tesla":
-            self.spawn_spark(pos, count=14, color=COLOR_TESLA)
+            self.spawn_explosion(pos, count=12, color=COLOR_TESLA, sprite_name='explosion_1', max_size=50)
+            self.spawn_spark(pos, count=12, color=COLOR_TESLA)
         elif weapon_type == "cluster":
             self.spawn_cluster_explosion(pos)
         elif weapon_type == "emp":
             self.spawn_emp_shockwave(pos)
         elif weapon_type == "scatter":
-            self.spawn_spark(pos, count=12, color=COLOR_GOLD)
+            self.spawn_explosion(pos, count=10, color=COLOR_GOLD, sprite_name='explosion_1', max_size=45)
+            self.spawn_spark(pos, count=10, color=COLOR_GOLD)
         else:
+            self.spawn_explosion(pos, count=8, color=COLOR_CYAN, sprite_name='explosion_1', max_size=45)
             self.spawn_spark(pos, count=8, color=COLOR_CYAN)
 
     def spawn_cluster_burst(self, pos: tuple[float, float]):
-        """Alias for cluster explosion."""
         self.spawn_cluster_explosion(pos)
-
-
 
     def spawn_enemy_hit_sparks(self, pos: tuple[float, float], enemy_type: str, damage: int):
         if enemy_type == TARGET_TYPE_SCOUT:
@@ -434,28 +466,11 @@ class ParticleManager:
         self._enforce_particle_cap()
 
     def spawn_player_destruction(self, pos: tuple[float, float]):
-        for _ in range(30):
-            ang = random.uniform(0, math.tau)
-            spd = random.uniform(100.0, 380.0)
-            vel = (math.cos(ang) * spd, math.sin(ang) * spd)
-            life = random.uniform(0.30, 0.70)
-            self.particles.add(Particle(pos, vel, COLOR_GOLD, random.uniform(3.0, 7.0), life))
-        for _ in range(20):
-            ang = random.uniform(0, math.tau)
-            spd = random.uniform(60.0, 220.0)
-            vel = (math.cos(ang) * spd, math.sin(ang) * spd)
-            life = random.uniform(0.25, 0.60)
-            self.particles.add(Particle(pos, vel, COLOR_CRIMSON, random.uniform(2.5, 5.5), life))
-        for _ in range(12):
-            ang = random.uniform(0, math.tau)
-            spd = random.uniform(40.0, 160.0)
-            vel = (math.cos(ang) * spd, math.sin(ang) * spd)
-            life = random.uniform(0.20, 0.50)
-            self.particles.add(Particle(pos, vel, COLOR_WHITE, random.uniform(2.0, 4.5), life))
-        self._enforce_particle_cap()
-        if self.sprite_manager:
-            exp_sprite = self.sprite_manager.get_player_state_sprite('destroy', 0, (160, 160))
-            self.explosion_overlays.append(ExplosionOverlay(pos, exp_sprite, lifetime=0.5, max_size=160))
+        # Primary visual: Heavy explosion_2 and shockwave overlays
+        self.spawn_explosion(pos, count=45, color=COLOR_GOLD, sprite_name='explosion_2', max_size=210)
+        self.spawn_shockwave(pos, max_r=260, color=(56, 189, 248))
+        self.spawn_spark(pos, count=35, color=COLOR_WHITE)
+        self.spawn_spark(pos, count=25, color=COLOR_CRIMSON)
 
     def spawn_floating_text(self, pos: tuple[float, float], text: str, color: tuple[int, int, int] = COLOR_GOLD, font_size: int = 18):
         self.floating_texts.add(FloatingText(pos, text, color, font_size))
@@ -486,7 +501,7 @@ class ParticleManager:
         for p in self.weather_particles:
             pygame.draw.circle(surface, p[4], (int(p[0]), int(p[1])), 2)
 
-        # Explosion overlays (high-fidelity sprites)
+        # Explosion & shockwave overlays (real production PNG sprites)
         for overlay in self.explosion_overlays:
             overlay.draw(surface, camera_offset)
 

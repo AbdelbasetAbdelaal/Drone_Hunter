@@ -1,3 +1,7 @@
+import sys
+import os
+sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
+
 import pytest
 import math
 import pygame
@@ -141,6 +145,8 @@ def test_reset_clears_weapon_state():
     """Verify GameContext reset clears weapon state and sets to Pulse."""
     game = Game()
     ctx = game.context
+    ctx.selected_skin_override = 0
+    ctx.player.apply_drone_class(0)
     ctx.player.set_weapon(WEAPON_MISSILE)
     ctx.player.shoot((100, 0))
     
