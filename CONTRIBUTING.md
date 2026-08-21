@@ -1,4 +1,4 @@
-﻿# 🛠️ Contributing to Drone Hunter 2D
+# 🛠️ Contributing to Drone Hunter 2D
 
 Thank you for your interest in contributing to **Drone Hunter 2D**!
 
@@ -16,11 +16,12 @@ Thank you for your interest in contributing to **Drone Hunter 2D**!
 
 3. **Production Asset Standards**:
    - Sprites must have 100% clean alpha transparency (no concept sheet borders, annotations, white boxes, or gray backgrounds).
-   - Sprites are managed exclusively through SpriteManager with 2-degree rotation caching.
+   - Real PNG assets in `assets/sprites/weapons/` and `assets/sprites/vfx/` are primary visuals. Procedural fallbacks are not permitted during normal gameplay.
+   - Sprites are managed exclusively through `SpriteManager` with 2-degree rotation caching.
    - Shadows must remain unrotated on Layer 1.
 
 4. **Zero-Disk I/O During Gameplay**:
-   - All asset loading and surface creation must happen at startup or level transition — never inside the per-frame update() or ender() loops.
+   - All asset loading and surface creation must happen at startup or level transition — never inside the per-frame `update()` or `render()` loops.
 
 ---
 
@@ -28,24 +29,25 @@ Thank you for your interest in contributing to **Drone Hunter 2D**!
 
 Before submitting any code changes, ensure all tests pass:
 
-`ash
+```bash
 # 1. Compile check all modules
 python -m compileall drone_hunter_pc
 
-# 2. Run the complete automated test suite (314 tests)
+# 2. Run the complete automated test suite (435 tests)
 pytest drone_hunter_pc/tests -v
-`
+```
 
-All 314 tests must pass green with zero regressions.
+All 435 tests must pass green with zero regressions.
 
 ---
 
 ## 📁 Repository Organization
 
-- drone_hunter_pc/src/core/: Game state, central game context container, engine loop.
-- drone_hunter_pc/src/data/: Authoritative catalogs (gameplay constants, 25 missions, bosses).
-- drone_hunter_pc/src/entities/: Player, enemies, bosses, projectiles, obstacles.
-- drone_hunter_pc/src/rendering/: SpriteManager, player renderer, camera, particle engine.
-- drone_hunter_pc/src/systems/: Combat director, encounter waves, mission lifecycle, progression, save system.
-- drone_hunter_pc/src/ui/: In-game HUD, menus, hangar upgrade store.
-- drone_hunter_pc/tests/: Automated unit, integration, and performance regression tests.
+- `drone_hunter_pc/src/core/`: Game state, central game context container, engine loop.
+- `drone_hunter_pc/src/data/`: Authoritative catalogs (gameplay constants, 25 missions, bosses).
+- `drone_hunter_pc/src/entities/`: Player, enemies, bosses, projectiles, obstacles.
+- `drone_hunter_pc/src/rendering/`: SpriteManager, player renderer, camera, particle engine.
+- `drone_hunter_pc/src/systems/`: Combat director, encounter waves, mission lifecycle, progression, save system.
+- `drone_hunter_pc/src/audio/`: Audio manager, priority channels, sound synthesis.
+- `drone_hunter_pc/src/ui/`: In-game HUD, menus, hangar upgrade store.
+- `drone_hunter_pc/tests/`: Automated unit, integration, and performance regression tests.

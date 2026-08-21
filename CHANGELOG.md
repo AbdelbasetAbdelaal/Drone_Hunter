@@ -1,6 +1,39 @@
-﻿# 📜 Changelog — Drone Hunter 2D
+# 📜 Changelog — Drone Hunter 2D
 
 All notable changes to the **Drone Hunter 2D** project are documented in this file.
+
+---
+
+## [Phase 10] — Real Production Asset Integration, Audio Synthesis & Combat Polish (2026)
+
+### Added
+- **Authoritative Real Production PNG Asset Integration**:
+  - Integrated canonical production weapon projectile sprites (`laser_pulse.png`, `laser_scatter.png`, `missile.png`, `laser_beam.png`, `tesla_orb.png`, `cluster_torpedo.png`) across all 11 weapon systems.
+  - Integrated canonical production VFX overlays (`explosion_1.png`, `explosion_2.png`, `shockwave.png`, `shield_bubble.png`, `engine_flame.png`) for all enemy destructions, boss explosions, player destruction, and weapon impacts.
+  - Added startup validation and live render telemetry (`weapon_asset_usage`, `vfx_asset_usage`) in `SpriteManager`.
+- **Physical Multi-Harmonic Explosion Audio Synthesis**:
+  - Re-synthesized explosion audio in `sound_synth.py` with continuous dynamic low-pass filters (1.9kHz down to 65Hz) and chest-punching sub-bass harmonics (20Hz–55Hz).
+  - Multi-stage dreadnought boss detonations, metallic scout ruptures, heavy armored hull groans, and catastrophic core breaches.
+  - Full stereo interleaved 16-bit PCM buffer compatibility dynamically adapting to mixer initialization.
+- **Dedicated Real Asset Integration Test Suite**:
+  - Created `test_real_asset_integration.py` (15 unit tests covering asset validation, telemetry, forward firing vectors, explosion overlays, and deferred death sequences).
+  - Total project test suite expanded to **435 / 435 tests passing (100% green)**.
+
+### Fixed
+- **Weapon Forward Trajectory & Aim Math**:
+  - Resolved backward-firing bug across all weapon types by projecting forward target points strictly along `aim_angle` from individual mount locations.
+  - Synchronized `MOUSEBUTTONDOWN` window coordinates through `get_canvas_mouse_pos()` and `screen_to_world()`.
+- **Deferred Player Destruction Sequence**:
+  - Eliminated premature Mission Failure popup; player death now executes a full 1.4-second explosion sequence with shockwaves, fiery shrapnel, camera tracking, and uninterrupted audio before displaying the failure UI.
+- **Arena Enemy Boundary Constraint**:
+  - Clamped all enemy movement inside world boundaries to prevent enemies from flying off-map.
+
+---
+
+## [Phase 9] — Combat Feedback, Audio Hierarchy & Weapon Identity
+- Implemented distinct visual and audio identities for all 11 primary and secondary weapons.
+- Added localized muzzle flashes and weapon recoil impulses.
+- Connected multi-channel audio priority manager with voice throttling.
 
 ---
 

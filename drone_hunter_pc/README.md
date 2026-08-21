@@ -1,215 +1,167 @@
-﻿# ðŸ›¸ Drone Hunter 2D â€” PC Edition (Phase 8)
+# 🛸 Drone Hunter 2D — PC Edition
 
-**Drone Hunter 2D** is a high-performance industrial sci-fi tactical top-down drone combat game developed with Python and `pygame-ce`.
+[![Python](https://img.shields.io/badge/python-3.10%2B-blue.svg)](https://www.python.org/)
+[![Engine](https://img.shields.io/badge/engine-pygame--ce%202.5%2B-green.svg)](https://pyga.me/)
+[![Tests](https://img.shields.io/badge/tests-435%20passing-brightgreen.svg)](#-automated-tests)
+[![Platform](https://img.shields.io/badge/platform-Windows%20%7C%20Linux%20%7C%20macOS-orange.svg)](#)
+[![Status](https://img.shields.io/badge/status-Production%20Asset%20Integrated-purple.svg)](#)
 
-Fight through **5 distinct industrial sectors**, complete **25 combat missions**, engage **5 sector bosses** with multi-phase attack patterns, upgrade your drone in the Hangar, and defeat the **Drone Overlord** in the final endgame confrontation.
+**Drone Hunter 2D** is a high-performance industrial sci-fi tactical top-down drone combat game built with Python and `pygame-ce`.
+
+Fight through **5 industrial sectors**, complete **25 tactical combat missions**, defeat **5 sector dreadnought bosses** and the final **Drone Overlord**, upgrade your chassis in the Hangar, and master an arsenal of 11 weapons with physical audio and visual identities.
 
 ---
 
-## ðŸš€ Quick Start
+## 🚀 Quick Start
 
-### 1. Prerequisites
-- Python 3.10+ (tested on 3.10 / 3.11 / 3.12 / 3.13 / 3.14)
-- `pip install -r requirements.txt`  (installs `pygame-ce>=2.5.0` and `pytest>=7.0.0`)
+### Prerequisites
+```bash
+pip install pygame-ce>=2.5.0 pytest>=7.0.0
+# or
+pip install -r drone_hunter_pc/requirements.txt
+```
 
-### 2. Launch the Game
-From the project root:
+### Launch the Game
 ```bash
 python drone_hunter_pc/main.py
 ```
-Or from inside `drone_hunter_pc/`:
-```bash
-python main.py
-```
 
-### 3. Run All Automated Tests (314 tests)
+### Run All Tests (435 tests)
 ```bash
 pytest drone_hunter_pc/tests
 ```
 
 ---
 
-## ðŸ•¹ï¸ Controls Reference
+## 🎮 Controls Reference
 
-| Action | Primary Input | Alternate |
+| Action | Primary | Alternate |
 |:---|:---|:---|
-| **Movement / Thrust** | `W`, `A`, `S`, `D` | Arrow Keys |
-| **Aim** | Mouse Pointer | *(screen-mapped crosshair)* |
-| **Primary Fire** | `Left Mouse Button` | â€” |
-| **Weapon Selection** | `1` to `6` | `TAB` / Mouse Wheel |
-| **EMP Blast** | `E` | `Right Mouse Button` |
+| **Movement / Thrust** | `W A S D` | Arrow Keys |
+| **Aim & Fire** | Mouse Aim + `LMB` | `Spacebar` (fires forward) |
+| **Switch Weapon** | `1`–`6` | `TAB` / Mouse Wheel |
+| **EMP Blast** | `E` | `RMB` |
 | **Overdrive Mode** | `F` | `Q` / Middle Mouse |
-| **Evasive Barrel Roll** | `Left Shift` | `Right Shift` |
-| **Tactical Cloak** | `K` | â€” |
-| **Cycle Drone Skin** | `C` | Hangar customizer |
+| **Tactical Barrel Roll** | `Left Shift` | `Right Shift` |
+| **Tactical Cloak** | `K` | — |
+| **Cycle Drone Skin** | `C` | Hangar Bay customizer |
 | **Pause / Resume** | `ESC` | `P` |
-| **Fullscreen Toggle** | `F11` | â€” |
+| **Fullscreen Toggle** | `F11` | — |
 | **Sector Map** | `M` | Menu button |
 | **Hangar Bay** | `H` | Menu button |
 
 ---
 
-## ðŸŒŒ Campaign â€” 5 Sectors Ã— 5 Missions
+## 🛸 Player Combat Drone Platforms
 
-| Sector | Name | Theme | Boss |
-|---|---|---|---|
-| 1 | **CYBER FACTORY** | Industrial drone production plant | Assembly Warden |
-| 2 | **CORE SECTOR** | Heavily defended reactor core complex | Core Executor |
-| 3 | **REACTOR ZONE** | Volatile energy conduits & plasma machinery | Reactor Titan |
-| 4 | **DEFENSE GRID** | Fortified automated defense installations | Defense Commander |
-| 5 | **DRONE COMMAND** | Enemy command infrastructure | Drone Overlord |
-
-### Mission Roster (25 missions)
-
-| ID | Name | Sector | Diff | Objective | Waves |
-|---|---|---|---|---|---|
-| S1_M1 | Perimeter Sweep | Cyber Factory | 1 | Destroy All | 2 |
-| S1_M2 | Factory Approach | Cyber Factory | 1 | Destroy All | 3 |
-| S1_M3 | Security Breach | Cyber Factory | 2 | Complete Encounters | 3 |
-| S1_M4 | Production Line | Cyber Factory | 2 | Complete Encounters | 3 |
-| S1_M5 | Perimeter Collapse | Cyber Factory | 3 | Complete Encounters | 3 |
-| S2_M1 | Core Entry | Core Sector | 2 | Destroy All | 3 |
-| S2_M2 | Assembly Lines | Core Sector | 2 | Complete Encounters | 3 |
-| S2_M3 | Reactor Access | Core Sector | 3 | Complete Encounters | 3 |
-| S2_M4 | Security Grid | Core Sector | 3 | **Survive 45 s** | 3 |
-| S2_M5 | Core Breach | Core Sector | 4 | Complete Encounters | 3 |
-| S3_M1 | Reactor Approach | Reactor Zone | 3 | Complete Encounters | 3 |
-| S3_M2 | Cooling Network | Reactor Zone | 3 | **Survive 75 s** | 3 |
-| S3_M3 | Power Junction | Reactor Zone | 4 | Complete Encounters | 4 |
-| S3_M4 | Reactor Defense | Reactor Zone | 4 | Complete Encounters | 3 |
-| S3_M5 | Critical Overload | Reactor Zone | 5 | Complete Encounters | 3 |
-| S4_M1 | Outer Defense | Defense Grid | 4 | Complete Encounters | 3 |
-| S4_M2 | Interceptor Grid | Defense Grid | 4 | **Survive 75 s** | 3 |
-| S4_M3 | Defense Network | Defense Grid | 4 | Complete Encounters | 4 |
-| S4_M4 | Central Firewall | Defense Grid | 5 | Complete Encounters | 3 |
-| S4_M5 | Defense Collapse | Defense Grid | 5 | Complete Encounters | 3 |
-| S5_M1 | Command Perimeter | Drone Command | 4 | Complete Encounters | 4 |
-| S5_M2 | Tactical Network | Drone Command | 5 | **Survive 90 s** | 3 |
-| S5_M3 | Command Core | Drone Command | 5 | Complete Encounters | 4 |
-| S5_M4 | Final Defense | Drone Command | 5 | Complete Encounters | 4 |
-| S5_M5 | Drone Command | Drone Command | 5 | Complete Encounters | 4 |
-
-### Wave Compositions
-
-| Constant | Composition | Enemies |
-|---|---|---|
-| `WAVE_SCOUTS_PATROL` | 3Ã— Scout | 3 |
-| `WAVE_SCOUTS_ASSAULT` | 4Ã— Scout | 4 |
-| `WAVE_SCOUTS_SWARM` | 5Ã— Scout | 5 |
-| `WAVE_SHOOTERS_PAIR` | Shooterâ€“Scoutâ€“Shooter | 3 |
-| `WAVE_SHOOTERS_SQUAD` | Scoutâ€“Shooterâ€“Scoutâ€“Shooterâ€“Scout | 5 |
-| `WAVE_HEAVY_ESCORT` | Scoutâ€“Heavyâ€“Scoutâ€“Shooter | 4 |
-| `WAVE_HEAVY_BATTLEGROUP` | Scoutâ€“Heavyâ€“Shooterâ€“Heavyâ€“Scout | 5 |
-| `WAVE_SHIELD_VANGUARD` | Scoutâ€“Shieldâ€“Shooterâ€“Scout | 4 |
-| `WAVE_ELITE_STRIKE_FORCE` | Shieldâ€“Heavyâ€“Shooterâ€“Shooterâ€“Scout | 5 |
-
----
-
-## ðŸ› ï¸ Drone Upgrades & Hangar
-
-Earn **Scrap** from defeated enemies and mission rewards:
-
-| Upgrade | Effect | Max Lv |
-|---|---|---|
-| ðŸ”‹ Battery Capacity | +20 max HP per level | 5 |
-| ðŸš€ Thruster Agility | +15% speed per level | 5 |
-| âš¡ Fire-Rate Overclock | âˆ’12% weapon cooldown per level | 5 |
-| ðŸ’¥ EMP Quick-Charger | âˆ’2.5 s EMP recharge per level | 4 |
-| ðŸ›¸ Wingman Escort Drone | Autonomous escort minidrone | 3 |
-| ðŸ‘» Tactical Cloak Unit | Unlocks `K` cloak ability | 3 |
-| ðŸš€ Homing Missiles | Unlocks missile weapon | 3 |
-| âš¡ Plasma Laser Beam | Unlocks beam weapon | 3 |
-| ðŸŒ©ï¸ Arc Lightning Tesla | Unlocks tesla weapon | 3 |
-| ðŸ’£ Cluster Torpedo | Unlocks cluster weapon | 3 |
-| âš¡ Overdrive Reactor | Enhances overdrive duration & recharge | 3 |
-
-### Drone Skins (`C` key to cycle)
-`PLATINUM VANGUARD` Â· `CYBERNEON PHANTOM` Â· `SOVEREIGN GOLD` Â· `CRIMSON WIDOW` Â· `VOID STEALTH` Â· `SOLAR FLARE`
-
----
-
-## ðŸŽ® Difficulty Modes
-
-| Mode | Enemy HP | Enemy Speed | Enemy Damage | Score |
+| Class | Platform | Archetype | Default Weapon | Special Trait |
 |---|---|---|---|---|
-| EASY | Ã—0.75 | Ã—0.80 | Ã—0.70 | Ã—0.80 |
-| NORMAL | Ã—1.00 | Ã—1.00 | Ã—1.00 | Ã—1.00 |
-| HARD | Ã—1.35 | Ã—1.20 | Ã—1.30 | Ã—1.40 |
-| NIGHTMARE | Ã—1.75 | Ã—1.40 | Ã—1.60 | Ã—2.00 |
+| **Class 0** | **Striker** | Balanced Generalist | Pulse Cannon | Dual wing mounts, versatile kinetic profile |
+| **Class 1** | **Phantom** | High-Agility Interceptor | Rapid Autocannon | +15% Speed, rapid fire-rate, tight turning |
+| **Class 2** | **Titan** | Heavy Armored Gunship | Heavy Plasma Orb | +50 Max HP, +2 Armor, high recoil absorption |
+| **Class 3** | **Velocity** | Advanced Speed Scout | Arc Lightning Tesla | +25% Speed, instantaneous engine response |
+| **Class 4** | **Command** | Dreadnought Destroyer | Railgun Accelerator | Maximum firepower, dual missile pod bays |
 
 ---
 
-## ðŸŽ¨ Phase 8 Visual Overhaul
+## ⚡ Combat Arsenal & Real Production Assets
 
-All entities now render from **54 production PNG sprites** with clean alpha transparency:
+Every weapon utilizes canonical production PNG assets from `assets/sprites/weapons/` with custom projectile kinematics, muzzle flashes, and sound identities:
 
-| Asset Group | Files | States |
+| # | Weapon | Asset | Behavior & Characteristics |
+|---|---|---|---|
+| 1 | **Pulse Cannon** | `laser_pulse.png` | Rapid twin plasma bolts from dual forward mounts |
+| 2 | **Rapid Autocannon** | `laser_pulse.png` | Alternating high-cyclic kinetic fire |
+| 3 | **Scatter Shotgun** | `laser_scatter.png` | 5-pellet wide spread burst for swarm suppression |
+| 4 | **Homing Missiles** | `missile.png` | Target-locking heavy ordnance with rocket trail |
+| 5 | **Missile Barrage** | `missile.png` | 4-missile salvo launched from dual wing pods |
+| 6 | **Heavy Plasma Orb** | `laser_beam.png` | High-damage slow plasma sphere with area shockwave |
+| 7 | **Railgun Accelerator**| `laser_beam.png` | Supersonic slug piercing through multiple targets |
+| 8 | **Plasma Laser Beam** | `laser_beam.png` | Continuous piercing directed-energy beam |
+| 9 | **Arc Lightning Tesla**| `tesla_orb.png` | Chain lightning arcing between clustered enemies |
+| 10| **Cluster Torpedo** | `cluster_torpedo.png`| Heavy ordnance splitting into 6 explosive bomblets |
+| 11| **EMP Shockwave** | `tesla_orb.png` | 360-degree electromagnetic pulse disabling enemy systems |
+
+---
+
+## 💥 Production VFX & Realistic Audio Synthesis
+
+- **Real Production VFX Overlays (`assets/sprites/vfx/`)**:
+  - `explosion_1.png`: Standard enemy death & light kinetic impacts (scale 78–88).
+  - `explosion_2.png`: Heavy enemy death, boss destruction, player death, and heavy ordnance impacts (scale 110–210).
+  - `shockwave.png`: Expanding blastwave overlays for heavy explosions and EMP blasts (radius up to 260px).
+- **Physical Multi-Harmonic Sound Synthesis**:
+  - Procedural sound generator using dynamic 1-pole and 2-pole low-pass filters (1.9kHz down to 65Hz) and deep sub-bass frequencies (20Hz–55Hz).
+  - Full stereo interleaved 16-bit PCM buffer playback dynamically matching hardware mixer rates.
+- **Deferred Player Destruction**:
+  - Full 1.4-second cinematic explosion animation on player destruction with active camera tracking and continuous audio before displaying the Mission Failed screen.
+
+---
+
+## 👾 Enemy Roster & Boss Encounters
+
+| Enemy | Role | Combat Behavior |
 |---|---|---|
-| Player | `player/` â€” 13 state PNGs + 4 chassis variants | idle, move, bank_l/r, fire, hit, damaged, destroy, destroyed |
-| Scout | `enemies/scout/` â€” 5 PNGs | base, idle, move, attack, hit |
-| Shooter | `enemies/shooter/` â€” 5 PNGs | base, idle, move, attack, hit |
-| Heavy | `enemies/heavy/` â€” 5 PNGs | base, idle, move, attack, hit |
-| Shield Elite | `enemies/shield_elite/` â€” 4 PNGs | base, idle, move, hit |
-| Bosses | `bosses/` â€” 5 PNGs | assembly_warden, core_executor, reactor_titan, defense_commander, drone_overlord |
-| Projectiles | `projectiles/` â€” 4 PNGs | bullet_pulse, bullet_scatter, enemy_bullet, missile |
-| Shadows | `shadows/` â€” 6 PNGs | player, scout, shooter, heavy, shield, boss (unrotated) |
-| VFX | `vfx/` â€” 1 PNG | engine_flame |
-
-**SpriteManager pipeline:** all sprites loaded once at startup â†’ 2-degree quantized rotation cache â†’ no per-frame Surface allocations â†’ Layer 1 shadow / Layer 2 entity / Layer 3 VFX rendering.
+| **Scout Drone** | Melee Dive-Bomber | Fast strafing, telegraph indicator, and high-speed dive attacks |
+| **Shooter Drone** | Tactical Marksman | Preferred distance management and dual plasma bursts |
+| **Heavy Drone** | Armored Bulldozer | 20% passive armor damage reduction, high contact damage |
+| **Shield Elite** | Defensive Barrier | Orbiting energy shield absorbing damage for nearby allies |
+| **Assembly Warden** | Sector 1 Boss | Radial energy bursts and spread barrages |
+| **Core Executor** | Sector 2 Boss | Stealth relocation and sweeping piercing laser beams |
+| **Reactor Titan** | Sector 3 Boss | Expanding energy shockwaves and escort drone deployments |
+| **Defense Commander**| Sector 4 Boss | Targeted missile salvos and aggressive high-speed charges |
+| **Drone Overlord** | Final Sector 5 Boss| 4-phase endgame confrontation with escalating attack patterns |
 
 ---
 
-## ðŸ§ª Automated Tests â€” 314 Passing
+## 🌌 Campaign — 5 Sectors × 5 Missions (25 Missions)
+
+| Sector | Name | Environment | Boss |
+|---|---|---|---|
+| **Sector 1** | **CYBER FACTORY** | Industrial drone assembly plant | Assembly Warden |
+| **Sector 2** | **CORE SECTOR** | Heavily fortified reactor core complex | Core Executor |
+| **Sector 3** | **REACTOR ZONE** | Volatile energy conduits & plasma arrays | Reactor Titan |
+| **Sector 4** | **DEFENSE GRID** | Automated perimeter defense network | Defense Commander |
+| **Sector 5** | **DRONE COMMAND** | Overlord primary command fortress | Drone Overlord |
+
+### Objective Types
+- **Destroy All** — Eliminate all hostile waves in the sector zone.
+- **Survive** — Endure aggressive swarm assault for a set duration (45s, 75s, 90s).
+- **Complete Encounters** — Defeat multi-wave tactical combat encounters.
+
+---
+
+## 🛠️ Hangar Bay Upgrades & Economy
+
+Earn **Scrap** by neutralizing enemy drones and completing sector missions. Invest in the Hangar:
+
+| Upgrade | Effect |
+|---|---|
+| 🔋 **Battery Capacity** | +25 Max HP per level (max level 5) |
+| 🚀 **Thruster Agility** | +5% Flight speed per level (max level 5) |
+| ⚡ **Weapon Systems** | +5% Damage multiplier per level (max level 5) |
+| 🛡️ **Hull Plating** | +25 Max HP per level (max level 5) |
+| ⚡ **EMP Quick-Charger** | Reduced EMP cooldown duration |
+| 🛸 **Wingman Escort** | Autonomous allied minidrone wingmen |
+| 👻 **Tactical Cloak** | Stealth cloak ability (`K`) granting temporary invulnerability |
+
+---
+
+## 🧪 Automated Test Suite (435 Passing)
+
+The project includes an exhaustive automated test suite with **435 tests passing with 100% success**:
 
 ```bash
-pytest drone_hunter_pc/tests        # Run all 314 tests
-pytest drone_hunter_pc/tests -v     # Verbose per-test output
+pytest drone_hunter_pc/tests
 ```
 
-| File | Area | Tests |
-|---|---|---|
-| `test_game_systems` | Core loop, context, state machine | ~20 |
-| `test_phase1_flight` | Player physics, acceleration, roll | ~18 |
-| `test_phase2a_scout` | Scout AI: strafe, dive, recover | ~25 |
-| `test_phase2b_shooter` | Shooter: telegraph, fire, reposition | ~22 |
-| `test_phase2c_heavy` | Heavy: armour, pressure AI | ~20 |
-| `test_phase2d_encounters` | Wave lifecycle, spawn sequencing | ~18 |
-| `test_phase2e_combat_director` | Multi-wave relief, sequencing | ~8 |
-| `test_phase3_weapons` | 6 weapon classes, projectile lifecycle | ~14 |
-| `test_phase4_progression` | Scrap rewards, upgrade costs | ~12 |
-| `test_phase5_missions` | Mission state machine, survive timer | ~14 |
-| `test_phase5_performance` | Sprite caching, projectile bounds | ~16 |
-| `test_phase6_bosses` | 5 bosses Ã— phase transitions | ~35 |
-| `test_phase7_release` | Save/load, fullscreen, resolution | ~22 |
-| `test_phase8_assets` | 54 sprites Ã— 3 assertions each | ~186 |
-| `test_phase8_missions_hardening` | 5-sector structure + 9 wave types lifecycle | ~128 |
-| `test_runtime_smoke` | Headless game loop â€” no crash | ~6 |
-
----
-
-## ðŸ’¾ Save & Progression Architecture
-
-- Saved atomically to `save_data_pc.json` after every mission completion and upgrade purchase.
-- Persisted state: scrap balance, upgrade levels (per stat), unlocked sectors & missions, completed missions, defeated bosses, active difficulty, campaign victory flag.
-- Schema-safe: missing/corrupt keys fall back to defaults â€” absent or damaged save files never crash the game.
-
----
-
-## ðŸ“¦ Building a Standalone Executable (Windows)
-
-```bash
-pip install pyinstaller
-pyinstaller DroneHunter.spec
-# Output: dist/DroneHunter/DroneHunter.exe
+```
+======================= 435 passed in 74.66s (0:01:14) ========================
 ```
 
----
-
-## ðŸ“‹ System Requirements
-
-| Component | Minimum | Recommended |
-|---|---|---|
-| OS | Windows 10 / Linux / macOS | Windows 11 |
-| Python | 3.10+ | 3.12+ |
-| Resolution | 1280Ã—720 | 1920Ã—1080 |
-| Audio | Any stereo device (auto fail-safe if absent) | â€” |
+- `test_real_asset_integration.py` (15 tests): Production weapon and VFX PNG asset integrity, telemetry, forward aim math, and deferred death sequence.
+- `test_phase10_audio.py` & `test_phase10_5_combat_overhaul.py` (27 tests): Audio manager priority channels, sound synthesis, and combat feedback.
+- `test_weapon_identity.py` (25 tests): Weapon damage, fire-rates, and projectile behaviors.
+- `test_phase9_combat_feedback.py` (49 tests): Combat VFX, overlays, and hit feedback.
+- `test_phase8_assets.py` & `test_phase8_missions_hardening.py` (314 tests): Asset integrity, mission logic, and wave lifecycles.
+- `test_game_systems.py`, `test_phase1_flight.py` – `test_phase7_release.py`: Core kinematics, progression, and bosses.
