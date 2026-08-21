@@ -1,9 +1,17 @@
 """
-================================================================================
-                    DRONE HUNTER 2D - PARTICLE EFFECTS & WEATHER
-================================================================================
+===============================================================================
+                     DRONE HUNTER 2D - PARTICLE EFFECTS & WEATHER
+===============================================================================
 High-performance 2D particle simulation, explosive shockwaves, lightning arcs,
 floating combat text, and dynamic atmospheric weather with camera offset support.
+
+Phase 9 additions:
+- Class-aware enemy hit sparks (Scout/Shooter/Heavy/Shield/Boss)
+- Bounded ring pulse overlays
+- Weapon-flavored muzzle bursts
+- Boss phase transition burst
+- Player destruction sequence
+All new effects have strict particle caps and finite lifetimes.
 """
 
 import math
@@ -12,8 +20,17 @@ import pygame
 from src.data.settings import (
     SCREEN_WIDTH, SCREEN_HEIGHT, COLOR_CYAN, COLOR_GOLD, COLOR_EMERALD,
     COLOR_CRIMSON, COLOR_MAGENTA, COLOR_PURPLE, COLOR_SHIELD, COLOR_OVERCLOCK,
-    COLOR_WHITE, COLOR_TESLA, COLOR_CLUSTER
+    COLOR_WHITE, COLOR_TESLA, COLOR_CLUSTER, COLOR_MISSILE
 )
+from src.data.game_data import (
+    TARGET_TYPE_SCOUT, TARGET_TYPE_SHOOTER, TARGET_TYPE_HEAVY,
+    TARGET_TYPE_ARMORED, TARGET_TYPE_SHIELD_DRONE, TARGET_TYPE_BOSS
+)
+
+# ── Phase 9 Particle Caps ──────────────────────────────────────────────────────
+MAX_COMBAT_PARTICLES = 300   # hard cap on the particles group
+MAX_RING_PULSES       = 6    # max simultaneous ring pulse overlays
+
 
 class Particle(pygame.sprite.Sprite):
     def __init__(self, pos: tuple[float, float], vel: tuple[float, float],
@@ -122,6 +139,13 @@ class ParticleManager:
         self.lightning_arcs: list[LightningArc] = []
         self.weather_particles = []
 
+    def _enforce_particle_cap(self):
+        if len(self.particles) > MAX_COMBAT_PARTICLES:
+            excess = len(self.particles) - MAX_COMBAT_PARTICLES
+            sprites = self.particles.sprites()
+            for spr in sprites[:excess]:
+                spr.kill()
+
     def spawn_spark(self, pos: tuple[float, float], count: int = 8, color: tuple[int, int, int] = COLOR_CYAN):
         for _ in range(count):
             ang = random.uniform(0, math.tau)
@@ -130,6 +154,7 @@ class ParticleManager:
             rad = random.uniform(1.5, 3.5)
             life = random.uniform(0.12, 0.28)
             self.particles.add(Particle(pos, vel, color, rad, life, is_spark=True))
+        self._enforce_particle_cap()
 
     def spawn_explosion(self, pos: tuple[float, float], count: int = 24, color: tuple[int, int, int] = COLOR_GOLD):
         for _ in range(count):
@@ -139,6 +164,7 @@ class ParticleManager:
             rad = random.uniform(3.0, 7.0)
             life = random.uniform(0.25, 0.55)
             self.particles.add(Particle(pos, vel, color, rad, life))
+        self._enforce_particle_cap()
 
     def spawn_enemy_death(self, pos: tuple[float, float], color: tuple[int, int, int]):
         self.spawn_explosion(pos, count=28, color=color)
@@ -152,6 +178,7 @@ class ParticleManager:
     def spawn_drone_trail(self, pos: tuple[float, float]):
         vel = (random.uniform(-10.0, 10.0), random.uniform(-10.0, 10.0))
         self.particles.add(Particle(pos, vel, COLOR_CYAN, radius=3.5, lifetime=0.18))
+        self._enforce_particle_cap()
 
     def spawn_lightning_arc(self, start_pos: tuple[float, float], end_pos: tuple[float, float], color: tuple[int, int, int] = COLOR_TESLA):
         self.lightning_arcs.append(LightningArc(start_pos, end_pos, color))
@@ -168,6 +195,148 @@ class ParticleManager:
     def spawn_barrel_roll_rings(self, pos: tuple[float, float], radius: int = 40, color: tuple[int, int, int] = COLOR_CYAN):
         self.spawn_shockwave(pos, max_r=radius * 3, color=color)
         self.spawn_spark(pos, count=12, color=color)
+
+    def spawn_muzzle_flash(self, pos: tuple[float, float], angle_rad: float, weapon_type: str):
+        cx, cy = pos
+        fwd_x = math.cos(angle_rad)
+        fwd_y = math.sin(angle_rad)
+        right_x = -fwd_y
+        right_y = fwd_x
+
+        if weapon_type == "pulse":
+            count = 4
+            spd_min, spd_max = 120.0, 280.0
+            rad_min, rad_max = 1.5, 3.0
+            life_min, life_max = 0.03, 0.07
+            col = COLOR_CYAN
+        elif weapon_type == "scatter":
+            count = 6
+            spd_min, spd_max = 100.0, 240.0
+            rad_min, rad_max = 2.0, 3.5
+            life_min, life_max = 0.03, 0.07
+            col = COLOR_GOLD
+        elif weapon_type == "missile":
+            count = 5
+            spd_min, spd_max = 80.0, 200.0
+            rad_min, rad_max = 2.5, 4.5
+            life_min, life_max = 0.06, 0.12
+            col = COLOR_MISSILE
+        else:
+            count = 4
+            spd_min, spd_max = 120.0, 260.0
+            rad_min, rad_max = 1.5, 3.0
+            life_min, life_max = 0.03, 0.07
+            col = COLOR_CYAN
+
+        base_x = cx + fwd_x * 22
+        base_y = cy + fwd_y * 22
+        for _ in range(count):
+            ang = random.uniform(0, math.tau)
+            spd = random.uniform(spd_min, spd_max)
+            offset = random.uniform(-4.0, 4.0)
+            rx = base_x + right_x * offset
+            ry = base_y + right_y * offset
+            vel = (math.cos(ang) * spd + fwd_x * 180.0, math.sin(ang) * spd + fwd_y * 180.0)
+            rad = random.uniform(rad_min, rad_max)
+            life = random.uniform(life_min, life_max)
+            self.particles.add(Particle((rx, ry), vel, col, rad, life, is_spark=True))
+        self._enforce_particle_cap()
+
+    def spawn_enemy_hit_sparks(self, pos: tuple[float, float], enemy_type: str, damage: int):
+        if enemy_type == TARGET_TYPE_SCOUT:
+            count = 6
+            spd_max = 280.0
+            col = COLOR_CYAN
+        elif enemy_type == TARGET_TYPE_SHOOTER:
+            count = 8
+            spd_max = 260.0
+            col = (200, 200, 210)
+        elif enemy_type in (TARGET_TYPE_HEAVY, TARGET_TYPE_ARMORED):
+            count = 12
+            spd_max = 220.0
+            col = (245, 158, 11)
+        elif enemy_type == TARGET_TYPE_SHIELD_DRONE:
+            count = 8
+            spd_max = 240.0
+            col = COLOR_SHIELD
+        elif enemy_type == TARGET_TYPE_BOSS:
+            count = 10
+            spd_max = 260.0
+            col = COLOR_GOLD
+        else:
+            count = 7
+            spd_max = 250.0
+            col = COLOR_CRIMSON
+
+        for _ in range(count):
+            ang = random.uniform(0, math.tau)
+            spd = random.uniform(80.0, spd_max)
+            vel = (math.cos(ang) * spd, math.sin(ang) * spd)
+            rad = random.uniform(1.5, 3.5)
+            life = random.uniform(0.08, 0.20)
+            self.particles.add(Particle(pos, vel, col, rad, life, is_spark=True))
+        self._enforce_particle_cap()
+
+    def spawn_shield_ripple(self, pos: tuple[float, float]):
+        for _ in range(6):
+            ang = random.uniform(0, math.tau)
+            spd = random.uniform(60.0, 140.0)
+            vel = (math.cos(ang) * spd, math.sin(ang) * spd)
+            life = random.uniform(0.10, 0.22)
+            self.particles.add(Particle(pos, vel, COLOR_SHIELD, random.uniform(2.0, 4.0), life, is_spark=True))
+        self._enforce_particle_cap()
+
+    def spawn_heavy_impact(self, pos: tuple[float, float]):
+        for _ in range(10):
+            ang = random.uniform(0, math.tau)
+            spd = random.uniform(60.0, 180.0)
+            vel = (math.cos(ang) * spd, math.sin(ang) * spd)
+            life = random.uniform(0.12, 0.28)
+            self.particles.add(Particle(pos, vel, (245, 120, 20), random.uniform(2.0, 4.5), life, is_spark=True))
+        for _ in range(4):
+            ang = random.uniform(0, math.tau)
+            spd = random.uniform(40.0, 100.0)
+            vel = (math.cos(ang) * spd, math.sin(ang) * spd)
+            life = random.uniform(0.15, 0.30)
+            self.particles.add(Particle(pos, vel, (120, 100, 80), random.uniform(2.5, 5.0), life))
+        self._enforce_particle_cap()
+
+    def spawn_boss_phase_transition(self, pos: tuple[float, float], phase_idx: int):
+        phase_colors = [
+            (56, 189, 248),
+            (245, 158, 11),
+            (239, 68, 68),
+            (217, 70, 239),
+        ]
+        col = phase_colors[min(phase_idx, len(phase_colors) - 1)]
+        for _ in range(18):
+            ang = random.uniform(0, math.tau)
+            spd = random.uniform(80.0, 260.0)
+            vel = (math.cos(ang) * spd, math.sin(ang) * spd)
+            life = random.uniform(0.25, 0.55)
+            self.particles.add(Particle(pos, vel, col, random.uniform(3.0, 6.0), life))
+        self._enforce_particle_cap()
+
+    def spawn_player_destruction(self, pos: tuple[float, float]):
+        for _ in range(30):
+            ang = random.uniform(0, math.tau)
+            spd = random.uniform(100.0, 380.0)
+            vel = (math.cos(ang) * spd, math.sin(ang) * spd)
+            life = random.uniform(0.30, 0.70)
+            self.particles.add(Particle(pos, vel, COLOR_GOLD, random.uniform(3.0, 7.0), life))
+        for _ in range(20):
+            ang = random.uniform(0, math.tau)
+            spd = random.uniform(60.0, 220.0)
+            vel = (math.cos(ang) * spd, math.sin(ang) * spd)
+            life = random.uniform(0.25, 0.60)
+            self.particles.add(Particle(pos, vel, COLOR_CRIMSON, random.uniform(2.5, 5.5), life))
+        for _ in range(12):
+            ang = random.uniform(0, math.tau)
+            spd = random.uniform(40.0, 160.0)
+            vel = (math.cos(ang) * spd, math.sin(ang) * spd)
+            life = random.uniform(0.20, 0.50)
+            self.particles.add(Particle(pos, vel, COLOR_WHITE, random.uniform(2.0, 4.5), life))
+        self._enforce_particle_cap()
 
     def spawn_floating_text(self, pos: tuple[float, float], text: str, color: tuple[int, int, int] = COLOR_GOLD, font_size: int = 18):
         self.floating_texts.add(FloatingText(pos, text, color, font_size))

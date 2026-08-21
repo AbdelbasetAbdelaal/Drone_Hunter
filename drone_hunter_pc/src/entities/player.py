@@ -317,7 +317,7 @@ class Player(pygame.sprite.Sprite):
         cooldown_ready = self.weapon_cooldowns.get(self.active_weapon, 0.0) <= 0.0
         return cooldown_ready and (self.energy >= cost or self.overdrive_timer > 0.0)
 
-    def shoot(self, target_pos: tuple[float, float], level: int = 1, targets_group=None) -> list[pygame.sprite.Sprite]:
+    def shoot(self, target_pos: tuple[float, float], level: int = 1, targets_group=None, particle_manager=None) -> list[pygame.sprite.Sprite]:
         """Fires projectiles toward world target position using authoritative balance values."""
         if not self.can_shoot():
             return []
@@ -375,6 +375,9 @@ class Player(pygame.sprite.Sprite):
             # Use normal bullet but with larger visual representation later, or HomingMissile if it exists
             # We'll use HomingMissile but give it the correct stats.
             bullets.append(HomingMissile((m_x, m_y), target_pos, damage=dmg, speed=spd))
+
+        if particle_manager:
+            particle_manager.spawn_muzzle_flash((m_x, m_y), self.aim_angle, self.active_weapon)
 
         return bullets
 

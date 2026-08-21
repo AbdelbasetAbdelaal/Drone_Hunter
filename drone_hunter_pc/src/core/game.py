@@ -27,7 +27,7 @@ from src.core.game_state import (
 from src.core.game_context import GameContext
 from src.core.clock import GameClock
 from src.entities.player import Player
-from src.entities.bullet import ClusterTorpedo
+from src.entities.bullet import ClusterTorpedo, HomingMissile
 from src.entities.obstacle import EnvironmentalObstacle
 from src.entities.hazard import LaserGridFence, GravityAnomaly
 from src.systems.save_system import SaveSystem
@@ -658,7 +658,7 @@ class Game:
                     if event.button == 1 and ctx.player and ctx.player.can_shoot():
                         cam_ox, cam_oy = self.camera.get_offset()
                         world_mx, world_my = mx + cam_ox, my + cam_oy
-                        fired_bullets = ctx.player.shoot((world_mx, world_my), level=ctx.current_sub_level, targets_group=ctx.target_group)
+                        fired_bullets = ctx.player.shoot((world_mx, world_my), level=ctx.current_sub_level, targets_group=ctx.target_group, particle_manager=self.particle_manager)
                         for b in fired_bullets: ctx.bullet_group.add(b)
                         if ctx.player.active_weapon == "pulse": self.audio_manager.play_laser()
                         elif ctx.player.active_weapon == "scatter": self.audio_manager.play_laser()
@@ -709,7 +709,7 @@ class Game:
                     mouse_pressed = pygame.mouse.get_pressed()
                     is_shooting = mouse_pressed[0] or (keys[pygame.K_SPACE] if isinstance(keys, (list, tuple, dict)) or hasattr(keys, '__getitem__') else False)
                     if is_shooting and ctx.player.can_shoot():
-                        fired_bullets = ctx.player.shoot((world_mx, world_my), level=ctx.current_sub_level, targets_group=ctx.target_group)
+                        fired_bullets = ctx.player.shoot((world_mx, world_my), level=ctx.current_sub_level, targets_group=ctx.target_group, particle_manager=self.particle_manager)
                         for b in fired_bullets: ctx.bullet_group.add(b)
                         
                         if ctx.player.active_weapon == "pulse": self.audio_manager.play_laser()
@@ -755,11 +755,19 @@ class Game:
                 # 3. Enemies & Projectiles (Scaled by bullet-time slowmo factor)
                 effective_enemy_dt = dt * ctx.time_scale
 
+                prev_boss_phase = {}
                 for target in list(ctx.target_group):
+                    if getattr(target, "is_boss", False):
+                        prev_boss_phase[id(target)] = target.current_phase_idx
                     p_pos = (ctx.player.pos.x, ctx.player.pos.y) if ctx.player else (200, 360)
                     p_vel = (ctx.player.velocity.x, ctx.player.velocity.y) if ctx.player else (0, 0)
                     new_e_bullets = target.update(effective_enemy_dt, player_pos=p_pos, player_vel=p_vel, player_obj=ctx.player, target_group=ctx.target_group)
                     for eb in new_e_bullets: ctx.enemy_bullet_group.add(eb)
+
+                for target in list(ctx.target_group):
+                    if getattr(target, "is_boss", False) and id(target) in prev_boss_phase:
+                        if target.current_phase_idx != prev_boss_phase[id(target)]:
+                            self.particle_manager.spawn_boss_phase_transition(target.rect.center, target.current_phase_idx)
 
                 for h in list(ctx.hazard_group):
                     if isinstance(h, GravityAnomaly): h.update(effective_enemy_dt, player=ctx.player)
@@ -774,6 +782,10 @@ class Game:
                     if isinstance(b, ClusterTorpedo):
                         bomblets = b.update(dt)
                         for bomb in bomblets: ctx.bullet_group.add(bomb)
+                    elif isinstance(b, HomingMissile):
+                        b.update(dt, target_group=ctx.target_group)
+                        if self.particle_manager and random.random() < 0.5:
+                            self.particle_manager.spawn_spark(b.rect.center, count=2, color=(255, 160, 40))
                     elif hasattr(b, "update") and "target_group" in b.update.__code__.co_varnames:
                         b.update(dt, target_group=ctx.target_group)
                     else:

@@ -89,7 +89,7 @@ class CombatSystem:
                         break
                 if is_shielded:
                     dmg = max(4, dmg // 3)
-                    if ctx.particle_manager: ctx.particle_manager.spawn_spark(target.rect.center, count=6, color=COLOR_SHIELD)
+                    if ctx.particle_manager: ctx.particle_manager.spawn_shield_ripple(target.rect.center)
 
                 is_dead = target.take_damage(dmg, source="bullet")
 
@@ -123,12 +123,18 @@ class CombatSystem:
                 if not getattr(b, "is_piercing", False):
                     b.kill()
 
-                if ctx.particle_manager: ctx.particle_manager.spawn_spark(b.rect.center, count=8, color=COLOR_CYAN)
+                if ctx.particle_manager:
+                    etype = getattr(target, "enemy_type", "")
+                    if etype in (TARGET_TYPE_HEAVY, TARGET_TYPE_ARMORED):
+                        ctx.particle_manager.spawn_heavy_impact(b.rect.center)
+                    else:
+                        ctx.particle_manager.spawn_enemy_hit_sparks(b.rect.center, etype, dmg)
                 if ctx.audio_manager: ctx.audio_manager.play_hit()
 
                 if is_dead:
                     if ctx.audio_manager: ctx.audio_manager.play_explosion()
-                    ctx.trigger_shake(6.0, 0.2)
+                    shake_intensity = 3.0 if not getattr(target, "is_boss", False) else 4.0
+                    ctx.trigger_shake(shake_intensity, 0.2)
                     earned_pts = ctx.add_score(target.score_value)
                     
                     from src.data.game_data import TARGET_TYPE_SCOUT, TARGET_TYPE_SHOOTER, TARGET_TYPE_HEAVY, REWARD_SCOUT, REWARD_SHOOTER, REWARD_HEAVY
@@ -144,7 +150,6 @@ class CombatSystem:
                     if ctx.particle_manager:
                         if getattr(target, "is_boss", False):
                             ctx.particle_manager.spawn_boss_explosion(target.rect.center)
-                            ctx.trigger_shake(14.0, 0.6)
                         else:
                             ctx.particle_manager.spawn_enemy_death(target.rect.center, target.color)
                         ctx.particle_manager.spawn_floating_text(target.rect.center, f"+{earned_pts}", COLOR_GOLD, 20)
@@ -170,13 +175,16 @@ class CombatSystem:
                     if ctx.audio_manager: ctx.audio_manager.play_hit()
                     if ctx.particle_manager: ctx.particle_manager.spawn_spark(player.rect.center, count=10, color=COLOR_SHIELD)
                 else:
-                    ctx.trigger_shake(8.0, 0.25)
+                    ctx.trigger_shake(4.0, 0.2)
                     ctx.damage_flash_timer = 0.18
                     if ctx.audio_manager: ctx.audio_manager.play_explosion()
                     if ctx.particle_manager: ctx.particle_manager.spawn_explosion(player.rect.center, count=20, color=COLOR_CRIMSON)
 
                 if is_destroyed:
                     player.kill()
+                    if ctx.particle_manager:
+                        ctx.particle_manager.spawn_player_destruction(player.rect.center)
+                    ctx.trigger_shake(5.0, 0.4)
                     if hasattr(ctx, "mission_system") and ctx.mission_system and ctx.mission_system.active_mission_id is not None:
                         ctx.mission_system.trigger_failure()
                         ctx.state = STATE_MISSION_FAILED
@@ -198,13 +206,16 @@ class CombatSystem:
                         if ctx.audio_manager: ctx.audio_manager.play_hit()
                         if ctx.particle_manager: ctx.particle_manager.spawn_spark(player.rect.center, count=12, color=COLOR_SHIELD)
                     else:
-                        ctx.trigger_shake(9.0, 0.25)
+                        ctx.trigger_shake(4.0, 0.2)
                         ctx.damage_flash_timer = 0.18
                         if ctx.audio_manager: ctx.audio_manager.play_hit()
                         if ctx.particle_manager: ctx.particle_manager.spawn_spark(player.rect.center, count=15, color=COLOR_CRIMSON)
 
                     if is_destroyed:
                         player.kill()
+                        if ctx.particle_manager:
+                            ctx.particle_manager.spawn_player_destruction(player.rect.center)
+                        ctx.trigger_shake(5.0, 0.4)
                         if hasattr(ctx, "mission_system") and ctx.mission_system and ctx.mission_system.active_mission_id is not None:
                             ctx.mission_system.trigger_failure()
                             ctx.state = STATE_MISSION_FAILED
