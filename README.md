@@ -2,13 +2,13 @@
 
 [![Python](https://img.shields.io/badge/python-3.10%2B-blue.svg)](https://www.python.org/)
 [![Engine](https://img.shields.io/badge/engine-pygame--ce%202.5%2B-green.svg)](https://pyga.me/)
-[![Tests](https://img.shields.io/badge/tests-435%20passing-brightgreen.svg)](#-automated-tests)
+[![Tests](https://img.shields.io/badge/tests-481%20passing-brightgreen.svg)](#-automated-test-suite-481-passing)
+[![Controller](https://img.shields.io/badge/controller-Xbox%20%7C%20Gamepad%20%7C%20Joystick-purple.svg)](#-first-class-controller--gamepad--joystick-support)
 [![Platform](https://img.shields.io/badge/platform-Windows%20%7C%20Linux%20%7C%20macOS-orange.svg)](#)
-[![Status](https://img.shields.io/badge/status-Production%20Asset%20Integrated-purple.svg)](#)
 
 **Drone Hunter 2D** is a high-performance industrial sci-fi tactical top-down drone combat game built with Python and `pygame-ce`.
 
-Fight through **5 industrial sectors**, complete **25 tactical combat missions**, defeat **5 sector dreadnought bosses** and the final **Drone Overlord**, upgrade your chassis in the Hangar, and master an arsenal of 11 weapons with physical audio and visual identities.
+Fight through **5 industrial sectors**, complete **25 tactical combat missions**, defeat **5 sector dreadnought bosses** and the final **Drone Overlord**, upgrade your chassis in the Hangar, and master an arsenal of 11 weapons with physical audio, visual identities, and **first-class controller/gamepad support**.
 
 ---
 
@@ -26,7 +26,7 @@ pip install -r drone_hunter_pc/requirements.txt
 python drone_hunter_pc/main.py
 ```
 
-### Run All Tests (435 tests)
+### Run All Tests (481 tests)
 ```bash
 pytest drone_hunter_pc/tests
 ```
@@ -35,20 +35,43 @@ pytest drone_hunter_pc/tests
 
 ## 🎮 Controls Reference
 
-| Action | Primary | Alternate |
-|:---|:---|:---|
-| **Movement / Thrust** | `W A S D` | Arrow Keys |
-| **Aim & Fire** | Mouse Aim + `LMB` | `Spacebar` (fires forward) |
-| **Switch Weapon** | `1`–`6` | `TAB` / Mouse Wheel |
-| **EMP Blast** | `E` | `RMB` |
-| **Overdrive Mode** | `F` | `Q` / Middle Mouse |
-| **Tactical Barrel Roll** | `Left Shift` | `Right Shift` |
-| **Tactical Cloak** | `K` | — |
-| **Cycle Drone Skin** | `C` | Hangar Bay customizer |
-| **Pause / Resume** | `ESC` | `P` |
-| **Fullscreen Toggle** | `F11` | — |
-| **Sector Map** | `M` | Menu button |
-| **Hangar Bay** | `H` | Menu button |
+| Action | Keyboard / Mouse | Xbox Controller | Generic Gamepad / Joystick |
+|:---|:---|:---|:---|
+| **Flight Movement** | `W A S D` / Arrow Keys | **Left Analog Stick** (360° Smooth) | Axis 0 & Axis 1 |
+| **Aiming Direction** | Mouse Cursor Aim | **Right Analog Stick** (360° Aiming) | Axis 2 & Axis 3 |
+| **Primary Weapon Fire** | `LMB` / `Spacebar` | **RT** (Right Trigger) | Trigger / Button 0 |
+| **Secondary Weapon Fire**| `RMB` | **LT** (Left Trigger) | Trigger 2 / Button 1 |
+| **Next Weapon** | `TAB` / `1`–`6` | **RB** (Right Bumper) | Bumper R |
+| **Previous Weapon** | `Mouse Wheel Down` | **LB** (Left Bumper) | Bumper L |
+| **Tactical Barrel Roll** | `Left Shift` / `Right Shift` | **A** Button | Button 0 |
+| **EMP Blast** | `E` | **X** Button | Button 2 |
+| **Overdrive Ultimate** | `F` / `Q` | **Y** Button | Button 3 |
+| **Tactical Cloak** | `C` / `K` | **R3** (Right Stick Click) | Button 9 |
+| **Pause / Resume** | `ESC` / `P` | **START** / **MENU** Button | Button 7 |
+| **Cancel / Back** | `ESC` / `B` | **B** Button | Button 1 |
+| **Fullscreen Toggle** | `F11` | — | — |
+
+---
+
+## 🕹️ First-Class Controller / Gamepad / Joystick Support
+
+The game features a dedicated, centralized input layer ([src/input/input_manager.py](file:///D:/Drone_Hunter/drone_hunter_pc/src/input/input_manager.py)) that translates raw hardware events into canonical game actions:
+
+1. **Multi-Device Compatibility**:
+   - Xbox 360, Xbox One, Xbox Series X/S Controllers
+   - XInput-compatible Gamepads & Generic USB Gamepads
+   - Joysticks & HOTAS Flight Sticks
+2. **Radial Deadzone & Analog Response Curve**:
+   - Radial deadzone (`0.12` default) preventing stick drift.
+   - Non-linear response curve ($f(m) = m^{1.35}$) granting precise micro-steering at low stick deflections and full maximum flight speed at 100% tilt.
+3. **Safe Bounded Vibration / Rumble Feedback**:
+   - Dynamic rumble feedback on player hits, firing heavy weapons (Railgun, Heavy Plasma), EMP blasts, Overdrive activation, and boss encounters.
+   - Failsafe fallback: degrades silently if rumble is unsupported or if a controller disconnects mid-vibration.
+4. **Hot-Plugging**:
+   - Dynamically listens to `JOYDEVICEADDED` and `JOYDEVICEREMOVED`.
+   - Launches safely with zero connected controllers.
+5. **Device-Aware UI Action Prompts**:
+   - Dynamically updates HUD action badges: displays `[SHIFT]` / `[E]` / `[F]` on Keyboard vs `[A]` / `[X]` / `[Y]` on Controller.
 
 ---
 
@@ -64,7 +87,7 @@ pytest drone_hunter_pc/tests
 
 ---
 
-## ⚡ Combat Arsenal & Real Production Assets
+## ⚡ Combat Arsenal & Production Assets
 
 Every weapon utilizes canonical production PNG assets from `assets/sprites/weapons/` with custom projectile kinematics, muzzle flashes, and sound identities:
 
@@ -87,12 +110,12 @@ Every weapon utilizes canonical production PNG assets from `assets/sprites/weapo
 ## 💥 Production VFX & Realistic Audio Synthesis
 
 - **Real Production VFX Overlays (`assets/sprites/vfx/`)**:
-  - `explosion_1.png`: Standard enemy death & light kinetic impacts (scale 78–88).
-  - `explosion_2.png`: Heavy enemy death, boss destruction, player death, and heavy ordnance impacts (scale 110–210).
+  - `explosion_1.png`: Standard enemy death & light kinetic impacts.
+  - `explosion_2.png`: Heavy enemy death, boss destruction, player death, and heavy ordnance impacts.
   - `shockwave.png`: Expanding blastwave overlays for heavy explosions and EMP blasts (radius up to 260px).
 - **Physical Multi-Harmonic Sound Synthesis**:
-  - Procedural sound generator using dynamic 1-pole and 2-pole low-pass filters (1.9kHz down to 65Hz) and deep sub-bass frequencies (20Hz–55Hz).
-  - Full stereo interleaved 16-bit PCM buffer playback dynamically matching hardware mixer rates.
+  - Procedural sound generator using dynamic 1-pole and 2-pole low-pass filters and deep sub-bass frequencies (20Hz–55Hz).
+  - Full stereo 16-bit PCM buffer playback matching hardware mixer rates.
 - **Deferred Player Destruction**:
   - Full 1.4-second cinematic explosion animation on player destruction with active camera tracking and continuous audio before displaying the Mission Failed screen.
 
@@ -124,11 +147,6 @@ Every weapon utilizes canonical production PNG assets from `assets/sprites/weapo
 | **Sector 4** | **DEFENSE GRID** | Automated perimeter defense network | Defense Commander |
 | **Sector 5** | **DRONE COMMAND** | Overlord primary command fortress | Drone Overlord |
 
-### Objective Types
-- **Destroy All** — Eliminate all hostile waves in the sector zone.
-- **Survive** — Endure aggressive swarm assault for a set duration (45s, 75s, 90s).
-- **Complete Encounters** — Defeat multi-wave tactical combat encounters.
-
 ---
 
 ## 🛠️ Hangar Bay Upgrades & Economy
@@ -143,22 +161,24 @@ Earn **Scrap** by neutralizing enemy drones and completing sector missions. Inve
 | 🛡️ **Hull Plating** | +25 Max HP per level (max level 5) |
 | ⚡ **EMP Quick-Charger** | Reduced EMP cooldown duration |
 | 🛸 **Wingman Escort** | Autonomous allied minidrone wingmen |
-| 👻 **Tactical Cloak** | Stealth cloak ability (`K`) granting temporary invulnerability |
+| 👻 **Tactical Cloak** | Stealth cloak ability (`C` / `R3`) granting temporary invulnerability |
 
 ---
 
-## 🧪 Automated Test Suite (435 Passing)
+## 🧪 Automated Test Suite (481 Passing)
 
-The project includes an exhaustive automated test suite with **435 tests passing with 100% success**:
+The project includes an exhaustive automated test suite with **481 tests passing with 100% success**:
 
 ```bash
 pytest drone_hunter_pc/tests
 ```
 
-```
-======================= 435 passed in 74.66s (0:01:14) ========================
+```text
+======================= 481 passed in 62.97s (0:01:02) ========================
 ```
 
+- `test_input_system.py` (16 tests): InputManager abstraction, deadzones, analog curve, hot-plugging, controller prompts, and rumble safety.
+- `test_explosion_audio.py` (6 tests): Authoritative explosion OGG asset verification and multi-channel audio dispatch.
 - `test_real_asset_integration.py` (15 tests): Production weapon and VFX PNG asset integrity, telemetry, forward aim math, and deferred death sequence.
 - `test_phase10_audio.py` & `test_phase10_5_combat_overhaul.py` (27 tests): Audio manager priority channels, sound synthesis, and combat feedback.
 - `test_weapon_identity.py` (25 tests): Weapon damage, fire-rates, and projectile behaviors.

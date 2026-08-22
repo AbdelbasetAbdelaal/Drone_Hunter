@@ -4,6 +4,28 @@ All notable changes to the **Drone Hunter 2D** project are documented in this fi
 
 ---
 
+## [Phase 11] — First-Class Controller, Gamepad & Joystick Support (2026)
+
+### Added
+- **Centralized Input Management Architecture (`InputManager`)**:
+  - Centralized input layer in `src/input/input_manager.py` converting hardware events into canonical game actions (`MOVE_X`, `MOVE_Y`, `AIM_ANGLE`, `FIRE_PRIMARY`, `FIRE_SECONDARY`, `WEAPON_NEXT`, `WEAPON_PREV`, `ROLL`, `EMP`, `ULTIMATE`, `SPECIAL`, `PAUSE`, `CLOAK`).
+- **First-Class Xbox, Gamepad & Joystick Support**:
+  - Full support for Xbox 360/One/Series controllers, XInput-compatible gamepads, generic USB gamepads, and joysticks.
+  - Dual analog stick controls: Left stick smooth flight movement, Right stick 360-degree aiming.
+  - Triggers for RT Primary Fire and LT Secondary Fire.
+- **Analog Radial Deadzone & Response Curve**:
+  - Radial deadzone (`0.12` default) preventing stick drift.
+  - Non-linear response curve $f(m) = m^{1.35}$ for micro-precision steering and 100% deflection max speed.
+- **Safe Bounded Vibration / Rumble**:
+  - Multi-stage vibration feedback on player damage, firing heavy weapons, EMP blasts, Overdrive activation, and boss encounters. Failsafe fallback if unsupported.
+- **Hot-Plugging & Device-Aware UI Prompts**:
+  - Dynamic `JOYDEVICEADDED` / `JOYDEVICEREMOVED` hot-plugging. Safe 0-controller startup.
+  - Dynamic HUD action badges displaying `[SHIFT]` / `[E]` / `[F]` on Keyboard vs `[A]` / `[X]` / `[Y]` / `[RT]` on Gamepad.
+- **Dedicated Input Test Suite**:
+  - Created `test_input_system.py` (16 unit tests). Total project test suite expanded to **481 / 481 tests passing (100% green)**.
+
+---
+
 ## [Phase 10] — Real Production Asset Integration, Audio Synthesis & Combat Polish (2026)
 
 ### Added
