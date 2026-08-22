@@ -1,0 +1,242 @@
+[
+  {
+    "name": "floor_tile_01",
+    "source_box": [
+      1248,
+      55,
+      1305,
+      110
+    ],
+    "source": "AI-generated master sheet; extracted reference"
+  },
+  {
+    "name": "floor_tile_02",
+    "source_box": [
+      1310,
+      55,
+      1365,
+      110
+    ],
+    "source": "AI-generated master sheet; extracted reference"
+  },
+  {
+    "name": "floor_tile_03",
+    "source_box": [
+      1370,
+      55,
+      1425,
+      110
+    ],
+    "source": "AI-generated master sheet; extracted reference"
+  },
+  {
+    "name": "hazard_tile_01",
+    "source_box": [
+      1430,
+      55,
+      1485,
+      110
+    ],
+    "source": "AI-generated master sheet; extracted reference"
+  },
+  {
+    "name": "factory_wall_01",
+    "source_box": [
+      1490,
+      55,
+      1530,
+      110
+    ],
+    "source": "AI-generated master sheet; extracted reference"
+  },
+  {
+    "name": "machinery_01",
+    "source_box": [
+      1248,
+      115,
+      1310,
+      175
+    ],
+    "source": "AI-generated master sheet; extracted reference"
+  },
+  {
+    "name": "machinery_02",
+    "source_box": [
+      1315,
+      115,
+      1375,
+      175
+    ],
+    "source": "AI-generated master sheet; extracted reference"
+  },
+  {
+    "name": "machinery_03",
+    "source_box": [
+      1380,
+      115,
+      1440,
+      175
+    ],
+    "source": "AI-generated master sheet; extracted reference"
+  },
+  {
+    "name": "reactor_01",
+    "source_box": [
+      1445,
+      115,
+      1500,
+      175
+    ],
+    "source": "AI-generated master sheet; extracted reference"
+  },
+  {
+    "name": "energy_unit_01",
+    "source_box": [
+      1505,
+      115,
+      1530,
+      175
+    ],
+    "source": "AI-generated master sheet; extracted reference"
+  },
+  {
+    "name": "pipe_01",
+    "source_box": [
+      1248,
+      180,
+      1310,
+      240
+    ],
+    "source": "AI-generated master sheet; extracted reference"
+  },
+  {
+    "name": "pipe_02",
+    "source_box": [
+      1315,
+      180,
+      1375,
+      240
+    ],
+    "source": "AI-generated master sheet; extracted reference"
+  },
+  {
+    "name": "pipe_03",
+    "source_box": [
+      1380,
+      180,
+      1440,
+      240
+    ],
+    "source": "AI-generated master sheet; extracted reference"
+  },
+  {
+    "name": "conveyor_01",
+    "source_box": [
+      1445,
+      180,
+      1500,
+      240
+    ],
+    "source": "AI-generated master sheet; extracted reference"
+  },
+  {
+    "name": "structure_01",
+    "source_box": [
+      1505,
+      180,
+      1530,
+      240
+    ],
+    "source": "AI-generated master sheet; extracted reference"
+  },
+  {
+    "name": "reactor_02",
+    "source_box": [
+      1248,
+      245,
+      1310,
+      305
+    ],
+    "source": "AI-generated master sheet; extracted reference"
+  },
+  {
+    "name": "reactor_03",
+    "source_box": [
+      1315,
+      245,
+      1375,
+      305
+    ],
+    "source": "AI-generated master sheet; extracted reference"
+  },
+  {
+    "name": "machine_04",
+    "source_box": [
+      1380,
+      245,
+      1440,
+      305
+    ],
+    "source": "AI-generated master sheet; extracted reference"
+  },
+  {
+    "name": "industrial_structure_01",
+    "source_box": [
+      1445,
+      245,
+      1500,
+      305
+    ],
+    "source": "AI-generated master sheet; extracted reference"
+  },
+  {
+    "name": "energy_core_01",
+    "source_box": [
+      1505,
+      245,
+      1530,
+      305
+    ],
+    "source": "AI-generated master sheet; extracted reference"
+  },
+  {
+    "name": "conveyor_02",
+    "source_box": [
+      1248,
+      310,
+      1315,
+      370
+    ],
+    "source": "AI-generated master sheet; extracted reference"
+  },
+  {
+    "name": "conveyor_03",
+    "source_box": [
+      1320,
+      310,
+      1385,
+      370
+    ],
+    "source": "AI-generated master sheet; extracted reference"
+  },
+  {
+    "name": "industrial_prop_01",
+    "source_box": [
+      1390,
+      310,
+      1450,
+      370
+    ],
+    "source": "AI-generated master sheet; extracted reference"
+  },
+  {
+    "name": "industrial_prop_02",
+    "source_box": [
+      1455,
+      310,
+      1515,
+      370
+    ],
+    "source": "AI-generated master sheet; extracted reference"
+  }
+]

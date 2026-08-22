@@ -1,0 +1,222 @@
+[
+  {
+    "name": "road_tile_01",
+    "source_box": [
+      978,
+      55,
+      1035,
+      110
+    ],
+    "source": "AI-generated master sheet; extracted reference"
+  },
+  {
+    "name": "road_tile_02",
+    "source_box": [
+      1040,
+      55,
+      1095,
+      110
+    ],
+    "source": "AI-generated master sheet; extracted reference"
+  },
+  {
+    "name": "road_tile_03",
+    "source_box": [
+      1100,
+      55,
+      1155,
+      110
+    ],
+    "source": "AI-generated master sheet; extracted reference"
+  },
+  {
+    "name": "building_tile_01",
+    "source_box": [
+      1160,
+      55,
+      1215,
+      110
+    ],
+    "source": "AI-generated master sheet; extracted reference"
+  },
+  {
+    "name": "building_01",
+    "source_box": [
+      978,
+      115,
+      1040,
+      180
+    ],
+    "source": "AI-generated master sheet; extracted reference"
+  },
+  {
+    "name": "building_02",
+    "source_box": [
+      1045,
+      115,
+      1105,
+      180
+    ],
+    "source": "AI-generated master sheet; extracted reference"
+  },
+  {
+    "name": "building_03",
+    "source_box": [
+      1110,
+      115,
+      1170,
+      180
+    ],
+    "source": "AI-generated master sheet; extracted reference"
+  },
+  {
+    "name": "neon_tower_01",
+    "source_box": [
+      1175,
+      115,
+      1235,
+      180
+    ],
+    "source": "AI-generated master sheet; extracted reference"
+  },
+  {
+    "name": "building_04",
+    "source_box": [
+      978,
+      185,
+      1040,
+      250
+    ],
+    "source": "AI-generated master sheet; extracted reference"
+  },
+  {
+    "name": "building_05",
+    "source_box": [
+      1045,
+      185,
+      1105,
+      250
+    ],
+    "source": "AI-generated master sheet; extracted reference"
+  },
+  {
+    "name": "neon_tower_02",
+    "source_box": [
+      1110,
+      185,
+      1170,
+      250
+    ],
+    "source": "AI-generated master sheet; extracted reference"
+  },
+  {
+    "name": "city_structure_01",
+    "source_box": [
+      1175,
+      185,
+      1235,
+      250
+    ],
+    "source": "AI-generated master sheet; extracted reference"
+  },
+  {
+    "name": "road_segment_01",
+    "source_box": [
+      978,
+      255,
+      1045,
+      315
+    ],
+    "source": "AI-generated master sheet; extracted reference"
+  },
+  {
+    "name": "road_segment_02",
+    "source_box": [
+      1050,
+      255,
+      1115,
+      315
+    ],
+    "source": "AI-generated master sheet; extracted reference"
+  },
+  {
+    "name": "elevated_road_01",
+    "source_box": [
+      1120,
+      255,
+      1185,
+      315
+    ],
+    "source": "AI-generated master sheet; extracted reference"
+  },
+  {
+    "name": "infrastructure_01",
+    "source_box": [
+      1190,
+      255,
+      1235,
+      315
+    ],
+    "source": "AI-generated master sheet; extracted reference"
+  },
+  {
+    "name": "neon_sign_01",
+    "source_box": [
+      978,
+      320,
+      1035,
+      380
+    ],
+    "source": "AI-generated master sheet; extracted reference"
+  },
+  {
+    "name": "neon_sign_02",
+    "source_box": [
+      1040,
+      320,
+      1095,
+      380
+    ],
+    "source": "AI-generated master sheet; extracted reference"
+  },
+  {
+    "name": "street_prop_01",
+    "source_box": [
+      1100,
+      320,
+      1155,
+      380
+    ],
+    "source": "AI-generated master sheet; extracted reference"
+  },
+  {
+    "name": "street_prop_02",
+    "source_box": [
+      1160,
+      320,
+      1215,
+      380
+    ],
+    "source": "AI-generated master sheet; extracted reference"
+  },
+  {
+    "name": "city_machine_01",
+    "source_box": [
+      978,
+      385,
+      1040,
+      445
+    ],
+    "source": "AI-generated master sheet; extracted reference"
+  },
+  {
+    "name": "city_machine_02",
+    "source_box": [
+      1045,
+      385,
+      1105,
+      445
+    ],
+    "source": "AI-generated master sheet; extracted reference"
+  }
+]

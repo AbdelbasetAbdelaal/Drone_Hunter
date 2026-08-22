@@ -1,0 +1,222 @@
+[
+  {
+    "name": "sand_tile_01",
+    "source_box": [
+      420,
+      55,
+      475,
+      110
+    ],
+    "source": "AI-generated master sheet; extracted reference"
+  },
+  {
+    "name": "sand_tile_02",
+    "source_box": [
+      480,
+      55,
+      535,
+      110
+    ],
+    "source": "AI-generated master sheet; extracted reference"
+  },
+  {
+    "name": "sand_tile_03",
+    "source_box": [
+      540,
+      55,
+      595,
+      110
+    ],
+    "source": "AI-generated master sheet; extracted reference"
+  },
+  {
+    "name": "sand_tile_04",
+    "source_box": [
+      600,
+      55,
+      705,
+      110
+    ],
+    "source": "AI-generated master sheet; extracted reference"
+  },
+  {
+    "name": "canyon_01",
+    "source_box": [
+      420,
+      112,
+      485,
+      175
+    ],
+    "source": "AI-generated master sheet; extracted reference"
+  },
+  {
+    "name": "canyon_02",
+    "source_box": [
+      490,
+      112,
+      555,
+      175
+    ],
+    "source": "AI-generated master sheet; extracted reference"
+  },
+  {
+    "name": "canyon_03",
+    "source_box": [
+      560,
+      112,
+      625,
+      175
+    ],
+    "source": "AI-generated master sheet; extracted reference"
+  },
+  {
+    "name": "canyon_04",
+    "source_box": [
+      630,
+      112,
+      705,
+      175
+    ],
+    "source": "AI-generated master sheet; extracted reference"
+  },
+  {
+    "name": "cactus_01",
+    "source_box": [
+      420,
+      180,
+      470,
+      235
+    ],
+    "source": "AI-generated master sheet; extracted reference"
+  },
+  {
+    "name": "cactus_02",
+    "source_box": [
+      475,
+      180,
+      525,
+      235
+    ],
+    "source": "AI-generated master sheet; extracted reference"
+  },
+  {
+    "name": "dead_tree_01",
+    "source_box": [
+      530,
+      180,
+      580,
+      235
+    ],
+    "source": "AI-generated master sheet; extracted reference"
+  },
+  {
+    "name": "desert_prop_01",
+    "source_box": [
+      585,
+      180,
+      635,
+      235
+    ],
+    "source": "AI-generated master sheet; extracted reference"
+  },
+  {
+    "name": "mining_structure_01",
+    "source_box": [
+      640,
+      180,
+      705,
+      235
+    ],
+    "source": "AI-generated master sheet; extracted reference"
+  },
+  {
+    "name": "machine_01",
+    "source_box": [
+      420,
+      240,
+      480,
+      300
+    ],
+    "source": "AI-generated master sheet; extracted reference"
+  },
+  {
+    "name": "machine_02",
+    "source_box": [
+      485,
+      240,
+      545,
+      300
+    ],
+    "source": "AI-generated master sheet; extracted reference"
+  },
+  {
+    "name": "machine_03",
+    "source_box": [
+      550,
+      240,
+      610,
+      300
+    ],
+    "source": "AI-generated master sheet; extracted reference"
+  },
+  {
+    "name": "machine_04",
+    "source_box": [
+      615,
+      240,
+      675,
+      300
+    ],
+    "source": "AI-generated master sheet; extracted reference"
+  },
+  {
+    "name": "tower_01",
+    "source_box": [
+      680,
+      240,
+      705,
+      300
+    ],
+    "source": "AI-generated master sheet; extracted reference"
+  },
+  {
+    "name": "road_01",
+    "source_box": [
+      420,
+      305,
+      485,
+      365
+    ],
+    "source": "AI-generated master sheet; extracted reference"
+  },
+  {
+    "name": "road_02",
+    "source_box": [
+      490,
+      305,
+      555,
+      365
+    ],
+    "source": "AI-generated master sheet; extracted reference"
+  },
+  {
+    "name": "rail_01",
+    "source_box": [
+      560,
+      305,
+      625,
+      365
+    ],
+    "source": "AI-generated master sheet; extracted reference"
+  },
+  {
+    "name": "rail_02",
+    "source_box": [
+      630,
+      305,
+      705,
+      365
+    ],
+    "source": "AI-generated master sheet; extracted reference"
+  }
+]

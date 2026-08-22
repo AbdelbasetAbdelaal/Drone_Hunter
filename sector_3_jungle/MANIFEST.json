@@ -1,0 +1,212 @@
+[
+  {
+    "name": "jungle_tile_01",
+    "source_box": [
+      720,
+      55,
+      775,
+      110
+    ],
+    "source": "AI-generated master sheet; extracted reference"
+  },
+  {
+    "name": "waterfall_01",
+    "source_box": [
+      780,
+      55,
+      835,
+      110
+    ],
+    "source": "AI-generated master sheet; extracted reference"
+  },
+  {
+    "name": "jungle_tile_02",
+    "source_box": [
+      840,
+      55,
+      895,
+      110
+    ],
+    "source": "AI-generated master sheet; extracted reference"
+  },
+  {
+    "name": "ruin_tile_01",
+    "source_box": [
+      900,
+      55,
+      955,
+      110
+    ],
+    "source": "AI-generated master sheet; extracted reference"
+  },
+  {
+    "name": "jungle_tile_03",
+    "source_box": [
+      915,
+      112,
+      970,
+      170
+    ],
+    "source": "AI-generated master sheet; extracted reference"
+  },
+  {
+    "name": "palm_01",
+    "source_box": [
+      720,
+      175,
+      775,
+      235
+    ],
+    "source": "AI-generated master sheet; extracted reference"
+  },
+  {
+    "name": "palm_02",
+    "source_box": [
+      780,
+      175,
+      835,
+      235
+    ],
+    "source": "AI-generated master sheet; extracted reference"
+  },
+  {
+    "name": "palm_03",
+    "source_box": [
+      840,
+      175,
+      895,
+      235
+    ],
+    "source": "AI-generated master sheet; extracted reference"
+  },
+  {
+    "name": "vegetation_cluster_01",
+    "source_box": [
+      900,
+      175,
+      955,
+      235
+    ],
+    "source": "AI-generated master sheet; extracted reference"
+  },
+  {
+    "name": "ruin_01",
+    "source_box": [
+      720,
+      240,
+      775,
+      300
+    ],
+    "source": "AI-generated master sheet; extracted reference"
+  },
+  {
+    "name": "ruin_02",
+    "source_box": [
+      780,
+      240,
+      835,
+      300
+    ],
+    "source": "AI-generated master sheet; extracted reference"
+  },
+  {
+    "name": "ruin_03",
+    "source_box": [
+      840,
+      240,
+      895,
+      300
+    ],
+    "source": "AI-generated master sheet; extracted reference"
+  },
+  {
+    "name": "waterfall_02",
+    "source_box": [
+      900,
+      240,
+      955,
+      300
+    ],
+    "source": "AI-generated master sheet; extracted reference"
+  },
+  {
+    "name": "bridge_01",
+    "source_box": [
+      720,
+      305,
+      790,
+      365
+    ],
+    "source": "AI-generated master sheet; extracted reference"
+  },
+  {
+    "name": "bridge_02",
+    "source_box": [
+      795,
+      305,
+      865,
+      365
+    ],
+    "source": "AI-generated master sheet; extracted reference"
+  },
+  {
+    "name": "stone_wall_01",
+    "source_box": [
+      870,
+      305,
+      930,
+      365
+    ],
+    "source": "AI-generated master sheet; extracted reference"
+  },
+  {
+    "name": "stone_wall_02",
+    "source_box": [
+      935,
+      305,
+      970,
+      365
+    ],
+    "source": "AI-generated master sheet; extracted reference"
+  },
+  {
+    "name": "jungle_structure_01",
+    "source_box": [
+      720,
+      370,
+      780,
+      430
+    ],
+    "source": "AI-generated master sheet; extracted reference"
+  },
+  {
+    "name": "jungle_structure_02",
+    "source_box": [
+      785,
+      370,
+      845,
+      430
+    ],
+    "source": "AI-generated master sheet; extracted reference"
+  },
+  {
+    "name": "jungle_structure_03",
+    "source_box": [
+      850,
+      370,
+      910,
+      430
+    ],
+    "source": "AI-generated master sheet; extracted reference"
+  },
+  {
+    "name": "ruin_structure_01",
+    "source_box": [
+      915,
+      370,
+      970,
+      430
+    ],
+    "source": "AI-generated master sheet; extracted reference"
+  }
+]

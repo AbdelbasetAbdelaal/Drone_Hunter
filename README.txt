@@ -1,13 +1,20 @@
-Drone Hunter — Cartoon Environments v01
+Drone Hunter — Individual Environment Assets v04
 
-Five high-resolution environment concept assets:
-- sector_1_ocean
-- sector_2_desert
-- sector_3_jungle
-- sector_4_city
-- sector_5_cyber_factory
+This version uses a NEW AI-generated environment master sheet as the
+visual source, rather than the old user concept sheet.
 
-These are visual reference/master assets extracted from the approved
-sector concept sheet. Antigravity should inspect the existing
-environment/tilemap renderer before integrating them and must not
-distort them or change gameplay/collision logic.
+Each sector contains:
+- reference/generated_sector_master.png
+- individual_assets/*.png
+- individual_assets/*_reference_4x.png
+- MANIFEST.json
+
+IMPORTANT:
+The image-generation system currently returns a composite asset sheet.
+Therefore the individual PNGs in this package are extracted individual
+reference crops from that newly generated master; the 4x copies are
+upscaled inspection references, NOT native 4K renders.
+
+They should be used by Antigravity as precise visual references for
+rebuilding true production-resolution individual assets. Do not use
+the composite sheet directly as a gameplay background.

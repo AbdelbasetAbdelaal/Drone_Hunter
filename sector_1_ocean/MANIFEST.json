@@ -1,0 +1,242 @@
+[
+  {
+    "name": "water_tile_01",
+    "source_box": [
+      155,
+      55,
+      210,
+      110
+    ],
+    "source": "AI-generated master sheet; extracted reference"
+  },
+  {
+    "name": "water_tile_02",
+    "source_box": [
+      215,
+      55,
+      270,
+      110
+    ],
+    "source": "AI-generated master sheet; extracted reference"
+  },
+  {
+    "name": "water_tile_03",
+    "source_box": [
+      275,
+      55,
+      330,
+      110
+    ],
+    "source": "AI-generated master sheet; extracted reference"
+  },
+  {
+    "name": "water_tile_04",
+    "source_box": [
+      335,
+      55,
+      405,
+      110
+    ],
+    "source": "AI-generated master sheet; extracted reference"
+  },
+  {
+    "name": "island_small_01",
+    "source_box": [
+      155,
+      112,
+      215,
+      165
+    ],
+    "source": "AI-generated master sheet; extracted reference"
+  },
+  {
+    "name": "island_small_02",
+    "source_box": [
+      218,
+      112,
+      275,
+      165
+    ],
+    "source": "AI-generated master sheet; extracted reference"
+  },
+  {
+    "name": "island_small_03",
+    "source_box": [
+      280,
+      112,
+      338,
+      165
+    ],
+    "source": "AI-generated master sheet; extracted reference"
+  },
+  {
+    "name": "island_small_04",
+    "source_box": [
+      340,
+      112,
+      405,
+      165
+    ],
+    "source": "AI-generated master sheet; extracted reference"
+  },
+  {
+    "name": "palm_01",
+    "source_box": [
+      155,
+      165,
+      210,
+      235
+    ],
+    "source": "AI-generated master sheet; extracted reference"
+  },
+  {
+    "name": "palm_02",
+    "source_box": [
+      215,
+      165,
+      270,
+      235
+    ],
+    "source": "AI-generated master sheet; extracted reference"
+  },
+  {
+    "name": "palm_03",
+    "source_box": [
+      275,
+      165,
+      330,
+      235
+    ],
+    "source": "AI-generated master sheet; extracted reference"
+  },
+  {
+    "name": "palm_04",
+    "source_box": [
+      335,
+      165,
+      405,
+      235
+    ],
+    "source": "AI-generated master sheet; extracted reference"
+  },
+  {
+    "name": "bridge_01",
+    "source_box": [
+      155,
+      240,
+      220,
+      300
+    ],
+    "source": "AI-generated master sheet; extracted reference"
+  },
+  {
+    "name": "bridge_02",
+    "source_box": [
+      225,
+      240,
+      290,
+      300
+    ],
+    "source": "AI-generated master sheet; extracted reference"
+  },
+  {
+    "name": "coastal_structure_01",
+    "source_box": [
+      295,
+      235,
+      350,
+      300
+    ],
+    "source": "AI-generated master sheet; extracted reference"
+  },
+  {
+    "name": "coastal_structure_02",
+    "source_box": [
+      355,
+      235,
+      405,
+      300
+    ],
+    "source": "AI-generated master sheet; extracted reference"
+  },
+  {
+    "name": "platform_01",
+    "source_box": [
+      155,
+      305,
+      215,
+      365
+    ],
+    "source": "AI-generated master sheet; extracted reference"
+  },
+  {
+    "name": "platform_02",
+    "source_box": [
+      220,
+      305,
+      280,
+      365
+    ],
+    "source": "AI-generated master sheet; extracted reference"
+  },
+  {
+    "name": "tower_01",
+    "source_box": [
+      285,
+      305,
+      340,
+      365
+    ],
+    "source": "AI-generated master sheet; extracted reference"
+  },
+  {
+    "name": "marine_structure_01",
+    "source_box": [
+      345,
+      305,
+      405,
+      365
+    ],
+    "source": "AI-generated master sheet; extracted reference"
+  },
+  {
+    "name": "rock_01",
+    "source_box": [
+      155,
+      370,
+      215,
+      430
+    ],
+    "source": "AI-generated master sheet; extracted reference"
+  },
+  {
+    "name": "rock_02",
+    "source_box": [
+      220,
+      370,
+      280,
+      430
+    ],
+    "source": "AI-generated master sheet; extracted reference"
+  },
+  {
+    "name": "rock_03",
+    "source_box": [
+      285,
+      370,
+      345,
+      430
+    ],
+    "source": "AI-generated master sheet; extracted reference"
+  },
+  {
+    "name": "rock_04",
+    "source_box": [
+      350,
+      370,
+      405,
+      430
+    ],
+    "source": "AI-generated master sheet; extracted reference"
+  }
+]
