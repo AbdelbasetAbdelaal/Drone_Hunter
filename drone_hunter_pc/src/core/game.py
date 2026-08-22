@@ -530,7 +530,10 @@ class Game:
                     elif event.key in (pygame.K_4, pygame.K_KP4) and ctx.player: ctx.player.select_weapon(3)
                     elif event.key in (pygame.K_5, pygame.K_KP5) and ctx.player: ctx.player.select_weapon(4)
                     elif event.key in (pygame.K_6, pygame.K_KP6) and ctx.player: ctx.player.select_weapon(5)
-                    elif event.key == pygame.K_TAB and ctx.player: ctx.player.cycle_weapon()
+                    elif event.key == pygame.K_TAB and ctx.player:
+                        ctx.player.cycle_weapon()
+                        if self.audio_manager:
+                            self.audio_manager.play_weapon_switch()
 
                 elif ctx.state == STATE_PAUSED:
                     if event.key in (pygame.K_p, pygame.K_SPACE, pygame.K_ESCAPE):

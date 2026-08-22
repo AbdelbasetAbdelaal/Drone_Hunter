@@ -24,6 +24,28 @@ def draw_hud(canvas: pygame.Surface, player, sector_idx: int = 0, level_score: i
     margin_x = 24
     margin_y = 20
 
+    # Low-health warning state (shared by HP bar and vignette)
+    low_health = False
+    if player:
+        hp_pct = max(0.0, min(1.0, player.health / max(1.0, player.max_health)))
+        low_health = hp_pct < 0.30
+
+    # =========================================================================
+    # 0.5 LOW-HEALTH VIGNETTE (red edge darkening when Hull < 30%)
+    # =========================================================================
+    if low_health:
+        vignette_alpha = int(90 + 50 * math.sin(pygame.time.get_ticks() * 0.008))
+        vignette = pygame.Surface((vw, vh), pygame.SRCALPHA)
+        # Top/bottom gradient bars
+        bar_h = max(1, int(vh * 0.22))
+        pygame.draw.rect(vignette, (185, 28, 28, min(255, vignette_alpha // 2)), (0, 0, vw, bar_h))
+        pygame.draw.rect(vignette, (185, 28, 28, min(255, vignette_alpha // 2)), (0, vh - bar_h, vw, bar_h))
+        # Left/right gradient bars
+        bar_w = max(1, int(vw * 0.18))
+        pygame.draw.rect(vignette, (185, 28, 28, min(255, vignette_alpha // 3)), (0, 0, bar_w, vh))
+        pygame.draw.rect(vignette, (185, 28, 28, min(255, vignette_alpha // 3)), (vw - bar_w, 0, bar_w, vh))
+        canvas.blit(vignette, (0, 0))
+
     # =========================================================================
     # 1. TOP-LEFT: Hull Integrity, Energy Status & Shield Pips
     # =========================================================================
@@ -33,10 +55,20 @@ def draw_hud(canvas: pygame.Surface, player, sector_idx: int = 0, level_score: i
         hp_w = 160
         hp_h = 16
         
+        hp_col = COLOR_EMERALD if hp_pct > 0.5 else (COLOR_GOLD if hp_pct > 0.25 else COLOR_CRIMSON)
+        
+        # Pulsing warning when critical
+        if hp_pct < 0.25:
+            pulse = int(30 * math.sin(pygame.time.get_ticks() * 0.012))
+            hp_col = (
+                min(255, max(0, hp_col[0] + pulse)),
+                min(255, max(0, hp_col[1] + pulse // 3)),
+                min(255, max(0, hp_col[2] + pulse // 3))
+            )
+        
         pygame.draw.rect(canvas, (15, 23, 42, 230), (margin_x, margin_y, hp_w, hp_h), border_radius=4)
         if hp_pct > 0:
             fill_w = int(round(hp_w * hp_pct))
-            hp_col = COLOR_EMERALD if hp_pct > 0.5 else (COLOR_GOLD if hp_pct > 0.25 else COLOR_CRIMSON)
             pygame.draw.rect(canvas, hp_col, (margin_x, margin_y, fill_w, hp_h), border_radius=4)
         pygame.draw.rect(canvas, (51, 65, 85), (margin_x, margin_y, hp_w, hp_h), 1, border_radius=4)
         
@@ -145,6 +177,7 @@ def draw_hud(canvas: pygame.Surface, player, sector_idx: int = 0, level_score: i
         wpn_h = 26
         start_y = vh - margin_y - wpn_h - 6
         slot_names = ["PRIMARY", "SECONDARY", "HEAVY", "SPECIAL"]
+        now_ms = pygame.time.get_ticks()
         
         for idx, w_id in reversed(list(enumerate(player.available_weapons))):
             w_def = WEAPON_DEFS.get(w_id, {})
@@ -172,7 +205,22 @@ def draw_hud(canvas: pygame.Surface, player, sector_idx: int = 0, level_score: i
             
             wpn_rect = pygame.Rect(wpn_x, start_y, wpn_w, wpn_h)
             pygame.draw.rect(canvas, bg_col, wpn_rect, border_radius=5)
-            pygame.draw.rect(canvas, box_border, wpn_rect, 2 if is_active else 1, border_radius=5)
+            
+            # Active weapon: stronger left-edge glow bar + subtle pulse
+            if is_active:
+                pulse = int(40 + 30 * math.sin(now_ms * 0.01))
+                glow_bar = pygame.Rect(wpn_x, start_y + 3, 4, wpn_h - 6)
+                pygame.draw.rect(canvas, w_col, glow_bar, border_radius=2)
+                # Outer glow halo
+                halo_alpha = min(255, 100 + pulse)
+                halo_surf = pygame.Surface((wpn_w, wpn_h), pygame.SRCALPHA)
+                pygame.draw.rect(halo_surf, (*w_col, halo_alpha // 4), (0, 0, wpn_w, wpn_h), border_radius=5)
+                canvas.blit(halo_surf, (wpn_x, start_y))
+                border_width = 2
+            else:
+                border_width = 1
+            
+            pygame.draw.rect(canvas, box_border, wpn_rect, border_width, border_radius=5)
             canvas.blit(lbl_wpn, (wpn_x + 9, start_y + 5))
             
             start_y -= (wpn_h + 5)
