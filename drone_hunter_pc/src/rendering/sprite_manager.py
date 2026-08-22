@@ -10,8 +10,8 @@ logger = logging.getLogger(__name__)
 
 class SpriteManager:
     _instance = None
-    ANGLE_STEP = 6  # 360 / 6 = 60 discrete orientations (bounded quantization)
-    MAX_ROTATION_ENTRIES = 120  # Strict bounded LRU rotation cache capacity (120 entries)
+    ANGLE_STEP = 1  # 360 / 1 = 360 smooth discrete orientations (silky-smooth rotation)
+    MAX_ROTATION_ENTRIES = 720  # Rotation cache capacity
 
     HIGH_FIDELITY_PLAYER_MAP = {
         0: 'high_fidelity/player_drones/01_striker/hero_2048.png',

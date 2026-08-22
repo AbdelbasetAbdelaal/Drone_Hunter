@@ -160,8 +160,8 @@ class Player(pygame.sprite.Sprite):
         c_data = get_drone_class_by_id(self.drone_class_id)
         
         self.max_speed = HORIZONTAL_SPEED * c_data.get("speed_mult", 1.0)
-        self.acceleration = 3600.0 * c_data.get("accel_mult", 1.0)
-        self.drag = 8.5
+        self.acceleration = 6400.0 * c_data.get("accel_mult", 1.0)
+        self.drag = 5.0
         bonus_hp = getattr(self, "_upgrade_bonus_health", 0.0)
         self.max_health = c_data.get("max_health", 100) + bonus_hp
         self.health = self.max_health

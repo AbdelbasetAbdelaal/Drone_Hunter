@@ -37,7 +37,7 @@ class Bullet(pygame.sprite.Sprite):
             self.original_image = image
         else:
             from src.rendering.sprite_manager import get_sprite_manager
-            sz = (28, 8) if weapon_id == "rapid" else ((32, 10) if weapon_id == "scatter" else (36, 12))
+            sz = (48, 16) if weapon_id == "rapid" else ((56, 24) if weapon_id == "scatter" else (64, 22))
             self.original_image = get_sprite_manager().get_projectile_sprite(self.weapon_id, sz)
         
         dx = target_pos[0] - start_pos[0]
@@ -81,7 +81,7 @@ class HomingMissile(pygame.sprite.Sprite):
             self.original_image = image
         else:
             from src.rendering.sprite_manager import get_sprite_manager
-            self.original_image = get_sprite_manager().get_projectile_sprite("missile", (44, 16))
+            self.original_image = get_sprite_manager().get_projectile_sprite("missile", (72, 28))
         
         dx = target_pos[0] - start_pos[0]
         dy = target_pos[1] - start_pos[1]
@@ -213,7 +213,7 @@ class TeslaArcBeam(pygame.sprite.Sprite):
             self.original_image = image
         else:
             from src.rendering.sprite_manager import get_sprite_manager
-            self.original_image = get_sprite_manager().get_projectile_sprite("tesla", (36, 36))
+            self.original_image = get_sprite_manager().get_projectile_sprite("tesla", (64, 64))
         
         dx = target_pos[0] - start_pos[0]
         dy = target_pos[1] - start_pos[1]
@@ -286,7 +286,7 @@ class ClusterTorpedo(pygame.sprite.Sprite):
             self.original_image = image
         else:
             from src.rendering.sprite_manager import get_sprite_manager
-            self.original_image = get_sprite_manager().get_projectile_sprite("cluster", (48, 20))
+            self.original_image = get_sprite_manager().get_projectile_sprite("cluster", (80, 36))
         
         dx = target_pos[0] - start_pos[0]
         dy = target_pos[1] - start_pos[1]
@@ -337,7 +337,7 @@ class HeavyPlasmaOrb(pygame.sprite.Sprite):
             self.original_image = image
         else:
             from src.rendering.sprite_manager import get_sprite_manager
-            self.original_image = get_sprite_manager().get_projectile_sprite("plasma", (48, 22))
+            self.original_image = get_sprite_manager().get_projectile_sprite("plasma", (72, 72))
         
         dx = target_pos[0] - start_pos[0]
         dy = target_pos[1] - start_pos[1]
@@ -345,7 +345,7 @@ class HeavyPlasmaOrb(pygame.sprite.Sprite):
         self.image = pygame.transform.rotate(self.original_image, math.degrees(-self.angle_rad))
         self.pos = pygame.Vector2(start_pos)
         self.rect = self.image.get_rect(center=start_pos)
-        self.radius = 14
+        self.radius = 24
 
     def update(self, dt: float):
         self.pos.x += math.cos(self.angle_rad) * self.speed * dt
@@ -373,7 +373,7 @@ class RailgunSlug(pygame.sprite.Sprite):
             self.original_image = image
         else:
             from src.rendering.sprite_manager import get_sprite_manager
-            self.original_image = get_sprite_manager().get_projectile_sprite("rail", (64, 16))
+            self.original_image = get_sprite_manager().get_projectile_sprite("rail", (96, 24))
         
         dx = target_pos[0] - start_pos[0]
         dy = target_pos[1] - start_pos[1]
@@ -383,7 +383,7 @@ class RailgunSlug(pygame.sprite.Sprite):
         self.image = pygame.transform.rotate(self.original_image, self.angle_deg)
         self.pos = pygame.Vector2(start_pos)
         self.rect = self.image.get_rect(center=start_pos)
-        self.radius = 8
+        self.radius = 12
 
     def update(self, dt: float):
         self.pos.x += math.cos(self.angle_rad) * self.speed * dt
@@ -401,7 +401,7 @@ class BarrageMissile(HomingMissile):
                  owner: str = "player", weapon_id: str = "barrage"):
         if image is None:
             from src.rendering.sprite_manager import get_sprite_manager
-            image = get_sprite_manager().get_projectile_sprite("barrage", (34, 12))
+            image = get_sprite_manager().get_projectile_sprite("barrage", (64, 24))
         super().__init__(start_pos, target_pos, damage=damage, speed=speed, image=image, owner=owner, weapon_id=weapon_id)
         self.turn_rate = 11.0
         self.angle_rad += math.radians(angle_offset_deg)
@@ -469,7 +469,7 @@ class EMPPulse(pygame.sprite.Sprite):
             self.original_image = image
         else:
             from src.rendering.sprite_manager import get_sprite_manager
-            self.original_image = get_sprite_manager().get_projectile_sprite("emp", (38, 38))
+            self.original_image = get_sprite_manager().get_projectile_sprite("emp", (72, 72))
         
         dx = target_pos[0] - start_pos[0]
         dy = target_pos[1] - start_pos[1]
