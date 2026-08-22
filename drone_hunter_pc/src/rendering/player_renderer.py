@@ -191,19 +191,21 @@ class PlayerRenderer:
         # 8. Small Clean Impact Explosion (Cartoon/Sci-Fi Impact Burst — No Blue Circle & No Full-Body White Flash)
         if player.damage_flash_timer > 0:
             hit_pct = max(0.0, min(1.0, player.damage_flash_timer / 0.12))
-            alpha = int(240 * hit_pct)
-            cx, cy = int(round(screen_x)), int(round(screen_y))
+            alpha = int(220 * hit_pct)
+            # Offset impact slightly from exact center so player drone center pixel artwork is preserved
+            cx = int(round(screen_x)) + 8
+            cy = int(round(screen_y)) - 8
             
-            # Small bright white core burst (radius 5-8px)
-            core_r = max(2, int(4 + 4 * hit_pct))
-            pygame.draw.circle(canvas, (255, 255, 255, alpha), (cx, cy), core_r)
+            # Small bright orange/gold core burst (radius 4-6px)
+            core_r = max(2, int(3 + 3 * hit_pct))
+            pygame.draw.circle(canvas, (255, 200, 50, alpha), (cx, cy), core_r)
             
-            # Fiery orange/gold outer energy ring (radius 10-14px)
-            outer_r = max(4, int(8 + 6 * hit_pct))
+            # Fiery orange/gold outer energy ring (radius 8-12px)
+            outer_r = max(4, int(6 + 6 * hit_pct))
             pygame.draw.circle(canvas, (255, 140, 0, int(alpha * 0.7)), (cx, cy), outer_r, 2)
             
             # Tiny impact spark rays (short lines radiating outwards)
-            spark_len = int(6 + 8 * hit_pct)
+            spark_len = int(5 + 6 * hit_pct)
             sparks = [(spark_len, spark_len), (-spark_len, spark_len), (spark_len, -spark_len), (-spark_len, -spark_len)]
             for dx, dy in sparks:
                 pygame.draw.line(canvas, (250, 204, 21, alpha), (cx + dx // 2, cy + dy // 2), (cx + dx, cy + dy), 2)
