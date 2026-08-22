@@ -49,38 +49,6 @@ def draw_hud(canvas: pygame.Surface, player, sector_idx: int = 0, level_score: i
     # =========================================================================
     # 1. TOP-LEFT: Hull Integrity, Energy Status & Shield Pips
     # =========================================================================
-    # ... (rest unchanged until Section 3)
-    if player:
-        pass # Placeholder for replace_file_content match check
-    vw, vh = canvas.get_size()
-    margin_x = 24
-    margin_y = 20
-
-    # Low-health warning state (shared by HP bar and vignette)
-    low_health = False
-    if player:
-        hp_pct = max(0.0, min(1.0, player.health / max(1.0, player.max_health)))
-        low_health = hp_pct < 0.30
-
-    # =========================================================================
-    # 0.5 LOW-HEALTH VIGNETTE (red edge darkening when Hull < 30%)
-    # =========================================================================
-    if low_health:
-        vignette_alpha = int(90 + 50 * math.sin(pygame.time.get_ticks() * 0.008))
-        vignette = pygame.Surface((vw, vh), pygame.SRCALPHA)
-        # Top/bottom gradient bars
-        bar_h = max(1, int(vh * 0.22))
-        pygame.draw.rect(vignette, (185, 28, 28, min(255, vignette_alpha // 2)), (0, 0, vw, bar_h))
-        pygame.draw.rect(vignette, (185, 28, 28, min(255, vignette_alpha // 2)), (0, vh - bar_h, vw, bar_h))
-        # Left/right gradient bars
-        bar_w = max(1, int(vw * 0.18))
-        pygame.draw.rect(vignette, (185, 28, 28, min(255, vignette_alpha // 3)), (0, 0, bar_w, vh))
-        pygame.draw.rect(vignette, (185, 28, 28, min(255, vignette_alpha // 3)), (vw - bar_w, 0, bar_w, vh))
-        canvas.blit(vignette, (0, 0))
-
-    # =========================================================================
-    # 1. TOP-LEFT: Hull Integrity, Energy Status & Shield Pips
-    # =========================================================================
     if player:
         # HP Hull Bar
         hp_pct = max(0.0, min(1.0, player.health / max(1.0, player.max_health)))
