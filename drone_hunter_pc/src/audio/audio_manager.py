@@ -38,24 +38,24 @@ CHANNELS_SFX = list(range(8, 24))
 
 # Authoritative Audio Asset Map for production audio file discovery & safe fallback
 AUDIO_ASSET_MAP = {
-    "pulse": "assets/audio/pulse_fire.wav",
-    "laser": "assets/audio/pulse_fire.wav",
-    "rapid": "assets/audio/rapid_fire.wav",
-    "scatter": "assets/audio/scatter_fire.wav",
-    "missile": "assets/audio/missile_launch.wav",
-    "plasma": "assets/audio/plasma_fire.wav",
-    "rail": "assets/audio/rail_fire.wav",
-    "barrage": "assets/audio/barrage_launch.wav",
-    "beam": "assets/audio/beam_loop.wav",
-    "tesla": "assets/audio/tesla_arc.wav",
-    "cluster": "assets/audio/cluster_launch.wav",
-    "emp": "assets/audio/emp_discharge.wav",
-    "explosion_small": "assets/audio/Drone_Hunter_assets_audio/explosions/explosion_small.ogg",
-    "explosion_medium": "assets/audio/Drone_Hunter_assets_audio/explosions/explosion_medium.ogg",
-    "explosion_heavy": "assets/audio/Drone_Hunter_assets_audio/explosions/explosion_heavy.ogg",
-    "explosion_energy": "assets/audio/Drone_Hunter_assets_audio/explosions/explosion_medium.ogg",
-    "explosion_boss": "assets/audio/Drone_Hunter_assets_audio/explosions/explosion_boss.ogg",
-    "explosion_player": "assets/audio/Drone_Hunter_assets_audio/explosions/explosion_heavy.ogg",
+    "pulse": "assets/audio/weapons/pulse_fire.ogg",
+    "laser": "assets/audio/weapons/pulse_fire.ogg",
+    "rapid": "assets/audio/weapons/rapid_fire.ogg",
+    "scatter": "assets/audio/weapons/scatter_fire.ogg",
+    "missile": "assets/audio/weapons/missile_launch.ogg",
+    "plasma": "assets/audio/weapons/plasma_fire.ogg",
+    "rail": "assets/audio/weapons/rail_fire.ogg",
+    "barrage": "assets/audio/weapons/barrage_launch.ogg",
+    "beam": "assets/audio/weapons/beam_loop.ogg",
+    "tesla": "assets/audio/weapons/tesla_fire.ogg",
+    "cluster": "assets/audio/weapons/cluster_launch.ogg",
+    "emp": "assets/audio/weapons/emp_fire.ogg",
+    "explosion_small": "assets/audio/explosions/explosion_small.ogg",
+    "explosion_medium": "assets/audio/explosions/explosion_medium.ogg",
+    "explosion_heavy": "assets/audio/explosions/explosion_heavy.ogg",
+    "explosion_boss": "assets/audio/explosions/explosion_boss.ogg",
+    "player_destroyed": "assets/audio/explosions/player_destroyed.ogg",
+    "explosion_player": "assets/audio/explosions/player_destroyed.ogg",
     "mission_success": "assets/audio/mission_success.wav",
     "mission_failure": "assets/audio/mission_failure.wav",
 }
@@ -96,13 +96,24 @@ class AudioManager:
         asset_rel = AUDIO_ASSET_MAP.get(sound_key)
         if asset_rel:
             import os
+            import logging
             base_dir = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-            full_path = os.path.join(base_dir, asset_rel)
-            if os.path.isfile(full_path):
-                try:
-                    return pygame.mixer.Sound(full_path)
-                except Exception:
-                    pass
+            candidates = [
+                os.path.join(base_dir, asset_rel),
+                os.path.join(base_dir, "assets", "audio", "explosions", os.path.basename(asset_rel)),
+                os.path.join(base_dir, "assets", "audio", "Drone_Hunter_assets_audio", "explosions", os.path.basename(asset_rel)),
+            ]
+            for full_path in candidates:
+                if os.path.isfile(full_path):
+                    try:
+                        return pygame.mixer.Sound(full_path)
+                    except Exception as e:
+                        logging.getLogger().warning(f"[AUDIO ERROR] Could not load sound {full_path}: {e}")
+            
+            # Genuinely missing explosion asset
+            if sound_key and (sound_key.startswith("explosion") or sound_key in ("player_destroyed", "player_death")):
+                logging.getLogger().warning(f"[AUDIO ERROR] Missing explosion asset: {asset_rel}")
+
         if synth_func is not None:
             try:
                 return synth_func()
@@ -141,13 +152,13 @@ class AudioManager:
         self._sound_cache["death_scout"] = self._load_or_synthesize("explosion_small", generate_death_scout_sound)
         self._sound_cache["death_shooter"] = self._load_or_synthesize("explosion_small", generate_death_shooter_sound)
         self._sound_cache["death_heavy"] = self._load_or_synthesize("explosion_heavy", generate_death_heavy_sound)
-        self._sound_cache["death_shield"] = self._load_or_synthesize("explosion_energy", generate_death_shield_sound)
+        self._sound_cache["death_shield"] = self._load_or_synthesize("explosion_medium", generate_death_shield_sound)
         self._sound_cache["death_boss"] = self._load_or_synthesize("explosion_boss", generate_death_boss_sound)
         self._sound_cache["explosion"] = self._load_or_synthesize("explosion_medium", generate_explosion_sound)
 
         # Player
         self._sound_cache["player_hit"] = self._load_or_synthesize("player_hit", generate_player_hit_sound)
-        self._sound_cache["player_death"] = self._load_or_synthesize("explosion_player", generate_player_death_sound)
+        self._sound_cache["player_death"] = self._load_or_synthesize("player_destroyed", generate_player_death_sound)
         self._sound_cache["roll"] = self._load_or_synthesize("roll", generate_roll_sound)
         self._sound_cache["engine_hum"] = self._load_or_synthesize("engine_hum", generate_engine_hum_sound)
         self._sound_cache["overdrive"] = self._load_or_synthesize("overdrive", generate_overdrive_sound)
@@ -400,27 +411,27 @@ class AudioManager:
 
     def play_death_scout(self):
         """Scout destruction burst."""
-        self._play_cached("death_scout", min_interval_ms=45, volume_scale=0.80)
+        self._play_cached("death_scout", min_interval_ms=45, volume_scale=0.70)
 
     def play_death_shooter(self):
         """Shooter metallic destruction."""
-        self._play_cached("death_shooter", min_interval_ms=45, volume_scale=0.85)
+        self._play_cached("death_shooter", min_interval_ms=45, volume_scale=0.75)
 
     def play_death_heavy(self):
         """Heavy deep explosion."""
-        self._play_cached("death_heavy", min_interval_ms=50, volume_scale=1.0)
+        self._play_cached("death_heavy", min_interval_ms=50, volume_scale=0.95)
 
     def play_death_shield(self):
         """Shield drone energy collapse."""
-        self._play_cached("death_shield", min_interval_ms=50, volume_scale=0.90)
+        self._play_cached("death_shield", min_interval_ms=50, volume_scale=0.85)
 
     def play_explosion(self):
         """Generic explosion sound."""
-        self._play_cached("explosion", min_interval_ms=45, volume_scale=0.85)
+        self._play_cached("explosion", min_interval_ms=45, volume_scale=0.80)
 
     def play_mine_explosion(self):
         """Environmental mine detonation."""
-        self._play_cached("explosion", min_interval_ms=45, volume_scale=0.90)
+        self._play_cached("explosion", min_interval_ms=45, volume_scale=0.85)
 
     # =========================================================================
     # PLAYER AUDIO METHODS

@@ -56,6 +56,7 @@ from src.ui.menus import (
 )
 from src.ui.drone_select import draw_drone_select_ui
 from src.ui.hangar import draw_hangar_shop_ui
+from src.ui.font_manager import font_banner, font_card
 
 class Game:
     DEBUG_PROFILE = False
@@ -1010,6 +1011,7 @@ class Game:
         canvas = self.renderer.canvas
         canvas.fill(COLOR_BG)
         canvas_m_pos = self.get_canvas_mouse_pos()
+        vw, vh = canvas.get_size()
 
         if ctx.state == STATE_MENU:
             self.background.draw_menu_backdrop(canvas)
@@ -1072,6 +1074,7 @@ class Game:
                 
                 # Boss defeated celebration overlay
                 if getattr(ctx, "boss_defeat_timer", 0.0) > 0.0:
+                    vw, vh = canvas.get_size()
                     pct = max(0.0, min(1.0, ctx.boss_defeat_timer / 2.5))
                     alpha = int(200 * pct)
                     overlay = pygame.Surface((vw, vh), pygame.SRCALPHA)

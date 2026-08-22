@@ -16,9 +16,12 @@ Comprehensive verification of Phase 6 Boss Warfare & Endgame Combat:
 - Save / Load persistence & backwards compatibility with legacy saves
 """
 
+import sys
 import os
 import unittest
 import pygame
+
+sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 
 # Initialize headless pygame for testing
 os.environ["SDL_VIDEODRIVER"] = "dummy"
@@ -616,6 +619,18 @@ class TestPhase6Bosses(unittest.TestCase):
         self.assertEqual(initial_opaque, post_opaque)
 
 
+    def test_boss_defeat_overlay_render(self):
+        """Verify rendering boss defeat celebration overlay executes without NameError."""
+        from src.core.game import Game
+        game = Game(test_mode=True)
+        game.context.state = STATE_PLAYING
+        game.context.boss_defeat_timer = 2.0
+        # Call render to ensure overlay fonts (font_banner, font_card) and dimensions (vw, vh) render cleanly
+        game.render()
+        self.assertIsNotNone(game.renderer.canvas)
+
+
 if __name__ == "__main__":
     unittest.main()
+
 
