@@ -863,14 +863,7 @@ class Game:
                     self.particle_manager.spawn_spark(ctx.player.pos, count=15, color=(147, 51, 234))
 
                 elif ctx.state == STATE_PLAYING:
-                    if event.button == 1 and ctx.player and ctx.player.can_shoot():
-                        canvas_mx, canvas_my = self.get_canvas_mouse_pos()
-                        world_mx, world_my = self.camera.screen_to_world(canvas_mx, canvas_my)
-                        fired_bullets = ctx.player.shoot((world_mx, world_my), level=ctx.current_sub_level, targets_group=ctx.target_group, particle_manager=self.particle_manager)
-                        for b in fired_bullets: ctx.bullet_group.add(b)
-                        if fired_bullets:
-                            self.audio_manager.play_weapon(ctx.player.active_weapon)
-                    elif event.button == 3: # Right click -> EMP
+                    if event.button == 3: # Right click -> EMP
                         self.combat_system.execute_emp_blast()
                     elif event.button == 2 and ctx.player: # Middle click -> Overdrive
                         if ctx.player.trigger_overdrive():

@@ -51,7 +51,10 @@ class CombatSystem:
         for b in list(ctx.bullet_group):
             hit_obs = pygame.sprite.spritecollide(b, ctx.obstacle_group, False, pygame.sprite.collide_circle)
             for obs in hit_obs:
-                b.kill()
+                if getattr(b, "is_emp_projectile", False):
+                    b.detonate(ctx)
+                else:
+                    b.kill()
                 if obs.take_damage(getattr(b, "damage", 35)):
                     obs.kill()
                     ctx.audio_manager.play_mine_explosion()

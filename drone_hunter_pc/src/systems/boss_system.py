@@ -53,6 +53,7 @@ class BossSystem:
         self.intro_duration: float = 2.0
         self.death_timer: float = 0.0
         self.death_duration: float = 2.0
+        self.death_explosion_timer: float = 0.0
         
         # Death Reward flags
         self.rewards_granted: bool = False
