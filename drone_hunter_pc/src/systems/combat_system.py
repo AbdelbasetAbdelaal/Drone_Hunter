@@ -222,7 +222,9 @@ class CombatSystem:
                                 elif chained_enemy.enemy_type == TARGET_TYPE_HEAVY:
                                     ctx.scrap += REWARD_HEAVY
 
-                                if ctx.particle_manager: ctx.particle_manager.spawn_floating_text(chained_enemy.rect.center, f"+{earned}", COLOR_GOLD, 20)
+                                if ctx.particle_manager:
+                                    score_col = getattr(chained_enemy, "color", COLOR_GOLD)
+                                    ctx.particle_manager.spawn_floating_text(chained_enemy.rect.center, f"+{earned}", score_col, 20)
 
                 if not getattr(b, "is_piercing", False):
                     b.kill()
@@ -269,7 +271,8 @@ class CombatSystem:
                             ctx.particle_manager.spawn_boss_explosion(target.rect.center)
                         else:
                             ctx.particle_manager.spawn_enemy_death(target.rect.center, target.color, enemy_type=target.enemy_type)
-                        ctx.particle_manager.spawn_floating_text(target.rect.center, f"+{earned_pts}", COLOR_GOLD, 20)
+                        score_color = target.color
+                        ctx.particle_manager.spawn_floating_text(target.rect.center, f"+{earned_pts}", score_color, 20)
 
                     # Power-up drop roll with difficulty drop rate scaling
                     drop_rate = ctx.difficulty_data.get("powerup_drop_rate", 0.30)

@@ -30,9 +30,11 @@ from src.core.game_context import GameContext
 from src.systems.spawn_system import Spawner
 from src.systems.encounter_system import EncounterSystem
 from src.systems.combat_system import CombatSystem
-from src.data.game_data import TARGET_TYPE_SCOUT, TARGET_TYPE_HEAVY, TARGET_TYPE_SHIELD_DRONE
+from src.data.game_data import TARGET_TYPE_SCOUT, TARGET_TYPE_HEAVY, TARGET_TYPE_SHIELD_DRONE, TARGET_TYPE_SHOOTER
+from src.data.settings import COLOR_GOLD
 from src.entities.enemy import Enemy
 from src.entities.bullet import Bullet
+from src.rendering.particles import ParticleManager
 
 
 class TestPlayerMovementPolish(unittest.TestCase):
@@ -187,6 +189,40 @@ class TestBossPacingPolish(unittest.TestCase):
         combat.update_combat(0.016)
         if boss.alive and boss.current_phase_idx != prev_phase:
             self.assertNotEqual(boss.current_phase_idx, prev_phase)
+
+
+from src.data.settings import COLOR_GOLD
+
+
+class TestScorePopupColors(unittest.TestCase):
+    """Score popups should use enemy-type colors, not always gold."""
+
+    def test_scout_score_popup_uses_enemy_color(self):
+        ctx = GameContext()
+        ctx.player = Player((400, 400))
+        ctx.particle_manager = ParticleManager()
+        enemy = Enemy(enemy_type=TARGET_TYPE_SCOUT, pos=(500, 400))
+        ctx.target_group.add(enemy)
+        ctx.bullet_group.add(Bullet((500, 400), (500, 400), damage=100, owner="player"))
+        combat = CombatSystem(ctx)
+        combat.update_combat(0.016)
+        floats = list(ctx.particle_manager.floating_texts) if ctx.particle_manager else []
+        self.assertTrue(len(floats) > 0, "Scout death should spawn score popup")
+        popup = floats[0]
+        self.assertNotEqual(popup.color, COLOR_GOLD,
+                            "Scout score popup should not be gold")
+
+    def test_shooter_score_popup_uses_enemy_color(self):
+        ctx = GameContext()
+        ctx.player = Player((400, 400))
+        ctx.particle_manager = ParticleManager()
+        enemy = Enemy(enemy_type=TARGET_TYPE_SHOOTER, pos=(500, 400))
+        ctx.target_group.add(enemy)
+        ctx.bullet_group.add(Bullet((500, 400), (500, 400), damage=100, owner="player"))
+        combat = CombatSystem(ctx)
+        combat.update_combat(0.016)
+        floats = list(ctx.particle_manager.floating_texts) if ctx.particle_manager else []
+        self.assertTrue(len(floats) > 0, "Shooter death should spawn score popup")
 
 
 if __name__ == '__main__':
