@@ -680,67 +680,67 @@ MAX_UPGRADE_LEVEL = 5
 SECTORS = [
     {
         "id": 0,
-        "name": "Megacity Skyline",
-        "desc": "High-altitude cyberpunk skyscrapers amidst neon downpours.",
-        "theme_color": COLOR_CYAN,
-        "weather": "rain",
+        "name": "Tropical Ocean Battlescape",
+        "desc": "Turquoise naval coastal waters with islands, docks, and coastal defense installations.",
+        "theme_color": (14, 165, 233),
+        "weather": "storm",
         "base_target_score": 5000,
         "stages": [
-            {"num": 1, "name": "Rooftop Recon", "score": 1500, "hazard": "none"},
-            {"num": 2, "name": "Skyline Skirmish", "score": 3200, "hazard": "debris"},
+            {"num": 1, "name": "Coastal Recon", "score": 1500, "hazard": "sea_mines"},
+            {"num": 2, "name": "Reef Skirmish", "score": 3200, "hazard": "debris"},
             {"num": 3, "name": "Dreadnought Intercept", "score": 5500, "hazard": "boss_dreadnought"}
         ]
     },
     {
         "id": 1,
-        "name": "Cyber Factory Core",
-        "desc": "Automated molten foundry protected by laser defense grids.",
-        "theme_color": COLOR_GOLD,
-        "weather": "sparks",
+        "name": "Desert Canyon Wasteland",
+        "desc": "Scorching sandstone canyons and abandoned industrial mining outposts.",
+        "theme_color": (245, 158, 11),
+        "weather": "sandstorm",
         "base_target_score": 7500,
         "stages": [
-            {"num": 1, "name": "Assembly Perimeter", "score": 2200, "hazard": "laser_grid"},
-            {"num": 2, "name": "Smelting Chambers", "score": 4500, "hazard": "debris"},
-            {"num": 3, "name": "Stealth Mirage Core", "score": 7500, "hazard": "boss_stealth"}
+            {"num": 1, "name": "Canyon Approach", "score": 2200, "hazard": "laser_grid"},
+            {"num": 2, "name": "Mining Trench", "score": 4500, "hazard": "debris"},
+            {"num": 3, "name": "Colossus Titan Showdown", "score": 7500, "hazard": "boss_titan"}
         ]
     },
     {
         "id": 2,
-        "name": "Orbital Space Citadel",
-        "desc": "Deep space fortress surrounded by asteroid belts and gravitational anomalies.",
-        "theme_color": COLOR_MAGENTA,
-        "weather": "meteor",
+        "name": "Jungle River Basin",
+        "desc": "Dense tropical rainforest with waterfalls, river bridges, and ancient monolith ruins.",
+        "theme_color": (16, 185, 129),
+        "weather": "rain",
         "base_target_score": 10000,
         "stages": [
-            {"num": 1, "name": "Citadel Approach", "score": 3000, "hazard": "gravity_well"},
-            {"num": 2, "name": "Orbital Trench", "score": 6200, "hazard": "debris"},
+            {"num": 1, "name": "River Run", "score": 3000, "hazard": "gravity_well"},
+            {"num": 2, "name": "Waterfall Ruins", "score": 6200, "hazard": "debris"},
             {"num": 3, "name": "EMP Disrupter Bastion", "score": 10000, "hazard": "boss_emp"}
         ]
     },
     {
         "id": 3,
-        "name": "Stormy Ocean Battlescape",
-        "desc": "Raging naval sea trench with explosive floating mines.",
-        "theme_color": (14, 165, 233),
-        "weather": "storm",
+        "name": "Cyberpunk City Megastructure",
+        "desc": "High-altitude neon skyscrapers, elevated highways, and air defense rooftops.",
+        "theme_color": (168, 85, 247),
+        "weather": "rain",
         "base_target_score": 13000,
         "stages": [
-            {"num": 1, "name": "Reef Recon", "score": 4000, "hazard": "sea_mines"},
-            {"num": 2, "name": "Typhoon Assault", "score": 8000, "hazard": "storm_winds"},
-            {"num": 3, "name": "Naval Dreadnought Clash", "score": 13000, "hazard": "boss_dreadnought"}
+            {"num": 1, "name": "Rooftop Recon", "score": 4000, "hazard": "none"},
+            {"num": 2, "name": "Neon Skyline", "score": 8000, "hazard": "storm_winds"},
+            {"num": 3, "name": "Megastructure Clash", "score": 13000, "hazard": "boss_dreadnought"}
         ]
     },
     {
         "id": 4,
-        "name": "Neon Sun Wasteland",
-        "desc": "Scorching desert wasteland guarded by the supreme Colossus Titan Mech.",
+        "name": "Cyber Factory Core",
+        "desc": "Automated industrial plant protected by reactors, machinery, and laser security grids.",
         "theme_color": (239, 68, 68),
-        "weather": "sandstorm",
+        "weather": "sparks",
         "base_target_score": 17000,
         "stages": [
-            {"num": 1, "name": "Dune Outpost", "score": 5000, "hazard": "gravity_well"},
-            {"num": 2, "name": "Scorched Trench", "score": 10500, "hazard": "laser_grid"},
-            {"num": 3, "name": "Colossus Titan Showdown", "score": 17000, "hazard": "boss_titan"}
+            {"num": 1, "name": "Assembly Perimeter", "score": 5000, "hazard": "laser_grid"},
+            {"num": 2, "name": "Reactor Trench", "score": 10500, "hazard": "debris"},
+            {"num": 3, "name": "Stealth Mirage Core", "score": 17000, "hazard": "boss_stealth"}
         ]
     }
 ]

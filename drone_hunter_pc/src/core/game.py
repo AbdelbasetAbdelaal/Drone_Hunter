@@ -189,6 +189,8 @@ class Game:
 
         if hasattr(self, "background") and self.background is not None:
             self.background.set_sector(ctx.current_sector_idx)
+            if hasattr(self.background, "set_stage"):
+                self.background.set_stage(ctx.current_sub_level)
 
         p = Player((WORLD_WIDTH // 2, WORLD_HEIGHT // 2))
         selected_skin = getattr(ctx, "selected_skin_override", None)

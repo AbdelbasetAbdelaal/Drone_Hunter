@@ -430,3 +430,170 @@ class CyberFactoryEnvironment:
             pygame.draw.line(barrier_surf, b_col, (max(0, bx1), by2), (min(vw, bx2), by2), 2)
 
         surface.blit(barrier_surf, (0, 0))
+
+
+class SectorEnvironmentManager:
+    """Multi-Sector Cartoon Environment Manager supporting Sectors 1-5 with high-resolution world maps and stage variations."""
+    _instance = None
+
+    def __init__(self, world_w: int = WORLD_WIDTH, world_h: int = WORLD_HEIGHT):
+        self.world_w = world_w
+        self.world_h = world_h
+        self.current_sector = 0  # 0: Ocean, 1: Desert, 2: Jungle, 3: City, 4: Cyber Factory
+        self.current_stage = 1
+        self.time_accum = 0.0
+        self._surfaces_cache = {}
+        self._previews_cache = {}
+        self.asset_dir = self._resolve_background_dir()
+        self.cyber_factory_env = CyberFactoryEnvironment(world_w, world_h)
+        self._barrier_surf = pygame.Surface((SCREEN_WIDTH, SCREEN_HEIGHT), pygame.SRCALPHA)
+
+    @classmethod
+    def get_instance(cls, world_w: int = WORLD_WIDTH, world_h: int = WORLD_HEIGHT):
+        if cls._instance is None:
+            cls._instance = cls(world_w, world_h)
+        return cls._instance
+
+    def _resolve_background_dir(self) -> str:
+        candidates = [
+            os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))), "assets", "backgrounds", "sectors"),
+            os.path.join(os.getcwd(), "drone_hunter_pc", "assets", "backgrounds", "sectors"),
+            os.path.join(os.getcwd(), "assets", "backgrounds", "sectors"),
+            os.path.join("d:", os.sep, "Drone_Hunter", "drone_hunter_pc", "assets", "backgrounds", "sectors"),
+        ]
+        for c in candidates:
+            if os.path.exists(c):
+                return c
+        return candidates[0]
+
+    def set_sector(self, sector_idx: int):
+        self.current_sector = max(0, int(sector_idx)) % 5
+
+    def set_stage(self, stage_idx: int):
+        self.current_stage = max(1, int(stage_idx))
+
+    def update(self, dt: float):
+        self.time_accum += dt
+        self.cyber_factory_env.update(dt)
+
+    def get_sector_surface(self, sector_idx: int, stage_idx: int = 1) -> pygame.Surface:
+        """Retrieves cached 2400x1400 high-resolution world background surface."""
+        sec_num = (sector_idx % 5) + 1  # 1-indexed: 1..5
+        stg_num = max(1, (stage_idx - 1) % 3 + 1) # stage variations 1..3
+        cache_key = (sec_num, stg_num)
+
+        if cache_key in self._surfaces_cache:
+            return self._surfaces_cache[cache_key]
+
+        # Look for stage-specific file first, then sector world file, then fallback
+        file_candidates = [
+            os.path.join(self.asset_dir, f"sector_{sec_num}_stage_{stg_num}.png"),
+            os.path.join(self.asset_dir, f"sector_{sec_num}_world_2400.png"),
+            os.path.join(self.asset_dir, f"sector_{sec_num}.png"),
+        ]
+
+        surf = None
+        for fp in file_candidates:
+            if os.path.exists(fp):
+                try:
+                    loaded = pygame.image.load(fp)
+                    if pygame.display.get_surface():
+                        loaded = loaded.convert()
+                    if loaded.get_size() != (self.world_w, self.world_h):
+                        loaded = pygame.transform.smoothscale(loaded, (self.world_w, self.world_h))
+                    surf = loaded
+                    break
+                except Exception:
+                    pass
+
+        if surf is None:
+            # Fallback procedural surface with sector theme color
+            surf = pygame.Surface((self.world_w, self.world_h))
+            sector_fallbacks = [
+                (14, 40, 68),   # Ocean
+                (60, 36, 18),   # Desert
+                (16, 44, 28),   # Jungle
+                (24, 18, 52),   # City
+                (18, 22, 30),   # Cyber Factory
+            ]
+            bg_col = sector_fallbacks[sector_idx % len(sector_fallbacks)]
+            surf.fill(bg_col)
+
+        self._surfaces_cache[cache_key] = surf
+        return surf
+
+    def get_sector_preview(self, sector_idx: int) -> pygame.Surface | None:
+        """Retrieves preview thumbnail surface for sector selection UI."""
+        sec_num = (sector_idx % 5) + 1
+        if sec_num in self._previews_cache:
+            return self._previews_cache[sec_num]
+
+        fp = os.path.join(self.asset_dir, f"sector_{sec_num}.png")
+        if os.path.exists(fp):
+            try:
+                img = pygame.image.load(fp)
+                if pygame.display.get_surface():
+                    img = img.convert()
+                self._previews_cache[sec_num] = img
+                return img
+            except Exception:
+                pass
+        return None
+
+    def draw(self, surface: pygame.Surface, camera_offset: tuple[float, float] = (0.0, 0.0)):
+        """Renders 2D Sector Environment in world space with camera viewport offset."""
+        ox, oy = camera_offset
+        vw, vh = surface.get_size()
+
+        # 1. Fetch pre-cached 2400x1400 world surface for current sector & stage
+        world_surf = self.get_sector_surface(self.current_sector, self.current_stage)
+
+        # 2. Viewport sub-rect hardware blit
+        if world_surf is not None:
+            sx = max(0, min(int(ox), self.world_w - vw))
+            sy = max(0, min(int(oy), self.world_h - vh))
+            surface.blit(world_surf, (0, 0), (sx, sy, vw, vh))
+        else:
+            surface.fill((10, 15, 26))
+
+        # 3. For Sector 4 (Cyber Factory Core), layer interactive dynamic components
+        if self.current_sector == 4:
+            self.cyber_factory_env.pipes.draw(surface, camera_offset, self.time_accum)
+            for m in self.cyber_factory_env.machinery:
+                m.draw(surface, camera_offset, self.time_accum)
+            for w in self.cyber_factory_env.walls:
+                w.draw(surface, camera_offset)
+            for b in self.cyber_factory_env.barriers:
+                b.draw(surface, camera_offset, self.time_accum)
+            self.cyber_factory_env.reactor.draw(surface, camera_offset, self.time_accum)
+            self.cyber_factory_env.crates.draw(surface, camera_offset)
+
+        # 4. Subtle perimeter security barrier (soft glow border)
+        pad = 20.0
+        bx1, by1 = int(round(pad - ox)), int(round(pad - oy))
+        bx2, by2 = int(round((self.world_w - pad) - ox)), int(round((self.world_h - pad) - oy))
+
+        b_alpha = int(140 + 40 * math.sin(self.time_accum * 4.0))
+        barrier_surf = self._barrier_surf
+        barrier_surf.fill((0, 0, 0, 0))
+
+        sector_colors = [
+            (14, 165, 233),   # Sector 1 Ocean: Cyan
+            (245, 158, 11),   # Sector 2 Desert: Amber/Gold
+            (16, 185, 129),   # Sector 3 Jungle: Emerald
+            (168, 85, 247),   # Sector 4 City: Violet/Magenta
+            (239, 68, 68),    # Sector 5 Cyber Factory: Crimson
+        ]
+        b_base_col = sector_colors[self.current_sector % len(sector_colors)]
+        b_col = (b_base_col[0], b_base_col[1], b_base_col[2], b_alpha)
+
+        if 0 <= bx1 <= vw:
+            pygame.draw.line(barrier_surf, b_col, (bx1, max(0, by1)), (bx1, min(vh, by2)), 2)
+        if 0 <= bx2 <= vw:
+            pygame.draw.line(barrier_surf, b_col, (bx2, max(0, by1)), (bx2, min(vh, by2)), 2)
+        if 0 <= by1 <= vh:
+            pygame.draw.line(barrier_surf, b_col, (max(0, bx1), by1), (min(vw, bx2), by1), 2)
+        if 0 <= by2 <= vh:
+            pygame.draw.line(barrier_surf, b_col, (max(0, bx1), by2), (min(vw, bx2), by2), 2)
+
+        surface.blit(barrier_surf, (0, 0))

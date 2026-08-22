@@ -50,27 +50,32 @@ SECTORS_PHASE5 = [
     {
         "id": 1,
         "name": "CYBER FACTORY",
-        "theme": "Industrial drone production plant."
+        "theme": "Tropical coastal naval installations and island reef bases.",
+        "environment": "ocean"
     },
     {
         "id": 2,
         "name": "CORE SECTOR",
-        "theme": "Heavily defended reactor core complex."
+        "theme": "Scorching sandstone canyons and industrial mining outposts.",
+        "environment": "desert"
     },
     {
         "id": 3,
         "name": "REACTOR ZONE",
-        "theme": "Volatile energy conduits and plasma machinery."
+        "theme": "Dense tropical rainforest with river waterfalls and ruins.",
+        "environment": "jungle"
     },
     {
         "id": 4,
         "name": "DEFENSE GRID",
-        "theme": "Fortified automated defense installations."
+        "theme": "Futuristic megacity skyline with neon rooftops and highways.",
+        "environment": "city"
     },
     {
         "id": 5,
         "name": "DRONE COMMAND",
-        "theme": "Enemy command infrastructure."
+        "theme": "Automated industrial drone production plant and reactor core.",
+        "environment": "cyber_factory"
     }
 ]
 
