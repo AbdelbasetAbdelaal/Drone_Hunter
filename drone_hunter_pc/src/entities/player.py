@@ -561,27 +561,35 @@ class Player(pygame.sprite.Sprite):
 
 
 
-    def handle_input(self, keys, dt: float, mouse_pos: tuple[float, float] = None):
-        """Processes 360-degree vector flight kinematics, lateral banking, and mouse aiming."""
+    def handle_input(self, keys, dt: float, mouse_pos: tuple[float, float] = None, input_state: dict = None):
+        """Processes 360-degree vector flight kinematics, lateral banking, and mouse/analog stick aiming."""
         move_x = 0.0
         move_y = 0.0
 
-        def _is_pressed(k):
-            if isinstance(keys, dict):
-                return keys.get(k, False)
-            try:
-                return bool(keys[k])
-            except (IndexError, KeyError):
-                return False
+        if input_state:
+            move_x = input_state.get("move_x", 0.0)
+            move_y = input_state.get("move_y", 0.0)
+            aim_angle_override = input_state.get("aim_angle", None)
+            if aim_angle_override is not None:
+                self.aim_angle = aim_angle_override
+        else:
+            def _is_pressed(k):
+                if isinstance(keys, dict):
+                    return keys.get(k, False)
+                try:
+                    return bool(keys[k])
+                except (IndexError, KeyError):
+                    return False
 
-        if _is_pressed(pygame.K_w) or _is_pressed(pygame.K_UP): move_y -= 1.0
-        if _is_pressed(pygame.K_s) or _is_pressed(pygame.K_DOWN): move_y += 1.0
-        if _is_pressed(pygame.K_a) or _is_pressed(pygame.K_LEFT): move_x -= 1.0
-        if _is_pressed(pygame.K_d) or _is_pressed(pygame.K_RIGHT): move_x += 1.0
+            if _is_pressed(pygame.K_w) or _is_pressed(pygame.K_UP): move_y -= 1.0
+            if _is_pressed(pygame.K_s) or _is_pressed(pygame.K_DOWN): move_y += 1.0
+            if _is_pressed(pygame.K_a) or _is_pressed(pygame.K_LEFT): move_x -= 1.0
+            if _is_pressed(pygame.K_d) or _is_pressed(pygame.K_RIGHT): move_x += 1.0
 
         move_vec = pygame.Vector2(move_x, move_y)
         if move_vec.length_squared() > 0.0:
-            move_vec = move_vec.normalize()
+            if not input_state and move_vec.length_squared() > 1.0:
+                move_vec = move_vec.normalize()
             self.is_accelerating = True
             self.velocity += move_vec * (self.acceleration * self.agility_mult) * dt
         else:
@@ -596,8 +604,8 @@ class Player(pygame.sprite.Sprite):
         if self.velocity.length() > current_max:
             self.velocity.scale_to_length(current_max)
 
-        # Update Aim Direction from Mouse (World Coordinates)
-        if mouse_pos:
+        # Update Aim Direction from Mouse (World Coordinates) if right stick aim is inactive
+        if mouse_pos and (not input_state or input_state.get("aim_angle") is None):
             self.aim_angle = math.atan2(mouse_pos[1] - self.pos.y, mouse_pos[0] - self.pos.x)
 
         # Smooth Lateral Velocity Banking relative to Aim Angle

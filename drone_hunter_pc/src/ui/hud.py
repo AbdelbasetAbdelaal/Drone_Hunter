@@ -18,8 +18,40 @@ from src.ui.font_manager import font_hud, font_card, font_banner
 
 def draw_hud(canvas: pygame.Surface, player, sector_idx: int = 0, level_score: int = 0, total_score: int = 0,
              scrap: int = 0, difficulty_name: str = "NORMAL", combo_mult: int = 1, show_crt: bool = False,
-             current_wave: int = 1, sub_level: int = 1, mission_id: str | None = None):
-    """Renders clean, responsive screen-space tactical HUD."""
+             current_wave: int = 1, sub_level: int = 1, mission_id: str | None = None, input_manager=None):
+    """Renders clean, responsive screen-space tactical HUD with dynamic device-aware action prompts."""
+    vw, vh = canvas.get_size()
+    margin_x = 24
+    margin_y = 20
+
+    # Low-health warning state (shared by HP bar and vignette)
+    low_health = False
+    if player:
+        hp_pct = max(0.0, min(1.0, player.health / max(1.0, player.max_health)))
+        low_health = hp_pct < 0.30
+
+    # =========================================================================
+    # 0.5 LOW-HEALTH VIGNETTE (red edge darkening when Hull < 30%)
+    # =========================================================================
+    if low_health:
+        vignette_alpha = int(90 + 50 * math.sin(pygame.time.get_ticks() * 0.008))
+        vignette = pygame.Surface((vw, vh), pygame.SRCALPHA)
+        # Top/bottom gradient bars
+        bar_h = max(1, int(vh * 0.22))
+        pygame.draw.rect(vignette, (185, 28, 28, min(255, vignette_alpha // 2)), (0, 0, vw, bar_h))
+        pygame.draw.rect(vignette, (185, 28, 28, min(255, vignette_alpha // 2)), (0, vh - bar_h, vw, bar_h))
+        # Left/right gradient bars
+        bar_w = max(1, int(vw * 0.18))
+        pygame.draw.rect(vignette, (185, 28, 28, min(255, vignette_alpha // 3)), (0, 0, bar_w, vh))
+        pygame.draw.rect(vignette, (185, 28, 28, min(255, vignette_alpha // 3)), (vw - bar_w, 0, bar_w, vh))
+        canvas.blit(vignette, (0, 0))
+
+    # =========================================================================
+    # 1. TOP-LEFT: Hull Integrity, Energy Status & Shield Pips
+    # =========================================================================
+    # ... (rest unchanged until Section 3)
+    if player:
+        pass # Placeholder for replace_file_content match check
     vw, vh = canvas.get_size()
     margin_x = 24
     margin_y = 20
@@ -145,11 +177,16 @@ def draw_hud(canvas: pygame.Surface, player, sector_idx: int = 0, level_score: i
         cloak_status = f"{player.cloak_timer:.1f}s" if player.is_cloaked else ("READY" if player.cloak_cooldown <= 0 else f"{player.cloak_cooldown:.1f}s")
         cloak_col = (168, 85, 247) if player.is_cloaked else ((147, 51, 234) if player.cloak_cooldown <= 0 else (75, 85, 99))
 
+        roll_p = input_manager.get_prompt_for_action("ROLL") if input_manager else "SHIFT"
+        cloak_p = input_manager.get_prompt_for_action("CLOAK") if input_manager else "C"
+        emp_p = input_manager.get_prompt_for_action("EMP") if input_manager else "E"
+        ult_p = input_manager.get_prompt_for_action("ULTIMATE") if input_manager else "F"
+
         abilities = [
-            ("[SHIFT] ROLL", player.roll_cooldown <= 0.0, COLOR_EMERALD, f"{player.roll_cooldown:.1f}s" if player.roll_cooldown > 0 else "READY"),
-            ("[C] CLOAK", cloak_ready, cloak_col, cloak_status),
-            ("[E] EMP", player.emp_cooldown <= 0.0, COLOR_CYAN, f"{player.emp_cooldown:.1f}s" if player.emp_cooldown > 0 else "READY"),
-            ("[F] ULT", player.overdrive_cooldown <= 0.0 or player.overdrive_timer > 0, COLOR_GOLD if player.overdrive_cooldown <= 0 else COLOR_OVERCLOCK,
+            (f"[{roll_p}] ROLL", player.roll_cooldown <= 0.0, COLOR_EMERALD, f"{player.roll_cooldown:.1f}s" if player.roll_cooldown > 0 else "READY"),
+            (f"[{cloak_p}] CLOAK", cloak_ready, cloak_col, cloak_status),
+            (f"[{emp_p}] EMP", player.emp_cooldown <= 0.0, COLOR_CYAN, f"{player.emp_cooldown:.1f}s" if player.emp_cooldown > 0 else "READY"),
+            (f"[{ult_p}] ULT", player.overdrive_cooldown <= 0.0 or player.overdrive_timer > 0, COLOR_GOLD if player.overdrive_cooldown <= 0 else COLOR_OVERCLOCK,
              f"{player.overdrive_timer:.1f}s" if player.overdrive_timer > 0 else ("READY" if player.overdrive_cooldown <= 0 else f"{player.overdrive_cooldown:.0f}s")),
         ]
         

@@ -80,6 +80,8 @@ class Game:
         self.particle_manager = ParticleManager()
         self.audio_manager = AudioManager()
         self.save_system = SaveSystem()
+        from src.input import InputManager
+        self.input_manager = InputManager()
         self.spawner = Spawner()
         self.encounter_system = EncounterSystem()
         self.combat_director = CombatDirector(self.encounter_system, test_mode=self._test_mode)
@@ -94,6 +96,7 @@ class Game:
         self.context.particle_manager = self.particle_manager
         self.context.audio_manager = self.audio_manager
         self.context.save_system = self.save_system
+        self.context.input_manager = self.input_manager
         self.context.spawner = self.spawner
         self.context.background = self.background
         self.context.encounter_system = self.encounter_system
@@ -398,7 +401,9 @@ class Game:
 
     def handle_events(self):
         ctx = self.context
-        for event in pygame.event.get():
+        events = pygame.event.get()
+        self.input_manager.process_events(events)
+        for event in events:
             if event.type == pygame.QUIT:
                 self.running = False
 
@@ -808,6 +813,53 @@ class Game:
                         else:
                             ctx.state = STATE_SECTOR_SELECT
 
+        # Process discrete controller action triggers
+        trig = self.input_manager.actions_triggered
+        from src.input import (
+            ACTION_PAUSE, ACTION_ROLL, ACTION_EMP, ACTION_ULTIMATE,
+            ACTION_WEAPON_NEXT, ACTION_WEAPON_PREV, ACTION_CLOAK, ACTION_CANCEL, ACTION_SPECIAL
+        )
+        if trig.get(ACTION_PAUSE):
+            if ctx.state == STATE_PLAYING:
+                ctx.state = STATE_PAUSED
+            elif ctx.state == STATE_PAUSED:
+                ctx.state = STATE_PLAYING
+            elif ctx.state in (STATE_MENU, STATE_SECTOR_SELECT, STATE_HANGAR, STATE_SETTINGS):
+                if ctx.state == STATE_SETTINGS:
+                    ctx.state = self.previous_state if self.previous_state != STATE_SETTINGS else STATE_SECTOR_SELECT
+                elif ctx.state in (STATE_HANGAR, STATE_SECTOR_SELECT):
+                    ctx.state = STATE_MENU
+
+        if trig.get(ACTION_CANCEL):
+            if ctx.state in (STATE_DRONE_SELECT, STATE_SETTINGS, STATE_SECTOR_SELECT, STATE_HANGAR, STATE_MISSION_BRIEFING):
+                ctx.state = STATE_MENU
+
+        if ctx.state == STATE_PLAYING and ctx.player:
+            if trig.get(ACTION_ROLL):
+                if ctx.player.trigger_roll(dir_x=1.0):
+                    self.audio_manager.play_whoosh()
+                    self.particle_manager.spawn_barrel_roll_rings(ctx.player.pos, radius=40, color=COLOR_CYAN)
+                    self.input_manager.trigger_rumble(0.2, 0.4, 100)
+            if trig.get(ACTION_EMP) and self.combat_system:
+                self.combat_system.execute_emp_blast()
+                self.input_manager.trigger_rumble(0.6, 0.8, 200)
+            if trig.get(ACTION_ULTIMATE):
+                if ctx.player.trigger_overdrive():
+                    self.audio_manager.play_overdrive()
+                    ctx.trigger_shake(14.0, 0.5)
+                    self.particle_manager.spawn_shockwave(ctx.player.pos, max_r=550, color=(250, 204, 21))
+                    self.input_manager.trigger_rumble(0.8, 1.0, 300)
+            if trig.get(ACTION_WEAPON_NEXT):
+                ctx.player.cycle_weapon(1)
+                self.audio_manager.play_weapon_switch()
+            if trig.get(ACTION_WEAPON_PREV):
+                ctx.player.cycle_weapon(-1)
+                self.audio_manager.play_weapon_switch()
+            if trig.get(ACTION_CLOAK):
+                if ctx.player.trigger_cloak():
+                    self.audio_manager.play_cloak()
+                    self.particle_manager.spawn_spark(ctx.player.pos, count=15, color=(147, 51, 234))
+
                 elif ctx.state == STATE_PLAYING:
                     if event.button == 1 and ctx.player and ctx.player.can_shoot():
                         canvas_mx, canvas_my = self.get_canvas_mouse_pos()
@@ -836,13 +888,20 @@ class Game:
             self.particle_manager.spawn_weather(sec_info.get("weather", "clear"))
             self.particle_manager.update(dt)
 
-            if ctx.state == STATE_PLAYING:                # 1. Player Input & Update
+            if ctx.state == STATE_PLAYING:
+                # 1. Unified Controller / Mouse / Keyboard Input Polling
+                input_state = self.input_manager.poll_input(
+                    player_pos=(ctx.player.pos.x, ctx.player.pos.y) if ctx.player else (200, 360),
+                    get_canvas_mouse_pos_func=self.get_canvas_mouse_pos
+                )
+                ctx.input_state = input_state
+
                 keys = pygame.key.get_pressed()
                 if ctx.player:
                     if ctx.player.alive:
                         canvas_mx, canvas_my = self.get_canvas_mouse_pos()
                         world_mx, world_my = self.camera.screen_to_world(canvas_mx, canvas_my)
-                        ctx.player.handle_input(keys, dt, mouse_pos=(world_mx, world_my))
+                        ctx.player.handle_input(keys, dt, mouse_pos=(world_mx, world_my), input_state=input_state)
 
                         # Spawn particle trail when accelerating or high velocity
                         if ctx.player.is_accelerating or ctx.player.velocity.length_squared() > 10000.0:
@@ -860,14 +919,21 @@ class Game:
                         speed_ratio = speed / max(1.0, ctx.player.max_speed)
                         self.audio_manager.update_engine_sound(speed_ratio, ctx.player.is_accelerating)
 
-                        # Player Weapon Shooting (Mouse Left Click or Spacebar)
+                        # Player Weapon Shooting (Mouse Left Click, Spacebar, or RT/Right Trigger)
                         mouse_pressed = pygame.mouse.get_pressed()
-                        is_shooting = mouse_pressed[0] or (keys[pygame.K_SPACE] if isinstance(keys, (list, tuple, dict)) or hasattr(keys, '__getitem__') else False)
+                        is_shooting = mouse_pressed[0] or input_state.get("fire_primary", False) or (keys[pygame.K_SPACE] if isinstance(keys, (list, tuple, dict)) or hasattr(keys, '__getitem__') else False)
+                        
+                        target_pos = (world_mx, world_my)
+                        if input_state.get("aim_angle") is not None:
+                            aim_ang = input_state["aim_angle"]
+                            target_pos = (ctx.player.pos.x + math.cos(aim_ang) * 1000.0, ctx.player.pos.y + math.sin(aim_ang) * 1000.0)
+
                         if is_shooting and ctx.player.can_shoot():
-                            fired_bullets = ctx.player.shoot((world_mx, world_my), level=ctx.current_sub_level, targets_group=ctx.target_group, particle_manager=self.particle_manager)
+                            fired_bullets = ctx.player.shoot(target_pos, level=ctx.current_sub_level, targets_group=ctx.target_group, particle_manager=self.particle_manager)
                             for b in fired_bullets: ctx.bullet_group.add(b)
                             if fired_bullets and ctx.player.active_weapon != "beam":
                                 self.audio_manager.play_weapon(ctx.player.active_weapon)
+                                self.input_manager.trigger_rumble(0.12, 0.25, 60)
                                 if ctx.player.active_weapon in ("rail", "plasma", "barrage"):
                                     ctx.trigger_shake(2.5, 0.10)
                                 elif ctx.player.active_weapon in ("missile", "scatter"):
