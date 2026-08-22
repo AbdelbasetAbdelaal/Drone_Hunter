@@ -991,7 +991,13 @@ class Game:
                     living_enemies = [e for e in ctx.target_group if getattr(e, "alive", False) and not getattr(e, "is_obstacle", False)]
                     stage_complete = ctx.wave_manager.is_stage_complete(ctx.level_score, targets_group=ctx.target_group)
                     director_finished = (self.combat_director.state == "complete" and len(living_enemies) == 0 and ctx.level_score >= 1200)
-                    if stage_complete or director_finished:
+                    
+                    # Boss defeat hold: delay level clear to let boss explosion/audio play
+                    boss_just_died = getattr(ctx, "boss_defeat_timer", 0.0) > 0.0
+                    if boss_just_died:
+                        ctx.boss_defeat_timer = max(0.0, ctx.boss_defeat_timer - dt)
+                    
+                    if (stage_complete or director_finished) and not boss_just_died:
                         ctx.state = STATE_LEVEL_CLEAR
                         self.audio_manager.play_mission_complete()
                         self.save_progress()
@@ -1063,6 +1069,18 @@ class Game:
 
             if ctx.state == STATE_PLAYING:
                 self.renderer.draw_crosshair(canvas_m_pos)
+                
+                # Boss defeated celebration overlay
+                if getattr(ctx, "boss_defeat_timer", 0.0) > 0.0:
+                    pct = max(0.0, min(1.0, ctx.boss_defeat_timer / 2.5))
+                    alpha = int(200 * pct)
+                    overlay = pygame.Surface((vw, vh), pygame.SRCALPHA)
+                    overlay.fill((0, 0, 0, 0))
+                    txt = font_banner.render("BOSS DEFEATED", True, (16, 185, 129, alpha))
+                    overlay.blit(txt, txt.get_rect(center=(vw // 2, vh // 2 - 40)))
+                    sub = font_card.render("STAGE CLEAR INCOMING...", True, (226, 232, 240, alpha))
+                    overlay.blit(sub, sub.get_rect(center=(vw // 2, vh // 2 + 10)))
+                    canvas.blit(overlay, (0, 0))
             elif ctx.state == STATE_PAUSED:
                 draw_pause_settings_ui(canvas, ctx.difficulty_mode, ctx.show_crt, self.audio_manager.sound_enabled, mouse_pos=canvas_m_pos)
             elif ctx.state == STATE_LEVEL_CLEAR:

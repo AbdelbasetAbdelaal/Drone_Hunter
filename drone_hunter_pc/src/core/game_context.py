@@ -91,6 +91,7 @@ class GameContext:
         self.damage_flash_timer: float = 0.0
         self.screen_shake_time: float = 0.0
         self.screen_shake_intensity: float = 0.0
+        self.boss_defeat_timer: float = 0.0
 
         # Spawning Timers
         self.obstacle_timer: float = 0.0

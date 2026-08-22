@@ -250,6 +250,7 @@ class CombatSystem:
                         death_type = getattr(target, "enemy_type", "")
                         if getattr(target, "is_boss", False):
                             death_type = "boss"
+                            ctx.boss_defeat_timer = 2.5
                         ctx.audio_manager.play_death(death_type)
                     shake_intensity = 3.0 if not getattr(target, "is_boss", False) else 4.0
                     ctx.trigger_shake(shake_intensity, 0.2)
