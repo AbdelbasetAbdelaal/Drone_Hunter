@@ -188,15 +188,25 @@ class PlayerRenderer:
             pygame.draw.circle(od_surf, (255, 204, 21, pulse_a), (od_r + 5, od_r + 5), od_r, 3)
             canvas.blit(od_surf, (int(round(screen_x)) - od_r - 5, int(round(screen_y)) - od_r - 5))
 
-        # 8. Subtle Localized Hit Impact (Cyan/Blue Energy Burst — No Full-Sprite White Flash)
+        # 8. Small Clean Impact Explosion (Cartoon/Sci-Fi Impact Burst — No Blue Circle & No Full-Body White Flash)
         if player.damage_flash_timer > 0:
-            hit_pct = max(0.0, min(1.0, player.damage_flash_timer / 0.10))
-            impact_alpha = int(90 * hit_pct)
-            impact_radius = int(18 + 14 * hit_pct)
-            pygame.draw.circle(canvas, (14, 165, 233, max(0, min(255, impact_alpha))),
-                               (int(round(screen_x)), int(round(screen_y))), impact_radius)
-            pygame.draw.circle(canvas, (200, 240, 255, max(0, min(255, impact_alpha // 2))),
-                               (int(round(screen_x)), int(round(screen_y))), max(1, impact_radius // 3))
+            hit_pct = max(0.0, min(1.0, player.damage_flash_timer / 0.12))
+            alpha = int(240 * hit_pct)
+            cx, cy = int(round(screen_x)), int(round(screen_y))
+            
+            # Small bright white core burst (radius 5-8px)
+            core_r = max(2, int(4 + 4 * hit_pct))
+            pygame.draw.circle(canvas, (255, 255, 255, alpha), (cx, cy), core_r)
+            
+            # Fiery orange/gold outer energy ring (radius 10-14px)
+            outer_r = max(4, int(8 + 6 * hit_pct))
+            pygame.draw.circle(canvas, (255, 140, 0, int(alpha * 0.7)), (cx, cy), outer_r, 2)
+            
+            # Tiny impact spark rays (short lines radiating outwards)
+            spark_len = int(6 + 8 * hit_pct)
+            sparks = [(spark_len, spark_len), (-spark_len, spark_len), (spark_len, -spark_len), (-spark_len, -spark_len)]
+            for dx, dy in sparks:
+                pygame.draw.line(canvas, (250, 204, 21, alpha), (cx + dx // 2, cy + dy // 2), (cx + dx, cy + dy), 2)
 
         # 9. Player Destruction Sequence (High-Fidelity Asset)
         if getattr(player, "is_destroyed", False) and player.destruction_timer > 0:
