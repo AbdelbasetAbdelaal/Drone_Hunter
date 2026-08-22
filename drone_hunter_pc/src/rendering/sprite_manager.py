@@ -498,21 +498,19 @@ class SpriteManager:
     # -------------------------------------------------------------------------
     def get_projectile_sprite(self, proj_type: str, target_size: tuple[int, int]) -> pygame.Surface:
         cache_key = ('proj', proj_type, target_size)
+        rel = WEAPON_ASSETS.get(proj_type, proj_type if proj_type.endswith('.png') else 'weapons/laser_pulse.png')
+        base_name = os.path.basename(rel)
+
         if cache_key in self._skin_cache:
-            rel = WEAPON_ASSETS.get(proj_type, proj_type if proj_type.endswith('.png') else 'weapons/laser_pulse.png')
-            base_name = os.path.basename(rel)
             self.weapon_asset_requested[base_name] = self.weapon_asset_requested.get(base_name, 0) + 1
             return self._skin_cache[cache_key]
 
-        rel = WEAPON_ASSETS.get(proj_type)
-        if not rel:
-            if proj_type.startswith('weapons/') or proj_type.endswith('.png'):
-                rel = proj_type
-            else:
-                rel = WEAPON_ASSETS.get('pulse', 'weapons/laser_pulse.png')
+        # Try individual weapon folder first
+        indiv_path = f"weapons/{proj_type}/projectile.png"
+        raw = self._load_raw_image(indiv_path)
+        if raw is None:
+            raw = self._load_raw_image(rel)
 
-        raw = self._load_raw_image(rel)
-        base_name = os.path.basename(rel)
         if raw is None:
             logger.error(f"[ASSET ERROR] Missing weapon sprite: {rel}")
             raise RuntimeError(f"Missing production weapon asset: {rel}. Do NOT use procedural fallbacks.")
@@ -545,6 +543,56 @@ class SpriteManager:
 
         self.vfx_asset_requested[base_name] = self.vfx_asset_requested.get(base_name, 0) + 1
         scaled = pygame.transform.smoothscale(raw, target_size)
+        self._skin_cache[cache_key] = scaled
+        return scaled
+
+    def get_weapon_icon_sprite(self, weapon_id: str, target_size: tuple[int, int] = (48, 48)) -> pygame.Surface:
+        cache_key = ('w_icon', weapon_id, target_size)
+        if cache_key in self._skin_cache:
+            return self._skin_cache[cache_key]
+
+        rel = f'weapons/{weapon_id}/icon.png'
+        raw = self._load_raw_image(rel)
+        if raw is None:
+            rel = WEAPON_ASSETS.get(weapon_id, 'weapons/laser_pulse.png')
+            raw = self._load_raw_image(rel)
+
+        if raw is not None:
+            scaled = pygame.transform.smoothscale(raw, target_size)
+        else:
+            scaled = pygame.Surface(target_size, pygame.SRCALPHA)
+            pygame.draw.circle(scaled, (14, 165, 233), (target_size[0] // 2, target_size[1] // 2), target_size[0] // 2 - 2)
+
+        self._skin_cache[cache_key] = scaled
+        return scaled
+
+    def get_weapon_muzzle_sprite(self, weapon_id: str, target_size: tuple[int, int] = (48, 48)) -> pygame.Surface:
+        cache_key = ('w_muzzle', weapon_id, target_size)
+        if cache_key in self._skin_cache:
+            return self._skin_cache[cache_key]
+
+        rel = f'weapons/{weapon_id}/muzzle.png'
+        raw = self._load_raw_image(rel)
+        if raw is None:
+            rel = WEAPON_ASSETS.get(weapon_id, 'weapons/laser_pulse.png')
+            raw = self._load_raw_image(rel)
+
+        scaled = pygame.transform.smoothscale(raw, target_size) if raw else pygame.Surface(target_size, pygame.SRCALPHA)
+        self._skin_cache[cache_key] = scaled
+        return scaled
+
+    def get_weapon_impact_sprite(self, weapon_id: str, target_size: tuple[int, int] = (56, 56)) -> pygame.Surface:
+        cache_key = ('w_impact', weapon_id, target_size)
+        if cache_key in self._skin_cache:
+            return self._skin_cache[cache_key]
+
+        rel = f'weapons/{weapon_id}/impact.png'
+        raw = self._load_raw_image(rel)
+        if raw is None:
+            rel = WEAPON_ASSETS.get(weapon_id, 'weapons/laser_pulse.png')
+            raw = self._load_raw_image(rel)
+
+        scaled = pygame.transform.smoothscale(raw, target_size) if raw else pygame.Surface(target_size, pygame.SRCALPHA)
         self._skin_cache[cache_key] = scaled
         return scaled
 
