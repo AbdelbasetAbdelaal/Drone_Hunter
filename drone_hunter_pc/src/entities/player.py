@@ -68,8 +68,8 @@ class Player(pygame.sprite.Sprite):
         # Position & Kinematic Flight Physics (Fast-Paced, Highly Responsive)
         self.pos = pygame.Vector2(pos)
         self.velocity = pygame.Vector2(0, 0)
-        self.acceleration = 5400.0
-        self.drag = 6.0
+        self.acceleration = 6400.0
+        self.drag = 5.0
         self.max_speed = HORIZONTAL_SPEED
         self.is_accelerating = False
         
