@@ -316,14 +316,14 @@ class Player(pygame.sprite.Sprite):
         """Triggers weapon overclock fire rate boost."""
         self.overclock_timer = max(self.overclock_timer, duration)
 
-    def cycle_skin(self) -> int:
+    def cycle_skin(self, step: int = 1) -> int:
         """Cycles aesthetic drone chassis theme."""
         from src.data.game_data import DRONE_SKINS
-        next_skin = (self.skin_theme + 1) % len(DRONE_SKINS)
+        next_skin = (self.skin_theme + step) % len(DRONE_SKINS)
         self.set_visual_skin(next_skin)
         return self.skin_theme
 
-    def cycle_drone_class(self) -> str:
+    def cycle_drone_class(self, step: int = 1) -> str:
         """Cycles through available drone combat classes and updates chassis aesthetics."""
         from src.data.game_data import DRONE_CLASSES
         class_ids = list(DRONE_CLASSES.keys())
@@ -331,7 +331,7 @@ class Player(pygame.sprite.Sprite):
             curr_idx = class_ids.index(self.drone_class_id)
         except ValueError:
             curr_idx = 0
-        next_idx = (curr_idx + 1) % len(class_ids)
+        next_idx = (curr_idx + step) % len(class_ids)
         next_id = class_ids[next_idx]
         self.set_drone_class(next_id)
         self.set_visual_skin(next_idx)

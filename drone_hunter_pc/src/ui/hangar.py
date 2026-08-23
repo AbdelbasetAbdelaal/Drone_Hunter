@@ -16,7 +16,7 @@ from src.ui.font_manager import font_header, font_banner, font_card, font_button
 from src.ui.menus import draw_button
 
 
-def draw_hangar_shop_ui(canvas: pygame.Surface, scrap: int, current_sector_idx: int, upgrade_levels: dict[str, int], mouse_pos: tuple[int, int] = None, player=None, weapon_upgrades: dict = None, unlocked_weapons: list = None, unlocked_skins: list = None, total_score: int = 0) -> dict:
+def draw_hangar_shop_ui(canvas: pygame.Surface, scrap: int, current_sector_idx: int, upgrade_levels: dict[str, int], mouse_pos: tuple[int, int] = None, player=None, weapon_upgrades: dict = None, unlocked_weapons: list = None, unlocked_skins: list = None, total_score: int = 0, selected_index: int = None) -> dict:
     canvas.fill((8, 12, 22))
     vw, vh = canvas.get_size()
     mx, my = mouse_pos if mouse_pos is not None else pygame.mouse.get_pos()
@@ -53,7 +53,7 @@ def draw_hangar_shop_ui(canvas: pygame.Surface, scrap: int, current_sector_idx: 
         cost = UPGRADE_COSTS.get(lvl, 999999)
 
         card_rect = pygame.Rect(cx, cy, card_w, card_h)
-        is_hover = card_rect.collidepoint(mx, my)
+        is_hover = card_rect.collidepoint(mx, my) or (selected_index == idx)
         
         can_afford = (scrap >= cost) and (lvl < max_lvl)
         
@@ -256,10 +256,10 @@ def draw_hangar_shop_ui(canvas: pygame.Surface, scrap: int, current_sector_idx: 
     r_settings = pygame.Rect(465, nav_y - 2, 150, 48)
     r_exit = pygame.Rect(vw - 160, nav_y - 2, 134, 48)
 
-    draw_button(canvas, r_back, "[ESC] BACK TO MAP", (mx, my), base_color=COLOR_CYAN)
-    draw_button(canvas, r_skin, "[C] CYCLE DRONE CLASS", (mx, my), base_color=COLOR_EMERALD, text_color=COLOR_EMERALD)
-    draw_button(canvas, r_settings, "[S] SETTINGS", (mx, my), base_color=COLOR_CYAN)
-    draw_button(canvas, r_exit, "[Q] QUIT", (mx, my), base_color=COLOR_CRIMSON, text_color=COLOR_CRIMSON)
+    draw_button(canvas, r_back, "[ESC] BACK TO MAP", (mx, my), base_color=COLOR_CYAN, is_selected=(selected_index == 4))
+    draw_button(canvas, r_skin, "[C] CYCLE DRONE CLASS", (mx, my), base_color=COLOR_EMERALD, text_color=COLOR_EMERALD, is_selected=(selected_index == 5))
+    draw_button(canvas, r_settings, "[S] SETTINGS", (mx, my), base_color=COLOR_CYAN, is_selected=(selected_index == 6))
+    draw_button(canvas, r_exit, "[Q] QUIT", (mx, my), base_color=COLOR_CRIMSON, text_color=COLOR_CRIMSON, is_selected=(selected_index == 7))
 
     return {
         "back": r_back,

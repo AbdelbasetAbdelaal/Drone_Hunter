@@ -29,9 +29,17 @@ ACTION_EMP = "emp"
 ACTION_SPECIAL = "special"
 ACTION_CLOAK = "cloak"
 ACTION_PAUSE = "pause"
+ACTION_FULLSCREEN = "fullscreen"
 ACTION_CONFIRM = "confirm"
 ACTION_CANCEL = "cancel"
 ACTION_ROLL = "roll"
+ACTION_SECTOR_MAP = "sector_map"
+ACTION_HANGAR_BAY = "hangar_bay"
+ACTION_CYCLE_SKIN = "cycle_skin"
+
+ACTION_FRONT_TOP = "front_top"
+ACTION_FRONT_BOTTOM = "front_bottom"
+ACTION_CYCLE_CLASS = "cycle_class"
 
 DPAD_ACTIONS = (ACTION_MOVE_UP, ACTION_MOVE_DOWN, ACTION_MOVE_LEFT, ACTION_MOVE_RIGHT)
 
@@ -39,18 +47,25 @@ DPAD_ACTIONS = (ACTION_MOVE_UP, ACTION_MOVE_DOWN, ACTION_MOVE_LEFT, ACTION_MOVE_
 # DEFAULT BUTTON MAPPINGS PER CONTROLLER TYPE
 # ------------------------------------------------------------------------------
 DEFAULT_MAPPINGS = {
-    ACTION_FIRE_PRIMARY:   {"xbox": 0, "playstation": 0, "generic": 0},
-    ACTION_FIRE_SECONDARY: {"xbox": 1, "playstation": 1, "generic": 1},
-    ACTION_WEAPON_NEXT:    {"xbox": 5, "playstation": 2, "generic": 2},
-    ACTION_WEAPON_PREV:    {"xbox": 4, "playstation": 3, "generic": 3},
-    ACTION_ULTIMATE:       {"xbox": 3, "playstation": 3, "generic": 3},
-    ACTION_EMP:            {"xbox": 2, "playstation": 2, "generic": 2},
-    ACTION_SPECIAL:        {"xbox": 1, "playstation": 4, "generic": 4},
-    ACTION_CLOAK:          {"xbox": 1, "playstation": 4, "generic": 4},
-    ACTION_PAUSE:          {"xbox": 7, "playstation": 5, "generic": 5},
-    ACTION_CONFIRM:        {"xbox": 0, "playstation": 0, "generic": 0},
-    ACTION_CANCEL:         {"xbox": 1, "playstation": 1, "generic": 1},
-    ACTION_ROLL:           {"xbox": 0, "playstation": 0, "generic": 0},
+    ACTION_FIRE_PRIMARY:   {"xbox": 0, "playstation": 0, "generic": 0, "generic_ps2": 2},
+    ACTION_FIRE_SECONDARY: {"xbox": 1, "playstation": 1, "generic": 1, "generic_ps2": 1},
+    ACTION_FRONT_TOP:      {"xbox": 5, "playstation": 2, "generic": 2, "generic_ps2": 5},
+    ACTION_FRONT_BOTTOM:   {"xbox": 4, "playstation": 3, "generic": 3, "generic_ps2": 4},
+    ACTION_WEAPON_NEXT:    {"xbox": 5, "playstation": 2, "generic": 2, "generic_ps2": 5},
+    ACTION_WEAPON_PREV:    {"xbox": 4, "playstation": 3, "generic": 3, "generic_ps2": 4},
+    ACTION_ULTIMATE:       {"xbox": 3, "playstation": 3, "generic": 3, "generic_ps2": 0},
+    ACTION_EMP:            {"xbox": 2, "playstation": 2, "generic": 2, "generic_ps2": 1},
+    ACTION_SPECIAL:        {"xbox": 1, "playstation": 4, "generic": 4, "generic_ps2": 4},
+    ACTION_CLOAK:          {"xbox": 1, "playstation": 4, "generic": 4, "generic_ps2": 4},
+    ACTION_CYCLE_CLASS:    {"xbox": 4, "playstation": 3, "generic": 3, "generic_ps2": 4},
+    ACTION_PAUSE:          {"xbox": 7, "playstation": 5, "generic": 5, "generic_ps2": 9},
+    ACTION_FULLSCREEN:     {"xbox": 7, "playstation": 5, "generic": 5, "generic_ps2": 9},
+    ACTION_CONFIRM:        {"xbox": 0, "playstation": 0, "generic": 0, "generic_ps2": 2},
+    ACTION_CANCEL:         {"xbox": 1, "playstation": 1, "generic": 1, "generic_ps2": 1},
+    ACTION_ROLL:           {"xbox": 0, "playstation": 0, "generic": 0, "generic_ps2": 3},
+    ACTION_SECTOR_MAP:     {"xbox": 6, "playstation": 8, "generic": 8, "generic_ps2": 8},
+    ACTION_HANGAR_BAY:     {"xbox": 6, "playstation": 8, "generic": 8, "generic_ps2": 8},
+    ACTION_CYCLE_SKIN:     {"xbox": 4, "playstation": 4, "generic": 4, "generic_ps2": 4},
 }
 
 # ------------------------------------------------------------------------------
@@ -60,44 +75,86 @@ PROMPT_LABELS = {
     "xbox": {
         ACTION_FIRE_PRIMARY: "A",
         ACTION_FIRE_SECONDARY: "B",
+        ACTION_FRONT_TOP: "RB / LB",
+        ACTION_FRONT_BOTTOM: "RT / LT",
         ACTION_WEAPON_NEXT: "RB",
         ACTION_WEAPON_PREV: "LB",
         ACTION_ULTIMATE: "Y",
         ACTION_EMP: "X",
         ACTION_SPECIAL: "B",
-        ACTION_CLOAK: "B",
+        ACTION_CLOAK: "LB",
+        ACTION_CYCLE_CLASS: "LB (HOLD)",
         ACTION_PAUSE: "START",
+        ACTION_FULLSCREEN: "START (HOLD)",
         ACTION_CONFIRM: "A",
         ACTION_CANCEL: "B",
         ACTION_ROLL: "A",
+        ACTION_SECTOR_MAP: "BACK",
+        ACTION_HANGAR_BAY: "BACK",
+        ACTION_CYCLE_SKIN: "LB",
     },
     "playstation": {
         ACTION_FIRE_PRIMARY: "X",
         ACTION_FIRE_SECONDARY: "O",
+        ACTION_FRONT_TOP: "R1 / L1",
+        ACTION_FRONT_BOTTOM: "R2 / L2",
         ACTION_WEAPON_NEXT: "□",
         ACTION_WEAPON_PREV: "△",
         ACTION_ULTIMATE: "△",
         ACTION_EMP: "□",
         ACTION_SPECIAL: "SELECT",
         ACTION_CLOAK: "SELECT",
+        ACTION_CYCLE_CLASS: "L1 (HOLD)",
         ACTION_PAUSE: "START",
+        ACTION_FULLSCREEN: "START (HOLD)",
         ACTION_CONFIRM: "X",
         ACTION_CANCEL: "O",
         ACTION_ROLL: "X",
+        ACTION_SECTOR_MAP: "SELECT",
+        ACTION_HANGAR_BAY: "SELECT",
+        ACTION_CYCLE_SKIN: "SELECT",
+    },
+    "generic_ps2": {
+        ACTION_FIRE_PRIMARY: "[X] FIRE",
+        ACTION_FIRE_SECONDARY: "[O] EMP",
+        ACTION_FRONT_TOP: "[FRONT TOP] WEAPON",
+        ACTION_FRONT_BOTTOM: "[FRONT BTM] CLOAK",
+        ACTION_WEAPON_NEXT: "[R FRONT] WEAPON",
+        ACTION_WEAPON_PREV: "[L FRONT] PREV",
+        ACTION_ULTIMATE: "[△] OVERDRIVE",
+        ACTION_EMP: "[O] EMP",
+        ACTION_SPECIAL: "[L FRONT] CLOAK",
+        ACTION_CLOAK: "[L FRONT] CLOAK",
+        ACTION_CYCLE_CLASS: "[FRONT BTM HOLD] DRONE",
+        ACTION_PAUSE: "[START] PAUSE",
+        ACTION_FULLSCREEN: "[START HOLD] FULLSCREEN",
+        ACTION_CONFIRM: "[X] CONFIRM",
+        ACTION_CANCEL: "[O] BACK",
+        ACTION_ROLL: "[□] ROLL",
+        ACTION_SECTOR_MAP: "[SELECT] MAP",
+        ACTION_HANGAR_BAY: "[SELECT] HANGAR",
+        ACTION_CYCLE_SKIN: "[L FRONT] SKIN",
     },
     "generic": {
         ACTION_FIRE_PRIMARY: "BTN-0",
         ACTION_FIRE_SECONDARY: "BTN-1",
+        ACTION_FRONT_TOP: "BTN-4/5",
+        ACTION_FRONT_BOTTOM: "BTN-6/7",
         ACTION_WEAPON_NEXT: "BTN-2",
         ACTION_WEAPON_PREV: "BTN-3",
         ACTION_ULTIMATE: "BTN-3",
         ACTION_EMP: "BTN-2",
         ACTION_SPECIAL: "BTN-4",
         ACTION_CLOAK: "BTN-4",
+        ACTION_CYCLE_CLASS: "BTN-4 (HOLD)",
         ACTION_PAUSE: "BTN-5",
+        ACTION_FULLSCREEN: "BTN-5",
         ACTION_CONFIRM: "BTN-0",
         ACTION_CANCEL: "BTN-1",
         ACTION_ROLL: "BTN-0",
+        ACTION_SECTOR_MAP: "BTN-8",
+        ACTION_HANGAR_BAY: "BTN-8",
+        ACTION_CYCLE_SKIN: "BTN-4",
     },
 }
 
@@ -115,7 +172,7 @@ class ControllerProfile:
         self.instance_id = instance_id
         self.controller_type = controller_type
         self.is_xbox_style = controller_type == "xbox"
-        self.is_ps_style = controller_type == "playstation"
+        self.is_ps_style = controller_type in ("playstation", "generic_ps2")
 
         self.button_map: Dict[str, int] = {}
         self.axis_map: Dict[str, Tuple[int, int]] = {}
@@ -123,7 +180,7 @@ class ControllerProfile:
         self._build_defaults()
 
     def _build_defaults(self):
-        ctype = self.controller_type if self.controller_type in ("xbox", "playstation", "generic") else "generic"
+        ctype = self.controller_type if self.controller_type in ("xbox", "playstation", "generic_ps2", "generic") else "generic"
         for action, mapping in DEFAULT_MAPPINGS.items():
             if mapping.get(ctype) is not None:
                 self.button_map[action] = mapping[ctype]
@@ -196,8 +253,7 @@ class ControllerMappingManager:
             name = joystick.get_name()
         except Exception:
             name = "Unknown"
-        instance_id = getattr(joystick, "get_instance_id", lambda: 0)()
-        return f"{guid}|{name}|{instance_id}"
+        return f"{guid}|{name}"
 
     def get_or_create_profile(self, joystick) -> ControllerProfile:
         key = self._profile_key(joystick)
@@ -219,8 +275,12 @@ class ControllerMappingManager:
         return profile
 
     def get_profile_for_joystick(self, joystick) -> Optional[ControllerProfile]:
+        if joystick is None:
+            return None
         key = self._profile_key(joystick)
-        return self.profiles.get(key)
+        if key in self.profiles:
+            return self.profiles[key]
+        return self.get_or_create_profile(joystick)
 
     # ------------------------------------------------------------------
     # Controller Type Detection
@@ -232,8 +292,10 @@ class ControllerMappingManager:
             name = ""
         if "xbox" in name or "xinput" in name:
             return "xbox"
-        elif any(x in name for x in ["playstation", "dualshock", "dualsense", "ps4", "ps5", "ps3", "ps2"]):
+        elif any(x in name for x in ["playstation", "dualshock", "dualsense", "ps4", "ps5", "ps3"]):
             return "playstation"
+        elif any(x in name for x in ["twin", "usb gamepad", "ps2", "dragonrise", "generic_ps2"]):
+            return "generic_ps2"
         elif "generic" in name or "directinput" in name or "gamepad" in name:
             return "generic"
         return "generic"
@@ -252,11 +314,27 @@ class ControllerMappingManager:
             num_hats = joystick.get_numhats()
             if num_hats > 0:
                 hat_value = joystick.get_hat(0)
-                result["up"] = hat_value[1] > 0
-                result["down"] = hat_value[1] < 0
-                result["left"] = hat_value[0] < 0
-                result["right"] = hat_value[0] > 0
-                return result
+                if hat_value[1] > 0: result["up"] = True
+                if hat_value[1] < 0: result["down"] = True
+                if hat_value[0] < 0: result["left"] = True
+                if hat_value[0] > 0: result["right"] = True
+                if any(result.values()):
+                    return result
+        except Exception:
+            pass
+
+        # Check analog axes (Axes 0 & 1 for D-Pad on 2-axis gamepads)
+        try:
+            num_axes = joystick.get_numaxes()
+            if num_axes >= 2:
+                ax0 = joystick.get_axis(0)
+                ax1 = joystick.get_axis(1)
+                if ax1 < -0.30: result["up"] = True
+                if ax1 > 0.30: result["down"] = True
+                if ax0 < -0.30: result["left"] = True
+                if ax0 > 0.30: result["right"] = True
+                if any(result.values()):
+                    return result
         except Exception:
             pass
 
@@ -272,10 +350,10 @@ class ControllerMappingManager:
                     return joystick.get_button(idx)
                 return False
 
-            result["up"] = _safe_get(btn_map.get("dpad_up", 12))
-            result["down"] = _safe_get(btn_map.get("dpad_down", 13))
-            result["left"] = _safe_get(btn_map.get("dpad_left", 14))
-            result["right"] = _safe_get(btn_map.get("dpad_right", 15))
+            if _safe_get(btn_map.get("dpad_up", 12)): result["up"] = True
+            if _safe_get(btn_map.get("dpad_down", 13)): result["down"] = True
+            if _safe_get(btn_map.get("dpad_left", 14)): result["left"] = True
+            if _safe_get(btn_map.get("dpad_right", 15)): result["right"] = True
         except Exception:
             pass
         return result

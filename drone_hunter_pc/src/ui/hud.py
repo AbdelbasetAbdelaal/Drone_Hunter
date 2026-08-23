@@ -14,6 +14,7 @@ from src.data.settings import (
     COLOR_SHIELD, COLOR_OVERCLOCK, COLOR_WHITE, COLOR_NEON_RED, COLOR_TEXT_DIM
 )
 from src.data.game_data import WEAPON_DEFS
+from src.data.mission_data import get_mission_data
 from src.ui.font_manager import font_hud, font_card, font_banner, font_sub
 
 def draw_hud(canvas: pygame.Surface, player, sector_idx: int = 0, level_score: int = 0, total_score: int = 0,
@@ -120,7 +121,13 @@ def draw_hud(canvas: pygame.Surface, player, sector_idx: int = 0, level_score: i
     # 2. TOP-RIGHT: Level Telemetry & Clean Score Card
     # =========================================================================
     if mission_id:
-        level_str = f"SECTOR {sector_idx + 1}  |  STAGE {sub_level}"
+        m_data = get_mission_data(mission_id) if isinstance(mission_id, str) else None
+        if m_data:
+            sec_num = m_data.get("sector_id", sector_idx + 1)
+            m_num = m_data.get("mission_number", sub_level)
+            level_str = f"SECTOR {sec_num}  |  STAGE {m_num}"
+        else:
+            level_str = f"SECTOR {sector_idx + 1}  |  STAGE {sub_level}"
     else:
         level_str = f"SECTOR {sector_idx + 1}  |  STAGE {sub_level}"
     lbl_level = font_card.render(level_str, True, COLOR_CYAN)

@@ -15,11 +15,12 @@ from src.data.mission_data import SECTORS_PHASE5, get_missions_for_sector
 
 
 def draw_button(canvas: pygame.Surface, rect: pygame.Rect, text: str,
-                mouse_pos: tuple[int, int], base_color=COLOR_CYAN,
-                bg_color=(20, 30, 48), hover_bg=(30, 50, 80),
-                text_color=COLOR_WHITE, font=font_button) -> bool:
-    """Helper to draw a styled cyberpunk button and return whether it is hovered."""
-    is_hover = rect.collidepoint(mouse_pos)
+                mouse_pos: tuple[int, int] = (0, 0),
+                base_color=COLOR_CYAN, bg_color=(15, 23, 42),
+                hover_bg=(30, 41, 59),
+                text_color=COLOR_WHITE, font=font_button, is_selected: bool = False) -> bool:
+    """Helper to draw a styled cyberpunk button and return whether it is hovered or selected."""
+    is_hover = rect.collidepoint(mouse_pos) or is_selected
     draw_bg = hover_bg if is_hover else bg_color
     border_col = COLOR_WHITE if is_hover else base_color
     
@@ -55,7 +56,7 @@ def draw_exit_button(canvas: pygame.Surface, mouse_pos: tuple[int, int] = None, 
     return btn_rect
 
 
-def draw_main_menu(canvas: pygame.Surface, mouse_pos: tuple[int, int] = None) -> dict[str, pygame.Rect]:
+def draw_main_menu(canvas: pygame.Surface, mouse_pos: tuple[int, int] = None, selected_index: int = None) -> dict[str, pygame.Rect]:
     canvas.fill((6, 10, 18))
     vw, vh = canvas.get_size()
     mx, my = _get_safe_mouse_pos(mouse_pos)
@@ -81,10 +82,10 @@ def draw_main_menu(canvas: pygame.Surface, mouse_pos: tuple[int, int] = None) ->
     r_settings = pygame.Rect(bx, by + 104, btn_w, btn_h)
     r_exit = pygame.Rect(bx, by + 156, btn_w, btn_h)
 
-    draw_button(canvas, r_play, "[SPACE] DEPLOY COMBAT", (mx, my), base_color=COLOR_EMERALD, text_color=COLOR_EMERALD)
-    draw_button(canvas, r_hangar, "[H] HANGAR ARMORY", (mx, my), base_color=COLOR_GOLD, text_color=COLOR_GOLD)
-    draw_button(canvas, r_settings, "[S] SYSTEM SETTINGS", (mx, my), base_color=COLOR_CYAN, text_color=COLOR_CYAN)
-    draw_button(canvas, r_exit, "[Q] QUIT GAME", (mx, my), base_color=COLOR_CRIMSON, text_color=COLOR_CRIMSON)
+    draw_button(canvas, r_play, "[SPACE] DEPLOY COMBAT", (mx, my), base_color=COLOR_EMERALD, text_color=COLOR_EMERALD, is_selected=(selected_index == 0))
+    draw_button(canvas, r_hangar, "[H] HANGAR ARMORY", (mx, my), base_color=COLOR_GOLD, text_color=COLOR_GOLD, is_selected=(selected_index == 1))
+    draw_button(canvas, r_settings, "[S] SYSTEM SETTINGS", (mx, my), base_color=COLOR_CYAN, text_color=COLOR_CYAN, is_selected=(selected_index == 2))
+    draw_button(canvas, r_exit, "[Q] QUIT GAME", (mx, my), base_color=COLOR_CRIMSON, text_color=COLOR_CRIMSON, is_selected=(selected_index == 3))
 
     return {
         'play': r_play,
@@ -379,7 +380,7 @@ def draw_mission_briefing(canvas: pygame.Surface, mission_data: dict, scrap: int
     return {"back": r_back, "start": r_start, "exit": r_exit}
 
 
-def draw_settings_menu_ui(canvas: pygame.Surface, difficulty_mode: int, show_crt: bool, sound_enabled: bool, mouse_pos: tuple[int, int] = None, input_manager=None) -> dict:
+def draw_settings_menu_ui(canvas: pygame.Surface, difficulty_mode: int, show_crt: bool, sound_enabled: bool, mouse_pos: tuple[int, int] = None, input_manager=None, selected_index: int = None) -> dict:
     """Renders the dedicated Fullscreen/Audio/Difficulty/Controller settings menu."""
     canvas.fill((8, 12, 22))
     vw, vh = canvas.get_size()
@@ -410,15 +411,15 @@ def draw_settings_menu_ui(canvas: pygame.Surface, difficulty_mode: int, show_crt
     diff_name = DIFFICULTY_NAMES[difficulty_mode]
     diff_col = DIFFICULTY_MODIFIERS[difficulty_mode]["badge_color"]
 
-    draw_button(canvas, r_full, "DISPLAY: FULLSCREEN TOGGLE [F11]", (mx, my), base_color=COLOR_CYAN)
-    draw_button(canvas, r_crt, f"CRT SCANLINES: {'ENABLED' if show_crt else 'DISABLED'} [F2]", (mx, my), base_color=COLOR_CYAN)
-    draw_button(canvas, r_sfx, f"AUDIO SFX: {'ENABLED' if sound_enabled else 'MUTED'}", (mx, my), base_color=COLOR_GOLD, text_color=COLOR_GOLD)
-    draw_button(canvas, r_diff, f"COMBAT DIFFICULTY: {diff_name}", (mx, my), base_color=diff_col, text_color=diff_col)
-    draw_button(canvas, r_ctrl, "CONTROLLER SETTINGS", (mx, my), base_color=COLOR_CYAN)
-    draw_button(canvas, r_config, "CONFIGURE CONTROLLER", (mx, my), base_color=COLOR_GOLD, text_color=COLOR_GOLD)
-    draw_button(canvas, r_test, "TEST CONTROLLER", (mx, my), base_color=COLOR_EMERALD, text_color=COLOR_EMERALD)
-    draw_button(canvas, r_reset, "RESET PROGRESS & SAVE DATA", (mx, my), base_color=COLOR_CRIMSON, text_color=COLOR_CRIMSON)
-    draw_button(canvas, r_back, "[ESC] BACK TO PREVIOUS SCREEN", (mx, my), base_color=COLOR_EMERALD, text_color=COLOR_EMERALD)
+    draw_button(canvas, r_full, "DISPLAY: FULLSCREEN TOGGLE [F11]", (mx, my), base_color=COLOR_CYAN, is_selected=(selected_index == 0))
+    draw_button(canvas, r_crt, f"CRT SCANLINES: {'ENABLED' if show_crt else 'DISABLED'} [F2]", (mx, my), base_color=COLOR_CYAN, is_selected=(selected_index == 1))
+    draw_button(canvas, r_sfx, f"AUDIO SFX: {'ENABLED' if sound_enabled else 'MUTED'}", (mx, my), base_color=COLOR_GOLD, text_color=COLOR_GOLD, is_selected=(selected_index == 2))
+    draw_button(canvas, r_diff, f"COMBAT DIFFICULTY: {diff_name}", (mx, my), base_color=diff_col, text_color=diff_col, is_selected=(selected_index == 3))
+    draw_button(canvas, r_ctrl, "CONTROLLER SETTINGS", (mx, my), base_color=COLOR_CYAN, is_selected=(selected_index == 4))
+    draw_button(canvas, r_config, "CONFIGURE CONTROLLER", (mx, my), base_color=COLOR_GOLD, text_color=COLOR_GOLD, is_selected=(selected_index == 5))
+    draw_button(canvas, r_test, "TEST CONTROLLER", (mx, my), base_color=COLOR_EMERALD, text_color=COLOR_EMERALD, is_selected=(selected_index == 6))
+    draw_button(canvas, r_reset, "RESET PROGRESS & SAVE DATA", (mx, my), base_color=COLOR_CRIMSON, text_color=COLOR_CRIMSON, is_selected=(selected_index == 7))
+    draw_button(canvas, r_back, "[ESC] BACK TO PREVIOUS SCREEN", (mx, my), base_color=COLOR_EMERALD, text_color=COLOR_EMERALD, is_selected=(selected_index == 8))
 
     return {
         "fullscreen": r_full,
@@ -433,7 +434,7 @@ def draw_settings_menu_ui(canvas: pygame.Surface, difficulty_mode: int, show_crt
     }
 
 
-def draw_mission_complete(canvas: pygame.Surface, mission_data: dict, was_first_clear: bool, is_sector_clear: bool, mouse_pos: tuple[int, int] = None) -> dict:
+def draw_mission_complete(canvas: pygame.Surface, mission_data: dict, was_first_clear: bool, is_sector_clear: bool, mouse_pos: tuple[int, int] = None, selected_index: int = None) -> dict:
     vw, vh = canvas.get_size()
     mx, my = _get_safe_mouse_pos(mouse_pos)
     
@@ -447,34 +448,35 @@ def draw_mission_complete(canvas: pygame.Surface, mission_data: dict, was_first_
     if was_first_clear:
         from src.data.mission_data import MISSION_REWARDS, SECTOR_BONUS
         diff = mission_data.get("difficulty", 1)
-        rew = MISSION_REWARDS.get(diff, 150)
-        txt = f"Mission Reward: +{rew} Scrap"
-        if is_sector_clear:
-            txt += f"  |  Sector Bonus: +{SECTOR_BONUS.get(mission_data['sector_id'], 0)} Scrap"
-            
-        t_rew = font_banner.render(txt, True, COLOR_GOLD)
+        base_rew = MISSION_REWARDS.get(diff, 150)
+        sec_id = mission_data.get("sector_id", 1)
+        sec_bon = SECTOR_BONUS.get(sec_id, 500) if is_sector_clear else 0
+        tot_rew = base_rew + sec_bon
+
+        t_rew = font_banner.render(f"FIRST CLEAR REWARD: +{tot_rew} SCRAP", True, COLOR_GOLD)
         canvas.blit(t_rew, t_rew.get_rect(center=(vw // 2, vh // 2 - 40)))
         
-        t_nxt = font_banner.render("Next Mission: UNLOCKED", True, COLOR_CYAN)
-        canvas.blit(t_nxt, t_nxt.get_rect(center=(vw // 2, vh // 2)))
+        if is_sector_clear:
+            t_sec = font_card.render(f"SECTOR BONUS APPLIED (+{sec_bon} SCRAP)", True, COLOR_CYAN)
+            canvas.blit(t_sec, t_sec.get_rect(center=(vw // 2, vh // 2 - 10)))
     else:
-        t_rep = font_banner.render("Replay Complete (Gameplay Only - No Duplicate Reward)", True, COLOR_TEXT_DIM)
-        canvas.blit(t_rep, t_rep.get_rect(center=(vw // 2, vh // 2 - 40)))
+        t_rep = font_banner.render("REPEAT CLEAR: +25 SCRAP", True, COLOR_WHITE)
+        canvas.blit(t_rep, t_rep.get_rect(center=(vw // 2, vh // 2 - 30)))
 
     btn_w, btn_h = 240, 44
     bx = vw // 2 - btn_w // 2
-    by = vh // 2 + 50
+    by = vh // 2 + 40
 
     r_next = pygame.Rect(bx, by, btn_w, btn_h)
     r_hangar = pygame.Rect(bx, by + 54, btn_w, btn_h)
 
-    draw_button(canvas, r_next, "[SPACE] SECTOR MAP", (mx, my), base_color=COLOR_EMERALD, text_color=COLOR_EMERALD)
-    draw_button(canvas, r_hangar, "[H] HANGAR ARMORY", (mx, my), base_color=COLOR_GOLD, text_color=COLOR_GOLD)
+    draw_button(canvas, r_next, "[SPACE] SECTOR MAP", (mx, my), base_color=COLOR_EMERALD, text_color=COLOR_EMERALD, is_selected=(selected_index == 0))
+    draw_button(canvas, r_hangar, "[H] HANGAR ARMORY", (mx, my), base_color=COLOR_GOLD, text_color=COLOR_GOLD, is_selected=(selected_index == 1))
 
     return {"next": r_next, "hangar": r_hangar}
 
 
-def draw_mission_failed(canvas: pygame.Surface, scrap: int, mouse_pos: tuple[int, int] = None) -> dict:
+def draw_mission_failed(canvas: pygame.Surface, scrap: int, mouse_pos: tuple[int, int] = None, selected_index: int = None) -> dict:
     vw, vh = canvas.get_size()
     mx, my = _get_safe_mouse_pos(mouse_pos)
     
@@ -496,14 +498,14 @@ def draw_mission_failed(canvas: pygame.Surface, scrap: int, mouse_pos: tuple[int
     r_map = pygame.Rect(bx, by + 54, btn_w, btn_h)
     r_exit = pygame.Rect(bx, by + 108, btn_w, btn_h)
 
-    draw_button(canvas, r_retry, "[SPACE] RETRY MISSION", (mx, my), base_color=COLOR_EMERALD, text_color=COLOR_EMERALD)
-    draw_button(canvas, r_map, "[M] SECTOR MAP", (mx, my), base_color=COLOR_CYAN, text_color=COLOR_CYAN)
-    draw_button(canvas, r_exit, "[Q] QUIT TO MENU", (mx, my), base_color=COLOR_CRIMSON, text_color=COLOR_CRIMSON)
+    draw_button(canvas, r_retry, "[SPACE] RETRY MISSION", (mx, my), base_color=COLOR_EMERALD, text_color=COLOR_EMERALD, is_selected=(selected_index == 0))
+    draw_button(canvas, r_map, "[M] SECTOR MAP", (mx, my), base_color=COLOR_CYAN, text_color=COLOR_CYAN, is_selected=(selected_index == 1))
+    draw_button(canvas, r_exit, "[Q] QUIT TO MENU", (mx, my), base_color=COLOR_CRIMSON, text_color=COLOR_CRIMSON, is_selected=(selected_index == 2))
 
     return {"retry": r_retry, "map": r_map, "exit": r_exit}
 
 
-def draw_pause_settings_ui(canvas: pygame.Surface, difficulty_mode: int, show_crt: bool, sound_enabled: bool, mouse_pos: tuple[int, int] = None) -> dict:
+def draw_pause_settings_ui(canvas: pygame.Surface, difficulty_mode: int, show_crt: bool, sound_enabled: bool, mouse_pos: tuple[int, int] = None, selected_index: int = None) -> dict:
     vw, vh = canvas.get_size()
     pause_overlay = pygame.Surface((vw, vh), pygame.SRCALPHA)
     pause_overlay.fill((5, 8, 15, 210))
@@ -531,13 +533,13 @@ def draw_pause_settings_ui(canvas: pygame.Surface, difficulty_mode: int, show_cr
 
     mx, my = _get_safe_mouse_pos(mouse_pos)
 
-    draw_button(canvas, r_resume, "RESUME COMBAT [ESC/P]", (mx, my), base_color=COLOR_EMERALD, text_color=COLOR_EMERALD)
-    draw_button(canvas, r_diff, f"DIFFICULTY: {DIFFICULTY_NAMES[difficulty_mode]}", (mx, my), base_color=COLOR_GOLD, text_color=COLOR_GOLD)
-    draw_button(canvas, r_crt, f"CRT SCANLINES: {'ON' if show_crt else 'OFF'}", (mx, my), base_color=COLOR_CYAN)
-    draw_button(canvas, r_sfx, f"AUDIO SFX: {'ENABLED' if sound_enabled else 'MUTED'}", (mx, my), base_color=COLOR_CYAN)
-    draw_button(canvas, r_hangar, "HANGAR ARMORY [H]", (mx, my), base_color=COLOR_GOLD, text_color=COLOR_GOLD)
-    draw_button(canvas, r_map, "SECTOR MAP [M]", (mx, my), base_color=COLOR_CYAN)
-    draw_button(canvas, r_exit, "QUIT TO MENU [Q]", (mx, my), base_color=COLOR_CRIMSON, text_color=COLOR_CRIMSON)
+    draw_button(canvas, r_resume, "RESUME COMBAT [ESC/P]", (mx, my), base_color=COLOR_EMERALD, text_color=COLOR_EMERALD, is_selected=(selected_index == 0))
+    draw_button(canvas, r_diff, f"DIFFICULTY: {DIFFICULTY_NAMES[difficulty_mode]}", (mx, my), base_color=COLOR_GOLD, text_color=COLOR_GOLD, is_selected=(selected_index == 1))
+    draw_button(canvas, r_crt, f"CRT SCANLINES: {'ON' if show_crt else 'OFF'}", (mx, my), base_color=COLOR_CYAN, is_selected=(selected_index == 2))
+    draw_button(canvas, r_sfx, f"AUDIO SFX: {'ENABLED' if sound_enabled else 'MUTED'}", (mx, my), base_color=COLOR_CYAN, is_selected=(selected_index == 3))
+    draw_button(canvas, r_hangar, "HANGAR ARMORY [H]", (mx, my), base_color=COLOR_GOLD, text_color=COLOR_GOLD, is_selected=(selected_index == 4))
+    draw_button(canvas, r_map, "SECTOR MAP [M]", (mx, my), base_color=COLOR_CYAN, is_selected=(selected_index == 5))
+    draw_button(canvas, r_exit, "QUIT TO MENU [Q]", (mx, my), base_color=COLOR_CRIMSON, text_color=COLOR_CRIMSON, is_selected=(selected_index == 6))
 
     return {
         "resume": r_resume,
@@ -598,7 +600,7 @@ def draw_campaign_victory_ui(canvas: pygame.Surface, total_score: int = 0, highs
 
 def draw_sector_select_ui(*args, **kwargs): return {}, pygame.Rect(0,0,0,0), []
 
-def draw_level_clear_ui(canvas: pygame.Surface, sector_idx: int = 0, sub_level: int = 1, score: int = 0, scrap: int = 0, mouse_pos: tuple[int, int] = None) -> dict:
+def draw_level_clear_ui(canvas: pygame.Surface, sector_idx: int = 0, sub_level: int = 1, score: int = 0, scrap: int = 0, mouse_pos: tuple[int, int] = None, selected_index: int = None) -> dict:
     """Renders sleek, sci-fi stage clear completion screen with stats and interactive buttons."""
     vw, vh = canvas.get_size()
     m_pos = mouse_pos or (0, 0)
@@ -643,7 +645,7 @@ def draw_level_clear_ui(canvas: pygame.Surface, sector_idx: int = 0, sub_level: 
 
     # 1. Next Stage
     b_next = pygame.Rect(btn_start_x, btn_y, btn_w, btn_h)
-    hov_next = b_next.collidepoint(m_pos)
+    hov_next = b_next.collidepoint(m_pos) or (selected_index == 0)
     pygame.draw.rect(canvas, (16, 185, 129, 80) if hov_next else (15, 23, 42), b_next, border_radius=6)
     pygame.draw.rect(canvas, COLOR_EMERALD if hov_next else (50, 120, 90), b_next, 2 if hov_next else 1, border_radius=6)
     t_next = font_card.render("NEXT STAGE [SPACE]", True, COLOR_WHITE if hov_next else COLOR_EMERALD)
@@ -652,7 +654,7 @@ def draw_level_clear_ui(canvas: pygame.Surface, sector_idx: int = 0, sub_level: 
 
     # 2. Hangar
     b_hangar = pygame.Rect(btn_start_x + btn_w + gap, btn_y, btn_w, btn_h)
-    hov_hangar = b_hangar.collidepoint(m_pos)
+    hov_hangar = b_hangar.collidepoint(m_pos) or (selected_index == 1)
     pygame.draw.rect(canvas, (245, 158, 11, 80) if hov_hangar else (15, 23, 42), b_hangar, border_radius=6)
     pygame.draw.rect(canvas, COLOR_GOLD if hov_hangar else (120, 90, 40), b_hangar, 2 if hov_hangar else 1, border_radius=6)
     t_hangar = font_card.render("HANGAR [H]", True, COLOR_WHITE if hov_hangar else COLOR_GOLD)
@@ -661,7 +663,7 @@ def draw_level_clear_ui(canvas: pygame.Surface, sector_idx: int = 0, sub_level: 
 
     # 3. Map / Menu
     b_map = pygame.Rect(btn_start_x + 2 * (btn_w + gap), btn_y, btn_w, btn_h)
-    hov_map = b_map.collidepoint(m_pos)
+    hov_map = b_map.collidepoint(m_pos) or (selected_index == 2)
     pygame.draw.rect(canvas, (14, 165, 233, 80) if hov_map else (15, 23, 42), b_map, border_radius=6)
     pygame.draw.rect(canvas, COLOR_CYAN if hov_map else (40, 80, 110), b_map, 2 if hov_map else 1, border_radius=6)
     t_map = font_card.render("MAP [M]", True, COLOR_WHITE if hov_map else COLOR_CYAN)
@@ -671,7 +673,7 @@ def draw_level_clear_ui(canvas: pygame.Surface, sector_idx: int = 0, sub_level: 
     return buttons
 
 
-def draw_game_over_ui(canvas: pygame.Surface, sector_idx: int = 0, sub_level: int = 1, score: int = 0, mouse_pos: tuple[int, int] = None) -> dict:
+def draw_game_over_ui(canvas: pygame.Surface, sector_idx: int = 0, sub_level: int = 1, score: int = 0, mouse_pos: tuple[int, int] = None, selected_index: int = None) -> dict:
     """Renders atmospheric tactical Game Over screen with retry and navigation."""
     vw, vh = canvas.get_size()
     m_pos = mouse_pos or (0, 0)
@@ -715,7 +717,7 @@ def draw_game_over_ui(canvas: pygame.Surface, sector_idx: int = 0, sub_level: in
 
     # 1. Retry
     b_retry = pygame.Rect(btn_start_x, btn_y, btn_w, btn_h)
-    hov_retry = b_retry.collidepoint(m_pos)
+    hov_retry = b_retry.collidepoint(m_pos) or (selected_index == 0)
     pygame.draw.rect(canvas, (239, 68, 68, 80) if hov_retry else (24, 10, 15), b_retry, border_radius=6)
     pygame.draw.rect(canvas, COLOR_CRIMSON if hov_retry else (120, 40, 50), b_retry, 2 if hov_retry else 1, border_radius=6)
     t_retry = font_card.render("RETRY [SPACE]", True, COLOR_WHITE if hov_retry else COLOR_CRIMSON)
@@ -724,7 +726,7 @@ def draw_game_over_ui(canvas: pygame.Surface, sector_idx: int = 0, sub_level: in
 
     # 2. Hangar
     b_hangar = pygame.Rect(btn_start_x + btn_w + gap, btn_y, btn_w, btn_h)
-    hov_hangar = b_hangar.collidepoint(m_pos)
+    hov_hangar = b_hangar.collidepoint(m_pos) or (selected_index == 1)
     pygame.draw.rect(canvas, (245, 158, 11, 80) if hov_hangar else (24, 10, 15), b_hangar, border_radius=6)
     pygame.draw.rect(canvas, COLOR_GOLD if hov_hangar else (120, 90, 40), b_hangar, 2 if hov_hangar else 1, border_radius=6)
     t_hangar = font_card.render("HANGAR [H]", True, COLOR_WHITE if hov_hangar else COLOR_GOLD)
@@ -733,7 +735,7 @@ def draw_game_over_ui(canvas: pygame.Surface, sector_idx: int = 0, sub_level: in
 
     # 3. Quit
     b_quit = pygame.Rect(btn_start_x + 2 * (btn_w + gap), btn_y, btn_w, btn_h)
-    hov_quit = b_quit.collidepoint(m_pos)
+    hov_quit = b_quit.collidepoint(m_pos) or (selected_index == 2)
     pygame.draw.rect(canvas, (100, 116, 139, 80) if hov_quit else (24, 10, 15), b_quit, border_radius=6)
     pygame.draw.rect(canvas, (148, 163, 184) if hov_quit else (70, 80, 95), b_quit, 2 if hov_quit else 1, border_radius=6)
     t_quit = font_card.render("MENU [Q]", True, COLOR_WHITE if hov_quit else (148, 163, 184))
@@ -743,7 +745,7 @@ def draw_game_over_ui(canvas: pygame.Surface, sector_idx: int = 0, sub_level: in
     return buttons
 
 
-def draw_save_slot_select_ui(canvas: pygame.Surface, save_system, mouse_pos: tuple[int, int] = None) -> dict:
+def draw_save_slot_select_ui(canvas: pygame.Surface, save_system, mouse_pos: tuple[int, int] = None, selected_index: int = None) -> dict:
     """Renders save slot selection screen with 3 slots + legacy save detection."""
     canvas.fill((6, 10, 18))
     vw, vh = canvas.get_size()
@@ -766,7 +768,7 @@ def draw_save_slot_select_ui(canvas: pygame.Surface, save_system, mouse_pos: tup
         cy = start_y + i * (card_h + gap)
         card_rect = pygame.Rect(cx, cy, card_w, card_h)
 
-        is_hover = card_rect.collidepoint(mx, my)
+        is_hover = card_rect.collidepoint(mx, my) or (selected_index == i)
         bg_c = (22, 36, 58) if is_hover else (14, 22, 38)
         border_c = COLOR_WHITE if is_hover else COLOR_CYAN
         border_w = 2 if is_hover else 1
@@ -812,13 +814,13 @@ def draw_save_slot_select_ui(canvas: pygame.Surface, save_system, mouse_pos: tup
     by = start_y + 3 * (card_h + gap) + 10
 
     r_back = pygame.Rect(bx, by, btn_w, btn_h)
-    draw_button(canvas, r_back, "[ESC] BACK", (mx, my), base_color=COLOR_CRIMSON)
+    draw_button(canvas, r_back, "[ESC] BACK", (mx, my), base_color=COLOR_CRIMSON, text_color=COLOR_CRIMSON, is_selected=(selected_index == 3))
     slot_rects["back"] = r_back
 
     return slot_rects
 
 
-def draw_custom_difficulty_ui(canvas: pygame.Surface, custom_settings: dict, mouse_pos: tuple[int, int] = None, dragging: int = -1) -> dict:
+def draw_custom_difficulty_ui(canvas: pygame.Surface, custom_settings: dict, mouse_pos: tuple[int, int] = None, dragging: int = -1, selected_index: int = None) -> dict:
     """Renders custom difficulty configuration with sliders for all multipliers."""
     canvas.fill((8, 12, 22))
     vw, vh = canvas.get_size()
@@ -976,127 +978,195 @@ def draw_controller_binding_ui(canvas: pygame.Surface, mapping_manager, mouse_po
 
 
 def draw_controller_test_ui(canvas: pygame.Surface, joystick, mapping_manager, mouse_pos: tuple[int, int] = None) -> dict:
-    """Real-time controller test/debug screen."""
+    """Real-time controller test screen showing physical button indices, mapped actions, and live input status."""
     canvas.fill((8, 12, 22))
     vw, vh = canvas.get_size()
     mx, my = _get_safe_mouse_pos(mouse_pos)
 
     profile = mapping_manager.get_profile_for_joystick(joystick) if joystick else None
 
-    t_hdr = font_header.render("CONTROLLER TEST", True, COLOR_CYAN)
-    canvas.blit(t_hdr, (40, 30))
+    header_rect = pygame.Rect(40, 20, vw - 80, 50)
+    pygame.draw.rect(canvas, (14, 22, 38), header_rect, border_radius=8)
+    pygame.draw.rect(canvas, COLOR_CYAN, header_rect, 2, border_radius=8)
+    t_hdr = font_header.render("CONTROLLER HARDWARE TEST", True, COLOR_CYAN)
+    canvas.blit(t_hdr, (56, 26))
 
     if not joystick:
-        no_js = font_banner.render("No controller connected", True, COLOR_CRIMSON)
-        canvas.blit(no_js, (40, 80))
-        return {"back": pygame.Rect(40, vh - 60, 160, 42)}
+        no_js = font_banner.render("NO CONTROLLER DETECTED — CONNECT USB GAMEPAD", True, COLOR_CRIMSON)
+        canvas.blit(no_js, (60, 100))
+        r_back = pygame.Rect(40, vh - 60, 180, 42)
+        draw_button(canvas, r_back, "[ESC/O] BACK", (mx, my), base_color=COLOR_CRIMSON)
+        return {"back": r_back}
 
     name = getattr(joystick, "get_name", lambda: "Unknown")()
     guid = getattr(joystick, "get_guid", lambda: "")()
     inst = getattr(joystick, "get_instance_id", lambda: 0)()
-    info_lines = [
-        f"Name: {name}",
-        f"GUID: {guid}",
-        f"Instance ID: {inst}",
-        f"Type: {profile.controller_type if profile else 'Unknown'}",
-    ]
-    info_y = 80
-    for line in info_lines:
-        surf = font_card.render(line, True, COLOR_TEXT_DIM)
-        canvas.blit(surf, (40, info_y))
-        info_y += 26
+    
+    info_str = f"DEVICE: {name}  |  GUID: {guid[:16]}...  |  TYPE: {profile.controller_type.upper() if profile else 'GENERIC'}"
+    s_info = font_card.render(info_str, True, COLOR_TEXT_DIM)
+    canvas.blit(s_info, (44, 80))
 
-    # D-pad indicators
+    # D-Pad Status Block
     dpad = mapping_manager.get_dpad_input(joystick)
-    dpad_y = info_y + 20
-    t_dpad = font_card.render("D-PAD:", True, COLOR_WHITE)
-    canvas.blit(t_dpad, (40, dpad_y))
-    dpad_labels = [("UP", dpad["up"]), ("DOWN", dpad["down"]), ("LEFT", dpad["left"]), ("RIGHT", dpad["right"])]
-    dx = 200
-    for lbl, pressed in dpad_labels:
-        col = COLOR_EMERALD if pressed else (60, 75, 90)
-        rect = pygame.Rect(dx, dpad_y, 70, 28)
-        pygame.draw.rect(canvas, (20, 30, 48), rect, border_radius=4)
-        pygame.draw.rect(canvas, col, rect, 2, border_radius=4)
-        s = font_sub.render(lbl, True, col)
+    dpad_box = pygame.Rect(40, 110, vw - 80, 54)
+    pygame.draw.rect(canvas, (14, 20, 32), dpad_box, border_radius=6)
+    pygame.draw.rect(canvas, (40, 55, 75), dpad_box, 1, border_radius=6)
+    
+    lbl_dpad = font_banner.render("D-PAD / AXES:", True, COLOR_WHITE)
+    canvas.blit(lbl_dpad, (54, 122))
+    
+    dpad_dirs = [("UP", dpad["up"]), ("DOWN", dpad["down"]), ("LEFT", dpad["left"]), ("RIGHT", dpad["right"])]
+    dx = 240
+    for d_name, d_active in dpad_dirs:
+        col = COLOR_EMERALD if d_active else (50, 65, 80)
+        bg_c = (20, 45, 35) if d_active else (20, 26, 38)
+        rect = pygame.Rect(dx, 118, 90, 36)
+        pygame.draw.rect(canvas, bg_c, rect, border_radius=4)
+        pygame.draw.rect(canvas, col, rect, 2 if d_active else 1, border_radius=4)
+        s = font_card.render(d_name, True, col)
         canvas.blit(s, s.get_rect(center=rect.center))
-        dx += 80
+        dx += 105
 
-    # Button states
-    btn_y = dpad_y + 50
-    t_btns = font_card.render("BUTTONS:", True, COLOR_WHITE)
-    canvas.blit(t_btns, (40, btn_y))
-    try:
-        num_buttons = joystick.get_numbuttons()
-    except Exception:
-        num_buttons = 0
-    bx = 200
-    for i in range(min(num_buttons, 16)):
-        try:
-            pressed = bool(joystick.get_button(i))
-        except Exception:
-            pressed = False
-        col = COLOR_CRIMSON if pressed else (50, 60, 75)
-        rect = pygame.Rect(bx, btn_y, 36, 28)
-        pygame.draw.rect(canvas, (20, 30, 48), rect, border_radius=4)
-        pygame.draw.rect(canvas, col, rect, 2, border_radius=4)
-        s = font_sub.render(str(i), True, col)
-        canvas.blit(s, s.get_rect(center=rect.center))
-        bx += 44
-        if bx > vw - 100:
-            bx = 200
-            btn_y += 36
-
-    # Axis values
-    axis_y = btn_y + 50
-    t_axis = font_card.render("AXES:", True, COLOR_WHITE)
-    canvas.blit(t_axis, (40, axis_y))
-    try:
-        num_axes = joystick.get_numaxes()
-    except Exception:
-        num_axes = 0
-    ax_x = 200
-    for i in range(min(num_axes, 8)):
-        try:
-            val = joystick.get_axis(i)
-        except Exception:
-            val = 0.0
-        bar_w = int(abs(val) * 100)
-        bar_rect = pygame.Rect(ax_x, axis_y + 8, 100, 8)
-        pygame.draw.rect(canvas, (30, 40, 55), bar_rect, border_radius=2)
-        fill_rect = pygame.Rect(ax_x, axis_y + 8, bar_w, 8)
-        pygame.draw.rect(canvas, COLOR_CYAN if val >= 0 else COLOR_GOLD, fill_rect, border_radius=2)
-        s = font_sub.render(f"{i}:{val:+.2f}", True, COLOR_TEXT_DIM)
-        canvas.blit(s, (ax_x, axis_y - 14))
-        ax_x += 140
-
-    # Visual diagram
-    diag_y = axis_y + 50
-    t_diag = font_card.render("LAYOUT:", True, COLOR_WHITE)
-    canvas.blit(t_diag, (40, diag_y))
-    btn_prompts = {
-        "fire_primary": profile.get_prompt("fire_primary") if profile else "?",
-        "fire_secondary": profile.get_prompt("fire_secondary") if profile else "?",
-        "weapon_next": profile.get_prompt("weapon_next") if profile else "?",
-        "weapon_prev": profile.get_prompt("weapon_prev") if profile else "?",
-        "ultimate": profile.get_prompt("ultimate") if profile else "?",
-        "emp": profile.get_prompt("emp") if profile else "?",
-        "pause": profile.get_prompt("pause") if profile else "?",
-    }
-    diag_lines = [
-        f"      [{btn_prompts.get('ultimate', '?')}]",
-        f"[{btn_prompts.get('weapon_prev', '?')}]  [{btn_prompts.get('weapon_next', '?')}]",
-        f"      [{btn_prompts.get('emp', '?')}]",
-        f"[{btn_prompts.get('weapon_prev', '?')}]  [{btn_prompts.get('fire_primary', '?')}]",
-        f"      [{btn_prompts.get('pause', '?')}]",
+    # Button Cards Grid
+    btn_defs = [
+        ("CROSS", "fire_primary", "FIRE_PRIMARY (HOLD)"),
+        ("CIRCLE", "emp", "EMP / CANCEL"),
+        ("TRIANGLE", "ultimate", "OVERDRIVE"),
+        ("SQUARE", "roll", "BARREL_ROLL"),
+        ("LEFT FRONT", "cloak", "CLOAK / SKIN"),
+        ("RIGHT FRONT", "weapon_next", "WEAPON_NEXT"),
+        ("SELECT", "sector_map", "MAP / HANGAR"),
+        ("START", "pause", "PAUSE / FULLSCREEN"),
     ]
-    dy = diag_y + 30
-    for line in diag_lines:
-        s = font_banner.render(line, True, COLOR_CYAN)
-        canvas.blit(s, (40, dy))
-        dy += 30
 
-    r_back = pygame.Rect(40, vh - 60, 160, 42)
-    draw_button(canvas, r_back, "[ESC] BACK", (mx, my), base_color=COLOR_CRIMSON)
+    card_y = 180
+    card_w = (vw - 100) // 2
+    card_h = 44
+
+    for i, (btn_name, action_key, desc) in enumerate(btn_defs):
+        col_idx = i % 2
+        row_idx = i // 2
+        cx = 40 + col_idx * (card_w + 20)
+        cy = card_y + row_idx * (card_h + 10)
+
+        raw_idx = profile.button_map.get(action_key, -1) if profile else -1
+        is_active = False
+        if raw_idx >= 0:
+            try:
+                is_active = bool(joystick.get_button(raw_idx))
+            except Exception:
+                is_active = False
+
+        bg_color = (25, 45, 35) if is_active else (14, 20, 32)
+        border_color = COLOR_EMERALD if is_active else (40, 55, 75)
+        status_text = "ACTIVE" if is_active else "RELEASED"
+        status_color = COLOR_EMERALD if is_active else COLOR_TEXT_DIM
+
+        card_rect = pygame.Rect(cx, cy, card_w, card_h)
+        pygame.draw.rect(canvas, bg_color, card_rect, border_radius=6)
+        pygame.draw.rect(canvas, border_color, card_rect, 2 if is_active else 1, border_radius=6)
+
+        # Label
+        btn_label = f"{btn_name} [Btn {raw_idx}]"
+        s_lbl = font_card.render(btn_label, True, COLOR_WHITE if is_active else COLOR_CYAN)
+        canvas.blit(s_lbl, (cx + 12, cy + 6))
+
+        s_desc = font_sub.render(f"Logical: {desc}", True, COLOR_TEXT_DIM)
+        canvas.blit(s_desc, (cx + 12, cy + 24))
+
+        s_stat = font_card.render(status_text, True, status_color)
+        canvas.blit(s_stat, (cx + card_w - s_stat.get_width() - 14, cy + 12))
+
+    # Raw button live indicator row
+    raw_y = card_y + 4 * (card_h + 10) + 10
+    lbl_raw = font_card.render("RAW BUTTON INDICES DETECTED:", True, COLOR_WHITE)
+    canvas.blit(lbl_raw, (44, raw_y))
+
+    try:
+        n_btns = joystick.get_numbuttons()
+    except Exception:
+        n_btns = 0
+
+    rx = 44
+    for b_idx in range(min(n_btns, 16)):
+        try:
+            b_pressed = bool(joystick.get_button(b_idx))
+        except Exception:
+            b_pressed = False
+        b_col = COLOR_EMERALD if b_pressed else (50, 60, 75)
+        b_bg = (30, 60, 40) if b_pressed else (18, 24, 36)
+        b_box = pygame.Rect(rx, raw_y + 24, 38, 30)
+        pygame.draw.rect(canvas, b_bg, b_box, border_radius=4)
+        pygame.draw.rect(canvas, b_col, b_box, 2 if b_pressed else 1, border_radius=4)
+        s_idx = font_sub.render(str(b_idx), True, b_col)
+        canvas.blit(s_idx, s_idx.get_rect(center=b_box.center))
+        rx += 46
+
+    # Bottom Back Button
+    r_back = pygame.Rect(40, vh - 55, 180, 40)
+    draw_button(canvas, r_back, "[ESC / O] BACK", (mx, my), base_color=COLOR_CRIMSON, text_color=COLOR_CRIMSON)
     return {"back": r_back}
+
+
+def draw_controller_settings_menu_ui(canvas: pygame.Surface, input_manager, mouse_pos: tuple[int, int] = None) -> dict:
+    """Renders dedicated Controller Configuration screen (Deadzone, Sensitivity, Vibration, Rebind, Test)."""
+    canvas.fill((8, 12, 22))
+    vw, vh = canvas.get_size()
+    mx, my = _get_safe_mouse_pos(mouse_pos)
+
+    panel_w, panel_h = 620, 560
+    panel_rect = pygame.Rect(vw // 2 - panel_w // 2, vh // 2 - panel_h // 2, panel_w, panel_h)
+    pygame.draw.rect(canvas, (14, 22, 38), panel_rect, border_radius=10)
+    pygame.draw.rect(canvas, COLOR_CYAN, panel_rect, 2, border_radius=10)
+
+    t_hdr = font_header.render("CONTROLLER CONFIGURATION", True, COLOR_CYAN)
+    canvas.blit(t_hdr, t_hdr.get_rect(center=(vw // 2, panel_rect.top + 36)))
+
+    js = input_manager.active_joystick if input_manager else None
+    js_name = js.get_name() if js else "None Connected"
+    conn_text = f"ACTIVE: {js_name} ({'CONNECTED' if js else 'DISCONNECTED'})"
+    s_conn = font_card.render(conn_text, True, COLOR_EMERALD if js else COLOR_TEXT_DIM)
+    canvas.blit(s_conn, s_conn.get_rect(center=(vw // 2, panel_rect.top + 70)))
+
+    btn_w, btn_h = 460, 38
+    bx = vw // 2 - btn_w // 2
+    by = panel_rect.top + 100
+
+    r_toggle = pygame.Rect(bx, by, btn_w, btn_h)
+    r_deadzone = pygame.Rect(bx, by + 46, btn_w, btn_h)
+    r_move_sens = pygame.Rect(bx, by + 92, btn_w, btn_h)
+    r_aim_sens = pygame.Rect(bx, by + 138, btn_w, btn_h)
+    r_vib = pygame.Rect(bx, by + 184, btn_w, btn_h)
+    r_bind = pygame.Rect(bx, by + 230, btn_w, btn_h)
+    r_test = pygame.Rect(bx, by + 276, btn_w, btn_h)
+    r_reset = pygame.Rect(bx, by + 322, btn_w, btn_h)
+    r_back = pygame.Rect(bx, panel_rect.bottom - 50, btn_w, 40)
+
+    enabled_str = "ENABLED" if input_manager and input_manager.enabled else "DISABLED"
+    dz_val = f"{int(input_manager.deadzone * 100)}%" if input_manager else "12%"
+    move_sens_val = f"{input_manager.move_sensitivity:.1f}x" if input_manager else "1.0x"
+    aim_sens_val = f"{input_manager.aim_sensitivity:.1f}x" if input_manager else "1.0x"
+    vib_str = "ENABLED" if input_manager and input_manager.vibration_enabled else "DISABLED"
+
+    draw_button(canvas, r_toggle, f"CONTROLLER INPUT: {enabled_str}", (mx, my), base_color=COLOR_CYAN)
+    draw_button(canvas, r_deadzone, f"ANALOG DEADZONE: {dz_val}  [← / →]", (mx, my), base_color=COLOR_GOLD, text_color=COLOR_GOLD)
+    draw_button(canvas, r_move_sens, f"MOVE SENSITIVITY: {move_sens_val}  [← / →]", (mx, my), base_color=COLOR_CYAN)
+    draw_button(canvas, r_aim_sens, f"AIM SENSITIVITY: {aim_sens_val}  [← / →]", (mx, my), base_color=COLOR_CYAN)
+    draw_button(canvas, r_vib, f"HAPTIC VIBRATION: {vib_str}", (mx, my), base_color=COLOR_EMERALD, text_color=COLOR_EMERALD)
+    draw_button(canvas, r_bind, "CUSTOMIZE BUTTON MAPPINGS", (mx, my), base_color=COLOR_GOLD, text_color=COLOR_GOLD)
+    draw_button(canvas, r_test, "TEST CONTROLLER INPUTS", (mx, my), base_color=COLOR_EMERALD, text_color=COLOR_EMERALD)
+    draw_button(canvas, r_reset, "RESET CONTROLLER DEFAULTS", (mx, my), base_color=COLOR_CRIMSON, text_color=COLOR_CRIMSON)
+    draw_button(canvas, r_back, "[ESC / O] BACK TO SETTINGS", (mx, my), base_color=COLOR_EMERALD, text_color=COLOR_EMERALD)
+
+    return {
+        "toggle": r_toggle,
+        "deadzone": r_deadzone,
+        "move_sens": r_move_sens,
+        "aim_sens": r_aim_sens,
+        "vibration": r_vib,
+        "bind": r_bind,
+        "test": r_test,
+        "reset": r_reset,
+        "back": r_back
+    }
 

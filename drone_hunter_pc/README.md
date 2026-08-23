@@ -2,13 +2,14 @@
 
 [![Python](https://img.shields.io/badge/python-3.10%2B-blue.svg)](https://www.python.org/)
 [![Engine](https://img.shields.io/badge/engine-pygame--ce%202.5%2B-green.svg)](https://pyga.me/)
-[![Tests](https://img.shields.io/badge/tests-435%20passing-brightgreen.svg)](#-automated-tests)
+[![Tests](https://img.shields.io/badge/tests-555%20passing-brightgreen.svg)](#-automated-tests)
+[![Controller](https://img.shields.io/badge/controller-Generic%20USB%20%7C%20Xbox%20%7C%20PS2%20Gamepad-purple.svg)](#-controls-reference)
 [![Platform](https://img.shields.io/badge/platform-Windows%20%7C%20Linux%20%7C%20macOS-orange.svg)](#)
 [![Status](https://img.shields.io/badge/status-Production%20Asset%20Integrated-purple.svg)](#)
 
 **Drone Hunter 2D** is a high-performance industrial sci-fi tactical top-down drone combat game built with Python and `pygame-ce`.
 
-Fight through **5 industrial sectors**, complete **25 tactical combat missions**, defeat **5 sector dreadnought bosses** and the final **Drone Overlord**, upgrade your chassis in the Hangar, and master an arsenal of 11 weapons with physical audio and visual identities.
+Fight through **5 industrial sectors**, complete **25 tactical combat missions**, defeat **5 sector dreadnought bosses** and the final **Drone Overlord**, upgrade your chassis in the Hangar, and master an arsenal of 11 weapons with physical audio, visual identities, and **first-class controller/gamepad support**.
 
 ---
 
@@ -26,7 +27,7 @@ pip install -r drone_hunter_pc/requirements.txt
 python drone_hunter_pc/main.py
 ```
 
-### Run All Tests (435 tests)
+### Run All Tests (555 tests)
 ```bash
 pytest drone_hunter_pc/tests
 ```
@@ -35,20 +36,24 @@ pytest drone_hunter_pc/tests
 
 ## 🎮 Controls Reference
 
-| Action | Primary | Alternate |
-|:---|:---|:---|
-| **Movement / Thrust** | `W A S D` | Arrow Keys |
-| **Aim & Fire** | Mouse Aim + `LMB` | `Spacebar` (fires forward) |
-| **Switch Weapon** | `1`–`6` | `TAB` / Mouse Wheel |
-| **EMP Blast** | `E` | `RMB` |
-| **Overdrive Mode** | `F` | `Q` / Middle Mouse |
-| **Tactical Barrel Roll** | `Left Shift` | `Right Shift` |
-| **Tactical Cloak** | `K` | — |
-| **Cycle Drone Skin** | `C` | Hangar Bay customizer |
-| **Pause / Resume** | `ESC` | `P` |
-| **Fullscreen Toggle** | `F11` | — |
-| **Sector Map** | `M` | Menu button |
-| **Hangar Bay** | `H` | Menu button |
+| Action | Keyboard / Mouse | Generic USB / PS2 Joystick | Xbox Gamepad |
+|:---|:---|:---|:---|
+| **Flight Movement / Thrust** | `W A S D` / Arrow Keys | **D-Pad / Left Stick** | Left Analog Stick |
+| **Aiming / Crosshair Direction** | Mouse Cursor Aim | **Right Analog Stick / Crosshair Aim** | Right Analog Stick |
+| **Primary Weapon Fire** | `LMB` / `Spacebar` | **Cross / X** (Button 2) | **RT** (Right Trigger) |
+| **Secondary Weapon Fire**| `RMB` | **Square / ▢** (Button 3) | **LT** (Left Trigger) |
+| **Barrel Roll / Dodge** | `Left Shift` / `Right Shift` | **Triangle / △** (Button 0) | **A** Button |
+| **EMP Shockwave Pulse** | `E` | **Circle / O** (Button 1) | **X** Button |
+| **Next Weapon** | `TAB` / `1`–`6` | **Front Top (Tap)** (Buttons 4/5) | **RB** (Right Bumper) |
+| **Previous Weapon** | `Mouse Wheel Down` | **Front Top (Hold $\ge 0.4s$)** | **LB** (Left Bumper) |
+| **Tactical Cloak** | `C` / `K` | **Front Bottom (Tap)** (Buttons 6/7) | **R3** (Right Stick Click) |
+| **Cycle Drone Class** | `C` (Hangar) | **Front Bottom (Hold $\ge 0.4s$)** | **L3** (Left Stick Click) |
+| **Tactical Overdrive** | `F` / `Q` | **SELECT** (Button 8) | **Y** Button |
+| **Pause / Resume** | `ESC` / `P` | **START (Tap)** (Button 9) | **START** / **MENU** Button |
+| **Fullscreen Toggle** | `F11` | **START (Hold $\ge 1.0s$)** | — |
+| **Menu D-Pad Navigation** | Arrow Keys / `W A S D` | **D-Pad (Up / Down / Left / Right)** | D-Pad |
+| **Menu Confirm / Select** | `Enter` / `Spacebar` | **Cross / X** (Button 2) | **A** Button |
+| **Menu Cancel / Back** | `ESC` | **Circle / O** (Button 1) | **B** Button |
 
 ---
 

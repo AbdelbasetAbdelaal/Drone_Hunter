@@ -4,6 +4,37 @@ All notable changes to the **Drone Hunter 2D** project are documented in this fi
 
 ---
 
+## [Phase 12] — Full Generic & PS2/USB Controller Support, D-Pad Menu Navigation & Audio Polish (2026)
+
+### Added
+- **Full Generic USB / PS2-Style Gamepad Support**:
+  - Integrated full support for Twin USB Gamepad and generic DirectInput/PS2-style controllers without replacing the existing input architecture.
+  - Normalized paired front shoulder buttons (`FRONT_TOP` and `FRONT_BOTTOM`) into distinct tap/hold actions (Tap: Next Weapon / Hold: Previous Weapon; Tap: Cloak / Hold: Cycle Drone Class).
+  - Configured hold thresholds (0.4s for weapons/drone cycling, 1.0s for fullscreen toggle) with strict mutual exclusivity.
+- **Universal D-Pad Menu & Grid Navigation**:
+  - Complete 2D grid navigation and luminous visual focus indicators across all screens:
+    - **Drone Hangar & Upgrade Bay**: 2D grid navigation between 4 upgrade cards and 4 bottom utility buttons.
+    - **Drone Chassis Select**: Horizontal carousel navigation across 5 combat chassis with quick back button access.
+    - **Mission Failed & Game Over**: Vertical 1D navigation across Retry, Sector Map, and Main Menu buttons.
+    - **Pause Menu & Settings**: Full controller toggle and configuration support.
+    - **Mission Complete & Sector Complete**: Navigation between Next Stage / Sector Map and Hangar.
+- **Boss-Grade Cataclysmic Player Death Audio**:
+  - Enhanced player death sound to trigger epic multi-layered boss explosion audio (`death_boss` + `death_heavy` + `player_death`) upon drone destruction.
+- **Dynamic HUD Level Telemetry**:
+  - Connected combat HUD top-right telemetry dynamically to sector and mission metadata via `get_mission_data()`, updating current sector and stage in real-time.
+
+### Fixed
+- **Sector Complete Bonus Calculation**:
+  - Resolved `TypeError: unsupported operand type(s) for +: 'int' and 'dict'` by correctly looking up sector bonuses from `SECTOR_BONUS[sector_id]`.
+- **Missing Module Imports**:
+  - Fixed `UPGRADE_COSTS` and `MAX_UPGRADE_LEVEL` imports in `src/core/game.py`.
+- **UI Function Signatures**:
+  - Standardized `selected_index` parameter across all UI rendering functions in `src/ui/menus.py` and `src/ui/drone_select.py`.
+- **Comprehensive Codebase Audit**:
+  - Verified 100% health across all 51 Python modules, 17 game states, 17 UI screens, and **555 / 555 automated tests passing (100% green)**.
+
+---
+
 ## [Phase 11] — First-Class Controller, Gamepad & Joystick Support (2026)
 
 ### Added

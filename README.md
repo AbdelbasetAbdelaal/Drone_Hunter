@@ -2,8 +2,8 @@
 
 [![Python](https://img.shields.io/badge/python-3.10%2B-blue.svg)](https://www.python.org/)
 [![Engine](https://img.shields.io/badge/engine-pygame--ce%202.5%2B-green.svg)](https://pyga.me/)
-[![Tests](https://img.shields.io/badge/tests-481%20passing-brightgreen.svg)](#-automated-test-suite-481-passing)
-[![Controller](https://img.shields.io/badge/controller-Xbox%20%7C%20Gamepad%20%7C%20Joystick-purple.svg)](#-first-class-controller--gamepad--joystick-support)
+[![Tests](https://img.shields.io/badge/tests-555%20passing-brightgreen.svg)](#-automated-test-suite-555-passing)
+[![Controller](https://img.shields.io/badge/controller-Generic%20USB%20%7C%20Xbox%20%7C%20PS2%20Gamepad-purple.svg)](#-first-class-controller--gamepad--joystick-support)
 [![Platform](https://img.shields.io/badge/platform-Windows%20%7C%20Linux%20%7C%20macOS-orange.svg)](#)
 
 **Drone Hunter 2D** is a high-performance industrial sci-fi tactical top-down drone combat game built with Python and `pygame-ce`.
@@ -26,7 +26,7 @@ pip install -r drone_hunter_pc/requirements.txt
 python drone_hunter_pc/main.py
 ```
 
-### Run All Tests (481 tests)
+### Run All Tests (555 tests)
 ```bash
 pytest drone_hunter_pc/tests
 ```
@@ -35,21 +35,24 @@ pytest drone_hunter_pc/tests
 
 ## 🎮 Controls Reference
 
-| Action | Keyboard / Mouse | Xbox Controller | Generic Gamepad / Joystick |
+| Action | Keyboard / Mouse | Generic USB / PS2 Joystick | Xbox Gamepad |
 |:---|:---|:---|:---|
-| **Flight Movement** | `W A S D` / Arrow Keys | **Left Analog Stick** (360° Smooth) | Axis 0 & Axis 1 |
-| **Aiming Direction** | Mouse Cursor Aim | **Right Analog Stick** (360° Aiming) | Axis 2 & Axis 3 |
-| **Primary Weapon Fire** | `LMB` / `Spacebar` | **RT** (Right Trigger) | Trigger / Button 0 |
-| **Secondary Weapon Fire**| `RMB` | **LT** (Left Trigger) | Trigger 2 / Button 1 |
-| **Next Weapon** | `TAB` / `1`–`6` | **RB** (Right Bumper) | Bumper R |
-| **Previous Weapon** | `Mouse Wheel Down` | **LB** (Left Bumper) | Bumper L |
-| **Tactical Barrel Roll** | `Left Shift` / `Right Shift` | **A** Button | Button 0 |
-| **EMP Blast** | `E` | **X** Button | Button 2 |
-| **Overdrive Ultimate** | `F` / `Q` | **Y** Button | Button 3 |
-| **Tactical Cloak** | `C` / `K` | **R3** (Right Stick Click) | Button 9 |
-| **Pause / Resume** | `ESC` / `P` | **START** / **MENU** Button | Button 7 |
-| **Cancel / Back** | `ESC` / `B` | **B** Button | Button 1 |
-| **Fullscreen Toggle** | `F11` | — | — |
+| **Flight Movement / Thrust** | `W A S D` / Arrow Keys | **D-Pad / Left Stick** | Left Analog Stick |
+| **Aiming / Crosshair Direction** | Mouse Cursor Aim | **Right Analog Stick / Crosshair Aim** | Right Analog Stick |
+| **Primary Weapon Fire** | `LMB` / `Spacebar` | **Cross / X** (Button 2) | **RT** (Right Trigger) |
+| **Secondary Weapon Fire**| `RMB` | **Square / ▢** (Button 3) | **LT** (Left Trigger) |
+| **Barrel Roll / Dodge** | `Left Shift` / `Right Shift` | **Triangle / △** (Button 0) | **A** Button |
+| **EMP Shockwave Pulse** | `E` | **Circle / O** (Button 1) | **X** Button |
+| **Next Weapon** | `TAB` / `1`–`6` | **Front Top (Tap)** (Buttons 4/5) | **RB** (Right Bumper) |
+| **Previous Weapon** | `Mouse Wheel Down` | **Front Top (Hold $\ge 0.4s$)** | **LB** (Left Bumper) |
+| **Tactical Cloak** | `C` / `K` | **Front Bottom (Tap)** (Buttons 6/7) | **R3** (Right Stick Click) |
+| **Cycle Drone Class** | `C` (Hangar) | **Front Bottom (Hold $\ge 0.4s$)** | **L3** (Left Stick Click) |
+| **Tactical Overdrive** | `F` / `Q` | **SELECT** (Button 8) | **Y** Button |
+| **Pause / Resume** | `ESC` / `P` | **START (Tap)** (Button 9) | **START** / **MENU** Button |
+| **Fullscreen Toggle** | `F11` | **START (Hold $\ge 1.0s$)** | — |
+| **Menu D-Pad Navigation** | Arrow Keys / `W A S D` | **D-Pad (Up / Down / Left / Right)** | D-Pad |
+| **Menu Confirm / Select** | `Enter` / `Spacebar` | **Cross / X** (Button 2) | **A** Button |
+| **Menu Cancel / Back** | `ESC` | **Circle / O** (Button 1) | **B** Button |
 
 ---
 

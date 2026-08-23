@@ -442,8 +442,10 @@ class AudioManager:
         self._play_cached("player_hit", min_interval_ms=50, channel_id=CHANNEL_PLAYER, volume_scale=1.0)
 
     def play_player_death(self):
-        """Player destruction terminal sound."""
-        self._play_cached("player_death", min_interval_ms=200, channel_id=CHANNEL_PLAYER, volume_scale=1.0)
+        """Player destruction terminal sound - plays epic cataclysmic boss explosion sound."""
+        self._play_cached("death_boss", min_interval_ms=50, volume_scale=1.0)
+        self._play_cached("player_death", min_interval_ms=50, volume_scale=1.0)
+        self._play_cached("death_heavy", min_interval_ms=50, volume_scale=1.0)
 
     def play_roll(self):
         """Player barrel roll whoosh."""

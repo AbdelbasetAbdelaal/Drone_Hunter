@@ -37,6 +37,8 @@ class TestInputSystem(unittest.TestCase):
 
     def setUp(self):
         self.input_mgr = InputManager()
+        self.input_mgr.connected_joysticks.clear()
+        self.input_mgr.active_joystick_id = None
 
     def test_input_manager_initialization(self):
         """Verify InputManager initializes cleanly with zero controllers connected without crashing."""

@@ -8,6 +8,7 @@ without altering underlying physics or gameplay contracts.
 """
 
 import math
+import logging
 import pygame
 from typing import Dict, Tuple, Optional, Any
 
@@ -15,6 +16,7 @@ from src.input.controller_mapping import (
     ControllerMappingManager,
 )
 
+logger = logging.getLogger(__name__)
 
 # ------------------------------------------------------------------------------
 # CANONICAL ACTIONS (backward-compatible, uppercase as used throughout codebase)
@@ -31,9 +33,16 @@ ACTION_EMP = "EMP"
 ACTION_ULTIMATE = "ULTIMATE"
 ACTION_SPECIAL = "SPECIAL"
 ACTION_PAUSE = "PAUSE"
+ACTION_FULLSCREEN = "FULLSCREEN"
 ACTION_CLOAK = "CLOAK"
 ACTION_CONFIRM = "CONFIRM"
 ACTION_CANCEL = "CANCEL"
+ACTION_SECTOR_MAP = "SECTOR_MAP"
+ACTION_HANGAR_BAY = "HANGAR_BAY"
+ACTION_CYCLE_SKIN = "CYCLE_SKIN"
+ACTION_FRONT_TOP = "FRONT_TOP"
+ACTION_FRONT_BOTTOM = "FRONT_BOTTOM"
+ACTION_CYCLE_CLASS = "CYCLE_CLASS"
 
 DEVICE_KEYBOARD_MOUSE = "keyboard_mouse"
 DEVICE_GAMEPAD = "gamepad"
@@ -54,6 +63,14 @@ PROMPT_MAP_KEYBOARD = {
     ACTION_FIRE_SECONDARY: "RMB",
     ACTION_PAUSE: "ESC",
     ACTION_CLOAK: "C",
+    ACTION_CONFIRM: "ENTER",
+    ACTION_CANCEL: "ESC",
+    ACTION_SECTOR_MAP: "M",
+    ACTION_HANGAR_BAY: "H",
+    ACTION_CYCLE_SKIN: "C",
+    ACTION_FRONT_TOP: "TAB",
+    ACTION_FRONT_BOTTOM: "C",
+    ACTION_CYCLE_CLASS: "V",
 }
 
 PROMPT_MAP_GAMEPAD = {
@@ -66,7 +83,16 @@ PROMPT_MAP_GAMEPAD = {
     ACTION_FIRE_PRIMARY: "RT",
     ACTION_FIRE_SECONDARY: "LT",
     ACTION_PAUSE: "START",
-    ACTION_CLOAK: "R3",
+    ACTION_FULLSCREEN: "START (HOLD)",
+    ACTION_CLOAK: "LB",
+    ACTION_CONFIRM: "A",
+    ACTION_CANCEL: "B",
+    ACTION_SECTOR_MAP: "BACK",
+    ACTION_HANGAR_BAY: "BACK",
+    ACTION_CYCLE_SKIN: "LB",
+    ACTION_FRONT_TOP: "RB",
+    ACTION_FRONT_BOTTOM: "LB",
+    ACTION_CYCLE_CLASS: "LB (HOLD)",
 }
 
 # Backward-compatible button maps for tests and legacy code
@@ -94,13 +120,16 @@ GENERIC_BUTTON_MAP = {
     7: ACTION_PAUSE,
 }
 
+PROMPT_MAP_JOYSTICK = PROMPT_MAP_GAMEPAD
 
 # ------------------------------------------------------------------------------
-# ACTION NAME TRANSLATION (uppercase <-> lowercase)
+# INTERNAL NORMALIZED ACTION STRING MAPS
 # ------------------------------------------------------------------------------
 _ACTION_UPPER_TO_LOWER = {
     ACTION_FIRE_PRIMARY: "fire_primary",
     ACTION_FIRE_SECONDARY: "fire_secondary",
+    ACTION_FRONT_TOP: "front_top",
+    ACTION_FRONT_BOTTOM: "front_bottom",
     ACTION_WEAPON_NEXT: "weapon_next",
     ACTION_WEAPON_PREV: "weapon_prev",
     ACTION_ROLL: "roll",
@@ -108,9 +137,14 @@ _ACTION_UPPER_TO_LOWER = {
     ACTION_ULTIMATE: "ultimate",
     ACTION_SPECIAL: "special",
     ACTION_PAUSE: "pause",
+    ACTION_FULLSCREEN: "fullscreen",
     ACTION_CLOAK: "cloak",
+    ACTION_CYCLE_CLASS: "cycle_class",
     ACTION_CONFIRM: "confirm",
     ACTION_CANCEL: "cancel",
+    ACTION_SECTOR_MAP: "sector_map",
+    ACTION_HANGAR_BAY: "hangar_bay",
+    ACTION_CYCLE_SKIN: "cycle_skin",
 }
 _ACTION_LOWER_TO_UPPER = {v: k for k, v in _ACTION_UPPER_TO_LOWER.items()}
 
@@ -120,11 +154,8 @@ _ACTION_LOWER_TO_UPPER = {v: k for k, v in _ACTION_UPPER_TO_LOWER.items()}
 # ------------------------------------------------------------------------------
 class InputManager:
     """Centralized input abstraction orchestrating device detection, analog
-
     filtering, deadzone normalization, rumble feedback, and device-aware prompt
-
     dispatching.
-
     """
 
     def __init__(self, settings_manager=None):
@@ -153,6 +184,20 @@ class InputManager:
         self._last_mouse_pos: Tuple[int, int] = (0, 0)
         self._trigger_threshold: float = 0.35
 
+        # Configurable Hold Thresholds (in seconds)
+        self.front_hold_threshold: float = 0.40
+        self.start_hold_threshold: float = 1.00
+
+        # Press/Hold tracking states
+        self._start_hold_time: float = 0.0
+        self._start_fullscreen_fired: bool = False
+
+        self._front_top_hold_time: float = 0.0
+        self._front_top_fired: bool = False
+
+        self._front_bottom_hold_time: float = 0.0
+        self._front_bottom_fired: bool = False
+
         # Controller mapping manager
         self.mapping_manager = ControllerMappingManager()
 
@@ -167,37 +212,33 @@ class InputManager:
             count = pygame.joystick.get_count()
             for i in range(count):
                 self._add_joystick(i)
-        except Exception:
-            pass
+        except Exception as e:
+            logger.warning(f"Error initializing joystick subsystem: {e}")
 
-    def _add_joystick(self, device_id: int):
-        """Safely instantiates and registers a newly connected joystick."""
+    def _add_joystick(self, device_index: int):
+        """Initializes and registers a connected joystick device."""
         try:
-            js = pygame.joystick.Joystick(device_id)
-            js.init()
-            self.connected_joysticks[device_id] = js
-            self.mapping_manager.get_or_create_profile(js)
+            js = pygame.joystick.Joystick(device_index)
+            # Check if deprecated init needed for compatibility
+            if hasattr(js, "init"):
+                try:
+                    js.init()
+                except Exception:
+                    pass
+            instance_id = js.get_instance_id()
+            self.connected_joysticks[instance_id] = js
             if self.active_joystick_id is None:
-                self.active_joystick_id = device_id
-        except Exception:
-            pass
+                self.active_joystick_id = instance_id
+                logger.info(f"[INPUT] Active controller connected: {js.get_name()} (Instance {instance_id})")
+        except Exception as e:
+            logger.warning(f"Failed to add joystick device index {device_index}: {e}")
 
     def _remove_joystick(self, instance_id: int):
-        """Safely unregisters a disconnected joystick."""
-        target_key = None
-        for key, js in list(self.connected_joysticks.items()):
-            try:
-                if js.get_instance_id() == instance_id or key == instance_id:
-                    target_key = key
-                    break
-            except Exception:
-                if key == instance_id:
-                    target_key = key
-                    break
-
-        if target_key is not None:
-            self.connected_joysticks.pop(target_key, None)
-            if self.active_joystick_id == target_key:
+        """Removes a disconnected joystick and updates active controller device."""
+        if instance_id in self.connected_joysticks:
+            del self.connected_joysticks[instance_id]
+            logger.info(f"[INPUT] Controller disconnected (Instance {instance_id})")
+            if self.active_joystick_id == instance_id:
                 if self.connected_joysticks:
                     self.active_joystick_id = next(iter(self.connected_joysticks.keys()))
                 else:
@@ -206,27 +247,30 @@ class InputManager:
 
     @property
     def active_joystick(self) -> Optional[pygame.joystick.Joystick]:
-        """Returns the currently active joystick instance if connected."""
-        if self.active_joystick_id is not None and self.active_joystick_id in self.connected_joysticks:
-            return self.connected_joysticks[self.active_joystick_id]
+        """Returns the currently active pygame Joystick instance or None."""
+        if self.active_joystick_id is not None:
+            return self.connected_joysticks.get(self.active_joystick_id)
         return None
 
+    def trigger_rumble(self, low_freq: float = 0.5, high_freq: float = 0.5, duration_ms: int = 150):
+        """Triggers haptic vibration rumble feedback on the active controller if supported."""
+        if not self.enabled or not self.vibration_enabled:
+            return
+        js = self.active_joystick
+        if js and hasattr(js, "rumble"):
+            try:
+                js.rumble(low_freq, high_freq, duration_ms)
+            except Exception:
+                pass
+
     def apply_deadzone_radial(self, raw_x: float, raw_y: float) -> Tuple[float, float, float]:
-        """Applies radial deadzone and non-linear response curve to raw analog stick axes.
-
-        Returns (scaled_x, scaled_y, magnitude).
-
-        """
-        mag = math.hypot(raw_x, raw_y)
-        if mag < self.deadzone:
+        """Applies radial deadzone normalization with smooth remapped magnitude [0, 1]."""
+        vec = pygame.Vector2(raw_x, raw_y)
+        mag = vec.length()
+        if mag <= self.deadzone:
             return 0.0, 0.0, 0.0
-
-        # Normalize magnitude beyond deadzone [0.0, 1.0]
-        norm_mag = min(1.0, (mag - self.deadzone) / max(0.001, (1.0 - self.deadzone)))
-        
-        # Smooth non-linear response curve for fine precision at low tilt & full max speed at 100%
-        scaled_mag = math.pow(norm_mag, 1.35) * self.move_sensitivity
-
+        # Remap [deadzone, 1.0] -> [0.0, 1.0]
+        scaled_mag = min(1.0, (mag - self.deadzone) / (1.0 - self.deadzone))
         scaled_x = (raw_x / mag) * scaled_mag
         scaled_y = (raw_y / mag) * scaled_mag
         return scaled_x, scaled_y, scaled_mag
@@ -241,9 +285,13 @@ class InputManager:
         self.move_sensitivity = max(0.2, min(2.0, float(settings_dict.get("controller_move_sensitivity", 1.0))))
         self.vibration_enabled = settings_dict.get("controller_vibration", True)
 
-    def process_events(self, events: list):
+    def process_events(self, events: list, dt: float = 0.016):
         """Processes pygame event queue for hot-plugging, discrete actions, and device priority."""
         self.actions_triggered.clear()
+
+        front_top_up = False
+        front_bottom_up = False
+        start_btn_up = False
 
         for event in events:
             # Hot-plugging events
@@ -272,15 +320,107 @@ class InputManager:
                         btn = event.button
                         profile = self.mapping_manager.get_profile_for_joystick(js)
                         if profile:
-                            lower_action = profile.button_map.get(btn)
-                            if lower_action:
-                                upper_action = _ACTION_LOWER_TO_UPPER.get(lower_action, lower_action)
-                                self.actions_triggered[upper_action] = True
+                            # Direct discrete button mappings (excluding hold-managed buttons)
+                            # Cross / X (Button 2) -> Confirm
+                            if btn == profile.button_map.get("fire_primary", 2):
+                                self.actions_triggered[ACTION_CONFIRM] = True
+                            # Circle / O (Button 1) -> EMP / Cancel
+                            elif btn == profile.button_map.get("emp", 1):
+                                self.actions_triggered[ACTION_EMP] = True
+                                self.actions_triggered[ACTION_CANCEL] = True
+                            # Triangle / △ (Button 0) -> Ultimate
+                            elif btn == profile.button_map.get("ultimate", 0):
+                                self.actions_triggered[ACTION_ULTIMATE] = True
+                            # Square / □ (Button 3) -> Roll
+                            elif btn == profile.button_map.get("roll", 3):
+                                self.actions_triggered[ACTION_ROLL] = True
+                            # Select (Button 8) -> Map / Hangar
+                            elif btn == profile.button_map.get("sector_map", 8):
+                                self.actions_triggered[ACTION_SECTOR_MAP] = True
+                                self.actions_triggered[ACTION_HANGAR_BAY] = True
+
+            elif event.type == pygame.JOYBUTTONUP:
+                if self.enabled and self.active_joystick:
+                    btn = event.button
+                    profile = self.mapping_manager.get_profile_for_joystick(self.active_joystick)
+                    if profile:
+                        # Normalize physical button pairs:
+                        # Upper front buttons (Buttons 4 & 5) -> FRONT_TOP
+                        if btn in (4, 5) or btn == profile.button_map.get("front_top", 5) or btn == profile.button_map.get("weapon_next", 5):
+                            front_top_up = True
+                        # Lower front buttons (Buttons 6 & 7) -> FRONT_BOTTOM
+                        elif btn in (6, 7) or btn == profile.button_map.get("front_bottom", 4) or btn == profile.button_map.get("cloak", 4):
+                            front_bottom_up = True
+                        elif btn == profile.button_map.get("pause", 9):
+                            start_btn_up = True
 
             # Controller Axis Motion
             elif event.type == pygame.JOYAXISMOTION:
                 if self.enabled and abs(event.value) > self.deadzone + 0.05:
                     self.active_device = DEVICE_GAMEPAD
+
+        # Process Hold vs Tap logic for FRONT_TOP, FRONT_BOTTOM, and START
+        if self.enabled and self.active_joystick:
+            js = self.active_joystick
+            profile = self.mapping_manager.get_profile_for_joystick(js)
+            if profile:
+                num_buttons = js.get_numbuttons()
+                def _is_pressed(btn_idx):
+                    if 0 <= btn_idx < num_buttons:
+                        try:
+                            return bool(js.get_button(btn_idx))
+                        except Exception:
+                            return False
+                    return False
+
+                # 1. FRONT_TOP (Upper pair: physical buttons 4 or 5)
+                # Has two physical inputs resolving to ONE logical FRONT_TOP action
+                is_ft_pressed = _is_pressed(4) or _is_pressed(5) or _is_pressed(profile.button_map.get("front_top", 5)) or _is_pressed(profile.button_map.get("weapon_next", 5))
+                if is_ft_pressed:
+                    self._front_top_hold_time += dt
+                    if self._front_top_hold_time >= self.front_hold_threshold and not self._front_top_fired:
+                        self.actions_triggered[ACTION_WEAPON_PREV] = True
+                        self._front_top_fired = True
+                else:
+                    if front_top_up and not self._front_top_fired and self._front_top_hold_time < self.front_hold_threshold:
+                        self.actions_triggered[ACTION_WEAPON_NEXT] = True
+                        self.actions_triggered[ACTION_FRONT_TOP] = True
+                    self._front_top_hold_time = 0.0
+                    self._front_top_fired = False
+
+                # 2. FRONT_BOTTOM (Lower pair: physical buttons 6 or 7)
+                # Has two physical inputs resolving to ONE logical FRONT_BOTTOM action
+                is_fb_pressed = _is_pressed(6) or _is_pressed(7) or _is_pressed(profile.button_map.get("front_bottom", 4)) or _is_pressed(profile.button_map.get("cloak", 4))
+                # Disambiguate if profile fallback shared index with front_top
+                if is_ft_pressed and profile.button_map.get("front_bottom") in (4, 5):
+                    is_fb_pressed = False
+
+                if is_fb_pressed:
+                    self._front_bottom_hold_time += dt
+                    if self._front_bottom_hold_time >= self.front_hold_threshold and not self._front_bottom_fired:
+                        self.actions_triggered[ACTION_CYCLE_CLASS] = True
+                        self._front_bottom_fired = True
+                else:
+                    if front_bottom_up and not self._front_bottom_fired and self._front_bottom_hold_time < self.front_hold_threshold:
+                        self.actions_triggered[ACTION_CLOAK] = True
+                        self.actions_triggered[ACTION_CYCLE_SKIN] = True
+                        self.actions_triggered[ACTION_FRONT_BOTTOM] = True
+                    self._front_bottom_hold_time = 0.0
+                    self._front_bottom_fired = False
+
+                # 3. START (Pause on short press / Fullscreen on hold >= 1.0s)
+                pause_btn = profile.button_map.get("pause", 9)
+                is_start_pressed = _is_pressed(pause_btn)
+                if is_start_pressed:
+                    self._start_hold_time += dt
+                    if self._start_hold_time >= self.start_hold_threshold and not self._start_fullscreen_fired:
+                        self.actions_triggered[ACTION_FULLSCREEN] = True
+                        self._start_fullscreen_fired = True
+                else:
+                    if start_btn_up and not self._start_fullscreen_fired and self._start_hold_time < self.start_hold_threshold:
+                        self.actions_triggered[ACTION_PAUSE] = True
+                    self._start_hold_time = 0.0
+                    self._start_fullscreen_fired = False
 
     def poll_input(self, player_pos: Tuple[float, float], get_canvas_mouse_pos_func, world_mouse_pos: Optional[Tuple[float, float]] = None) -> dict:
         """Polls current hardware state (Keyboard, Mouse, Gamepad, Joystick)
@@ -349,10 +489,19 @@ class InputManager:
                 dpad = self.mapping_manager.get_dpad_input(js)
                 if any(dpad.values()):
                     self.active_device = DEVICE_GAMEPAD
-                    if dpad["up"]: move_y -= 1.0
-                    if dpad["down"]: move_y += 1.0
-                    if dpad["left"]: move_x -= 1.0
-                    if dpad["right"]: move_x += 1.0
+                    dx = 0.0
+                    dy = 0.0
+                    if dpad["up"]: dy -= 1.0
+                    if dpad["down"]: dy += 1.0
+                    if dpad["left"]: dx -= 1.0
+                    if dpad["right"]: dx += 1.0
+                    if dx != 0.0 or dy != 0.0:
+                        move_x = dx
+                        move_y = dy
+
+                # Clamp movement to unit circle
+                move_x = max(-1.0, min(1.0, move_x))
+                move_y = max(-1.0, min(1.0, move_y))
 
                 # Right Stick (Aiming) - Axes 2/3 or 3/4 depending on driver
                 raw_rx, raw_ry = 0.0, 0.0
@@ -367,6 +516,9 @@ class InputManager:
                 if rmag > 0.0:
                     self.active_device = DEVICE_GAMEPAD
                     aim_angle = math.atan2(ry, rx)
+                elif self.active_device == DEVICE_GAMEPAD and (abs(move_x) > 0.1 or abs(move_y) > 0.1):
+                    # Face direction of flight on 2-axis / D-pad controllers
+                    aim_angle = math.atan2(move_y, move_x)
 
                 # Triggers (RT / LT) - Usually Axes 4 & 5 or 2 & 5
                 if num_axes >= 6:
@@ -393,13 +545,15 @@ class InputManager:
                     num_buttons = js.get_numbuttons()
                     for btn_idx in range(num_buttons):
                         if js.get_button(btn_idx):
-                            lower_action = profile.get_action_for_button(btn_idx)
-                            if lower_action:
-                                upper_action = _ACTION_LOWER_TO_UPPER.get(lower_action, lower_action)
-                                if upper_action == ACTION_FIRE_PRIMARY:
-                                    fire_primary = True
-                                elif upper_action == ACTION_FIRE_SECONDARY:
-                                    fire_secondary = True
+                            for action_key, b_idx in profile.button_map.items():
+                                if b_idx == btn_idx:
+                                    upper_action = _ACTION_LOWER_TO_UPPER.get(action_key, action_key.upper())
+                                    if upper_action == ACTION_FIRE_PRIMARY:
+                                        fire_primary = True
+                                        self.active_device = DEVICE_GAMEPAD
+                                    elif upper_action == ACTION_FIRE_SECONDARY:
+                                        fire_secondary = True
+                                        self.active_device = DEVICE_GAMEPAD
 
             except Exception:
                 pass
@@ -426,12 +580,12 @@ class InputManager:
 
     def get_prompt_for_action(self, action_name: str) -> str:
         """Returns the appropriate UI text label for an action depending on active device."""
-        lower_name = _ACTION_UPPER_TO_LOWER.get(action_name, action_name)
+        lower_name = _ACTION_UPPER_TO_LOWER.get(action_name, action_name.lower())
         if self.active_device in (DEVICE_GAMEPAD, DEVICE_JOYSTICK):
             js = self.active_joystick
             if js:
                 prompt = self.mapping_manager.get_prompt_for_action(js, lower_name)
-                if prompt and prompt != lower_name and not prompt.startswith("BTN-"):
+                if prompt and prompt != lower_name:
                     return prompt
             return PROMPT_MAP_GAMEPAD.get(action_name, action_name)
         return PROMPT_MAP_KEYBOARD.get(action_name, action_name)

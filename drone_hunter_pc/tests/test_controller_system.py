@@ -55,10 +55,7 @@ def _make_joystick(name="Xbox Controller", guid="xinput", numhats=1, numbuttons=
     js.get_numbuttons.return_value = numbuttons
     js.get_numaxes.return_value = numaxes
     js.get_hat.return_value = (0, 0)
-    for i in range(numbuttons):
-        btn = MagicMock()
-        btn.__eq__ = lambda self, other: i == other
-        js.get_button = lambda idx=i: False
+    js.get_button.return_value = False
     js.get_axis.return_value = 0.0
     return js
 
@@ -448,13 +445,166 @@ class TestAllActions(unittest.TestCase):
             self.assertIn("xbox", mapping)
             self.assertIn("playstation", mapping)
             self.assertIn("generic", mapping)
+            self.assertIn("generic_ps2", mapping)
 
     def test_all_logical_actions_have_prompts(self):
-        for ctype in ("xbox", "playstation", "generic"):
+        for ctype in ("xbox", "playstation", "generic", "generic_ps2"):
             for action, mapping in DEFAULT_MAPPINGS.items():
                 if mapping.get(ctype) is not None:
                     self.assertIn(action, PROMPT_LABELS[ctype])
 
 
+class TestTwinUSBGamepad(unittest.TestCase):
+
+    def test_twin_usb_detection(self):
+        mgr = ControllerMappingManager()
+        js = _make_joystick(name="Twin USB Gamepad", guid="03004a9f1008000001e3000000000000", numaxes=2, numbuttons=10, numhats=0)
+        self.assertEqual(mgr._detect_controller_type(js), "generic_ps2")
+
+    def test_twin_usb_button_mappings(self):
+        mgr = ControllerMappingManager()
+        js = _make_joystick(name="Twin USB Gamepad", guid="03004a9f1008000001e3000000000000", numaxes=2, numbuttons=10, numhats=0)
+        profile = mgr.get_or_create_profile(js)
+        
+        self.assertEqual(profile.button_map["fire_primary"], 2) # Cross / X
+        self.assertEqual(profile.button_map["emp"], 1)          # Circle / O
+        self.assertEqual(profile.button_map["ultimate"], 0)     # Triangle / △
+        self.assertEqual(profile.button_map["roll"], 3)         # Square / □
+        self.assertEqual(profile.button_map["cloak"], 4)        # Left Front
+        self.assertEqual(profile.button_map["weapon_next"], 5)  # Right Front
+        self.assertEqual(profile.button_map["sector_map"], 8)   # SELECT
+        self.assertEqual(profile.button_map["pause"], 9)        # START
+
+    def test_twin_usb_prompts(self):
+        mgr = ControllerMappingManager()
+        js = _make_joystick(name="Twin USB Gamepad")
+        self.assertEqual(mgr.get_prompt_for_action(js, ACTION_FIRE_PRIMARY), "[X] FIRE")
+        self.assertEqual(mgr.get_prompt_for_action(js, ACTION_EMP), "[O] EMP")
+        self.assertEqual(mgr.get_prompt_for_action(js, ACTION_ULTIMATE), "[△] OVERDRIVE")
+        self.assertEqual(mgr.get_prompt_for_action(js, ACTION_ROLL), "[□] ROLL")
+        self.assertEqual(mgr.get_prompt_for_action(js, "weapon_next"), "[R FRONT] WEAPON")
+        self.assertEqual(mgr.get_prompt_for_action(js, "cloak"), "[L FRONT] CLOAK")
+        self.assertEqual(mgr.get_prompt_for_action(js, "pause"), "[START] PAUSE")
+        self.assertEqual(mgr.get_prompt_for_action(js, "sector_map"), "[SELECT] MAP")
+
+    def test_twin_usb_axes_dpad(self):
+        mgr = ControllerMappingManager()
+        js = _make_joystick(name="Twin USB Gamepad", numhats=0, numaxes=2)
+        
+        # Test Up (Axis 1 = -1.0)
+        js.get_axis.side_effect = lambda ax: -1.0 if ax == 1 else 0.0
+        dpad = mgr.get_dpad_input(js)
+        self.assertTrue(dpad["up"])
+        self.assertFalse(dpad["down"])
+
+        # Test Down (Axis 1 = 1.0)
+        js.get_axis.side_effect = lambda ax: 1.0 if ax == 1 else 0.0
+        dpad = mgr.get_dpad_input(js)
+        self.assertTrue(dpad["down"])
+        self.assertFalse(dpad["up"])
+
+        # Test Left (Axis 0 = -1.0)
+        js.get_axis.side_effect = lambda ax: -1.0 if ax == 0 else 0.0
+        dpad = mgr.get_dpad_input(js)
+        self.assertTrue(dpad["left"])
+        self.assertFalse(dpad["right"])
+
+        # Test Right (Axis 0 = 1.0)
+        js.get_axis.side_effect = lambda ax: 1.0 if ax == 0 else 0.0
+        dpad = mgr.get_dpad_input(js)
+        self.assertTrue(dpad["right"])
+        self.assertFalse(dpad["left"])
+
+    def test_start_hold_fullscreen_logic(self):
+        im = InputManager()
+        js = _make_joystick(name="Twin USB Gamepad", numbuttons=10)
+        im.connected_joysticks[0] = js
+        im.active_joystick_id = 0
+        im.active_device = "gamepad"
+        
+        # 1. Start button held for 0.5s -> no fullscreen, no pause yet
+        js.get_button.side_effect = lambda idx: idx == 9
+        im.process_events([], dt=0.5)
+        self.assertNotIn("FULLSCREEN", im.actions_triggered)
+        self.assertNotIn("PAUSE", im.actions_triggered)
+
+        # 2. Start button held for another 0.6s (total 1.1s) -> FULLSCREEN triggers
+        im.process_events([], dt=0.6)
+        self.assertTrue(im.actions_triggered.get("FULLSCREEN"))
+        self.assertNotIn("PAUSE", im.actions_triggered)
+
+        # 3. Start button released -> pause does NOT trigger because fullscreen was fired
+        js.get_button.side_effect = lambda idx: False
+        up_event = pygame.event.Event(pygame.JOYBUTTONUP, {"button": 9, "instance_id": 0})
+        im.process_events([up_event], dt=0.016)
+        self.assertNotIn("PAUSE", im.actions_triggered)
+
+    def test_front_top_short_and_long_press(self):
+        """Verify FRONT_TOP: short press (<0.4s) -> WEAPON_NEXT, long press (>=0.4s) -> WEAPON_PREV."""
+        im = InputManager()
+        js = _make_joystick(name="Twin USB Gamepad", numbuttons=10)
+        im.connected_joysticks[0] = js
+        im.active_joystick_id = 0
+        im.active_device = "gamepad"
+
+        # Case A: Short press on Button 4 (released at 0.15s)
+        js.get_button.side_effect = lambda idx: idx == 4
+        im.process_events([], dt=0.15)
+        self.assertNotIn("WEAPON_NEXT", im.actions_triggered)
+        self.assertNotIn("WEAPON_PREV", im.actions_triggered)
+
+        js.get_button.side_effect = lambda idx: False
+        up_event = pygame.event.Event(pygame.JOYBUTTONUP, {"button": 4, "instance_id": 0})
+        im.process_events([up_event], dt=0.016)
+        self.assertTrue(im.actions_triggered.get("WEAPON_NEXT"))
+        self.assertNotIn("WEAPON_PREV", im.actions_triggered)
+
+        # Case B: Long press on Button 5 (held for 0.45s) -> WEAPON_PREV triggers immediately
+        js.get_button.side_effect = lambda idx: idx == 5
+        im.process_events([], dt=0.45)
+        self.assertTrue(im.actions_triggered.get("WEAPON_PREV"))
+        self.assertNotIn("WEAPON_NEXT", im.actions_triggered)
+
+        # On release after long press -> WEAPON_NEXT must NOT trigger
+        js.get_button.side_effect = lambda idx: False
+        up_event = pygame.event.Event(pygame.JOYBUTTONUP, {"button": 5, "instance_id": 0})
+        im.process_events([up_event], dt=0.016)
+        self.assertNotIn("WEAPON_NEXT", im.actions_triggered)
+
+    def test_front_bottom_short_and_long_press(self):
+        """Verify FRONT_BOTTOM: short press (<0.4s) -> CLOAK & CYCLE_SKIN, long press (>=0.4s) -> CYCLE_CLASS."""
+        im = InputManager()
+        js = _make_joystick(name="Twin USB Gamepad", numbuttons=10)
+        im.connected_joysticks[0] = js
+        im.active_joystick_id = 0
+        im.active_device = "gamepad"
+
+        # Case A: Short press on Button 6 (released at 0.2s)
+        js.get_button.side_effect = lambda idx: idx == 6
+        im.process_events([], dt=0.20)
+        self.assertNotIn("CLOAK", im.actions_triggered)
+        self.assertNotIn("CYCLE_CLASS", im.actions_triggered)
+
+        js.get_button.side_effect = lambda idx: False
+        up_event = pygame.event.Event(pygame.JOYBUTTONUP, {"button": 6, "instance_id": 0})
+        im.process_events([up_event], dt=0.016)
+        self.assertTrue(im.actions_triggered.get("CLOAK"))
+        self.assertTrue(im.actions_triggered.get("CYCLE_SKIN"))
+        self.assertNotIn("CYCLE_CLASS", im.actions_triggered)
+
+        # Case B: Long press on Button 7 (held for 0.45s) -> CYCLE_CLASS triggers immediately
+        js.get_button.side_effect = lambda idx: idx == 7
+        im.process_events([], dt=0.45)
+        self.assertTrue(im.actions_triggered.get("CYCLE_CLASS"))
+        self.assertNotIn("CLOAK", im.actions_triggered)
+
+        # On release after long press -> CLOAK must NOT trigger
+        js.get_button.side_effect = lambda idx: False
+        up_event = pygame.event.Event(pygame.JOYBUTTONUP, {"button": 7, "instance_id": 0})
+        im.process_events([up_event], dt=0.016)
+        self.assertNotIn("CLOAK", im.actions_triggered)
+
+
 if __name__ == "__main__":
     unittest.main()
+
