@@ -150,12 +150,29 @@ _ACTION_LOWER_TO_UPPER = {v: k for k, v in _ACTION_UPPER_TO_LOWER.items()}
 
 
 # ------------------------------------------------------------------------------
+# INPUT CONTEXTS (Canonical UI & Gameplay Semantic Resolution)
+# ------------------------------------------------------------------------------
+class InputContext:
+    GAMEPLAY = "GAMEPLAY"
+    MAIN_MENU = "MAIN_MENU"
+    MISSION_SELECT = "MISSION_SELECT"
+    DRONE_SELECT = "DRONE_SELECT"
+    HANGAR = "HANGAR"
+    WEAPON_MENU = "WEAPON_MENU"
+    SETTINGS = "SETTINGS"
+    PAUSE = "PAUSE"
+    MAP = "MAP"
+    MISSION_COMPLETE = "MISSION_COMPLETE"
+    MISSION_FAILED = "MISSION_FAILED"
+
+
+# ------------------------------------------------------------------------------
 # INPUT MANAGER CLASS
 # ------------------------------------------------------------------------------
 class InputManager:
     """Centralized input abstraction orchestrating device detection, analog
-    filtering, deadzone normalization, rumble feedback, and device-aware prompt
-    dispatching.
+    filtering, deadzone normalization, rumble feedback, device-aware prompt
+    dispatching, and contextual semantic action resolution.
     """
 
     def __init__(self, settings_manager=None):
@@ -167,6 +184,9 @@ class InputManager:
         self.aim_sensitivity: float = 1.0
         self.move_sensitivity: float = 1.0
         self.vibration_enabled: bool = True
+
+        # Current UI/Gameplay Context
+        self.context: str = InputContext.GAMEPLAY
 
         # Active state tracking
         self.active_device: str = DEVICE_KEYBOARD_MOUSE
@@ -203,6 +223,10 @@ class InputManager:
 
         # Initialize Pygame Joystick Subsystem safely
         self._init_joysticks()
+
+    def set_context(self, context: str):
+        """Sets current gameplay/UI context for contextual action resolution."""
+        self.context = context
 
     def _init_joysticks(self):
         """Safely initializes joystick subsystem and detects connected controllers."""
@@ -320,24 +344,38 @@ class InputManager:
                         btn = event.button
                         profile = self.mapping_manager.get_profile_for_joystick(js)
                         if profile:
-                            # Direct discrete button mappings (excluding hold-managed buttons)
-                            # Cross / X (Button 2) -> Confirm
-                            if btn == profile.button_map.get("fire_primary", 2):
-                                self.actions_triggered[ACTION_CONFIRM] = True
-                            # Circle / O (Button 1) -> EMP / Cancel
-                            elif btn == profile.button_map.get("emp", 1):
-                                self.actions_triggered[ACTION_EMP] = True
-                                self.actions_triggered[ACTION_CANCEL] = True
-                            # Triangle / △ (Button 0) -> Ultimate
+                            # 1. CROSS: Primary fire in GAMEPLAY, Confirm in UI
+                            if btn in (profile.button_map.get("fire_primary", 2), profile.button_map.get("confirm", 2)):
+                                if self.context == InputContext.GAMEPLAY:
+                                    self.actions_triggered[ACTION_FIRE_PRIMARY] = True
+                                else:
+                                    self.actions_triggered[ACTION_CONFIRM] = True
+
+                            # 2. CIRCLE: EMP in GAMEPLAY, Cancel in UI
+                            elif btn in (profile.button_map.get("emp", 1), profile.button_map.get("cancel", 1)):
+                                if self.context == InputContext.GAMEPLAY:
+                                    self.actions_triggered[ACTION_EMP] = True
+                                else:
+                                    self.actions_triggered[ACTION_CANCEL] = True
+
+                            # 3. TRIANGLE: Ultimate/Overdrive in GAMEPLAY
                             elif btn == profile.button_map.get("ultimate", 0):
-                                self.actions_triggered[ACTION_ULTIMATE] = True
-                            # Square / □ (Button 3) -> Roll
+                                if self.context == InputContext.GAMEPLAY:
+                                    self.actions_triggered[ACTION_ULTIMATE] = True
+
+                            # 4. SQUARE: Roll in GAMEPLAY
                             elif btn == profile.button_map.get("roll", 3):
-                                self.actions_triggered[ACTION_ROLL] = True
-                            # Select (Button 8) -> Map / Hangar
-                            elif btn == profile.button_map.get("sector_map", 8):
-                                self.actions_triggered[ACTION_SECTOR_MAP] = True
-                                self.actions_triggered[ACTION_HANGAR_BAY] = True
+                                if self.context == InputContext.GAMEPLAY:
+                                    self.actions_triggered[ACTION_ROLL] = True
+
+                            # 5. SELECT: Sector Map in GAMEPLAY, Hangar in Hangar-relevant contexts
+                            elif btn in (profile.button_map.get("sector_map", 8), profile.button_map.get("hangar_bay", 8)):
+                                if self.context == InputContext.GAMEPLAY:
+                                    self.actions_triggered[ACTION_SECTOR_MAP] = True
+                                elif self.context in (InputContext.HANGAR, InputContext.MAIN_MENU, InputContext.DRONE_SELECT):
+                                    self.actions_triggered[ACTION_HANGAR_BAY] = True
+                                else:
+                                    self.actions_triggered[ACTION_SECTOR_MAP] = True
 
             elif event.type == pygame.JOYBUTTONUP:
                 if self.enabled and self.active_joystick:
@@ -374,7 +412,7 @@ class InputManager:
                     return False
 
                 # 1. FRONT_TOP (Upper pair: physical buttons 4 or 5)
-                # Has two physical inputs resolving to ONE logical FRONT_TOP action
+                # Short press -> WEAPON_NEXT; Hold >= 0.4s -> WEAPON_PREV (Strictly mutually exclusive)
                 is_ft_pressed = _is_pressed(4) or _is_pressed(5) or _is_pressed(profile.button_map.get("front_top", 5)) or _is_pressed(profile.button_map.get("weapon_next", 5))
                 if is_ft_pressed:
                     self._front_top_hold_time += dt
@@ -389,22 +427,26 @@ class InputManager:
                     self._front_top_fired = False
 
                 # 2. FRONT_BOTTOM (Lower pair: physical buttons 6 or 7)
-                # Has two physical inputs resolving to ONE logical FRONT_BOTTOM action
+                # GAMEPLAY: Short press -> CLOAK (0 CYCLE_SKIN). Hold -> No accidental class change.
+                # HANGAR/DRONE_SELECT: Short press -> CYCLE_SKIN (0 CLOAK). Hold >= 0.4s -> CYCLE_CLASS.
                 is_fb_pressed = _is_pressed(6) or _is_pressed(7) or _is_pressed(profile.button_map.get("front_bottom", 4)) or _is_pressed(profile.button_map.get("cloak", 4))
-                # Disambiguate if profile fallback shared index with front_top
                 if is_ft_pressed and profile.button_map.get("front_bottom") in (4, 5):
                     is_fb_pressed = False
 
                 if is_fb_pressed:
                     self._front_bottom_hold_time += dt
                     if self._front_bottom_hold_time >= self.front_hold_threshold and not self._front_bottom_fired:
-                        self.actions_triggered[ACTION_CYCLE_CLASS] = True
-                        self._front_bottom_fired = True
+                        if self.context in (InputContext.HANGAR, InputContext.DRONE_SELECT):
+                            self.actions_triggered[ACTION_CYCLE_CLASS] = True
+                            self._front_bottom_fired = True
                 else:
                     if front_bottom_up and not self._front_bottom_fired and self._front_bottom_hold_time < self.front_hold_threshold:
-                        self.actions_triggered[ACTION_CLOAK] = True
-                        self.actions_triggered[ACTION_CYCLE_SKIN] = True
-                        self.actions_triggered[ACTION_FRONT_BOTTOM] = True
+                        if self.context == InputContext.GAMEPLAY:
+                            self.actions_triggered[ACTION_CLOAK] = True
+                        elif self.context in (InputContext.HANGAR, InputContext.DRONE_SELECT):
+                            self.actions_triggered[ACTION_CYCLE_SKIN] = True
+                        else:
+                            self.actions_triggered[ACTION_FRONT_BOTTOM] = True
                     self._front_bottom_hold_time = 0.0
                     self._front_bottom_fired = False
 
@@ -521,27 +563,28 @@ class InputManager:
                     aim_angle = math.atan2(move_y, move_x)
 
                 # Triggers (RT / LT) - Usually Axes 4 & 5 or 2 & 5
-                if num_axes >= 6:
-                    rt_val = js.get_axis(5)
-                    lt_val = js.get_axis(4)
-                    if rt_val > self._trigger_threshold:
-                        fire_primary = True
-                        self.active_device = DEVICE_GAMEPAD
-                    if lt_val > self._trigger_threshold:
-                        fire_secondary = True
-                        self.active_device = DEVICE_GAMEPAD
-                elif num_axes >= 3:
-                    # Triggers mapped to Axis 2 in standard XInput
-                    trig_val = js.get_axis(2)
-                    if trig_val < -self._trigger_threshold:
-                        fire_primary = True
-                        self.active_device = DEVICE_GAMEPAD
-                    elif trig_val > self._trigger_threshold:
-                        fire_secondary = True
-                        self.active_device = DEVICE_GAMEPAD
+                if self.context == InputContext.GAMEPLAY:
+                    if num_axes >= 6:
+                        rt_val = js.get_axis(5)
+                        lt_val = js.get_axis(4)
+                        if rt_val > self._trigger_threshold:
+                            fire_primary = True
+                            self.active_device = DEVICE_GAMEPAD
+                        if lt_val > self._trigger_threshold:
+                            fire_secondary = True
+                            self.active_device = DEVICE_GAMEPAD
+                    elif num_axes >= 3:
+                        # Triggers mapped to Axis 2 in standard XInput
+                        trig_val = js.get_axis(2)
+                        if trig_val < -self._trigger_threshold:
+                            fire_primary = True
+                            self.active_device = DEVICE_GAMEPAD
+                        elif trig_val > self._trigger_threshold:
+                            fire_secondary = True
+                            self.active_device = DEVICE_GAMEPAD
 
                 # Poll Buttons for continuous actions via mapping manager
-                if profile:
+                if profile and self.context == InputContext.GAMEPLAY:
                     num_buttons = js.get_numbuttons()
                     for btn_idx in range(num_buttons):
                         if js.get_button(btn_idx):
@@ -555,8 +598,8 @@ class InputManager:
                                         fire_secondary = True
                                         self.active_device = DEVICE_GAMEPAD
 
-            except Exception:
-                pass
+            except Exception as e:
+                logger.debug(f"[INPUT WARNING] Error polling joystick inputs: {e}")
 
         # 3. COMBINE & NORMALIZE MOVEMENT VECTOR
         move_vec = pygame.Vector2(move_x, move_y)

@@ -571,38 +571,140 @@ class TestTwinUSBGamepad(unittest.TestCase):
         im.process_events([up_event], dt=0.016)
         self.assertNotIn("WEAPON_NEXT", im.actions_triggered)
 
-    def test_front_bottom_short_and_long_press(self):
-        """Verify FRONT_BOTTOM: short press (<0.4s) -> CLOAK & CYCLE_SKIN, long press (>=0.4s) -> CYCLE_CLASS."""
+    def test_front_bottom_short_and_long_press_gameplay(self):
+        """Verify FRONT_BOTTOM in GAMEPLAY context: short press -> CLOAK (0 CYCLE_SKIN), long press -> no class change."""
         im = InputManager()
+        im.set_context("GAMEPLAY")
         js = _make_joystick(name="Twin USB Gamepad", numbuttons=10)
         im.connected_joysticks[0] = js
         im.active_joystick_id = 0
         im.active_device = "gamepad"
 
-        # Case A: Short press on Button 6 (released at 0.2s)
+        # Short press on Button 6 (released at 0.2s) in GAMEPLAY
         js.get_button.side_effect = lambda idx: idx == 6
         im.process_events([], dt=0.20)
         self.assertNotIn("CLOAK", im.actions_triggered)
-        self.assertNotIn("CYCLE_CLASS", im.actions_triggered)
+        self.assertNotIn("CYCLE_SKIN", im.actions_triggered)
 
         js.get_button.side_effect = lambda idx: False
         up_event = pygame.event.Event(pygame.JOYBUTTONUP, {"button": 6, "instance_id": 0})
         im.process_events([up_event], dt=0.016)
         self.assertTrue(im.actions_triggered.get("CLOAK"))
-        self.assertTrue(im.actions_triggered.get("CYCLE_SKIN"))
+        self.assertNotIn("CYCLE_SKIN", im.actions_triggered)
         self.assertNotIn("CYCLE_CLASS", im.actions_triggered)
 
-        # Case B: Long press on Button 7 (held for 0.45s) -> CYCLE_CLASS triggers immediately
+    def test_front_bottom_short_and_long_press_hangar(self):
+        """Verify FRONT_BOTTOM in HANGAR context: short press -> CYCLE_SKIN (0 CLOAK), long press -> CYCLE_CLASS."""
+        im = InputManager()
+        im.set_context("HANGAR")
+        js = _make_joystick(name="Twin USB Gamepad", numbuttons=10)
+        im.connected_joysticks[0] = js
+        im.active_joystick_id = 0
+        im.active_device = "gamepad"
+
+        # Short press on Button 6 (released at 0.2s) in HANGAR
+        js.get_button.side_effect = lambda idx: idx == 6
+        im.process_events([], dt=0.20)
+        self.assertNotIn("CYCLE_SKIN", im.actions_triggered)
+        self.assertNotIn("CLOAK", im.actions_triggered)
+
+        js.get_button.side_effect = lambda idx: False
+        up_event = pygame.event.Event(pygame.JOYBUTTONUP, {"button": 6, "instance_id": 0})
+        im.process_events([up_event], dt=0.016)
+        self.assertTrue(im.actions_triggered.get("CYCLE_SKIN"))
+        self.assertNotIn("CLOAK", im.actions_triggered)
+        self.assertNotIn("CYCLE_CLASS", im.actions_triggered)
+
+        # Long press on Button 7 (held for 0.45s) -> CYCLE_CLASS triggers immediately
+        im.actions_triggered.clear()
         js.get_button.side_effect = lambda idx: idx == 7
         im.process_events([], dt=0.45)
         self.assertTrue(im.actions_triggered.get("CYCLE_CLASS"))
         self.assertNotIn("CLOAK", im.actions_triggered)
+        self.assertNotIn("CYCLE_SKIN", im.actions_triggered)
 
-        # On release after long press -> CLOAK must NOT trigger
-        js.get_button.side_effect = lambda idx: False
-        up_event = pygame.event.Event(pygame.JOYBUTTONUP, {"button": 7, "instance_id": 0})
-        im.process_events([up_event], dt=0.016)
-        self.assertNotIn("CLOAK", im.actions_triggered)
+
+class TestEventAuditAndContextResolution(unittest.TestCase):
+    """Verifies that physical button presses generate ONE canonical action with zero duplicate/conflicting actions."""
+
+    def setUp(self):
+        self.im = InputManager()
+        self.js = _make_joystick(name="Twin USB Gamepad", numbuttons=12)
+        self.im.connected_joysticks[0] = self.js
+        self.im.active_joystick_id = 0
+        self.im.active_device = "gamepad"
+
+    def test_cross_gameplay_vs_ui(self):
+        """Cross button (button 2 in generic_ps2) emits FIRE_PRIMARY in GAMEPLAY, CONFIRM in UI."""
+        # 1. Gameplay context
+        self.im.set_context("GAMEPLAY")
+        down_event = pygame.event.Event(pygame.JOYBUTTONDOWN, {"button": 2, "instance_id": 0})
+        self.im.process_events([down_event], dt=0.016)
+        self.assertTrue(self.im.actions_triggered.get("FIRE_PRIMARY"))
+        self.assertNotIn("CONFIRM", self.im.actions_triggered)
+
+        # 2. Main Menu context
+        self.im.set_context("MAIN_MENU")
+        self.im.actions_triggered.clear()
+        self.im.process_events([down_event], dt=0.016)
+        self.assertTrue(self.im.actions_triggered.get("CONFIRM"))
+        self.assertNotIn("FIRE_PRIMARY", self.im.actions_triggered)
+
+    def test_circle_gameplay_vs_ui(self):
+        """Circle button (button 1 in generic_ps2) emits EMP in GAMEPLAY, CANCEL in UI."""
+        # 1. Gameplay context
+        self.im.set_context("GAMEPLAY")
+        down_event = pygame.event.Event(pygame.JOYBUTTONDOWN, {"button": 1, "instance_id": 0})
+        self.im.process_events([down_event], dt=0.016)
+        self.assertTrue(self.im.actions_triggered.get("EMP"))
+        self.assertNotIn("CANCEL", self.im.actions_triggered)
+
+        # 2. Pause context
+        self.im.set_context("PAUSE")
+        self.im.actions_triggered.clear()
+        self.im.process_events([down_event], dt=0.016)
+        self.assertTrue(self.im.actions_triggered.get("CANCEL"))
+        self.assertNotIn("EMP", self.im.actions_triggered)
+
+    def test_select_gameplay_vs_hangar(self):
+        """Select button (button 8) emits SECTOR_MAP in GAMEPLAY, HANGAR_BAY in Hangar."""
+        # 1. Gameplay context
+        self.im.set_context("GAMEPLAY")
+        down_event = pygame.event.Event(pygame.JOYBUTTONDOWN, {"button": 8, "instance_id": 0})
+        self.im.process_events([down_event], dt=0.016)
+        self.assertTrue(self.im.actions_triggered.get("SECTOR_MAP"))
+        self.assertNotIn("HANGAR_BAY", self.im.actions_triggered)
+
+        # 2. Hangar context
+        self.im.set_context("HANGAR")
+        self.im.actions_triggered.clear()
+        self.im.process_events([down_event], dt=0.016)
+        self.assertTrue(self.im.actions_triggered.get("HANGAR_BAY"))
+        self.assertNotIn("SECTOR_MAP", self.im.actions_triggered)
+
+    def test_all_ui_contexts_cross_and_circle(self):
+        """Verify all defined UI contexts resolve Cross to Confirm and Circle to Cancel."""
+        ui_contexts = [
+            "MAIN_MENU", "MISSION_SELECT", "DRONE_SELECT", "HANGAR",
+            "WEAPON_MENU", "SETTINGS", "PAUSE", "MAP",
+            "MISSION_COMPLETE", "MISSION_FAILED"
+        ]
+        down_cross = pygame.event.Event(pygame.JOYBUTTONDOWN, {"button": 2, "instance_id": 0})
+        down_circle = pygame.event.Event(pygame.JOYBUTTONDOWN, {"button": 1, "instance_id": 0})
+
+        for ctx in ui_contexts:
+            self.im.set_context(ctx)
+            # Test Cross -> Confirm
+            self.im.actions_triggered.clear()
+            self.im.process_events([down_cross], dt=0.016)
+            self.assertTrue(self.im.actions_triggered.get("CONFIRM"), f"Failed for context {ctx}")
+            self.assertNotIn("FIRE_PRIMARY", self.im.actions_triggered, f"Leaked FIRE_PRIMARY in context {ctx}")
+
+            # Test Circle -> Cancel
+            self.im.actions_triggered.clear()
+            self.im.process_events([down_circle], dt=0.016)
+            self.assertTrue(self.im.actions_triggered.get("CANCEL"), f"Failed for context {ctx}")
+            self.assertNotIn("EMP", self.im.actions_triggered, f"Leaked EMP in context {ctx}")
 
 
 if __name__ == "__main__":

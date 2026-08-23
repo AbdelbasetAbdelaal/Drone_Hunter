@@ -2,7 +2,7 @@
 
 [![Python](https://img.shields.io/badge/python-3.10%2B-blue.svg)](https://www.python.org/)
 [![Engine](https://img.shields.io/badge/engine-pygame--ce%202.5%2B-green.svg)](https://pyga.me/)
-[![Tests](https://img.shields.io/badge/tests-555%20passing-brightgreen.svg)](#-automated-test-suite-555-passing)
+[![Tests](https://img.shields.io/badge/tests-560%20passing-brightgreen.svg)](#-automated-test-suite-560-passing)
 [![Controller](https://img.shields.io/badge/controller-Generic%20USB%20%7C%20Xbox%20%7C%20PS2%20Gamepad-purple.svg)](#-first-class-controller--gamepad--joystick-support)
 [![Platform](https://img.shields.io/badge/platform-Windows%20%7C%20Linux%20%7C%20macOS-orange.svg)](#)
 

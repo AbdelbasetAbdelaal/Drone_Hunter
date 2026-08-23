@@ -3,6 +3,7 @@ Input management package for Drone Hunter 2D.
 """
 from src.input.input_manager import (
     InputManager,
+    InputContext,
     ACTION_MOVE_X, ACTION_MOVE_Y, ACTION_AIM_ANGLE,
     ACTION_FIRE_PRIMARY, ACTION_FIRE_SECONDARY,
     ACTION_WEAPON_NEXT, ACTION_WEAPON_PREV,

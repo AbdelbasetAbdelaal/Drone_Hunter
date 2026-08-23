@@ -18,6 +18,16 @@ All notable changes to the **Drone Hunter 2D** project are documented in this fi
     - **Mission Failed & Game Over**: Vertical 1D navigation across Retry, Sector Map, and Main Menu buttons.
     - **Pause Menu & Settings**: Full controller toggle and configuration support.
     - **Mission Complete & Sector Complete**: Navigation between Next Stage / Sector Map and Hangar.
+- **Contextual Semantic Action Resolution Architecture (`InputContext`)**:
+  - Implemented strict context-based action resolution across `GAMEPLAY`, `MAIN_MENU`, `MISSION_SELECT`, `DRONE_SELECT`, `HANGAR`, `WEAPON_MENU`, `SETTINGS`, `PAUSE`, `MAP`, `MISSION_COMPLETE`, `MISSION_FAILED`.
+  - Resolved physical button semantics without duplicate or conflicting dispatches:
+    - **Cross**: `FIRE_PRIMARY` in Gameplay, `CONFIRM` in UI (0 duplicate events).
+    - **Circle**: `EMP` in Gameplay, `CANCEL` in UI (0 duplicate events).
+    - **Front Bottom**: `CLOAK` in Gameplay (0 accidental skin change), `CYCLE_SKIN` in Hangar (0 accidental cloak), hold $\ge 0.4s \rightarrow$ `CYCLE_CLASS` in customizer.
+    - **Front Top**: Tap $\rightarrow$ `WEAPON_NEXT`, hold $\ge 0.4s \rightarrow$ `WEAPON_PREV` (strictly 1 action per physical press).
+    - **Select**: `SECTOR_MAP` in Gameplay, `HANGAR_BAY` in Hangar menus (0 simultaneous dispatch).
+    - **Start**: Tap $\rightarrow$ `PAUSE`, hold $\ge 1.0s \rightarrow$ `FULLSCREEN` (mutually exclusive).
+  - Added full test suite verification expanding to **560 / 560 passed tests** with comprehensive event duplicate audits.
 - **Boss-Grade Cataclysmic Player Death Audio**:
   - Enhanced player death sound to trigger epic multi-layered boss explosion audio (`death_boss` + `death_heavy` + `player_death`) upon drone destruction.
 - **Dynamic HUD Level Telemetry**:

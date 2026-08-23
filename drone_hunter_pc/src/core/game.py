@@ -65,6 +65,7 @@ from src.ui.hangar import draw_hangar_shop_ui
 from src.ui.font_manager import font_banner, font_card
 from src.input import (
     InputManager,
+    InputContext,
     ACTION_MOVE_X, ACTION_MOVE_Y, ACTION_AIM_ANGLE,
     ACTION_FIRE_PRIMARY, ACTION_FIRE_SECONDARY,
     ACTION_WEAPON_NEXT, ACTION_WEAPON_PREV,
@@ -621,8 +622,31 @@ class Game:
             self.win_w, self.win_h = saved_w, saved_h
             self.screen = pygame.display.set_mode((self.win_w, self.win_h), pygame.RESIZABLE)
 
+    def _get_current_input_context(self) -> str:
+        ctx = self.context
+        if ctx.state == STATE_PLAYING:
+            return InputContext.GAMEPLAY
+        elif ctx.state in (STATE_MENU, STATE_SAVE_SELECT):
+            return InputContext.MAIN_MENU
+        elif ctx.state in (STATE_SECTOR_SELECT, STATE_MISSION_BRIEFING):
+            return InputContext.MISSION_SELECT
+        elif ctx.state == STATE_DRONE_SELECT:
+            return InputContext.DRONE_SELECT
+        elif ctx.state == STATE_HANGAR:
+            return InputContext.HANGAR
+        elif ctx.state in (STATE_SETTINGS, STATE_CUSTOM_DIFFICULTY, STATE_CONTROLLER_TEST, STATE_CONTROLLER_BINDING):
+            return InputContext.SETTINGS
+        elif ctx.state == STATE_PAUSED:
+            return InputContext.PAUSE
+        elif ctx.state in (STATE_MISSION_COMPLETE, STATE_LEVEL_CLEAR, STATE_VICTORY):
+            return InputContext.MISSION_COMPLETE
+        elif ctx.state in (STATE_MISSION_FAILED, STATE_GAME_OVER):
+            return InputContext.MISSION_FAILED
+        return InputContext.GAMEPLAY
+
     def handle_events(self):
         ctx = self.context
+        self.input_manager.set_context(self._get_current_input_context())
         events = pygame.event.get()
         self.input_manager.process_events(events)
         for event in events:
@@ -1199,9 +1223,6 @@ class Game:
             elif trig.get(ACTION_SECTOR_MAP):
                 self.previous_state = STATE_PLAYING
                 ctx.state = STATE_SECTOR_SELECT
-            elif trig.get(ACTION_HANGAR_BAY):
-                self.previous_state = STATE_PLAYING
-                ctx.state = STATE_HANGAR
             elif trig.get(ACTION_ROLL):
                 if ctx.player.trigger_roll(dir_x=1.0):
                     self.audio_manager.play_whoosh()
@@ -1226,10 +1247,6 @@ class Game:
                 if ctx.player.trigger_cloak():
                     self.audio_manager.play_cloak()
                     self.particle_manager.spawn_spark(ctx.player.pos, count=15, color=(147, 51, 234))
-            elif trig.get(ACTION_CYCLE_CLASS):
-                if ctx.player:
-                    ctx.player.cycle_drone_class(1)
-                    self.audio_manager.play_powerup()
 
     def _update_controller_menu_navigation(self, dt: float):
         """Processes D-pad and discrete controller buttons for flawless menu navigation across all screens."""
@@ -1401,7 +1418,7 @@ class Game:
                 ctx.state = STATE_SECTOR_SELECT
 
         elif ctx.state == STATE_HANGAR:
-            if (cycle_skin or trig.get(ACTION_CLOAK)) and ctx.player:
+            if (cycle_skin or trig.get(ACTION_CYCLE_SKIN)) and ctx.player:
                 ctx.player.cycle_skin(1)
                 self.audio_manager.play_powerup()
             elif trig.get(ACTION_CYCLE_CLASS) and ctx.player:
@@ -1635,6 +1652,7 @@ class Game:
 
     def update(self, dt: float):
         ctx = self.context
+        self.input_manager.set_context(self._get_current_input_context())
         self.background.update(dt)
         ctx.update_timers(dt)
 
