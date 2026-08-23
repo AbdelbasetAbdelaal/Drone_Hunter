@@ -21,7 +21,7 @@ def draw_hud(canvas: pygame.Surface, player, sector_idx: int = 0, level_score: i
              scrap: int = 0, difficulty_name: str = "NORMAL", combo_mult: int = 1, show_crt: bool = False,
              current_wave: int = 1, sub_level: int = 1, mission_id: str | None = None, input_manager=None,
              objective_text: str | None = None, side_objectives: list | None = None, new_game_plus_count: int = 0,
-             achievement_popups: list = None):
+             achievement_popups: list = None, objective_system=None):
     """Renders clean, responsive screen-space tactical HUD with dynamic device-aware action prompts."""
     vw, vh = canvas.get_size()
     margin_x = 24
@@ -156,8 +156,79 @@ def draw_hud(canvas: pygame.Surface, player, sector_idx: int = 0, level_score: i
         pygame.draw.rect(canvas, COLOR_GOLD, combo_rect, 1, border_radius=4)
         canvas.blit(lbl_combo, (combo_rect.left + 8, combo_rect.top + 5))
 
+    # =========================================================================
+    # 2.5 GROUND OBJECTIVE ASSAULT TELEMETRY & RADAR ALERTS
+    # =========================================================================
+    if objective_system and getattr(objective_system, "is_active", False) and objective_system.active_objective:
+        obj = objective_system.active_objective
+        if obj.alive:
+            # Top-Center Tactical Objective Card
+            top_w = 360
+            top_h = 44
+            top_x = (vw - top_w) // 2
+            top_y = margin_y
+            top_rect = pygame.Rect(top_x, top_y, top_w, top_h)
+
+            pygame.draw.rect(canvas, (15, 23, 42, 225), top_rect, border_radius=6)
+            card_border = COLOR_SHIELD if obj.is_shielded else COLOR_GOLD
+            pygame.draw.rect(canvas, card_border, top_rect, 1, border_radius=6)
+
+            # Objective Name & Distance
+            p_pos = (player.pos.x, player.pos.y) if player else (0, 0)
+            dist_m = int(math.hypot(obj.pos.x - p_pos[0], obj.pos.y - p_pos[1]))
+            t_obj_title = font_card.render(f"TARGET: {obj.title}  [{dist_m}m]", True, COLOR_WHITE)
+            canvas.blit(t_obj_title, (top_x + 12, top_y + 5))
+
+            # Shield Badge
+            if obj.is_shielded:
+                gens_alive = objective_system.active_shield_generators_count
+                sh_txt = f"SHIELD ACTIVE ({gens_alive} GENS)"
+                sh_lbl = font_sub.render(sh_txt, True, COLOR_SHIELD)
+            else:
+                sh_lbl = font_sub.render("SHIELD EXPOSED - VULNERABLE", True, COLOR_GOLD)
+            canvas.blit(sh_lbl, (top_x + top_w - sh_lbl.get_width() - 12, top_y + 6))
+
+            # Objective Health Bar
+            hp_w = top_w - 24
+            hp_h = 8
+            hp_x = top_x + 12
+            hp_y = top_y + 26
+            pygame.draw.rect(canvas, (30, 41, 59), (hp_x, hp_y, hp_w, hp_h), border_radius=3)
+            fill_w = max(0, int(hp_w * obj.hp_percent))
+            bar_col = COLOR_SHIELD if obj.is_shielded else (COLOR_CRIMSON if obj.hp_percent < 0.3 else COLOR_GOLD)
+            if fill_w > 0:
+                pygame.draw.rect(canvas, bar_col, (hp_x, hp_y, fill_w, hp_h), border_radius=3)
+            pygame.draw.rect(canvas, (51, 65, 85), (hp_x, hp_y, hp_w, hp_h), 1, border_radius=3)
+
+            # Direction Navigation Arrow Indicator
+            if player:
+                dx = obj.pos.x - player.pos.x
+                dy = obj.pos.y - player.pos.y
+                nav_angle = math.atan2(dy, dx)
+                nav_center_x = top_x - 22
+                nav_center_y = top_y + top_h // 2
+                arrow_len = 12
+                ax = nav_center_x + math.cos(nav_angle) * arrow_len
+                ay = nav_center_y + math.sin(nav_angle) * arrow_len
+                lx = nav_center_x + math.cos(nav_angle + 2.5) * (arrow_len * 0.6)
+                ly = nav_center_y + math.sin(nav_angle + 2.5) * (arrow_len * 0.6)
+                rx = nav_center_x + math.cos(nav_angle - 2.5) * (arrow_len * 0.6)
+                ry = nav_center_y + math.sin(nav_angle - 2.5) * (arrow_len * 0.6)
+                pygame.draw.polygon(canvas, card_border, [(ax, ay), (lx, ly), (rx, ry)])
+
+        # Radar Alert Warning Banner (when detected)
+        if getattr(objective_system, "is_radar_alert_active", False):
+            pulse_a = int(180 + 75 * math.sin(pygame.time.get_ticks() * 0.012))
+            alert_lbl = font_card.render("⚠ RADAR ALERT: DEFENSE NETWORK ACTIVE ⚠", True, (239, 68, 68, pulse_a))
+            alert_w = alert_lbl.get_width() + 20
+            alert_h = 24
+            alert_rect = pygame.Rect((vw - alert_w) // 2, margin_y + 48, alert_w, alert_h)
+            pygame.draw.rect(canvas, (185, 28, 28, 45), alert_rect, border_radius=4)
+            pygame.draw.rect(canvas, COLOR_NEON_RED, alert_rect, 1, border_radius=4)
+            canvas.blit(alert_lbl, (alert_rect.left + 10, alert_rect.top + 4))
+
     # Objective Tracker
-    if objective_text:
+    elif objective_text:
         obj_txt = font_card.render(objective_text, True, COLOR_EMERALD)
         obj_rect = pygame.Rect(margin_x, margin_y + 45, obj_txt.get_width() + 16, 26)
         pygame.draw.rect(canvas, (15, 23, 42, 200), obj_rect, border_radius=4)

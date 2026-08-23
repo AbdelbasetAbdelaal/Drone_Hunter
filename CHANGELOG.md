@@ -4,6 +4,26 @@ All notable changes to the **Drone Hunter 2D** project are documented in this fi
 
 ---
 
+## [Phase 14] — Objective Assault Gameplay Overhaul (2026)
+
+### Added
+- **Objective Assault Mission Model (`ObjectiveSystem` & `GroundObjective`)**:
+  - Replaced traditional boss-at-end mission loops with deep, tactical Ground Target Objective Assaults across all 25 campaign missions.
+  - Added physical in-world target fortresses: `Radar Command Center`, `Missile Silo Complex`, `Sub-Level Power Reactor`, `Tactical Communications Relay`, `Cyber Defense Core`, and `Munitions Foundry`.
+  - Multi-tier damage states: `ACTIVE`, `SHIELDED`, `DAMAGED`, `CRITICAL`, `DESTROYED`.
+- **Integrated Defense Networks**:
+  - **Radar Nodes (`RadarNode`)**: Early warning sensors with real-time player detection, scan sweeps, alert states, and bounded reinforcement triggers.
+  - **Anti-Air Platforms (`AAPlatform`)**: Directional flak cannons and missile turrets (`Light AA`, `Heavy AA`, `Missile Launcher`) with aiming, charge telegraphing, and destruction physics.
+  - **Combat Aircraft (`CombatAircraft`)**: Fully airborne AI-controlled enemy aircraft (`Interceptor` dogfighters and `Attack` bombers) engaging player in dynamic aerial combat.
+  - **Shield Generators (`ShieldGenerator`)**: Auxiliary defensive perimeter structures powering objective invulnerability shields until eliminated.
+- **Dynamic Escalation & Tactical Telemetry**:
+  - 5-tier defense configurations scaling defense density, attack patterns, and reinforcement pacing from early to late missions.
+  - HUD direction navigation compass, objective HP bar, shield vulnerability state, range meter, and flashing Radar Alert warnings.
+- **Automated Objective Test Suite**:
+  - Added `test_objective_assault.py` with 25 unit and integration tests expanding the test suite to **604 passed tests**.
+
+---
+
 ## [Phase 13] — Gameplay Mastery, Combat Depth & Adaptive Pacing Pass (2026)
 
 ### Added

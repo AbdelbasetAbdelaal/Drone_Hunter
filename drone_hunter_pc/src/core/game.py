@@ -41,6 +41,7 @@ from src.systems.encounter_system import EncounterSystem, SCOUT_SHOOTER_HEAVY_EN
 from src.systems.combat_director import CombatDirector
 from src.systems.mission_system import MissionSystem
 from src.systems.boss_system import BossSystem
+from src.systems.objective_system import ObjectiveSystem
 from src.data.mission_data import get_mission_data, get_missions_for_sector
 from src.systems.combat_system import CombatSystem
 from src.rendering.camera import Camera2D
@@ -106,6 +107,7 @@ class Game:
         self.combat_director = CombatDirector(self.encounter_system, test_mode=self._test_mode)
         self.mission_system = MissionSystem()
         self.boss_system = BossSystem()
+        self.objective_system = ObjectiveSystem()
         self.pending_mission_id = 'S1_M1'
         self.previous_state = STATE_MENU
         self.ui_rects_cache = {}
@@ -138,6 +140,7 @@ class Game:
         self.context.background = self.background
         self.context.encounter_system = self.encounter_system
         self.context.combat_director = self.combat_director
+        self.context.objective_system = self.objective_system
         self.context.mission_system = self.mission_system
         self.context.boss_system = self.boss_system
         self.context.achievement_system = self.achievement_system
@@ -337,7 +340,7 @@ class Game:
 
         self.encounter_system.reset()
         self.combat_director.reset()
-        self.mission_system.start_mission(ctx, mission_id, self.combat_director, self.boss_system)
+        self.mission_system.start_mission(ctx, mission_id, self.combat_director, self.boss_system, self.objective_system)
 
     def reset_game(self):
         """Initializes or resets player, spawner, and stage wave tracking."""
@@ -1750,7 +1753,7 @@ class Game:
                 # 2. Phase 5 & 6 Mission System & Boss Orchestration overrides Spawner
                 if self.mission_system.active_mission_id is not None:
                     self.combat_director.update(dt, ctx)
-                    mission_done = self.mission_system.update(dt, ctx, self.combat_director, self.boss_system)
+                    mission_done = self.mission_system.update(dt, ctx, self.combat_director, self.boss_system, self.objective_system)
                     if mission_done:
                         if self.mission_system.is_mission_success:
                             ctx.mission_elapsed_time = pygame.time.get_ticks() / 1000.0 - ctx.mission_start_time
@@ -1944,7 +1947,7 @@ class Game:
                 # 2. Phase 5 & 6 Mission System & Boss Orchestration overrides Spawner
                 if self.mission_system.active_mission_id is not None:
                     self.combat_director.update(dt, ctx)
-                    mission_done = self.mission_system.update(dt, ctx, self.combat_director, self.boss_system)
+                    mission_done = self.mission_system.update(dt, ctx, self.combat_director, self.boss_system, self.objective_system)
                     if mission_done:
                         if self.mission_system.is_mission_success:
                             ctx.mission_elapsed_time = pygame.time.get_ticks() / 1000.0 - ctx.mission_start_time
@@ -2166,7 +2169,8 @@ class Game:
                 mission_id=getattr(self.mission_system, "active_mission_id", None),
                 objective_text=getattr(self, "_current_objective_text", None),
                 new_game_plus_count=ctx.new_game_plus_count,
-                achievement_popups=ctx.achievement_popups
+                achievement_popups=ctx.achievement_popups,
+                objective_system=getattr(self, "objective_system", None)
             )
             
             draw_combo_banner(canvas, ctx.combo_count, ctx.combo_timer)

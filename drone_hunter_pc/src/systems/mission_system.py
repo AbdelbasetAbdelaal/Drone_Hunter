@@ -12,7 +12,7 @@ from src.systems.combat_director import CombatDirector
 from src.data.mission_data import (
     get_mission_data, get_sector_data,
     OBJECTIVE_DESTROY_ALL, OBJECTIVE_SURVIVE, OBJECTIVE_COMPLETE_ENCOUNTERS,
-    MISSION_REWARDS, SECTOR_BONUS, SIDE_OBJECTIVE_BONUS
+    OBJECTIVE_ASSAULT, MISSION_REWARDS, SECTOR_BONUS, SIDE_OBJECTIVE_BONUS
 )
 import logging
 
@@ -47,7 +47,7 @@ class MissionSystem:
         self._precision_strike_count: int = 0
         self._player_taken_damage: bool = False
 
-    def start_mission(self, ctx: GameContext, mission_id: str, director: CombatDirector, boss_system=None):
+    def start_mission(self, ctx: GameContext, mission_id: str, director: CombatDirector, boss_system=None, objective_system=None):
         """Initializes a mission, configuring the director and setting objectives."""
         self.active_mission_data = get_mission_data(mission_id)
         if not self.active_mission_data:
@@ -68,6 +68,10 @@ class MissionSystem:
 
         if boss_system:
             boss_system.reset()
+
+        # Initialize Ground Objective Assault
+        if objective_system:
+            objective_system.start_objective_for_mission(self.active_mission_data, ctx)
 
         # Initialize side objectives progress tracking
         self.side_objectives_progress = {}
@@ -101,7 +105,7 @@ class MissionSystem:
 
         director.start()
 
-    def update(self, dt: float, ctx: GameContext, director: CombatDirector, boss_system=None) -> bool:
+    def update(self, dt: float, ctx: GameContext, director: CombatDirector, boss_system=None, objective_system=None) -> bool:
         """
         Updates mission progression and checks for victory.
         Returns True if the mission just concluded successfully.
@@ -116,8 +120,16 @@ class MissionSystem:
             if "no_damage_taken" in self.side_objectives_progress:
                 self.side_objectives_progress["no_damage_taken"]["completed"] = False
 
-        # Check for Boss Mission Handling
-        if boss_system and boss_system.has_boss_for_mission(self.active_mission_id):
+        # 1. Primary: Check Ground Objective Assault Progression
+        if objective_system and objective_system.is_active:
+            obj_done = objective_system.update(dt, ctx)
+            if obj_done:
+                self._check_side_objectives_on_success(ctx)
+                self._trigger_success(ctx)
+                return True
+
+        # 2. Legacy / Boss Standalone Mode Handling (preserves BossSystem for optional/unit tests)
+        elif boss_system and boss_system.has_boss_for_mission(self.active_mission_id):
             if boss_system.state == "idle":
                 if director.state == "complete":
                     boss_system.start_boss_for_mission(self.active_mission_id, ctx)
@@ -129,6 +141,7 @@ class MissionSystem:
                     return True
             return False
 
+        # 3. Fallback Objectives (Survive / Clear)
         obj = self.active_mission_data["objective"]
         living_enemies = [e for e in ctx.target_group if getattr(e, "alive", False) and not getattr(e, "is_obstacle", False)]
 
@@ -139,7 +152,7 @@ class MissionSystem:
                 self._trigger_success(ctx)
                 return True
 
-        elif obj in (OBJECTIVE_COMPLETE_ENCOUNTERS, OBJECTIVE_DESTROY_ALL):
+        elif obj in (OBJECTIVE_COMPLETE_ENCOUNTERS, OBJECTIVE_DESTROY_ALL, OBJECTIVE_ASSAULT):
             if director.state == "complete" and len(living_enemies) == 0:
                 self._check_side_objectives_on_success(ctx)
                 self._trigger_success(ctx)
