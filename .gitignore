@@ -18,6 +18,7 @@ save_slot_*.json
 test_*_save.json
 test_*.json
 *.tmp
+controller_mappings.json
 
 # Distribution / packaging
 build/

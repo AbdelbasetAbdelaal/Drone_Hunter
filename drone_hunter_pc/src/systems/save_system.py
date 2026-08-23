@@ -78,7 +78,15 @@ class SaveSystem:
                 "music_volume": 0.70,
                 "engine_volume": 0.35,
                 "master_volume": 1.0
-            }
+            },
+            "controller_settings": {
+                "enabled": True,
+                "deadzone": 0.12,
+                "aim_sensitivity": 1.0,
+                "move_sensitivity": 1.0,
+                "vibration_enabled": True
+            },
+            "controller_mappings": {}
         }
 
     def _get_slot_path(self, slot_index: int) -> str:
@@ -232,6 +240,22 @@ class SaveSystem:
             if not isinstance(audio_settings, dict):
                 audio_settings = defaults["audio_settings"]
 
+            controller_settings = data.get("controller_settings", defaults["controller_settings"])
+            if not isinstance(controller_settings, dict):
+                controller_settings = defaults["controller_settings"].copy()
+            else:
+                controller_settings = {
+                    "enabled": bool(controller_settings.get("enabled", True)),
+                    "deadzone": max(0.02, min(0.40, float(controller_settings.get("deadzone", 0.12)))),
+                    "aim_sensitivity": max(0.2, min(3.0, float(controller_settings.get("aim_sensitivity", 1.0)))),
+                    "move_sensitivity": max(0.2, min(2.0, float(controller_settings.get("move_sensitivity", 1.0)))),
+                    "vibration_enabled": bool(controller_settings.get("vibration_enabled", True)),
+                }
+
+            controller_mappings = data.get("controller_mappings", defaults["controller_mappings"])
+            if not isinstance(controller_mappings, dict):
+                controller_mappings = defaults["controller_mappings"].copy()
+
             return {
                 "scrap": scrap,
                 "coins": legacy_coins,
@@ -253,7 +277,9 @@ class SaveSystem:
                 "custom_difficulty": custom_difficulty,
                 "selected_drone": selected_drone,
                 "selected_skin": selected_skin,
-                "audio_settings": audio_settings
+                "audio_settings": audio_settings,
+                "controller_settings": controller_settings,
+                "controller_mappings": controller_mappings
             }
 
         except json.JSONDecodeError as jde:
@@ -271,7 +297,8 @@ class SaveSystem:
              weapon_upgrades: dict = None, unlocked_weapons: list = None,
              audio_settings: dict = None, custom_difficulty: dict = None,
              play_time: int = 0, last_played: str = None,
-             achievements: list = None) -> bool:
+             achievements: list = None, controller_settings: dict = None,
+             controller_mappings: dict = None) -> bool:
         """Atomically saves game data using a temporary write & replace pattern."""
         if stages is None:
             stages = [True] + [False] * 14
@@ -286,6 +313,8 @@ class SaveSystem:
         if custom_difficulty is None: custom_difficulty = defaults["custom_difficulty"]
         if last_played is None: last_played = time.strftime("%Y-%m-%dT%H:%M:%S")
         if achievements is None: achievements = defaults["achievements"]
+        if controller_settings is None: controller_settings = defaults["controller_settings"]
+        if controller_mappings is None: controller_mappings = defaults["controller_mappings"]
 
         save_dict = {
             "scrap": max(0, int(scrap)),
@@ -308,7 +337,9 @@ class SaveSystem:
             "custom_difficulty": custom_difficulty,
             "selected_drone": str(selected_drone),
             "selected_skin": int(selected_skin),
-            "audio_settings": audio_settings
+            "audio_settings": audio_settings,
+            "controller_settings": controller_settings,
+            "controller_mappings": controller_mappings
         }
 
         try:

@@ -1,7 +1,7 @@
 """
-================================================================================
-                    DRONE HUNTER 2D - INPUT MANAGEMENT SYSTEM
-================================================================================
+===============================================================================
+                     DRONE HUNTER 2D - INPUT MANAGEMENT SYSTEM
+===============================================================================
 First-Class Unified Input System for Keyboard/Mouse, Xbox Controllers,
 Generic Gamepads, and Joysticks. Converts device inputs into canonical actions
 without altering underlying physics or gameplay contracts.
@@ -11,9 +11,13 @@ import math
 import pygame
 from typing import Dict, Tuple, Optional, Any
 
+from src.input.controller_mapping import (
+    ControllerMappingManager,
+)
+
 
 # ------------------------------------------------------------------------------
-# CANONICAL ACTIONS
+# CANONICAL ACTIONS (backward-compatible, uppercase as used throughout codebase)
 # ------------------------------------------------------------------------------
 ACTION_MOVE_X = "MOVE_X"
 ACTION_MOVE_Y = "MOVE_Y"
@@ -37,32 +41,8 @@ DEVICE_JOYSTICK = "joystick"
 
 
 # ------------------------------------------------------------------------------
-# DEFAULT BUTTON MAPPINGS (XBOX & GENERIC)
+# PROMPT LABELS (backward-compatible aliases)
 # ------------------------------------------------------------------------------
-XBOX_BUTTON_MAP = {
-    0: ACTION_ROLL,         # A
-    1: ACTION_SPECIAL,      # B
-    2: ACTION_EMP,          # X
-    3: ACTION_ULTIMATE,     # Y
-    4: ACTION_WEAPON_PREV,  # LB
-    5: ACTION_WEAPON_NEXT,  # RB
-    6: ACTION_CANCEL,       # Back / View
-    7: ACTION_PAUSE,        # Start / Menu
-    8: ACTION_SPECIAL,      # L3 / Left Stick Click
-    9: ACTION_CLOAK,        # R3 / Right Stick Click
-}
-
-GENERIC_BUTTON_MAP = {
-    0: ACTION_ROLL,
-    1: ACTION_SPECIAL,
-    2: ACTION_EMP,
-    3: ACTION_ULTIMATE,
-    4: ACTION_WEAPON_PREV,
-    5: ACTION_WEAPON_NEXT,
-    6: ACTION_CANCEL,
-    7: ACTION_PAUSE,
-}
-
 PROMPT_MAP_KEYBOARD = {
     ACTION_ROLL: "LSHIFT",
     ACTION_EMP: "E",
@@ -88,6 +68,51 @@ PROMPT_MAP_GAMEPAD = {
     ACTION_PAUSE: "START",
     ACTION_CLOAK: "R3",
 }
+
+# Backward-compatible button maps for tests and legacy code
+XBOX_BUTTON_MAP = {
+    0: ACTION_ROLL,
+    1: ACTION_SPECIAL,
+    2: ACTION_EMP,
+    3: ACTION_ULTIMATE,
+    4: ACTION_WEAPON_PREV,
+    5: ACTION_WEAPON_NEXT,
+    6: ACTION_CANCEL,
+    7: ACTION_PAUSE,
+    8: ACTION_SPECIAL,
+    9: ACTION_CLOAK,
+}
+
+GENERIC_BUTTON_MAP = {
+    0: ACTION_ROLL,
+    1: ACTION_SPECIAL,
+    2: ACTION_EMP,
+    3: ACTION_ULTIMATE,
+    4: ACTION_WEAPON_PREV,
+    5: ACTION_WEAPON_NEXT,
+    6: ACTION_CANCEL,
+    7: ACTION_PAUSE,
+}
+
+
+# ------------------------------------------------------------------------------
+# ACTION NAME TRANSLATION (uppercase <-> lowercase)
+# ------------------------------------------------------------------------------
+_ACTION_UPPER_TO_LOWER = {
+    ACTION_FIRE_PRIMARY: "fire_primary",
+    ACTION_FIRE_SECONDARY: "fire_secondary",
+    ACTION_WEAPON_NEXT: "weapon_next",
+    ACTION_WEAPON_PREV: "weapon_prev",
+    ACTION_ROLL: "roll",
+    ACTION_EMP: "emp",
+    ACTION_ULTIMATE: "ultimate",
+    ACTION_SPECIAL: "special",
+    ACTION_PAUSE: "pause",
+    ACTION_CLOAK: "cloak",
+    ACTION_CONFIRM: "confirm",
+    ACTION_CANCEL: "cancel",
+}
+_ACTION_LOWER_TO_UPPER = {v: k for k, v in _ACTION_UPPER_TO_LOWER.items()}
 
 
 # ------------------------------------------------------------------------------
@@ -128,6 +153,9 @@ class InputManager:
         self._last_mouse_pos: Tuple[int, int] = (0, 0)
         self._trigger_threshold: float = 0.35
 
+        # Controller mapping manager
+        self.mapping_manager = ControllerMappingManager()
+
         # Initialize Pygame Joystick Subsystem safely
         self._init_joysticks()
 
@@ -148,6 +176,7 @@ class InputManager:
             js = pygame.joystick.Joystick(device_id)
             js.init()
             self.connected_joysticks[device_id] = js
+            self.mapping_manager.get_or_create_profile(js)
             if self.active_joystick_id is None:
                 self.active_joystick_id = device_id
         except Exception:
@@ -155,7 +184,6 @@ class InputManager:
 
     def _remove_joystick(self, instance_id: int):
         """Safely unregisters a disconnected joystick."""
-        # Note: instance_id in Pygame 2 maps to joystick.get_instance_id() or dict key
         target_key = None
         for key, js in list(self.connected_joysticks.items()):
             try:
@@ -239,10 +267,15 @@ class InputManager:
             elif event.type == pygame.JOYBUTTONDOWN:
                 if self.enabled:
                     self.active_device = DEVICE_GAMEPAD
-                    btn = event.button
-                    action = XBOX_BUTTON_MAP.get(btn, GENERIC_BUTTON_MAP.get(btn))
-                    if action:
-                        self.actions_triggered[action] = True
+                    js = self.active_joystick
+                    if js:
+                        btn = event.button
+                        profile = self.mapping_manager.get_profile_for_joystick(js)
+                        if profile:
+                            lower_action = profile.button_map.get(btn)
+                            if lower_action:
+                                upper_action = _ACTION_LOWER_TO_UPPER.get(lower_action, lower_action)
+                                self.actions_triggered[upper_action] = True
 
             # Controller Axis Motion
             elif event.type == pygame.JOYAXISMOTION:
@@ -299,6 +332,7 @@ class InputManager:
         js = self.active_joystick
         if self.enabled and js:
             try:
+                profile = self.mapping_manager.get_profile_for_joystick(js)
                 num_axes = js.get_numaxes()
 
                 # Left Stick (Movement) - Axes 0 & 1
@@ -310,6 +344,15 @@ class InputManager:
                         self.active_device = DEVICE_GAMEPAD
                         move_x += sx
                         move_y += sy
+
+                # D-pad override if active
+                dpad = self.mapping_manager.get_dpad_input(js)
+                if any(dpad.values()):
+                    self.active_device = DEVICE_GAMEPAD
+                    if dpad["up"]: move_y -= 1.0
+                    if dpad["down"]: move_y += 1.0
+                    if dpad["left"]: move_x -= 1.0
+                    if dpad["right"]: move_x += 1.0
 
                 # Right Stick (Aiming) - Axes 2/3 or 3/4 depending on driver
                 raw_rx, raw_ry = 0.0, 0.0
@@ -327,8 +370,8 @@ class InputManager:
 
                 # Triggers (RT / LT) - Usually Axes 4 & 5 or 2 & 5
                 if num_axes >= 6:
-                    rt_val = js.get_axis(5) # RT: [-1.0, 1.0] in Pygame
-                    lt_val = js.get_axis(4) # LT: [-1.0, 1.0] in Pygame
+                    rt_val = js.get_axis(5)
+                    lt_val = js.get_axis(4)
                     if rt_val > self._trigger_threshold:
                         fire_primary = True
                         self.active_device = DEVICE_GAMEPAD
@@ -345,15 +388,18 @@ class InputManager:
                         fire_secondary = True
                         self.active_device = DEVICE_GAMEPAD
 
-                # Poll Buttons for continuous actions
-                num_buttons = js.get_numbuttons()
-                for btn_idx in range(num_buttons):
-                    if js.get_button(btn_idx):
-                        action = XBOX_BUTTON_MAP.get(btn_idx, GENERIC_BUTTON_MAP.get(btn_idx))
-                        if action == ACTION_FIRE_PRIMARY:
-                            fire_primary = True
-                        elif action == ACTION_FIRE_SECONDARY:
-                            fire_secondary = True
+                # Poll Buttons for continuous actions via mapping manager
+                if profile:
+                    num_buttons = js.get_numbuttons()
+                    for btn_idx in range(num_buttons):
+                        if js.get_button(btn_idx):
+                            lower_action = profile.get_action_for_button(btn_idx)
+                            if lower_action:
+                                upper_action = _ACTION_LOWER_TO_UPPER.get(lower_action, lower_action)
+                                if upper_action == ACTION_FIRE_PRIMARY:
+                                    fire_primary = True
+                                elif upper_action == ACTION_FIRE_SECONDARY:
+                                    fire_secondary = True
 
             except Exception:
                 pass
@@ -380,7 +426,13 @@ class InputManager:
 
     def get_prompt_for_action(self, action_name: str) -> str:
         """Returns the appropriate UI text label for an action depending on active device."""
+        lower_name = _ACTION_UPPER_TO_LOWER.get(action_name, action_name)
         if self.active_device in (DEVICE_GAMEPAD, DEVICE_JOYSTICK):
+            js = self.active_joystick
+            if js:
+                prompt = self.mapping_manager.get_prompt_for_action(js, lower_name)
+                if prompt and prompt != lower_name and not prompt.startswith("BTN-"):
+                    return prompt
             return PROMPT_MAP_GAMEPAD.get(action_name, action_name)
         return PROMPT_MAP_KEYBOARD.get(action_name, action_name)
 

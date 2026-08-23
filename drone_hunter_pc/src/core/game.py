@@ -23,7 +23,8 @@ from src.core.game_state import (
     GameState, STATE_MENU, STATE_SECTOR_SELECT, STATE_HANGAR, STATE_PLAYING,
     STATE_PAUSED, STATE_LEVEL_CLEAR, STATE_GAME_OVER, STATE_VICTORY,
     STATE_MISSION_BRIEFING, STATE_MISSION_COMPLETE, STATE_MISSION_FAILED,
-    STATE_SETTINGS, STATE_DRONE_SELECT, STATE_SAVE_SELECT, STATE_CUSTOM_DIFFICULTY
+    STATE_SETTINGS, STATE_DRONE_SELECT, STATE_SAVE_SELECT, STATE_CUSTOM_DIFFICULTY,
+    STATE_CONTROLLER_BINDING, STATE_CONTROLLER_TEST
 )
 from src.core.game_context import GameContext
 from src.core.clock import GameClock
@@ -97,6 +98,7 @@ class Game:
         self.combat_system = CombatSystem(self.context)
         self.custom_difficulty_dragging = -1
         self.selected_save_slot = 0
+        self._binding_action = None
         self.achievement_system = AchievementSystem()
         self.achievement_system.register_callback(
             lambda ach_id, ach_data: self.context.achievement_popups.append({
@@ -152,6 +154,18 @@ class Game:
             self.audio_manager.set_music_volume(audio.get("music_volume", 0.70))
             self.audio_manager.set_engine_volume(audio.get("engine_volume", 0.35))
             self.audio_manager.set_master_volume(audio.get("master_volume", 1.0))
+
+        controller_settings = saved_data.get("controller_settings", {})
+        if controller_settings and hasattr(self.input_manager, "update_settings"):
+            self.input_manager.update_settings(controller_settings)
+        controller_mappings = saved_data.get("controller_mappings", {})
+        if controller_mappings and hasattr(self.input_manager, "mapping_manager"):
+            for key, profile_data in controller_mappings.items():
+                try:
+                    from src.input.controller_mapping import ControllerProfile
+                    self.input_manager.mapping_manager.profiles[key] = ControllerProfile.from_dict(profile_data)
+                except Exception:
+                    pass
 
         self.progression = ProgressionSystem(
             self.context.unlocked_sectors,
@@ -376,6 +390,18 @@ class Game:
             "engine_volume": self.audio_manager.engine_volume,
             "master_volume": self.audio_manager.master_volume
         }
+        controller_settings = {
+            "enabled": self.input_manager.enabled,
+            "deadzone": self.input_manager.deadzone,
+            "aim_sensitivity": self.input_manager.aim_sensitivity,
+            "move_sensitivity": self.input_manager.move_sensitivity,
+            "vibration_enabled": self.input_manager.vibration_enabled,
+        }
+        controller_mappings = {}
+        if hasattr(self.input_manager, "mapping_manager"):
+            controller_mappings = {
+                k: v.to_dict() for k, v in self.input_manager.mapping_manager.profiles.items()
+            }
         self.save_system.save(
             scrap=ctx.scrap,
             coins=ctx.coins,
@@ -397,7 +423,9 @@ class Game:
             custom_difficulty=getattr(ctx, "custom_difficulty_settings", CUSTOM_DIFFICULTY_DEFAULTS.copy()),
             play_time=getattr(ctx, "play_time", 0),
             last_played=getattr(ctx, "last_played", None),
-            achievements=getattr(ctx, "achievements", [])
+            achievements=getattr(ctx, "achievements", []),
+            controller_settings=controller_settings,
+            controller_mappings=controller_mappings
         )
 
     def start_next_stage(self):
@@ -620,6 +648,14 @@ class Game:
                 elif ctx.state == STATE_SETTINGS:
                     if event.key in (pygame.K_ESCAPE, pygame.K_b, pygame.K_BACKSPACE, pygame.K_SPACE, pygame.K_RETURN):
                         ctx.state = self.previous_state if self.previous_state != STATE_SETTINGS else STATE_SECTOR_SELECT
+
+                elif ctx.state == STATE_CONTROLLER_BINDING:
+                    if event.key in (pygame.K_ESCAPE, pygame.K_b, pygame.K_BACKSPACE):
+                        ctx.state = STATE_SETTINGS
+
+                elif ctx.state == STATE_CONTROLLER_TEST:
+                    if event.key in (pygame.K_ESCAPE, pygame.K_b, pygame.K_BACKSPACE):
+                        ctx.state = STATE_SETTINGS
 
                 elif ctx.state == STATE_CUSTOM_DIFFICULTY:
                     if event.key in (pygame.K_ESCAPE, pygame.K_b, pygame.K_BACKSPACE):
@@ -859,6 +895,12 @@ class Game:
                         if ctx.difficulty_mode == DIFFICULTY_CUSTOM:
                             ctx.state = STATE_CUSTOM_DIFFICULTY
                         self.save_progress()
+                    elif cache.get('controller') and cache['controller'].collidepoint(mx, my):
+                        ctx.state = STATE_CONTROLLER_BINDING
+                    elif cache.get('config') and cache['config'].collidepoint(mx, my):
+                        ctx.state = STATE_CONTROLLER_BINDING
+                    elif cache.get('test') and cache['test'].collidepoint(mx, my):
+                        ctx.state = STATE_CONTROLLER_TEST
                     elif cache.get('reset') and cache['reset'].collidepoint(mx, my):
                         ctx.scrap = 0
                         ctx.upgrade_levels = {"hull": 1, "energy": 1, "weapon": 1, "mobility": 1}
@@ -895,6 +937,28 @@ class Game:
                                     val = round(val / step) * step
                                     ctx.custom_difficulty_settings[key] = max(rect_info["min"], min(rect_info["max"], val))
                                     break
+
+                elif ctx.state == STATE_CONTROLLER_BINDING:
+                    from src.ui.menus import draw_controller_binding_ui
+                    bind_ui = draw_controller_binding_ui(self.renderer.canvas, self.input_manager.mapping_manager, mouse_pos=(mx, my))
+                    if bind_ui.get("back") and bind_ui["back"].collidepoint(mx, my):
+                        ctx.state = STATE_SETTINGS
+                    elif bind_ui.get("reset") and bind_ui["reset"].collidepoint(mx, my):
+                        js = self.input_manager.active_joystick
+                        if js:
+                            self.input_manager.mapping_manager.reset_to_defaults(js)
+                    elif bind_ui.get("action_rows"):
+                        for action, row_rect in bind_ui["action_rows"].items():
+                            if row_rect.collidepoint(mx, my):
+                                self._binding_action = action
+                                break
+
+                elif ctx.state == STATE_CONTROLLER_TEST:
+                    from src.ui.menus import draw_controller_test_ui
+                    js = self.input_manager.active_joystick
+                    test_ui = draw_controller_test_ui(self.renderer.canvas, js, self.input_manager.mapping_manager, mouse_pos=(mx, my))
+                    if test_ui.get("back") and test_ui["back"].collidepoint(mx, my):
+                        ctx.state = STATE_SETTINGS
 
                 elif ctx.state == STATE_SECTOR_SELECT:
                     if cache.get("back") and cache["back"].collidepoint(mx, my):
@@ -1070,11 +1134,30 @@ class Game:
                 if ctx.state == STATE_CUSTOM_DIFFICULTY:
                     self.custom_difficulty_dragging = -1
 
+            # Controller binding wizard raw event capture
+            elif ctx.state == STATE_CONTROLLER_BINDING:
+                if event.type == pygame.JOYBUTTONDOWN:
+                    js = self.input_manager.active_joystick
+                    if js and hasattr(self, "_binding_action") and self._binding_action:
+                        profile = self.input_manager.mapping_manager.get_or_create_profile(js)
+                        if not self.input_manager.mapping_manager.check_duplicate_binding(js, self._binding_action, "button", event.button):
+                            profile.set_button(self._binding_action, event.button)
+                            self.input_manager.mapping_manager.save_mappings()
+                        self._binding_action = None
+                elif event.type == pygame.JOYHATMOTION:
+                    js = self.input_manager.active_joystick
+                    if js and hasattr(self, "_binding_action") and self._binding_action:
+                        profile = self.input_manager.mapping_manager.get_or_create_profile(js)
+                        profile.set_button(self._binding_action, -1)
+                        self.input_manager.mapping_manager.save_mappings()
+                        self._binding_action = None
+
         # Process discrete controller action triggers
         trig = self.input_manager.actions_triggered
         from src.input import (
             ACTION_PAUSE, ACTION_ROLL, ACTION_EMP, ACTION_ULTIMATE,
-            ACTION_WEAPON_NEXT, ACTION_WEAPON_PREV, ACTION_CLOAK, ACTION_CANCEL, ACTION_SPECIAL
+            ACTION_WEAPON_NEXT, ACTION_WEAPON_PREV, ACTION_CLOAK, ACTION_CANCEL, ACTION_SPECIAL,
+            ACTION_CONFIRM
         )
         if trig.get(ACTION_PAUSE):
             if ctx.state == STATE_PLAYING:
@@ -1090,6 +1173,15 @@ class Game:
         if trig.get(ACTION_CANCEL):
             if ctx.state in (STATE_DRONE_SELECT, STATE_SETTINGS, STATE_SECTOR_SELECT, STATE_HANGAR, STATE_MISSION_BRIEFING):
                 ctx.state = STATE_MENU
+
+        if trig.get(ACTION_CONFIRM):
+            if ctx.state == STATE_MENU:
+                ctx.state = STATE_DRONE_SELECT
+                self.audio_manager.play_powerup()
+            elif ctx.state == STATE_DRONE_SELECT:
+                pass  # handled in D-pad section via activate
+            elif ctx.state == STATE_MISSION_BRIEFING:
+                self.start_phase5_mission(self.pending_mission_id)
 
         if ctx.state == STATE_PLAYING and ctx.player:
             if trig.get(ACTION_ROLL):
@@ -1127,6 +1219,99 @@ class Game:
                             self.particle_manager.spawn_shockwave(ctx.player.pos, max_r=550, color=(250, 204, 21))
                             self.particle_manager.spawn_floating_text(ctx.player.pos, "⚡ OVERDRIVE!", (250, 204, 21), 26)
 
+    def _update_controller_menu_navigation(self, dt: float):
+        """Per-frame controller D-pad / button polling for menu navigation."""
+        ctx = self.context
+        js = self.input_manager.active_joystick
+        if not js or not self.input_manager.enabled:
+            return
+
+        try:
+            profile = self.input_manager.mapping_manager.get_profile_for_joystick(js)
+            if profile is None:
+                return
+
+            # Poll D-pad
+            dpad = self.input_manager.mapping_manager.get_dpad_input(js)
+            up = dpad.get("up", False)
+            down = dpad.get("down", False)
+            left = dpad.get("left", False)
+            right = dpad.get("right", False)
+            confirm = self.input_manager.mapping_manager.is_action_pressed(js, ACTION_CONFIRM)
+            cancel = self.input_manager.mapping_manager.is_action_pressed(js, ACTION_CANCEL)
+            pause = self.input_manager.mapping_manager.is_action_pressed(js, ACTION_PAUSE)
+
+            # Menu state navigation
+            if ctx.state == STATE_MENU:
+                if confirm:
+                    ctx.state = STATE_DRONE_SELECT
+                    self.audio_manager.play_powerup()
+                elif cancel:
+                    self.running = False
+            elif ctx.state == STATE_DRONE_SELECT:
+                if cancel:
+                    ctx.state = STATE_MENU
+                elif confirm and hasattr(ctx, "player") and ctx.player:
+                    ctx.state = STATE_SECTOR_SELECT
+            elif ctx.state == STATE_SECTOR_SELECT:
+                if cancel:
+                    ctx.state = STATE_MENU
+                elif confirm:
+                    cur_sec = ctx.missions.get("current_sector", 1)
+                    sec_missions = get_missions_for_sector(cur_sec)
+                    target_m = None
+                    for m in sec_missions:
+                        if self.mission_system.get_mission_state(ctx, m["id"]) != "locked":
+                            target_m = m["id"]
+                            break
+                    if target_m:
+                        self.pending_mission_id = target_m
+                        ctx.state = STATE_MISSION_BRIEFING
+            elif ctx.state == STATE_MISSION_BRIEFING:
+                if cancel:
+                    ctx.state = STATE_SECTOR_SELECT
+                elif confirm:
+                    self.start_phase5_mission(self.pending_mission_id)
+            elif ctx.state == STATE_SETTINGS:
+                if cancel or pause:
+                    ctx.state = self.previous_state if self.previous_state != STATE_SETTINGS else STATE_SECTOR_SELECT
+            elif ctx.state == STATE_HANGAR:
+                if cancel or pause:
+                    ctx.state = self.previous_state if self.previous_state != STATE_HANGAR else STATE_SECTOR_SELECT
+            elif ctx.state == STATE_PLAYING:
+                if pause:
+                    ctx.state = STATE_PAUSED
+            elif ctx.state == STATE_PAUSED:
+                if pause or cancel:
+                    ctx.state = STATE_PLAYING
+                elif confirm:
+                    ctx.state = STATE_PLAYING
+            elif ctx.state in (STATE_GAME_OVER, STATE_MISSION_FAILED):
+                if confirm or pause:
+                    if self.pending_mission_id:
+                        self.start_phase5_mission(self.pending_mission_id)
+                    else:
+                        ctx.state = STATE_SECTOR_SELECT
+                elif cancel:
+                    ctx.state = STATE_MENU
+            elif ctx.state == STATE_LEVEL_CLEAR:
+                if confirm or pause:
+                    self.start_next_stage()
+                elif cancel:
+                    ctx.state = STATE_SECTOR_SELECT
+            elif ctx.state == STATE_MISSION_COMPLETE:
+                if confirm or pause:
+                    next_mid = self.get_next_mission_id()
+                    if next_mid:
+                        self.start_phase5_mission(next_mid)
+                    else:
+                        ctx.state = STATE_VICTORY
+                elif cancel:
+                    ctx.state = STATE_SECTOR_SELECT
+
+        except Exception:
+            pass
+
     def update(self, dt: float):
         ctx = self.context
         self.background.update(dt)
@@ -1135,6 +1320,8 @@ class Game:
         for popup in ctx.achievement_popups:
             popup["timer"] -= dt
         ctx.achievement_popups = [p for p in ctx.achievement_popups if p.get("timer", 0) > 0]
+
+        self._update_controller_menu_navigation(dt)
 
         if ctx.state in (STATE_PLAYING, STATE_VICTORY):
             sec_info = SECTORS[ctx.current_sector_idx]
@@ -1376,12 +1563,26 @@ class Game:
         elif ctx.state == STATE_SETTINGS:
             self.ui_rects_cache = draw_settings_menu_ui(
                 canvas, ctx.difficulty_mode, ctx.show_crt,
-                self.audio_manager.sound_enabled, mouse_pos=canvas_m_pos
+                self.audio_manager.sound_enabled, mouse_pos=canvas_m_pos,
+                input_manager=self.input_manager
             )
 
         elif ctx.state == STATE_CUSTOM_DIFFICULTY:
             self.ui_rects_cache = draw_custom_difficulty_ui(
                 canvas, ctx.custom_difficulty_settings, mouse_pos=canvas_m_pos, dragging=self.custom_difficulty_dragging
+            )
+
+        elif ctx.state == STATE_CONTROLLER_BINDING:
+            from src.ui.menus import draw_controller_binding_ui
+            self.ui_rects_cache = draw_controller_binding_ui(
+                canvas, self.input_manager.mapping_manager, mouse_pos=canvas_m_pos
+            )
+
+        elif ctx.state == STATE_CONTROLLER_TEST:
+            from src.ui.menus import draw_controller_test_ui
+            js = self.input_manager.active_joystick
+            self.ui_rects_cache = draw_controller_test_ui(
+                canvas, js, self.input_manager.mapping_manager, mouse_pos=canvas_m_pos
             )
 
         elif ctx.state == STATE_SECTOR_SELECT:
