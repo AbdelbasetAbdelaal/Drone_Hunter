@@ -253,6 +253,11 @@ class CombatSystem:
                         hit_target_type = "shield"
                     ctx.audio_manager.play_hit(hit_target_type)
 
+                # Damage numbers on hit
+                if ctx.particle_manager:
+                    dmg_color = (255, 255, 255) if dmg >= 50 else ((255, 200, 50) if dmg >= 25 else (200, 220, 255))
+                    ctx.particle_manager.spawn_floating_text(target.rect.center, f"-{int(dmg)}", dmg_color, 16)
+
                 if is_dead:
                     ctx.total_kills += 1
                     if getattr(ctx.player, "overdrive_timer", 0.0) > 0.0:
@@ -276,25 +281,20 @@ class CombatSystem:
                     elif target.enemy_type == TARGET_TYPE_HEAVY:
                         ctx.scrap += int(REWARD_HEAVY * ctx.ng_plus_scrap_mult)
 
-                # Damage numbers on hit
-                if ctx.particle_manager:
-                    dmg_color = (255, 255, 255) if dmg >= 50 else ((255, 200, 50) if dmg >= 25 else (200, 220, 255))
-                    ctx.particle_manager.spawn_floating_text(target.rect.center, f"-{int(dmg)}", dmg_color, 16)
+                    # Death Explosion Particles
+                    if ctx.particle_manager:
+                        if getattr(target, "is_boss", False):
+                            ctx.particle_manager.spawn_boss_explosion(target.rect.center)
+                        else:
+                            ctx.particle_manager.spawn_enemy_death(target.rect.center, target.color, enemy_type=target.enemy_type)
+                        score_color = getattr(target, "color", COLOR_GOLD)
+                        ctx.particle_manager.spawn_floating_text(target.rect.center, f"+{earned_pts}", score_color, 20)
 
-                # Death Explosion Particles
-                if ctx.particle_manager:
-                    if getattr(target, "is_boss", False):
-                        ctx.particle_manager.spawn_boss_explosion(target.rect.center)
-                    else:
-                        ctx.particle_manager.spawn_enemy_death(target.rect.center, target.color, enemy_type=target.enemy_type)
-                    score_color = getattr(target, "color", COLOR_GOLD)
-                    ctx.particle_manager.spawn_floating_text(target.rect.center, f"+{earned_pts}", score_color, 20)
-
-                # Power-up drop roll with difficulty drop rate scaling
-                drop_rate = 1.0 if getattr(target, "is_boss", False) else ctx.difficulty_data.get("powerup_drop_rate", 0.30)
-                if random.random() < drop_rate:
-                    p_type = random.choice(["battery", "overclock", "shield", "slowmo", "coin", "wingman", "weapon"])
-                    ctx.powerup_group.add(PowerupItem(target.rect.center, p_type))
+                    # Power-up drop roll with difficulty drop rate scaling
+                    drop_rate = 1.0 if getattr(target, "is_boss", False) else ctx.difficulty_data.get("powerup_drop_rate", 0.30)
+                    if random.random() < drop_rate:
+                        p_type = random.choice(["battery", "overclock", "shield", "slowmo", "coin", "wingman", "weapon"])
+                        ctx.powerup_group.add(PowerupItem(target.rect.center, p_type))
 
         # 3. Enemy Bullets vs Player Drone
         if player.alive and not player.is_invulnerable and not player.is_cloaked:

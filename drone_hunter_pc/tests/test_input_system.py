@@ -131,6 +131,9 @@ class TestInputSystem(unittest.TestCase):
 
     def test_hot_plug(self):
         """Verify adding and removing joysticks updates internal connection registry safely."""
+        self.input_mgr.connected_joysticks.clear()
+        self.input_mgr.active_joystick_id = None
+
         fake_js = MagicMock()
         fake_js.get_instance_id.return_value = 99
         self.input_mgr.connected_joysticks[99] = fake_js
