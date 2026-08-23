@@ -487,6 +487,7 @@ class SectorEnvironmentManager:
 
         # Look for stage-specific file first, then sector world file, then fallback
         file_candidates = [
+            os.path.join(self.asset_dir, f"sector_{sec_num}_ref.png"),
             os.path.join(self.asset_dir, f"sector_{sec_num}_stage_{stg_num}.png"),
             os.path.join(self.asset_dir, f"sector_{sec_num}_world_2400.png"),
             os.path.join(self.asset_dir, f"sector_{sec_num}.png"),

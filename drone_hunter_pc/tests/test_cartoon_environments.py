@@ -27,7 +27,7 @@ class TestCartoonEnvironments(unittest.TestCase):
         asset_dir = self.env_mgr._resolve_background_dir()
         self.assertTrue(os.path.exists(asset_dir))
         for sec_id in range(1, 6):
-            world_fp = os.path.join(asset_dir, f'sector_{sec_id}_world_2400.png')
+            world_fp = os.path.join(asset_dir, f'sector_{sec_id}_ref.png')
             self.assertTrue(os.path.exists(world_fp))
             surf = self.env_mgr.get_sector_surface(sec_id - 1)
             self.assertEqual(surf.get_size(), (WORLD_WIDTH, WORLD_HEIGHT))
