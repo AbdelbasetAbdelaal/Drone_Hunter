@@ -1032,6 +1032,15 @@ DIFFICULTY_MODIFIERS = {
         "powerup_drop_rate": 0.12,
         "score_mult": 2.00,
         "badge_color": COLOR_CRIMSON
+    },
+    DIFFICULTY_CUSTOM: {
+        "name": "CUSTOM",
+        "hp_mult": 1.0,
+        "speed_mult": 1.0,
+        "damage_mult": 1.0,
+        "powerup_drop_rate": 0.30,
+        "score_mult": 1.0,
+        "badge_color": COLOR_MAGENTA
     }
 }
 

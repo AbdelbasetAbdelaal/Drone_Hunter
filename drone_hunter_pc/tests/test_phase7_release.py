@@ -323,7 +323,7 @@ class TestPhase7Release(unittest.TestCase):
         fake_event = pygame.event.Event(pygame.MOUSEBUTTONDOWN, {"pos": cache["diff"].center, "button": 1})
         pygame.event.post(fake_event)
         self.game.handle_events()
-        self.assertEqual(ctx.difficulty_mode, (initial_diff + 1) % 4)
+        self.assertEqual(ctx.difficulty_mode, (initial_diff + 1) % 5)
 
         # Test back button returns to previous state
         fake_event2 = pygame.event.Event(pygame.MOUSEBUTTONDOWN, {"pos": cache["back"].center, "button": 1})
