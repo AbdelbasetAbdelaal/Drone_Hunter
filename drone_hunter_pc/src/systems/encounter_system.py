@@ -99,9 +99,66 @@ WAVE_HEAVY_BATTLEGROUP  = [TARGET_TYPE_SCOUT, TARGET_TYPE_HEAVY, TARGET_TYPE_SHO
 WAVE_SHIELD_VANGUARD    = [TARGET_TYPE_SCOUT, TARGET_TYPE_SHIELD_DRONE, TARGET_TYPE_SHOOTER, TARGET_TYPE_SCOUT]
 WAVE_ELITE_STRIKE_FORCE = [TARGET_TYPE_SHIELD_DRONE, TARGET_TYPE_HEAVY, TARGET_TYPE_SHOOTER, TARGET_TYPE_SHOOTER, TARGET_TYPE_SCOUT]
 
+# =============================================================================
+# MEANINGFUL DETERMINISTIC ENEMY FORMATIONS
+# =============================================================================
+FORMATION_V         = "FORMATION_V"
+FORMATION_WEDGE     = "FORMATION_WEDGE"
+FORMATION_LINE      = "FORMATION_LINE"
+FORMATION_STAGGERED = "FORMATION_STAGGERED"
+FORMATION_FLANK     = "FORMATION_FLANK"
+FORMATION_ESCORT    = "FORMATION_ESCORT"
+
+FORMATION_OFFSETS = {
+    FORMATION_V: [
+        (0.0, 0.0),
+        (-90.0, -70.0),
+        (90.0, -70.0),
+        (-180.0, -140.0),
+        (180.0, -140.0),
+        (-270.0, -210.0),
+        (270.0, -210.0),
+    ],
+    FORMATION_WEDGE: [
+        (0.0, -80.0),
+        (-80.0, 50.0),
+        (80.0, 50.0),
+        (-160.0, 100.0),
+        (160.0, 100.0),
+    ],
+    FORMATION_LINE: [
+        (-180.0, 0.0),
+        (-90.0, 0.0),
+        (0.0, 0.0),
+        (90.0, 0.0),
+        (180.0, 0.0),
+    ],
+    FORMATION_STAGGERED: [
+        (0.0, 0.0),
+        (-110.0, 60.0),
+        (110.0, -60.0),
+        (-220.0, 120.0),
+        (220.0, -120.0),
+    ],
+    FORMATION_FLANK: [
+        (-160.0, -40.0),
+        (160.0, -40.0),
+        (-240.0, 60.0),
+        (240.0, 60.0),
+        (0.0, -120.0),
+    ],
+    FORMATION_ESCORT: [
+        (0.0, 0.0),        # Center priority vessel (Heavy / Shield)
+        (-120.0, 50.0),    # Left flank escort
+        (120.0, 50.0),     # Right flank escort
+        (-200.0, -40.0),   # Forward scout
+        (200.0, -40.0),    # Forward scout
+    ],
+}
+
 
 class EncounterSystem:
-    """Manages deterministic sequential and simultaneous encounters."""
+    """Manages deterministic sequential and simultaneous tactical formations and encounters."""
     def __init__(self, config=None, enabled: bool = True):
         self.config = config if config is not None else SCOUT_INTRO_ENCOUNTER
         self.enabled = enabled
@@ -114,6 +171,8 @@ class EncounterSystem:
         self.eliminated_count = 0
         self.timer = 0.0
         self.min_spawn_distance = 500.0
+        self.current_formation = FORMATION_V
+        self._spawn_anchor = (WORLD_WIDTH // 2, 200.0)
 
         self._setup_config(self.config)
 
@@ -125,6 +184,29 @@ class EncounterSystem:
         else:
             self.total_count = config.get("count", 1)
             self._is_legacy = True
+        self.current_formation = self._determine_formation(config)
+
+    def _determine_formation(self, config) -> str:
+        """Selects a deterministic formation structure based on composition archetype."""
+        if isinstance(config, list):
+            if any(t in (TARGET_TYPE_HEAVY, TARGET_TYPE_SHIELD_DRONE) for t in config):
+                return FORMATION_ESCORT
+            elif len(config) >= 4:
+                return FORMATION_WEDGE
+            elif len(config) == 3:
+                return FORMATION_V
+            elif len(config) == 2:
+                return FORMATION_FLANK
+            return FORMATION_STAGGERED
+        else:
+            enemy_type = config.get("enemy_type", TARGET_TYPE_SCOUT) if isinstance(config, dict) else TARGET_TYPE_SCOUT
+            if enemy_type == TARGET_TYPE_SCOUT:
+                return FORMATION_V
+            elif enemy_type == TARGET_TYPE_SHOOTER:
+                return FORMATION_LINE
+            elif enemy_type == TARGET_TYPE_HEAVY:
+                return FORMATION_ESCORT
+            return FORMATION_STAGGERED
 
     def set_encounter(self, config):
         """Swaps the active encounter configuration and resets state."""
@@ -132,7 +214,7 @@ class EncounterSystem:
         self.reset()
 
     def start(self, config=None):
-        """Explicitly starts the encounter into WAITING state."""
+        """Explicitly starts the encounter into WAITING state with deterministic formation anchor."""
         if config is not None:
             self.set_encounter(config)
             
@@ -141,6 +223,8 @@ class EncounterSystem:
         self.eliminated_count = 0
         self.active_enemy = None
         self.active_enemies = []
+        self.current_formation = self._determine_formation(self.config)
+        self._spawn_anchor = None
         
         if self._is_legacy:
             self.timer = self.config.get("spawn_delay", 0.5)
@@ -155,6 +239,7 @@ class EncounterSystem:
         self.active_enemy = None
         self.active_enemies.clear()
         self.timer = 0.0
+        self._spawn_anchor = None
 
     @property
     def is_active(self) -> bool:
@@ -171,27 +256,31 @@ class EncounterSystem:
         """Suppresses legacy random spawns while encounter is active."""
         return self.is_active
 
-    def _find_spawn_position(self, player_pos: tuple[float, float]) -> tuple[float, float]:
-        """Calculates a safe spawn position >= min_spawn_distance from player within arena."""
+    def _find_spawn_position(self, player_pos: tuple[float, float], slot_idx: int = 0) -> tuple[float, float]:
+        """Calculates a safe spawn position using deterministic formation offsets from anchor."""
         px, py = player_pos
-        for _ in range(25):
-            angle = random.uniform(0, 2 * math.pi)
-            dist = random.uniform(self.min_spawn_distance, self.min_spawn_distance + 280.0)
-            sx = px + math.cos(angle) * dist
-            sy = py + math.sin(angle) * dist
+        if self._spawn_anchor is None:
+            # Establish primary anchor
+            for _ in range(25):
+                angle = random.uniform(0, 2 * math.pi)
+                dist = random.uniform(self.min_spawn_distance, self.min_spawn_distance + 240.0)
+                ax = px + math.cos(angle) * dist
+                ay = py + math.sin(angle) * dist
+                ax = max(180.0, min(WORLD_WIDTH - 180.0, ax))
+                ay = max(180.0, min(WORLD_HEIGHT - 180.0, ay))
+                if math.hypot(ax - px, ay - py) >= self.min_spawn_distance:
+                    self._spawn_anchor = (ax, ay)
+                    break
+            if self._spawn_anchor is None:
+                self._spawn_anchor = (120.0 if px > WORLD_WIDTH // 2 else WORLD_WIDTH - 120.0,
+                                      120.0 if py > WORLD_HEIGHT // 2 else WORLD_HEIGHT - 120.0)
 
-            # Clamp to world borders with margin
-            sx = max(80.0, min(WORLD_WIDTH - 80.0, sx))
-            sy = max(80.0, min(WORLD_HEIGHT - 80.0, sy))
-
-            actual_dist = math.hypot(sx - px, sy - py)
-            if actual_dist >= self.min_spawn_distance:
-                return (sx, sy)
-
-        # Fallback to sector edge
-        fallback_x = 120.0 if px > WORLD_WIDTH // 2 else WORLD_WIDTH - 120.0
-        fallback_y = 120.0 if py > WORLD_HEIGHT // 2 else WORLD_HEIGHT - 120.0
-        return (fallback_x, fallback_y)
+        # Apply deterministic formation offset
+        offsets = FORMATION_OFFSETS.get(self.current_formation, FORMATION_OFFSETS[FORMATION_V])
+        off_x, off_y = offsets[slot_idx % len(offsets)]
+        sx = max(80.0, min(WORLD_WIDTH - 80.0, self._spawn_anchor[0] + off_x))
+        sy = max(80.0, min(WORLD_HEIGHT - 80.0, self._spawn_anchor[1] + off_y))
+        return (sx, sy)
 
     def _clean_active_enemies(self, ctx):
         """Removes dead enemies from active_enemies tracking array."""
@@ -218,7 +307,7 @@ class EncounterSystem:
             self.timer -= dt
             if self.timer <= 0:
                 if self.spawned_count < self.total_count:
-                    spawn_pos = self._find_spawn_position(p_pos)
+                    spawn_pos = self._find_spawn_position(p_pos, slot_idx=self.spawned_count)
                     
                     if self._is_legacy:
                         enemy_type = self.config.get("enemy_type", TARGET_TYPE_SHOOTER)
@@ -237,7 +326,7 @@ class EncounterSystem:
                         self.state = "active"
                     else:
                         if self.spawned_count < self.total_count:
-                            self.timer = 1.0 # fixed 1.0s between_spawn_delay
+                            self.timer = 0.85 # Snappy 0.85s between_spawn_delay for readable unit arrival
                         else:
                             self.state = "active"
                 else:

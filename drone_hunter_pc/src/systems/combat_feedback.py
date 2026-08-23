@@ -2,8 +2,9 @@
 ================================================================================
             DRONE HUNTER 2D - COMBAT FEEDBACK & IMPACT EFFECTS
 ================================================================================
-Centralized visual and tactile combat feedback system managing kinetic impact
-sparks, enemy hit flashes, floating damage numbers, and camera micro-shakes.
+Centralized visual, audio, and tactile combat feedback system managing kinetic
+impact sparks, directional hit reactions, floating damage numbers, camera
+micro-shakes, and combo streak momentum.
 """
 
 import math
@@ -26,18 +27,25 @@ class CombatFeedbackSystem:
         # 2. Spawn Directional Kinetic Impact Sparks
         impact_pos = bullet.rect.center if hasattr(bullet, "rect") else target.rect.center
         spark_color = getattr(bullet, "color", COLOR_CYAN)
-        ctx.particle_manager.spawn_spark(impact_pos, count=8, color=spark_color)
+        is_heavy = damage >= 40 or getattr(bullet, "is_heavy", False)
+        spark_count = 14 if is_heavy else 8
+        ctx.particle_manager.spawn_spark(impact_pos, count=spark_count, color=spark_color)
         
         # 3. Floating Combat Damage Text
+        text_size = 20 if is_heavy else 16
+        text_color = COLOR_GOLD if is_heavy else COLOR_WHITE
         ctx.particle_manager.spawn_floating_text(
             (target.rect.centerx + random.randint(-12, 12), target.rect.top - 6),
             f"-{damage}",
-            COLOR_WHITE,
-            size=18
+            text_color,
+            size=text_size
         )
 
-        # 4. Subtle Camera Micro-Shake
-        ctx.trigger_shake(3.0, 0.10)
+        # 4. Subtle Restrained Camera Micro-Shake & Hit-Stop
+        shake_mag = 5.0 if is_heavy else 2.5
+        ctx.trigger_shake(shake_mag, 0.10)
+        if is_heavy and getattr(ctx, "hit_stop_timer", 0.0) <= 0.0:
+            ctx.trigger_hit_stop(0.04)
 
         # 5. Play Target-Specific Hit Audio
         if ctx.audio_manager:
@@ -53,25 +61,28 @@ class CombatFeedbackSystem:
             enemy_type = getattr(target, "enemy_type", "")
             if getattr(target, "is_boss", False):
                 ctx.particle_manager.spawn_boss_explosion(target.rect.center)
-                ctx.trigger_shake(14.0, 0.55)
+                ctx.trigger_shake(12.0, 0.50)
                 if ctx.audio_manager:
                     ctx.audio_manager.play_boss_death()
             else:
                 target_color = getattr(target, "color", COLOR_CRIMSON)
                 ctx.particle_manager.spawn_enemy_death(target.rect.center, target_color)
-                ctx.trigger_shake(6.0, 0.20)
+                ctx.trigger_shake(5.0, 0.18)
                 if ctx.audio_manager:
                     ctx.audio_manager.play_death(enemy_type)
 
-
     def on_player_hit(self, damage: int):
-        """Dispatches player damage feedback."""
+        """Dispatches player damage feedback and breaks momentum on heavy hits."""
         ctx = self.context
         if ctx.player:
             ctx.player.damage_flash_timer = 0.18
-            ctx.trigger_shake(8.0, 0.25)
-            ctx.trigger_damage_flash()
-            ctx.particle_manager.spawn_spark(ctx.player.rect.center, count=12, color=COLOR_CRIMSON)
+            ctx.trigger_shake(6.0, 0.20)
+            ctx.damage_flash_timer = 0.18
+            if ctx.particle_manager:
+                ctx.particle_manager.spawn_spark(ctx.player.rect.center, count=10, color=COLOR_CRIMSON)
+            if damage >= 15:
+                ctx.combo_count = 1
+                ctx.combo_timer = 0.0
             if ctx.audio_manager:
                 ctx.audio_manager.play_player_hit()
 

@@ -10,8 +10,18 @@ from src.systems.encounter_system import (
     SCOUT_SHOOTER_HEAVY_ENCOUNTER
 )
 
+# -----------------------------------------------------------------------------
+# ADAPTIVE INTENSITY LEVELS
+# -----------------------------------------------------------------------------
+INTENSITY_CALM = "CALM"
+INTENSITY_LOW = "LOW"
+INTENSITY_MEDIUM = "MEDIUM"
+INTENSITY_HIGH = "HIGH"
+INTENSITY_CRITICAL = "CRITICAL"
+
+
 class CombatDirector:
-    """Controls the pacing, ordering, and escalation of encounters."""
+    """Controls the pacing, ordering, escalation, and adaptive intensity of encounters."""
     def __init__(self, encounter_system: EncounterSystem, test_mode: bool = False):
         self.encounter_system = encounter_system
         self.test_mode = test_mode
@@ -19,6 +29,8 @@ class CombatDirector:
         self.encounter_index = 0
         self.pressure_level = 0
         self.timer = 0.0
+        self.encounter_elapsed_time = 0.0
+        self.current_intensity = INTENSITY_MEDIUM
         
         # Default sequence (Legacy Phase 2E compatibility)
         self.encounters = [
@@ -36,6 +48,32 @@ class CombatDirector:
         self.intro_delay = 0.4
         self.relief_after_encounter = 1.0
 
+    def evaluate_intensity(self, ctx) -> str:
+        """Evaluates live combat telemetry (health, kills/combo, enemy count, time, boss)
+
+        and determines the active adaptive intensity level without altering raw base HP.
+        """
+        player = getattr(ctx, "player", None)
+        player_hp_pct = (player.health / player.max_health) if player and player.max_health > 0 else 1.0
+        active_enemies = len(getattr(ctx, "target_group", []))
+        combo = getattr(ctx, "combo_counter", 0)
+        is_boss_active = getattr(ctx, "boss_active", False) or (getattr(ctx, "boss", None) is not None and getattr(ctx.boss, "alive", False))
+
+        if player_hp_pct < 0.25:
+            intensity = INTENSITY_CRITICAL
+        elif is_boss_active or active_enemies >= 5:
+            intensity = INTENSITY_HIGH
+        elif combo >= 3 and player_hp_pct >= 0.75:
+            intensity = INTENSITY_HIGH
+        elif active_enemies >= 2 or combo >= 1:
+            intensity = INTENSITY_MEDIUM
+        elif active_enemies == 1:
+            intensity = INTENSITY_LOW
+        else:
+            intensity = INTENSITY_CALM
+
+        self.current_intensity = intensity
+        return intensity
 
     def set_mission_sequence(self, sequence: list, loop: bool = False):
         """Phase 5: Sets the exact sequence to run, and whether to loop it."""
@@ -49,6 +87,8 @@ class CombatDirector:
         self.encounter_index = 0
         self.pressure_level = 0
         self.timer = 0.0
+        self.encounter_elapsed_time = 0.0
+        self.current_intensity = INTENSITY_MEDIUM
         self.encounter_system.reset()
 
     def start(self):
@@ -71,6 +111,7 @@ class CombatDirector:
         if self.encounter_index < len(self.encounters):
             self.pressure_level = self.encounter_index + 1
             config = self.encounters[self.encounter_index]
+            self.encounter_elapsed_time = 0.0
             self.encounter_system.start(config)
             self.state = "encounter"
         else:
@@ -81,9 +122,11 @@ class CombatDirector:
                 self.state = "complete"
 
     def update(self, dt: float, ctx):
-        """Ticks pacing timers and delegates to EncounterSystem."""
+        """Ticks pacing timers, evaluates intensity, and delegates to EncounterSystem."""
         if self.state == "idle" or self.state == "complete":
             return
+
+        self.evaluate_intensity(ctx)
             
         if self.state == "intro":
             if self.test_mode:
@@ -94,6 +137,7 @@ class CombatDirector:
                     self._start_next_encounter()
                 
         elif self.state == "encounter":
+            self.encounter_elapsed_time += dt
             # Delegate updating to the EncounterSystem
             self.encounter_system.update(dt, ctx)
             
@@ -107,7 +151,13 @@ class CombatDirector:
                 self.encounter_index += 1
                 if self.encounter_index < len(self.encounters) or self.loop_encounters:
                     self.state = "relief"
-                    self.timer = self.relief_after_encounter
+                    # Adaptive relief pacing: provide slightly more breathing room on critical health
+                    if self.current_intensity == INTENSITY_CRITICAL:
+                        self.timer = min(1.4, self.relief_after_encounter * 1.25)
+                    elif self.current_intensity == INTENSITY_HIGH:
+                        self.timer = max(0.75, self.relief_after_encounter * 0.85)
+                    else:
+                        self.timer = self.relief_after_encounter
                 else:
                     self.state = "complete"
                     
@@ -115,3 +165,4 @@ class CombatDirector:
             self.timer -= dt
             if self.timer <= 0:
                 self._start_next_encounter()
+

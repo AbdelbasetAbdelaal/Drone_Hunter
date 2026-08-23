@@ -4,6 +4,25 @@ All notable changes to the **Drone Hunter 2D** project are documented in this fi
 
 ---
 
+## [Phase 13] — Gameplay Mastery, Combat Depth & Adaptive Pacing Pass (2026)
+
+### Added
+- **Adaptive Intensity Layer in Combat Director (`CombatDirector`)**:
+  - Implemented real-time dynamic intensity states: `CALM`, `LOW`, `MEDIUM`, `HIGH`, `CRITICAL`.
+  - Evaluates player health percentage, kill combos, live enemy count, encounter duration, and boss proximity without inflating raw enemy HP.
+  - Dynamically modulates encounter spawn pacing and relief intervals (0.75s – 1.4s).
+- **Deterministic Tactical Enemy Formations (`EncounterSystem`)**:
+  - Structured tactical arrival formations: `FORMATION_V`, `FORMATION_WEDGE`, `FORMATION_LINE`, `FORMATION_STAGGERED`, `FORMATION_FLANK`, `FORMATION_ESCORT`.
+  - Deterministic anchor offsets ensure readable, tactical fleet engagements per encounter archetype.
+- **Combat Momentum & Tiered Hit Feedback (`CombatFeedbackSystem`)**:
+  - Streak-based combo multiplier system ($x1 \to x99$) with dynamic score popups.
+  - Micro hit-stop ($0.04s$) on heavy hits and critical impacts.
+  - Automatic momentum reset on heavy damage ($\ge 15$) or streak timeout.
+- **Automated Mastery Test Suite**:
+  - Added `test_gameplay_mastery.py` with 18 comprehensive behavioral unit tests expanding the test suite to **578 passed tests**.
+
+---
+
 ## [Phase 12] — Full Generic & PS2/USB Controller Support, D-Pad Menu Navigation & Audio Polish (2026)
 
 ### Added
