@@ -11,7 +11,7 @@ import math
 import pygame
 from src.data.settings import (
     COLOR_HUD, COLOR_CYAN, COLOR_GOLD, COLOR_CRIMSON, COLOR_EMERALD,
-    COLOR_SHIELD, COLOR_OVERCLOCK, COLOR_WHITE, COLOR_NEON_RED
+    COLOR_SHIELD, COLOR_OVERCLOCK, COLOR_WHITE, COLOR_NEON_RED, COLOR_TEXT_DIM
 )
 from src.data.game_data import WEAPON_DEFS
 from src.ui.font_manager import font_hud, font_card, font_banner, font_sub
