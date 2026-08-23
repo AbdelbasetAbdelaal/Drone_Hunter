@@ -169,7 +169,7 @@ class MissionSystem:
                 bonus_total += bonus
         if bonus_total > 0:
             ctx.scrap += bonus_total
-            logging.info(f"MissionSystem: Awarded {bonus_total} bonus scrap for side objectives")
+            logging.debug(f"MissionSystem: Awarded {bonus_total} bonus scrap for side objectives")
 
     def record_player_damage(self):
         """Call when the player takes damage to update no_damage_taken objective."""

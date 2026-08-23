@@ -138,7 +138,7 @@ class ObjectiveSystem:
         self.is_completed = False
         self.reinforcement_timer = def_cfg.get("reinforcement_interval", 10.0)
         
-        logging.info(f"ObjectiveSystem: Initialized {objective.name} with Defense Level {def_level}")
+        logging.debug(f"ObjectiveSystem: Initialized {objective.name} with Defense Level {def_level}")
         return True
 
     def update(self, dt: float, ctx: GameContext) -> bool:
