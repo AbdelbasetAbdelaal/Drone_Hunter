@@ -273,3 +273,14 @@ class TestCombatMomentumAndFeedback:
         feedback.on_player_hit(25)
         assert ctx.combo_count == 1
         assert ctx.combo_timer == 0.0
+
+    def test_boss_rating_popup_auto_dismissal(self):
+        ctx = GameContext()
+        ctx.boss_rating_timer = 3.5
+        ctx.latest_boss_rating = {"rating": "A", "boss_name": "Assembly Warden"}
+
+        # Advance timer past duration
+        ctx.update_timers(4.0)
+
+        assert ctx.boss_rating_timer == 0.0
+        assert ctx.latest_boss_rating is None

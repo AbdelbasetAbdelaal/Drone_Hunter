@@ -98,6 +98,8 @@ class BossSystem:
         self.state = STATE_INTRO
         self.intro_timer = self.intro_duration
         self.rewards_granted = False
+        ctx.boss_rating_timer = 0.0
+        ctx.latest_boss_rating = None
 
         if ctx.player:
             ctx.boss_start_health = ctx.player.health

@@ -63,6 +63,8 @@ class MissionSystem:
 
         ctx.missions["current_sector"] = self.active_mission_data["sector_id"]
         ctx.missions["current_mission"] = self.active_mission_data["mission_number"]
+        ctx.boss_rating_timer = 0.0
+        ctx.latest_boss_rating = None
 
         if boss_system:
             boss_system.reset()

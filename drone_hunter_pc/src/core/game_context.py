@@ -206,6 +206,13 @@ class GameContext:
         if self.damage_flash_timer > 0:
             self.damage_flash_timer = max(0.0, self.damage_flash_timer - dt)
 
+        # Boss Performance Rating Popup Timer (cleanly disappears after duration)
+        if getattr(self, "boss_rating_timer", 0.0) > 0.0:
+            self.boss_rating_timer -= dt
+            if self.boss_rating_timer <= 0.0:
+                self.boss_rating_timer = 0.0
+                self.latest_boss_rating = None
+
     def update_ng_plus_multipliers(self):
         self._ng_plus_scrap_mult = 1.0 + 0.10 * self.new_game_plus_count
         self._ng_plus_enemy_hp_mult = 1.0 + 0.25 * self.new_game_plus_count
