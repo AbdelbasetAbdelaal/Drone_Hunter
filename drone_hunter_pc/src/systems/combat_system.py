@@ -255,10 +255,10 @@ class CombatSystem:
                             death_type = "boss"
                             ctx.boss_defeat_timer = 2.5
                         ctx.audio_manager.play_death(death_type)
-                    shake_intensity = 3.0 if not getattr(target, "is_boss", False) else 4.0
-                    ctx.trigger_shake(shake_intensity, 0.2)
+                    shake_intensity = 5.5 if not getattr(target, "is_boss", False) else 8.0
+                    ctx.trigger_shake(shake_intensity, 0.25)
                     if getattr(ctx, "hit_stop_timer", 0.0) <= 0.0:
-                        ctx.trigger_hit_stop(0.04 if not getattr(target, "is_boss", False) else 0.08)
+                        ctx.trigger_hit_stop(0.06 if not getattr(target, "is_boss", False) else 0.10)
                     earned_pts = ctx.add_score(target.score_value)
                     
                     if target.enemy_type == TARGET_TYPE_SCOUT:
@@ -268,6 +268,10 @@ class CombatSystem:
                     elif target.enemy_type == TARGET_TYPE_HEAVY:
                         ctx.scrap += REWARD_HEAVY
 
+                    # Damage numbers on hit
+                    if ctx.particle_manager:
+                        dmg_color = (255, 255, 255) if dmg >= 50 else ((255, 200, 50) if dmg >= 25 else (200, 220, 255))
+                        ctx.particle_manager.spawn_floating_text(target.rect.center, f"-{int(dmg)}", dmg_color, 16)
 
                     # Death Explosion Particles
                     if ctx.particle_manager:
@@ -279,7 +283,7 @@ class CombatSystem:
                         ctx.particle_manager.spawn_floating_text(target.rect.center, f"+{earned_pts}", score_color, 20)
 
                     # Power-up drop roll with difficulty drop rate scaling
-                    drop_rate = ctx.difficulty_data.get("powerup_drop_rate", 0.30)
+                    drop_rate = 1.0 if getattr(target, "is_boss", False) else ctx.difficulty_data.get("powerup_drop_rate", 0.30)
                     if random.random() < drop_rate:
                         p_type = random.choice(["battery", "overclock", "shield", "slowmo", "coin", "wingman", "weapon"])
                         ctx.powerup_group.add(PowerupItem(target.rect.center, p_type))

@@ -81,6 +81,10 @@ class GameContext:
         self.combo_count: int = 1
         self.combo_timer: float = 0.0
 
+        # Wave Announcement
+        self.wave_announcement_timer: float = 0.0
+        self.last_wave: int = 1
+
         # Bullet-Time & Time-Scale Mechanism (Fixes Bug 2)
         self.slowmo_timer: float = 0.0
         self.time_scale: float = 1.0
@@ -136,6 +140,9 @@ class GameContext:
 
         if self.total_score > self.highscore:
             self.highscore = self.total_score
+
+        if self.combo_count > 1 and self.particle_manager and hasattr(self, 'audio_manager') and self.audio_manager:
+            self.audio_manager.play_combo()
 
         return effective_pts
 

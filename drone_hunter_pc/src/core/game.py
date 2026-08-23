@@ -46,6 +46,7 @@ from src.rendering.renderer import GameRenderer
 from src.audio.audio_manager import AudioManager
 from src.ui.hud import (
     draw_hud, draw_boss_health_bar, draw_radar_minimap, draw_combo_banner,
+    draw_wave_announcement,
     draw_boss_intro_warning
 )
 from src.ui.menus import (
@@ -879,23 +880,30 @@ class Game:
 
         if ctx.state in (STATE_PLAYING, STATE_VICTORY):
             sec_info = SECTORS[ctx.current_sector_idx]
+            prev_wave = ctx.current_wave
             ctx.current_wave = ctx.wave_manager.update_wave(ctx.level_score)
+            if ctx.current_wave > prev_wave:
+                ctx.wave_announcement_timer = 2.0
+                ctx.last_wave = ctx.current_wave
+            if ctx.wave_announcement_timer > 0:
+                ctx.wave_announcement_timer = max(0.0, ctx.wave_announcement_timer - dt)
             self.particle_manager.spawn_weather(sec_info.get("weather", "clear"))
             self.particle_manager.update(dt)
 
             if ctx.state == STATE_PLAYING:
                 # 1. Unified Controller / Mouse / Keyboard Input Polling
+                canvas_mx, canvas_my = self.get_canvas_mouse_pos()
+                world_mx, world_my = self.camera.screen_to_world(canvas_mx, canvas_my)
                 input_state = self.input_manager.poll_input(
                     player_pos=(ctx.player.pos.x, ctx.player.pos.y) if ctx.player else (200, 360),
-                    get_canvas_mouse_pos_func=self.get_canvas_mouse_pos
+                    get_canvas_mouse_pos_func=self.get_canvas_mouse_pos,
+                    world_mouse_pos=(world_mx, world_my)
                 )
                 ctx.input_state = input_state
 
                 keys = pygame.key.get_pressed()
                 if ctx.player:
                     if ctx.player.alive:
-                        canvas_mx, canvas_my = self.get_canvas_mouse_pos()
-                        world_mx, world_my = self.camera.screen_to_world(canvas_mx, canvas_my)
                         ctx.player.handle_input(keys, dt, mouse_pos=(world_mx, world_my), input_state=input_state)
 
                         # Spawn particle trail when accelerating or high velocity
@@ -972,6 +980,26 @@ class Game:
                             self.audio_manager.play_game_over()
                     if ctx.state in (STATE_MISSION_COMPLETE, STATE_MISSION_FAILED, STATE_VICTORY):
                         return
+                    # Update objective tracker text
+                    m_data = getattr(self.mission_system, "active_mission_data", None)
+                    if m_data:
+                        obj = m_data.get("objective", "")
+                        living_enemies = [e for e in ctx.target_group if getattr(e, "alive", False) and not getattr(e, "is_obstacle", False)]
+                        if obj == "survive":
+                            remaining = max(0, int(getattr(self.mission_system, "survive_timer", 0.0)))
+                            self._current_objective_text = f"SURVIVE: {remaining}s"
+                        elif obj == "destroy_all":
+                            total = m_data.get("enemy_count", len(living_enemies))
+                            remaining = len(living_enemies)
+                            self._current_objective_text = f"DESTROY ALL: {total - remaining}/{total}"
+                        elif obj == "complete_encounters":
+                            total = len(m_data.get("encounter_sequence", []))
+                            completed = getattr(self.combat_director, "completed_encounters", 0)
+                            self._current_objective_text = f"ENCOUNTERS: {completed}/{total}"
+                        else:
+                            self._current_objective_text = None
+                    else:
+                        self._current_objective_text = None
                 else:
                     if ctx.current_sector_idx == 1 and ctx.current_sub_level == 1:
                         if self.combat_director.state == "idle":
@@ -1117,9 +1145,13 @@ class Game:
                 ctx.total_score, ctx.scrap, DIFFICULTY_NAMES[ctx.difficulty_mode],
                 combo_mult=ctx.combo_count, show_crt=ctx.show_crt,
                 current_wave=ctx.current_wave, sub_level=ctx.current_sub_level,
-                mission_id=getattr(self.mission_system, "active_mission_id", None)
+                mission_id=getattr(self.mission_system, "active_mission_id", None),
+                objective_text=getattr(self, "_current_objective_text", None)
             )
             
+            draw_combo_banner(canvas, ctx.combo_count, ctx.combo_timer)
+            draw_wave_announcement(canvas, ctx.last_wave, ctx.wave_announcement_timer)
+
             draw_radar_minimap(canvas, ctx.player, ctx.target_group)
 
             # Boss Health Bar & Intro Warning

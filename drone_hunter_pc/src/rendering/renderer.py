@@ -15,7 +15,8 @@ from src.data.settings import (
 )
 from src.data.game_data import (
     TARGET_TYPE_SHIELD_DRONE, TARGET_TYPE_SNIPER, TARGET_TYPE_EMP_DISRUPTER,
-    TARGET_TYPE_SCOUT, TARGET_TYPE_SHOOTER, TARGET_TYPE_HEAVY, TARGET_TYPE_ARMORED
+    TARGET_TYPE_SCOUT, TARGET_TYPE_SHOOTER, TARGET_TYPE_HEAVY, TARGET_TYPE_ARMORED,
+    TARGET_TYPE_BOSS
 )
 from src.core.game_state import STATE_PLAYING, STATE_PAUSED, STATE_LEVEL_CLEAR, STATE_GAME_OVER
 from src.rendering.sprite_manager import get_sprite_manager
@@ -51,12 +52,15 @@ class GameRenderer:
                 self.canvas.blit(self._shield_aura_surf, (t.rect.centerx - ox - 170, t.rect.centery - oy - 170))
 
             elif getattr(t, "enemy_type", "") == TARGET_TYPE_SNIPER and getattr(t, "is_aiming", False) and context.player:
-                p_screen = (int(round(context.player.pos.x - ox)), int(round(context.player.pos.y - oy)))
                 t_screen = (int(round(t.pos.x - ox)), int(round(t.pos.y - oy)))
+                if hasattr(t, "sniper_aim_target"):
+                    p_screen = (int(round(t.sniper_aim_target.x - ox)), int(round(t.sniper_aim_target.y - oy)))
+                else:
+                    p_screen = (int(round(context.player.pos.x - ox)), int(round(context.player.pos.y - oy)))
                 line_alpha = 180 if int(pygame.time.get_ticks() * 0.015) % 2 == 0 else 90
-                # PERF: Reuse laser_surf, clear just the needed area rather than allocating a new surface
                 self._laser_surf.fill((0, 0, 0, 0))
                 pygame.draw.line(self._laser_surf, (239, 68, 68, line_alpha), t_screen, p_screen, 2)
+                pygame.draw.line(self._laser_surf, (255, 200, 200, 120), t_screen, p_screen, 1)
                 self.canvas.blit(self._laser_surf, (0, 0))
 
             elif getattr(t, "enemy_type", "") == TARGET_TYPE_EMP_DISRUPTER and getattr(t, "is_emp_expanding", False):
@@ -90,6 +94,28 @@ class GameRenderer:
         _draw_group_with_camera(context.bullet_group)
         _draw_group_with_camera(context.enemy_bullet_group)
         _draw_group_with_camera(context.powerup_group)
+
+        # Layer 4.5: Health Bars for Strong Enemies (Heavy, Armored, Shield Drone, Boss)
+        for t in context.target_group:
+            if not getattr(t, "alive", False):
+                continue
+            etype = getattr(t, "enemy_type", "")
+            if etype not in (TARGET_TYPE_HEAVY, TARGET_TYPE_ARMORED, TARGET_TYPE_SHIELD_DRONE, TARGET_TYPE_BOSS):
+                continue
+            hp = getattr(t, "hp", 0)
+            max_hp = getattr(t, "max_hp", 1)
+            hp_pct = max(0.0, min(1.0, hp / max(1.0, max_hp)))
+            bar_w = 40
+            bar_h = 5
+            tx = int(round(t.rect.centerx - ox))
+            ty = int(round(t.rect.top - ox - 10))
+            bg_rect = pygame.Rect(tx - bar_w // 2, ty, bar_w, bar_h)
+            pygame.draw.rect(self.canvas, (15, 23, 42, 200), bg_rect, border_radius=2)
+            if hp_pct > 0:
+                fill_w = int(round(bar_w * hp_pct))
+                bar_col = COLOR_CRIMSON if hp_pct <= 0.35 else (COLOR_GOLD if hp_pct <= 0.70 else COLOR_EMERALD)
+                pygame.draw.rect(self.canvas, bar_col, (bg_rect.x, bg_rect.y, fill_w, bar_h), border_radius=2)
+            pygame.draw.rect(self.canvas, (51, 65, 85), bg_rect, 1, border_radius=2)
 
         # Layer 4: Player Combat Drone & Wingmen
         if context.player:

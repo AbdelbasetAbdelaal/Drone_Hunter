@@ -249,7 +249,7 @@ class InputManager:
                 if self.enabled and abs(event.value) > self.deadzone + 0.05:
                     self.active_device = DEVICE_GAMEPAD
 
-    def poll_input(self, player_pos: Tuple[float, float], get_canvas_mouse_pos_func) -> dict:
+    def poll_input(self, player_pos: Tuple[float, float], get_canvas_mouse_pos_func, world_mouse_pos: Optional[Tuple[float, float]] = None) -> dict:
         """Polls current hardware state (Keyboard, Mouse, Gamepad, Joystick)
 
         and produces a unified, normalized action state object for gameplay.
@@ -285,8 +285,12 @@ class InputManager:
             fire_secondary = True
             self.active_device = DEVICE_KEYBOARD_MOUSE
 
-        # Mouse Aim Angle
-        if self.active_device == DEVICE_KEYBOARD_MOUSE and canvas_m_pos:
+        # Mouse Aim Angle - use world coordinates if available for correct 360-degree aiming
+        if self.active_device == DEVICE_KEYBOARD_MOUSE and world_mouse_pos:
+            dx = world_mouse_pos[0] - player_pos[0]
+            dy = world_mouse_pos[1] - player_pos[1]
+            aim_angle = math.atan2(dy, dx)
+        elif self.active_device == DEVICE_KEYBOARD_MOUSE and canvas_m_pos:
             dx = canvas_m_pos[0] - player_pos[0]
             dy = canvas_m_pos[1] - player_pos[1]
             aim_angle = math.atan2(dy, dx)

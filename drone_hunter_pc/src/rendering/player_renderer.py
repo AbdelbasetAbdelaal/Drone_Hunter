@@ -43,7 +43,7 @@ class PlayerRenderer:
         speed_ratio = min(1.0, current_speed / max(1.0, getattr(player, "speed", 450.0)))
         is_accelerating = getattr(player, "is_accelerating", False)
 
-        # 1. Determine Visual State
+        # 1. Determine Visual State & Diamond Hover Offset
         tilt_y = getattr(player, "tilt_y", 0.0)
         if player.muzzle_flash_timer > 0:
             state = "fire"
@@ -57,6 +57,26 @@ class PlayerRenderer:
             state = "idle"
 
         total_rot_deg = -math.degrees(player.aim_angle) + (tilt_y * 0.35)
+
+        # Diamond hover animation: small rhombus path when drone is idle or drifting
+        hover_x = 0.0
+        hover_y = 0.0
+        if state in ("idle", "move") and speed_ratio < 0.35:
+            t = pygame.time.get_ticks() * 0.004
+            cycle = (t % (2.0 * math.pi)) / (2.0 * math.pi)
+            segment = cycle * 4.0
+            seg_idx = int(segment) % 4
+            seg_t = segment - int(segment)
+            smooth_t = seg_t * seg_t * (3.0 - 2.0 * seg_t)
+            corners = [(0.0, -1.0), (1.0, 0.0), (0.0, 1.0), (-1.0, 0.0)]
+            c1 = corners[seg_idx]
+            c2 = corners[(seg_idx + 1) % 4]
+            amp = 5.0 if state == "idle" else 3.0
+            hover_x = amp * (c1[0] + (c2[0] - c1[0]) * smooth_t)
+            hover_y = amp * (c1[1] + (c2[1] - c1[1]) * smooth_t)
+
+        screen_x = screen_x + hover_x
+        screen_y = screen_y + hover_y
 
         # Precalculate direction vectors (used by glow, flames, and all VFX)
         aim_rad = math.radians(-total_rot_deg)

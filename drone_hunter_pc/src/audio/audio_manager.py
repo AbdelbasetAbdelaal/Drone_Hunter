@@ -24,7 +24,7 @@ from src.audio.sound_synth import (
     generate_boss_alert_sound, generate_boss_attack_sound, generate_boss_phase_transition_sound,
     generate_ui_click_sound, generate_ui_hover_sound, generate_mission_start_sound,
     generate_mission_complete_sound, generate_game_over_sound, generate_victory_sound,
-    generate_powerup_sound, generate_buy_sound
+    generate_powerup_sound, generate_buy_sound, generate_combo_sound
 )
 
 # Dedicated channel indices for strict priority management
@@ -180,6 +180,7 @@ class AudioManager:
         self._sound_cache["game_over"] = self._load_or_synthesize("mission_failure", generate_game_over_sound)
         self._sound_cache["victory"] = self._load_or_synthesize("mission_success", generate_victory_sound)
         self._sound_cache["buy"] = self._load_or_synthesize("buy", generate_buy_sound)
+        self._sound_cache["combo"] = self._load_or_synthesize(None, generate_combo_sound)
 
     def _play_cached(self, sound_key: str, min_interval_ms: int = 40, channel_id: int | None = None, volume_scale: float = 1.0):
         """Plays a pre-cached sound with anti-spam rate limiting and channel assignment."""
@@ -556,6 +557,10 @@ class AudioManager:
         TODO: Replace with a dedicated warning asset when available.
         Currently aliases player_hit as a placeholder."""
         self._play_cached("player_hit", min_interval_ms=120, channel_id=CHANNEL_PLAYER, volume_scale=0.85)
+
+    def play_combo(self):
+        """Combo streak chime."""
+        self._play_cached("combo", min_interval_ms=80, channel_id=CHANNEL_UI, volume_scale=0.60)
 
     def play_sector_ambient(self, sector_idx: int):
         """Ambient audio placeholder."""

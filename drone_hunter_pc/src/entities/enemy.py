@@ -515,6 +515,8 @@ class Enemy(pygame.sprite.Sprite):
                 self.is_aiming = False
                 cx, cy = self.rect.center
                 new_bullets.append(EnemySniperBeam((cx - 20, cy), pred_aim, speed=bullet_speed + 800))
+            if self.is_aiming:
+                self.sniper_aim_target = pygame.Vector2(pred_aim)
 
         else: # Standard, Turret, Vehicle
             self.pos.x -= self.speed * dt
@@ -778,6 +780,12 @@ class Enemy(pygame.sprite.Sprite):
             pygame.draw.polygon(surf, self.color_outer, [(s, s // 2), (0, 4), (s // 4, s // 2), (0, s - 4)])
             if self.is_aiming:
                 pygame.draw.circle(surf, COLOR_NEON_RED, center, 6)
+                if hasattr(self, "sniper_aim_target"):
+                    aim_target = self.sniper_aim_target
+                    start_pos = self.rect.center
+                    end_pos = (int(round(aim_target.x)), int(round(aim_target.y)))
+                    pygame.draw.line(surf, (239, 68, 68, 180), start_pos, end_pos, 2)
+                    pygame.draw.line(surf, (255, 200, 200, 120), start_pos, end_pos, 1)
             else:
                 pygame.draw.circle(surf, self.color_inner, center, 4)
 

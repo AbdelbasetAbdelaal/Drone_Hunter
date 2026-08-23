@@ -18,7 +18,8 @@ from src.ui.font_manager import font_hud, font_card, font_banner
 
 def draw_hud(canvas: pygame.Surface, player, sector_idx: int = 0, level_score: int = 0, total_score: int = 0,
              scrap: int = 0, difficulty_name: str = "NORMAL", combo_mult: int = 1, show_crt: bool = False,
-             current_wave: int = 1, sub_level: int = 1, mission_id: str | None = None, input_manager=None):
+             current_wave: int = 1, sub_level: int = 1, mission_id: str | None = None, input_manager=None,
+             objective_text: str | None = None):
     """Renders clean, responsive screen-space tactical HUD with dynamic device-aware action prompts."""
     vw, vh = canvas.get_size()
     margin_x = 24
@@ -36,15 +37,25 @@ def draw_hud(canvas: pygame.Surface, player, sector_idx: int = 0, level_score: i
     if low_health:
         vignette_alpha = int(90 + 50 * math.sin(pygame.time.get_ticks() * 0.008))
         vignette = pygame.Surface((vw, vh), pygame.SRCALPHA)
-        # Top/bottom gradient bars
         bar_h = max(1, int(vh * 0.22))
         pygame.draw.rect(vignette, (185, 28, 28, min(255, vignette_alpha // 2)), (0, 0, vw, bar_h))
         pygame.draw.rect(vignette, (185, 28, 28, min(255, vignette_alpha // 2)), (0, vh - bar_h, vw, bar_h))
-        # Left/right gradient bars
         bar_w = max(1, int(vw * 0.18))
         pygame.draw.rect(vignette, (185, 28, 28, min(255, vignette_alpha // 3)), (0, 0, bar_w, vh))
         pygame.draw.rect(vignette, (185, 28, 28, min(255, vignette_alpha // 3)), (vw - bar_w, 0, bar_w, vh))
         canvas.blit(vignette, (0, 0))
+
+    # Overdrive Vignette (golden edge glow when Overdrive is active)
+    if player and getattr(player, "overdrive_timer", 0.0) > 0.0:
+        od_alpha = int(60 + 30 * math.sin(pygame.time.get_ticks() * 0.02))
+        od_vig = pygame.Surface((vw, vh), pygame.SRCALPHA)
+        bar_h = max(1, int(vh * 0.18))
+        pygame.draw.rect(od_vig, (245, 158, 11, min(255, od_alpha // 3)), (0, 0, vw, bar_h))
+        pygame.draw.rect(od_vig, (245, 158, 11, min(255, od_alpha // 3)), (0, vh - bar_h, vw, bar_h))
+        bar_w = max(1, int(vw * 0.15))
+        pygame.draw.rect(od_vig, (245, 158, 11, min(255, od_alpha // 4)), (0, 0, bar_w, vh))
+        pygame.draw.rect(od_vig, (245, 158, 11, min(255, od_alpha // 4)), (vw - bar_w, 0, bar_w, vh))
+        canvas.blit(od_vig, (0, 0))
 
     # =========================================================================
     # 1. TOP-LEFT: Hull Integrity, Energy Status & Shield Pips
@@ -136,6 +147,14 @@ def draw_hud(canvas: pygame.Surface, player, sector_idx: int = 0, level_score: i
         pygame.draw.rect(canvas, (245, 158, 11, 40), combo_rect, border_radius=4)
         pygame.draw.rect(canvas, COLOR_GOLD, combo_rect, 1, border_radius=4)
         canvas.blit(lbl_combo, (combo_rect.left + 8, combo_rect.top + 5))
+
+    # Objective Tracker
+    if objective_text:
+        obj_txt = font_card.render(objective_text, True, COLOR_EMERALD)
+        obj_rect = pygame.Rect(margin_x, margin_y + 45, obj_txt.get_width() + 16, 26)
+        pygame.draw.rect(canvas, (15, 23, 42, 200), obj_rect, border_radius=4)
+        pygame.draw.rect(canvas, COLOR_EMERALD, obj_rect, 1, border_radius=4)
+        canvas.blit(obj_txt, (obj_rect.left + 8, obj_rect.top + 5))
 
     # =========================================================================
     # 3. BOTTOM-CENTER: Screen-Space Ability Indicators
@@ -304,8 +323,39 @@ def draw_boss_health_bar(canvas: pygame.Surface, boss_target):
 
 
 def draw_combo_banner(canvas: pygame.Surface, combo_count: int, combo_timer: float):
-    """Stub for backwards compatibility."""
-    pass
+    """Renders animated combo streak banner when combo_count > 1."""
+    if combo_count <= 1 or combo_timer <= 0:
+        return
+    vw, vh = canvas.get_size()
+    pct = max(0.0, min(1.0, combo_timer / 2.5))
+    alpha = int(255 * pct)
+    scale = 1.0 + (1.0 - pct) * 0.3
+    txt = f"x{combo_count} COMBO!"
+    rendered = font_banner.render(txt, True, COLOR_GOLD)
+    w, h = rendered.get_size()
+    scaled_w, scaled_h = int(w * scale), int(h * scale)
+    surf = pygame.transform.smoothscale(rendered, (scaled_w, scaled_h))
+    surf.set_alpha(alpha)
+    rect = surf.get_rect(center=(vw // 2, vh // 3))
+    canvas.blit(surf, rect)
+
+
+def draw_wave_announcement(canvas: pygame.Surface, wave_number: int, announcement_timer: float):
+    """Renders wave incoming announcement banner with fade-out."""
+    if announcement_timer <= 0 or wave_number <= 0:
+        return
+    vw, vh = canvas.get_size()
+    pct = max(0.0, min(1.0, announcement_timer / 2.0))
+    alpha = int(255 * pct)
+    scale = 1.0 + (1.0 - pct) * 0.15
+    txt = f"WAVE {wave_number}"
+    rendered = font_banner.render(txt, True, COLOR_CRIMSON)
+    w, h = rendered.get_size()
+    scaled_w, scaled_h = int(w * scale), int(h * scale)
+    surf = pygame.transform.smoothscale(rendered, (scaled_w, scaled_h))
+    surf.set_alpha(alpha)
+    rect = surf.get_rect(center=(vw // 2, vh // 3))
+    canvas.blit(surf, rect)
 
 
 def draw_radar_minimap(canvas: pygame.Surface, player, targets_group, wingmen_group=None):

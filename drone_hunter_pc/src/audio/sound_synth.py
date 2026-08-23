@@ -844,3 +844,21 @@ def generate_buy_sound() -> pygame.mixer.Sound | None:
     except Exception:
         return None
 
+
+def generate_combo_sound() -> pygame.mixer.Sound | None:
+    """Combo Streak escalation chime."""
+    try:
+        duration = 0.14
+        num_samples = int(SAMPLE_RATE * duration)
+        samples = []
+        for i in range(num_samples):
+            t = i / SAMPLE_RATE
+            env = 1.0 - (t / duration) ** 1.2
+            f1 = 880.0 + 220.0 * (t / duration)
+            f2 = 1100.0 + 330.0 * (t / duration)
+            val = (math.sin(2.0 * math.pi * f1 * t) * 0.5 + math.sin(2.0 * math.pi * f2 * t) * 0.5) * 15000.0 * env
+            samples.append(val)
+        return _build_sound(samples)
+    except Exception:
+        return None
+
