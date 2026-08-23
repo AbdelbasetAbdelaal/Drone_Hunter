@@ -1858,7 +1858,7 @@ class Game:
                 # Check Player Death transition AFTER destruction animation finishes
                 if ctx.player and getattr(ctx.player, "is_destroyed", False) and ctx.player.destruction_timer <= 0.0 and ctx.state == STATE_PLAYING:
                     if self.mission_system.active_mission_id is not None:
-                        self.mission_system.trigger_failure()
+                        self.mission_system.trigger_failure(objective_system=getattr(self, "objective_system", None))
                         ctx.state = STATE_MISSION_FAILED
                     else:
                         ctx.state = STATE_GAME_OVER
@@ -2052,7 +2052,7 @@ class Game:
                 # Check Player Death transition AFTER destruction animation finishes
                 if ctx.player and getattr(ctx.player, "is_destroyed", False) and ctx.player.destruction_timer <= 0.0 and ctx.state == STATE_PLAYING:
                     if self.mission_system.active_mission_id is not None:
-                        self.mission_system.trigger_failure()
+                        self.mission_system.trigger_failure(objective_system=getattr(self, "objective_system", None))
                         ctx.state = STATE_MISSION_FAILED
                     else:
                         ctx.state = STATE_GAME_OVER
@@ -2170,7 +2170,8 @@ class Game:
                 objective_text=getattr(self, "_current_objective_text", None),
                 new_game_plus_count=ctx.new_game_plus_count,
                 achievement_popups=ctx.achievement_popups,
-                objective_system=getattr(self, "objective_system", None)
+                objective_system=getattr(self, "objective_system", None),
+                camera_offset=camera_offset
             )
             
             draw_combo_banner(canvas, ctx.combo_count, ctx.combo_timer)

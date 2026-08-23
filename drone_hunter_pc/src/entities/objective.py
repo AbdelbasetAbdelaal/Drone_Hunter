@@ -23,7 +23,9 @@ from src.data.objective_data import (
     OBJECTIVE_TYPE_RADAR_COMMAND, get_objective_catalog_def,
     RADAR_STATE_SCANNING, RADAR_STATE_ALERT, RADAR_STATE_DESTROYED,
     AA_TYPE_LIGHT, AA_TYPE_HEAVY, AA_TYPE_MISSILE,
-    AIRCRAFT_INTERCEPTOR, AIRCRAFT_ATTACK
+    AIRCRAFT_INTERCEPTOR, AIRCRAFT_ATTACK,
+    PHASE_OBJECTIVE_CRITICAL, PHASE_OBJECTIVE_DESTROYED,
+    LAYER_OUTER, LAYER_MIDDLE, LAYER_INNER
 )
 from src.entities.bullet import EnemyBullet, HomingMissile
 from src.entities.enemy import Enemy
@@ -34,10 +36,11 @@ from src.entities.enemy import Enemy
 # -----------------------------------------------------------------------------
 class ShieldGenerator(pygame.sprite.Sprite):
     """Auxiliary power structure providing invulnerability to the Ground Objective."""
-    def __init__(self, pos: Tuple[float, float], parent_objective=None):
+    def __init__(self, pos: Tuple[float, float], parent_objective=None, defense_layer: str = LAYER_INNER):
         super().__init__()
         self.pos = pygame.Vector2(pos)
         self.parent_objective = parent_objective
+        self.defense_layer = defense_layer
         self.max_hp = 120
         self.hp = self.max_hp
         self.armor = 0.10
@@ -100,10 +103,11 @@ class ShieldGenerator(pygame.sprite.Sprite):
 # -----------------------------------------------------------------------------
 class RadarNode(pygame.sprite.Sprite):
     """Early-warning sensor dome that tracks player and alerts regional defenses."""
-    def __init__(self, pos: Tuple[float, float], scan_radius: float = 950.0):
+    def __init__(self, pos: Tuple[float, float], scan_radius: float = 950.0, defense_layer: str = LAYER_MIDDLE):
         super().__init__()
         self.pos = pygame.Vector2(pos)
         self.scan_radius = scan_radius
+        self.defense_layer = defense_layer
         self.state = RADAR_STATE_SCANNING
         self.max_hp = 140
         self.hp = self.max_hp
@@ -191,10 +195,11 @@ class RadarNode(pygame.sprite.Sprite):
 # -----------------------------------------------------------------------------
 class AAPlatform(pygame.sprite.Sprite):
     """Directional defensive flak cannon or missile launcher platform."""
-    def __init__(self, pos: Tuple[float, float], aa_type: str = AA_TYPE_LIGHT):
+    def __init__(self, pos: Tuple[float, float], aa_type: str = AA_TYPE_LIGHT, defense_layer: str = LAYER_INNER):
         super().__init__()
         self.pos = pygame.Vector2(pos)
         self.aa_type = aa_type
+        self.defense_layer = defense_layer
         
         if aa_type == AA_TYPE_LIGHT:
             self.max_hp = 160
@@ -230,6 +235,9 @@ class AAPlatform(pygame.sprite.Sprite):
         self.hit_flash_timer = 0.0
         
         self.fire_timer = random.uniform(0.5, self.fire_cooldown_max)
+        # Stagger fire timers so nearby AAs don't create unreadable projectile walls
+        self.fire_timer += random.uniform(0.0, self.fire_cooldown_max * 0.4)
+        self.fire_cooldown_jitter = random.uniform(-0.05, 0.15)
         self.turret_angle = 180.0
         self.is_telegraphing = False
         self.telegraph_timer = 0.0
@@ -278,7 +286,7 @@ class AAPlatform(pygame.sprite.Sprite):
                 if self.telegraph_timer <= 0:
                     # FIRE!
                     self.is_telegraphing = False
-                    self.fire_timer = self.fire_cooldown_max
+                    self.fire_timer = self.fire_cooldown_max + self.fire_cooldown_jitter
                     cx, cy = self.rect.center
 
                     if self.aa_type == AA_TYPE_LIGHT:
@@ -331,9 +339,10 @@ class AAPlatform(pygame.sprite.Sprite):
 # -----------------------------------------------------------------------------
 class CombatAircraft(Enemy):
     """High-speed airborne hostile aircraft performing dogfight strafing runs."""
-    def __init__(self, pos: Tuple[float, float], aircraft_type: str = AIRCRAFT_INTERCEPTOR, **kwargs):
+    def __init__(self, pos: Tuple[float, float], aircraft_type: str = AIRCRAFT_INTERCEPTOR, defense_layer: str = LAYER_INNER, **kwargs):
         super().__init__(enemy_type=aircraft_type, pos=pos, **kwargs)
         self.aircraft_type = aircraft_type
+        self.defense_layer = defense_layer
         
         if aircraft_type == AIRCRAFT_INTERCEPTOR:
             self.max_hp = 35
@@ -390,12 +399,17 @@ class CombatAircraft(Enemy):
                 if dist < 280.0:
                     self.ai_state = "reposition"
         elif self.ai_state == "reposition":
-            # Evasive breakaway
+            # Evasive breakaway — fly perpendicular to player vector for a strafing turn
+            self.state_timer += dt
+            perp = pygame.Vector2(-norm_to_p.y, norm_to_p.x) * self.strafe_dir
             away = -norm_to_p
-            self.pos += away * self.speed * dt
-            self.heading_angle = math.degrees(math.atan2(away.y, away.x))
-            if dist > 550.0:
+            move_vec = (perp * 0.6 + away * 0.4).normalize()
+            self.pos += move_vec * self.speed * dt
+            self.heading_angle = math.degrees(math.atan2(move_vec.y, move_vec.x))
+            # Circle back after a brief disengage, never hover over objective
+            if self.state_timer >= 1.2 or dist > 650.0:
                 self.ai_state = "approach"
+                self.state_timer = 0.0
 
         # Arena bounds clamping
         self.pos.x = max(60.0, min(float(WORLD_WIDTH - 60.0), self.pos.x))
@@ -463,6 +477,17 @@ class GroundObjective(pygame.sprite.Sprite):
         # States: active, shielded, damaged, critical, destroyed
         self.state = "active"
 
+        # Visual polish: beacon, outline glow, damage effects
+        self.beacon_timer = 0.0
+        self.outline_glow_timer = 0.0
+        self.last_hit_time = 0.0
+        self.hit_effect_timer = 0.0
+        self.crack_intensity = 0.0
+        self.damage_flash_timer = 0.0
+        self.destruction_sequence_active = False
+        self.destruction_timer = 0.0
+        self._spark_offsets: List[Tuple[float, float, float]] = []
+
         self.image = pygame.Surface((self.size + 40, self.size + 40), pygame.SRCALPHA)
         self.rect = self.image.get_rect(center=(round(self.pos.x), round(self.pos.y)))
         self._render()
@@ -492,6 +517,19 @@ class GroundObjective(pygame.sprite.Sprite):
         effective = max(1, int(round(amount * (1.0 - self.armor))))
         self.hp -= effective
         self.hit_flash_timer = 0.12
+        self.hit_effect_timer = 0.15
+        self.damage_flash_timer = 0.10
+        self.last_hit_time = self.time_accum
+
+        # Spawn localized hit sparks at random points on the objective rim
+        for _ in range(4):
+            ang = random.uniform(0, math.tau)
+            sd = self.radius * 0.7
+            self._spark_offsets.append((
+                math.cos(ang) * sd,
+                math.sin(ang) * sd,
+                random.uniform(0.1, 0.3),
+            ))
 
         pct = self.hp_percent
         if pct <= 0.0:
@@ -502,8 +540,10 @@ class GroundObjective(pygame.sprite.Sprite):
             return True
         elif pct <= 0.25:
             self.state = "critical"
-        elif pct <= 0.65:
+            self.crack_intensity = max(self.crack_intensity, 1.0)
+        elif pct <= 0.50:
             self.state = "damaged"
+            self.crack_intensity = max(self.crack_intensity, 0.5)
         else:
             self.state = "active"
 
@@ -516,6 +556,21 @@ class GroundObjective(pygame.sprite.Sprite):
         self.time_accum += dt
         if self.hit_flash_timer > 0:
             self.hit_flash_timer -= dt
+        if self.hit_effect_timer > 0:
+            self.hit_effect_timer -= dt
+        if self.damage_flash_timer > 0:
+            self.damage_flash_timer -= dt
+        if self.beacon_timer <= 0:
+            self.beacon_timer += dt
+        self.outline_glow_timer += dt
+
+        # Update spark offsets (fade out)
+        updated_sparks = []
+        for sx, sy, life in self._spark_offsets:
+            life -= dt
+            if life > 0:
+                updated_sparks.append((sx, sy, life))
+        self._spark_offsets = updated_sparks
 
         # Update active shield state
         alive_gens = [g for g in self.shield_generators if getattr(g, "alive", False)]
@@ -526,20 +581,80 @@ class GroundObjective(pygame.sprite.Sprite):
 
     def _render(self):
         self.image.fill((0, 0, 0, 0))
-        cx, cy = self.image.get_width() // 2, self.image.get_height() // 2
+        ix, iy = self.image.get_width() // 2, self.image.get_height() // 2
         r = self.radius
+        cx = ix
+        cy = iy
 
         col_outer = self.catalog_data["color_outer"]
         col_inner = self.catalog_data["color_inner"]
+
+        # --- Damage Discoloration Overlay ---
+        # At 50% HP: surface cracks pattern; at CRITICAL (25%): deeper discoloration + more cracks
+        damage_pct = self.hp_percent
+        is_critical = damage_pct <= 0.25
+        is_damaged = damage_pct <= 0.50
+
+        # Pulsing outline glow (always visible, intensity scales with phase)
+        glow_alpha = int(40 + 25 * math.sin(self.outline_glow_timer * 5.0) + 15 * math.sin(self.outline_glow_timer * 2.3))
+        glow_r = r + 18 + (6 if is_critical else (3 if is_damaged else 0))
+        if is_critical:
+            glow_col = COLOR_NEON_RED
+            glow_alpha = int(60 + 50 * math.sin(self.outline_glow_timer * 8.0))
+        elif is_damaged:
+            glow_col = COLOR_CRIMSON
+        else:
+            glow_col = COLOR_SHIELD
+
+        # Draw multiple concentric glow rings for a "halo" effect
+        for ring_i in range(3):
+            ring_r = glow_r + ring_i * 6
+            ring_a = max(0, glow_alpha - ring_i * 45)
+            pygame.draw.circle(self.image, (*glow_col, ring_a), (cx, cy), ring_r, 3)
 
         # Base reinforced fortification
         pygame.draw.rect(self.image, col_outer, (cx - r, cy - r, r * 2, r * 2), border_radius=16)
         pygame.draw.rect(self.image, (100, 116, 139), (cx - r, cy - r, r * 2, r * 2), 3, border_radius=16)
 
+        # Damage crack overlay (visible at 50% and below)
+        if is_damaged or is_critical:
+            crack_phase = self.time_accum * 3.0
+            crack_alpha = int(140 + 60 * math.sin(crack_phase))
+            crack_color = (180, 180, 190, min(255, crack_alpha))
+            crack_density = 6 if is_critical else 3
+            for ci in range(crack_density):
+                angle = (math.tau / max(1, crack_density)) * ci + self.time_accum * 0.5
+                ex = cx + math.cos(angle) * r * 0.7
+                ey = cy + math.sin(angle) * r * 0.7
+                pygame.draw.line(self.image, crack_color, (cx, cy), (ex, ey), 2)
+                # Branch cracks
+                branch_ang = angle + 0.4
+                bx = cx + math.cos(branch_ang) * r * 0.5
+                by = cy + math.sin(branch_ang) * r * 0.5
+                pygame.draw.line(self.image, crack_color, (ex, ey), (bx, by), 1)
+
+        # Critical discoloration (reddish wash)
+        if is_critical:
+            flash_a = int(40 + 30 * math.sin(self.time_accum * 12.0))
+            flash_surf = pygame.Surface(self.image.get_size(), pygame.SRCALPHA)
+            flash_surf.fill((*COLOR_CRIMSON[:3], flash_a))
+            self.image.blit(flash_surf, (0, 0), special_flags=pygame.BLEND_RGBA_ADD)
+
         # Internal glowing reactor / command core
         pulse = int(r * 0.45 + 4 * math.sin(self.time_accum * 4.0))
-        pygame.draw.circle(self.image, col_inner, (cx, cy), pulse)
+        if is_critical:
+            pulse = int(r * 0.30 + 2 * math.sin(self.time_accum * 10.0))  # erratic pulse
+        elif is_damaged:
+            pulse = int(r * 0.38 + 3 * math.sin(self.time_accum * 6.0))
+        core_col = col_inner if not is_critical else COLOR_NEON_RED
+        pygame.draw.circle(self.image, core_col, (cx, cy), pulse)
         pygame.draw.circle(self.image, COLOR_WHITE, (cx, cy), max(3, pulse - 8))
+
+        # Hit flash on damage
+        if self.damage_flash_timer > 0 or self.hit_flash_timer > 0:
+            mask_surf = pygame.Surface(self.image.get_size(), pygame.SRCALPHA)
+            pygame.draw.circle(mask_surf, (255, 255, 255, 140), (cx, cy), r + 10)
+            self.image.blit(mask_surf, (0, 0), special_flags=pygame.BLEND_RGBA_ADD)
 
         # Protective energy shield barrier
         if self.is_shielded:
@@ -548,7 +663,68 @@ class GroundObjective(pygame.sprite.Sprite):
             pygame.draw.circle(self.image, (56, 189, 248, max(0, min(255, shield_alpha))), (cx, cy), shield_r, 4)
             pygame.draw.circle(self.image, (180, 230, 255, 120), (cx, cy), shield_r - 4, 1)
 
-        if self.hit_flash_timer > 0:
-            mask = pygame.mask.from_surface(self.image)
-            flash_surf = mask.to_surface(setcolor=(255, 255, 255, 160), unsetcolor=(0, 0, 0, 0))
-            self.image.blit(flash_surf, (0, 0), special_flags=pygame.BLEND_RGBA_ADD)
+        # Beacon effect: rotating light above the objective
+        beacon_y = cy - r - 28
+        beacon_angle = self.time_accum * 4.0
+        beacon_r = 14
+        beacon_alpha = int(170 + 80 * math.sin(self.time_accum * 6.0))
+        bx = cx + math.cos(beacon_angle) * (beacon_r + 4)
+        by = beacon_y + math.sin(beacon_angle) * (beacon_r + 4)
+        pygame.draw.circle(self.image, (*COLOR_SHIELD, beacon_alpha), (int(bx), int(by)), beacon_r)
+        pygame.draw.circle(self.image, COLOR_WHITE, (int(bx), int(by)), max(3, beacon_r - 6))
+        # Beacon vertical beam
+        pygame.draw.line(self.image, (*COLOR_SHIELD, 80), (cx, beacon_y + beacon_r), (cx, beacon_y - 10), 2)
+
+        # --- HP / Shield bar directly below objective ---
+        bar_w = int(r * 1.6)
+        bar_h = 6
+        bar_x = cx - bar_w // 2
+        bar_y = cy + r + 18
+        # Background
+        pygame.draw.rect(self.image, (15, 23, 42, 200), (bar_x, bar_y, bar_w, bar_h), border_radius=3)
+        # HP fill
+        hp_pct = self.hp_percent
+        fill_w = max(0, int(bar_w * hp_pct))
+        hp_col = COLOR_SHIELD if self.is_shielded else (COLOR_CRIMSON if hp_pct < 0.3 else COLOR_GOLD)
+        if fill_w > 0:
+            pygame.draw.rect(self.image, hp_col, (bar_x, bar_y, fill_w, bar_h), border_radius=3)
+        # Shield overlay bar (if shielded)
+        if self.is_shielded:
+            sh_fill = max(0, int(bar_w * 1.0))
+            pygame.draw.rect(self.image, (*COLOR_SHIELD, 120), (bar_x, bar_y, sh_fill, bar_h), 1, border_radius=3)
+        pygame.draw.rect(self.image, (51, 65, 85), (bar_x, bar_y, bar_w, bar_h), 1, border_radius=3)
+
+        # Hit spark effects (localized on impact)
+        if self._spark_offsets:
+            for sx, sy, life in self._spark_offsets:
+                alpha = int(min(255, 200 * life))
+                spark_r = int(max(1, 4 * life))
+                pygame.draw.circle(self.image, (*COLOR_NEON_RED, alpha),
+                                   (int(cx + sx), int(cy + sy)), spark_r)
+
+    def draw_health_bar_world(self, canvas: pygame.Surface, camera_offset: tuple[float, float]):
+        """Draws a large, readable HP/shield bar in world space below the objective.
+
+        Called by the renderer for screen-space priority readouts.
+        """
+        if not self.alive:
+            return
+        ox, oy = camera_offset
+        cx = int(round(self.pos.x - ox))
+        cy = int(round(self.pos.y - oy))
+        hp_bar_w = 120
+        hp_bar_h = 10
+        bx = cx - hp_bar_w // 2
+        by = cy + self.radius + 20
+        # Background
+        pygame.draw.rect(canvas, (15, 23, 42, 220), (bx, by, hp_bar_w, hp_bar_h), border_radius=4)
+        # HP fill
+        hp_pct = self.hp_percent
+        fill_w = max(0, int(hp_bar_w * hp_pct))
+        hp_col = COLOR_SHIELD if self.is_shielded else (COLOR_CRIMSON if hp_pct < 0.3 else COLOR_GOLD)
+        if fill_w > 0:
+            pygame.draw.rect(canvas, hp_col, (bx, by, fill_w, hp_bar_h), border_radius=4)
+        # Shield indicator overlay
+        if self.is_shielded:
+            pygame.draw.rect(canvas, COLOR_SHIELD, (bx, by, hp_bar_w, hp_bar_h), 2, border_radius=4)
+        pygame.draw.rect(canvas, (51, 65, 85), (bx, by, hp_bar_w, hp_bar_h), 1, border_radius=4)

@@ -14,6 +14,7 @@ from src.data.mission_data import (
     OBJECTIVE_DESTROY_ALL, OBJECTIVE_SURVIVE, OBJECTIVE_COMPLETE_ENCOUNTERS,
     OBJECTIVE_ASSAULT, MISSION_REWARDS, SECTOR_BONUS, SIDE_OBJECTIVE_BONUS
 )
+from src.data.objective_data import PHASE_APPROACH
 import logging
 
 STATE_LOCKED = "locked"
@@ -314,10 +315,15 @@ class MissionSystem:
             else:
                 ctx.audio_manager.play_mission_complete()
 
-    def trigger_failure(self):
+    def trigger_failure(self, objective_system=None):
         """Handles player death without granting completion rewards."""
         self.state = STATE_COMPLETED
         self.is_mission_success = False
+
+        # Stop objective assault progression when player dies
+        if objective_system and getattr(objective_system, "is_active", False):
+            objective_system.is_active = False
+            objective_system._current_phase = PHASE_APPROACH
 
     def get_mission_state(self, ctx: GameContext, mission_id: str) -> str:
         """Returns the LOCKED, AVAILABLE, or COMPLETED state for UI."""

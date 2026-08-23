@@ -519,6 +519,11 @@ class AudioManager:
         """Boss destruction major sequence."""
         self._play_cached("death_boss", min_interval_ms=200, channel_id=CHANNEL_BOSS, volume_scale=1.0)
 
+    def play_objective_destruction(self):
+        """Objective destruction audio cue (distinct from boss death)."""
+        self._play_cached("death_heavy", min_interval_ms=200, channel_id=CHANNEL_BOSS, volume_scale=1.0)
+        self._play_cached("explosion", min_interval_ms=200, channel_id=CHANNEL_BOSS, volume_scale=0.85)
+
     # =========================================================================
     # UI & PROGRESSION AUDIO METHODS
     # =========================================================================

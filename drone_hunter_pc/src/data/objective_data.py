@@ -6,6 +6,8 @@ Authoritative data definitions for Ground Objectives, Defense Levels,
 Radar Networks, Anti-Air Platforms, Shield Generators, and Combat Aircraft.
 """
 
+from typing import Tuple
+
 from src.data.settings import (
     COLOR_CYAN, COLOR_GOLD, COLOR_CRIMSON, COLOR_EMERALD, COLOR_WHITE,
     COLOR_SHIELD, COLOR_NEON_RED, WORLD_WIDTH, WORLD_HEIGHT
@@ -49,6 +51,30 @@ AA_TYPE_MISSILE = "missile_launcher"
 # -----------------------------------------------------------------------------
 AIRCRAFT_INTERCEPTOR = "aircraft_interceptor"
 AIRCRAFT_ATTACK      = "aircraft_attack"
+
+# -----------------------------------------------------------------------------
+# OBJECTIVE ASSAULT PHASES (runtime states for tactical progression)
+# -----------------------------------------------------------------------------
+PHASE_APPROACH          = "approach"
+PHASE_DETECTED          = "detected"
+PHASE_DEFENSE           = "defense"
+PHASE_OBJECTIVE_ASSAULT = "objective_assault"
+PHASE_OBJECTIVE_CRITICAL= "objective_critical"
+PHASE_OBJECTIVE_DESTROYED = "objective_destroyed"
+
+# -----------------------------------------------------------------------------
+# DEFENSE LAYER CATEGORIES (physical concentric rings around the objective)
+# -----------------------------------------------------------------------------
+LAYER_OUTER   = "outer"
+LAYER_MIDDLE  = "middle"
+LAYER_INNER   = "inner"
+
+# Layer distance bands relative to objective position (in world units)
+LAYER_OFFSETS = {
+    LAYER_OUTER:  (-500, -400),
+    LAYER_MIDDLE: (-300, -200),
+    LAYER_INNER:  (-150, -50),
+}
 
 # -----------------------------------------------------------------------------
 # OBJECTIVE CATALOG DEFINITIONS
@@ -214,6 +240,21 @@ MISSION_OBJECTIVE_CONFIGS = {
             (WORLD_WIDTH - 100.0, WORLD_HEIGHT // 2 - 200.0),
             (WORLD_WIDTH - 100.0, WORLD_HEIGHT // 2 + 200.0),
         ],
+        "radar_positions": [
+            (WORLD_WIDTH - 550.0, WORLD_HEIGHT // 2 - 100.0),
+        ],
+        "aa_positions": [
+            (WORLD_WIDTH - 450.0, WORLD_HEIGHT // 2),
+        ],
+        "aircraft_spawn_points": [
+            (WORLD_WIDTH - 500.0, WORLD_HEIGHT // 2 - 250.0),
+            (WORLD_WIDTH - 500.0, WORLD_HEIGHT // 2 + 250.0),
+        ],
+        "defense_layer_config": {
+            "outer":  {"radius": 400.0, "from_objective": True},
+            "middle": {"radius": 250.0, "from_objective": True},
+            "inner":  {"radius": 120.0, "from_objective": True},
+        },
     },
     "S2_M3_ALT": {
         "objective_position": (WORLD_WIDTH - 320.0, WORLD_HEIGHT // 2 - 100.0),
@@ -222,6 +263,22 @@ MISSION_OBJECTIVE_CONFIGS = {
             (WORLD_WIDTH - 90.0, WORLD_HEIGHT // 2),
             (WORLD_WIDTH - 90.0, WORLD_HEIGHT // 2 + 300.0),
         ],
+        "radar_positions": [
+            (WORLD_WIDTH - 570.0, WORLD_HEIGHT // 2 - 60.0),
+        ],
+        "aa_positions": [
+            (WORLD_WIDTH - 460.0, WORLD_HEIGHT // 2 - 80.0),
+            (WORLD_WIDTH - 460.0, WORLD_HEIGHT // 2 + 80.0),
+        ],
+        "aircraft_spawn_points": [
+            (WORLD_WIDTH - 540.0, WORLD_HEIGHT // 2 - 200.0),
+            (WORLD_WIDTH - 540.0, WORLD_HEIGHT // 2 + 200.0),
+        ],
+        "defense_layer_config": {
+            "outer":  {"radius": 450.0, "from_objective": True},
+            "middle": {"radius": 280.0, "from_objective": True},
+            "inner":  {"radius": 130.0, "from_objective": True},
+        },
     },
     "S3_M4_ALT": {
         "objective_position": (WORLD_WIDTH - 340.0, WORLD_HEIGHT // 2 + 80.0),
@@ -229,6 +286,24 @@ MISSION_OBJECTIVE_CONFIGS = {
             (WORLD_WIDTH - 80.0, WORLD_HEIGHT // 2 - 250.0),
             (WORLD_WIDTH - 80.0, WORLD_HEIGHT // 2 + 250.0),
         ],
+        "radar_positions": [
+            (WORLD_WIDTH - 580.0, WORLD_HEIGHT // 2 + 40.0),
+            (WORLD_WIDTH - 560.0, WORLD_HEIGHT // 2 - 160.0),
+        ],
+        "aa_positions": [
+            (WORLD_WIDTH - 470.0, WORLD_HEIGHT // 2 + 20.0),
+            (WORLD_WIDTH - 440.0, WORLD_HEIGHT // 2 - 120.0),
+            (WORLD_WIDTH - 440.0, WORLD_HEIGHT // 2 + 160.0),
+        ],
+        "aircraft_spawn_points": [
+            (WORLD_WIDTH - 520.0, WORLD_HEIGHT // 2 - 180.0),
+            (WORLD_WIDTH - 520.0, WORLD_HEIGHT // 2 + 180.0),
+        ],
+        "defense_layer_config": {
+            "outer":  {"radius": 500.0, "from_objective": True},
+            "middle": {"radius": 300.0, "from_objective": True},
+            "inner":  {"radius": 140.0, "from_objective": True},
+        },
     },
     "S4_M2_ALT": {
         "objective_position": (WORLD_WIDTH - 300.0, WORLD_HEIGHT // 2 - 60.0),
@@ -237,6 +312,26 @@ MISSION_OBJECTIVE_CONFIGS = {
             (WORLD_WIDTH - 100.0, WORLD_HEIGHT // 2),
             (WORLD_WIDTH - 100.0, WORLD_HEIGHT // 2 + 180.0),
         ],
+        "radar_positions": [
+            (WORLD_WIDTH - 540.0, WORLD_HEIGHT // 2 - 40.0),
+            (WORLD_WIDTH - 520.0, WORLD_HEIGHT // 2 + 80.0),
+        ],
+        "aa_positions": [
+            (WORLD_WIDTH - 430.0, WORLD_HEIGHT // 2 - 20.0),
+            (WORLD_WIDTH - 450.0, WORLD_HEIGHT // 2 - 140.0),
+            (WORLD_WIDTH - 450.0, WORLD_HEIGHT // 2 + 120.0),
+            (WORLD_WIDTH - 410.0, WORLD_HEIGHT // 2 + 60.0),
+        ],
+        "aircraft_spawn_points": [
+            (WORLD_WIDTH - 510.0, WORLD_HEIGHT // 2 - 220.0),
+            (WORLD_WIDTH - 490.0, WORLD_HEIGHT // 2 + 220.0),
+            (WORLD_WIDTH - 500.0, WORLD_HEIGHT // 2 - 20.0),
+        ],
+        "defense_layer_config": {
+            "outer":  {"radius": 480.0, "from_objective": True},
+            "middle": {"radius": 290.0, "from_objective": True},
+            "inner":  {"radius": 140.0, "from_objective": True},
+        },
     },
     "S5_M5_ALT": {
         "objective_position": (WORLD_WIDTH - 320.0, WORLD_HEIGHT // 2),
@@ -246,6 +341,28 @@ MISSION_OBJECTIVE_CONFIGS = {
             (WORLD_WIDTH - 90.0, WORLD_HEIGHT // 2 + 100.0),
             (WORLD_WIDTH - 90.0, WORLD_HEIGHT // 2 + 280.0),
         ],
+        "radar_positions": [
+            (WORLD_WIDTH - 560.0, WORLD_HEIGHT // 2 - 100.0),
+            (WORLD_WIDTH - 560.0, WORLD_HEIGHT // 2),
+            (WORLD_WIDTH - 560.0, WORLD_HEIGHT // 2 + 100.0),
+        ],
+        "aa_positions": [
+            (WORLD_WIDTH - 470.0, WORLD_HEIGHT // 2 - 120.0),
+            (WORLD_WIDTH - 470.0, WORLD_HEIGHT // 2 + 120.0),
+            (WORLD_WIDTH - 430.0, WORLD_HEIGHT // 2 - 200.0),
+            (WORLD_WIDTH - 430.0, WORLD_HEIGHT // 2 + 200.0),
+            (WORLD_WIDTH - 410.0, WORLD_HEIGHT // 2),
+        ],
+        "aircraft_spawn_points": [
+            (WORLD_WIDTH - 530.0, WORLD_HEIGHT // 2 - 250.0),
+            (WORLD_WIDTH - 530.0, WORLD_HEIGHT // 2 + 250.0),
+            (WORLD_WIDTH - 510.0, WORLD_HEIGHT // 2 - 40.0),
+        ],
+        "defense_layer_config": {
+            "outer":  {"radius": 520.0, "from_objective": True},
+            "middle": {"radius": 310.0, "from_objective": True},
+            "inner":  {"radius": 150.0, "from_objective": True},
+        },
     },
 }
 
@@ -253,3 +370,57 @@ MISSION_OBJECTIVE_CONFIGS = {
 def get_mission_objective_config(mission_id: str) -> dict:
     """Returns mission-specific objective configuration (position, spawn points)."""
     return MISSION_OBJECTIVE_CONFIGS.get(mission_id, {})
+
+
+# -----------------------------------------------------------------------------
+# DEFENSE LAYER HELPERS
+# -----------------------------------------------------------------------------
+def get_layer_position(objective_pos: Tuple[float, float], layer: str, jitter: float = 0.0) -> Tuple[float, float]:
+    """Returns world position for a defense entity in the given layer relative to the objective.
+
+    Layers are concentric bands placed *behind* (to the left of) the objective
+    so the player physically progresses through them.  ``jitter`` is an optional
+    ±random offset applied to both x and y.
+    """
+    base_dist = abs(LAYER_OFFSETS.get(layer, LAYER_OFFSETS[LAYER_MIDDLE])[0])
+    ox, oy = objective_pos
+    offset_x = -base_dist
+    if jitter > 0.0:
+        import random
+        offset_x += random.uniform(-jitter, jitter)
+        oy_off = random.uniform(-jitter, jitter)
+    else:
+        oy_off = 0.0
+    return (ox + offset_x, oy + oy_off)
+
+
+def get_defense_layer_positions(objective_pos: Tuple[float, float], layer_config: dict) -> dict:
+    """Resolves all defense layer positions from a mission's defense_layer_config.
+
+    Returns a dict mapping layer name → (x, y) world position using the
+    ``from_objective`` distance band.
+    """
+    positions = {}
+    if not layer_config:
+        layer_config = {}
+    ox, oy = objective_pos
+    for layer, cfg in layer_config.items():
+        radius = cfg.get("radius", 250.0)
+        positions[layer] = (ox - radius, oy)
+    return positions
+
+
+# Phase name resolution for HUD readability
+PHASE_DISPLAY_NAMES = {
+    PHASE_APPROACH:           "APPROACH",
+    PHASE_DETECTED:           "DETECTED",
+    PHASE_DEFENSE:            "DEFENSE",
+    PHASE_OBJECTIVE_ASSAULT:  "OBJECTIVE ASSAULT",
+    PHASE_OBJECTIVE_CRITICAL: "CRITICAL",
+    PHASE_OBJECTIVE_DESTROYED: "DESTROYED",
+}
+
+
+def get_phase_display_name(phase: str) -> str:
+    """Returns human-readable phase name for HUD display."""
+    return PHASE_DISPLAY_NAMES.get(phase, phase.upper())

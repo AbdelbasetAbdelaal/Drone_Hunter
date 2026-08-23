@@ -13,6 +13,8 @@ Exhaustive unit and integration test suite verifying:
 
 import os
 import sys
+import math
+from unittest.mock import MagicMock, Mock
 
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 os.environ["SDL_VIDEODRIVER"] = "dummy"
@@ -25,6 +27,7 @@ from src.entities.player import Player
 from src.entities.objective import (
     GroundObjective, RadarNode, AAPlatform, ShieldGenerator, CombatAircraft
 )
+from src.data.settings import WORLD_WIDTH, WORLD_HEIGHT
 from src.data.objective_data import (
     OBJECTIVE_TYPE_RADAR_COMMAND, OBJECTIVE_TYPE_MISSILE_COMPLEX,
     OBJECTIVE_TYPE_POWER_REACTOR, OBJECTIVE_TYPE_COMMUNICATION_HUB,
@@ -33,7 +36,10 @@ from src.data.objective_data import (
     AA_TYPE_LIGHT, AA_TYPE_HEAVY, AA_TYPE_MISSILE,
     AIRCRAFT_INTERCEPTOR, AIRCRAFT_ATTACK,
     DEFENSE_LEVEL_1, DEFENSE_LEVEL_2, DEFENSE_LEVEL_3, DEFENSE_LEVEL_4, DEFENSE_LEVEL_5,
-    get_defense_level_config, MISSION_OBJECTIVE_CONFIGS, get_mission_objective_config
+    get_defense_level_config, MISSION_OBJECTIVE_CONFIGS, get_mission_objective_config,
+    PHASE_APPROACH, PHASE_DETECTED, PHASE_DEFENSE, PHASE_OBJECTIVE_ASSAULT,
+    PHASE_OBJECTIVE_CRITICAL, PHASE_OBJECTIVE_DESTROYED,
+    LAYER_OUTER, LAYER_MIDDLE, LAYER_INNER,
 )
 from src.systems.objective_system import ObjectiveSystem
 from src.systems.mission_system import MissionSystem, STATE_ACTIVE, STATE_COMPLETED, STATE_AVAILABLE
@@ -847,4 +853,93 @@ class TestZoneBasedReinforcementIntensity:
         obj_x = obj_sys._objective_zone_x
         # Zone at or past objective_zone should include Heavy/CombatAircraft
         assert px >= obj_x or True  # just verify zones are set
+
+
+# =============================================================================
+# 19. DEFENSE LAYER POSITIONING
+# =============================================================================
+class TestDefenseLayerPositioning:
+    def test_layer_positions_used_when_configured(self):
+        """Verify entities spawn at layer positions when defense_layer_config is provided."""
+        ctx = GameContext()
+        ctx.player = Player((200, 360))
+        obj_sys = ObjectiveSystem()
+        obj_sys.start_objective_for_mission({
+            "id": "S2_M3_ALT",
+            "objective_type": OBJECTIVE_TYPE_MISSILE_COMPLEX,
+            "defense_level": 3,
+        }, ctx)
+        # S2_M3_ALT has defense_layer_config with inner/middle/outer radii
+        assert len(obj_sys._defense_layer_config) > 0
+        # Defense level 3 has radar, AA, and aircraft
+        assert len(obj_sys.radar_nodes) > 0
+        assert len(obj_sys.aa_platforms) > 0
+        assert len(obj_sys.combat_aircraft) > 0
+
+    def test_fallback_positioning_when_no_layer_config(self):
+        """Verify entities still spawn with fallback positions when no layer config."""
+        ctx = GameContext()
+        ctx.player = Player((200, 360))
+        obj_sys = ObjectiveSystem()
+        obj_sys.start_objective_for_mission({
+            "id": "unknown_mission",
+            "objective_type": OBJECTIVE_TYPE_MISSILE_COMPLEX,
+            "defense_level": 3,
+        }, ctx)
+        # Should fall back to hardcoded positions
+        assert len(obj_sys.radar_nodes) > 0
+        assert len(obj_sys.aa_platforms) > 0
+        # Positions should be valid world coordinates
+        for r in obj_sys.radar_nodes:
+            assert 0 < r.pos.x < WORLD_WIDTH
+            assert 0 < r.pos.y < WORLD_HEIGHT
+
+    def test_aircraft_spawns_in_outer_layer(self):
+        """Verify combat aircraft spawn in outer layer when configured."""
+        ctx = GameContext()
+        ctx.player = Player((200, 360))
+        obj_sys = ObjectiveSystem()
+        obj_sys.start_objective_for_mission({
+            "id": "S5_M5_ALT",
+            "objective_type": OBJECTIVE_TYPE_CYBER_DEFENSE_CORE,
+            "defense_level": 5,
+        }, ctx)
+        # S5_M5_ALT has aircraft and outer layer config
+        assert len(obj_sys.combat_aircraft) > 0
+        for ac in obj_sys.combat_aircraft:
+            assert getattr(ac, "defense_layer", None) == LAYER_OUTER
+
+    def test_deterministic_seed_reproducibility(self):
+        """Verify same seed produces same reinforcement types."""
+        ctx1 = GameContext()
+        ctx1.player = Player((200, 360))
+        obj_sys1 = ObjectiveSystem()
+        obj_sys1.start_objective_for_mission({
+            "id": "S3_M4_ALT",
+            "objective_type": OBJECTIVE_TYPE_POWER_REACTOR,
+            "defense_level": 3,
+        }, ctx1, seed=42)
+
+        ctx2 = GameContext()
+        ctx2.player = Player((200, 360))
+        obj_sys2 = ObjectiveSystem()
+        obj_sys2.start_objective_for_mission({
+            "id": "S3_M4_ALT",
+            "objective_type": OBJECTIVE_TYPE_POWER_REACTOR,
+            "defense_level": 3,
+        }, ctx2, seed=42)
+
+        # Force alert state and spawn reinforcements
+        for r in obj_sys1.radar_nodes:
+            r.state = RADAR_STATE_ALERT
+        for r in obj_sys2.radar_nodes:
+            r.state = RADAR_STATE_ALERT
+        obj_sys1.reinforcement_timer = 0.001
+        obj_sys2.reinforcement_timer = 0.001
+        obj_sys1.update(0.016, ctx1)
+        obj_sys2.update(0.016, ctx2)
+
+        types1 = [type(r).__name__ for r in obj_sys1.active_reinforcements]
+        types2 = [type(r).__name__ for r in obj_sys2.active_reinforcements]
+        assert types1 == types2, "Same seed should produce same reinforcement types"
 

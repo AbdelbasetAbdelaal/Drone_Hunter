@@ -45,6 +45,17 @@ class GameRenderer:
         # Layer 1: Cyber Factory Arena & Background
         background.draw(self.canvas, camera_offset)
 
+        # Layer 1.5: Environment readability — subtle dimming overlay in combat zones
+        # when an objective assault is active. Reduces background brightness/contrast
+        # around combat entities WITHOUT blurring or adding artificial shadows.
+        obj_sys = getattr(context, "objective_system", None)
+        if obj_sys and getattr(obj_sys, "is_active", False) and getattr(obj_sys, "active_objective", None):
+            if not getattr(self, "_combat_dim_surf", None) or self._combat_dim_surf.get_size() != (vw, vh):
+                self._combat_dim_surf = pygame.Surface((vw, vh), pygame.SRCALPHA)
+            dim_alpha = 35 if obj_sys.is_active else 0
+            self._combat_dim_surf.fill((0, 0, 0, dim_alpha))
+            self.canvas.blit(self._combat_dim_surf, (0, 0))
+
         # Layer 2: Visual Auras (Shield Drones & Sniper Lasers in World Space)
         for t in context.target_group:
             if getattr(t, "enemy_type", "") == TARGET_TYPE_SHIELD_DRONE:

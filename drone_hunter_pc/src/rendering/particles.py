@@ -239,6 +239,14 @@ class ParticleManager:
         self.spawn_explosion(pos, count=30, color=COLOR_CRIMSON, sprite_name='explosion_2', max_size=180)
         self.spawn_spark(pos, count=28, color=COLOR_WHITE)
 
+    def spawn_objective_destruction(self, pos: tuple[float, float]):
+        """Objective-specific destruction VFX (NOT boss terminology)."""
+        self.spawn_explosion(pos, count=38, color=COLOR_GOLD, sprite_name='explosion_2', max_size=180)
+        self.spawn_explosion(pos, count=25, color=COLOR_CRIMSON, sprite_name='explosion_1', max_size=140)
+        self.spawn_shockwave(pos, max_r=220, color=COLOR_CYAN)
+        self.spawn_spark(pos, count=30, color=COLOR_WHITE)
+        self.spawn_spark(pos, count=18, color=COLOR_NEON_RED)
+
     def spawn_drone_trail(self, pos: tuple[float, float]):
         vel = (random.uniform(-10.0, 10.0), random.uniform(-10.0, 10.0))
         self.particles.add(Particle(pos, vel, COLOR_CYAN, radius=3.5, lifetime=0.18))
