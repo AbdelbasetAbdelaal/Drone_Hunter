@@ -42,5 +42,20 @@ asset_inventory.txt
 Drone_Hunter_Phase8_2D_Assets_v01/
 Drone_Hunter_Phase8_2D_Assets_v04_HighFidelity/
 
+# Development clutter
+extracted_v02/
+sector_1_ocean/
+sector_2_desert/
+sector_3_jungle/
+sector_4_city/
+sector_5_cyber_factory/
+gameplay_sector_*.png
+sector_*_viewport_*.png
+sector_*_stage_*_viewport_*.png
+test_1to1_scale_*.png
+MASTER_AI_GENERATED_ENVIRONMENT_SHEET.png
+SOURCE_MASTER_REFERENCE.png
+README(1).txt
+
 # Kilo config directory
 .kilo/
