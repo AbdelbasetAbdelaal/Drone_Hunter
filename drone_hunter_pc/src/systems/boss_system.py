@@ -28,6 +28,13 @@ from src.data.game_data import (
     TARGET_TYPE_SCOUT, TARGET_TYPE_SHOOTER, TARGET_TYPE_HEAVY,
     TARGET_TYPE_SHIELD_DRONE
 )
+from src.data.settings import (
+    WORLD_WIDTH, WORLD_HEIGHT, COLOR_GOLD, COLOR_CRIMSON, COLOR_CYAN,
+    COLOR_WHITE, COLOR_SHIELD
+)
+
+BOSS_RATING_FAST_THRESHOLD = 40.0
+BOSS_RATING_NO_DAMAGE_THRESHOLD = 15.0
 
 STATE_IDLE = "idle"
 STATE_INTRO = "intro"
@@ -92,6 +99,10 @@ class BossSystem:
         self.intro_timer = self.intro_duration
         self.rewards_granted = False
 
+        if ctx.player:
+            ctx.boss_start_health = ctx.player.health
+            ctx.boss_fight_start_time = 0.0
+
         if ctx.audio_manager:
             ctx.audio_manager.play_boss_alert()
 
@@ -137,13 +148,14 @@ class BossSystem:
         # ---------------------------------------------------------------------
         if self.state == STATE_ACTIVE:
             if not self.active_boss or not self.active_boss.alive or self.active_boss not in ctx.target_group:
-                # Boss has been defeated!
                 self.state = STATE_DEFEATED
                 self.death_timer = self.death_duration
                 self._trigger_boss_defeat(ctx)
                 return False
 
-            # Boss Phase Transition Audio Hook (Triggers ONCE per phase change)
+            if ctx.boss_fight_start_time == 0.0:
+                ctx.boss_fight_start_time = self.intro_duration - self.intro_timer + 0.016
+
             if ctx.audio_manager and getattr(self.active_boss, "phase_audio_pending", 0) > 0:
                 ctx.audio_manager.play_boss_phase(self.active_boss.phase_audio_pending)
                 self.active_boss.phase_audio_pending = 0
@@ -196,7 +208,31 @@ class BossSystem:
         boss_def = self.active_boss_def
         pos = self.active_boss.pos if self.active_boss else (WORLD_WIDTH // 2, WORLD_HEIGHT // 2)
 
-        # Bounded explosion FX
+        duration = ctx.boss_fight_start_time if ctx.boss_fight_start_time > 0.0 else 0.0
+        dmg_taken = max(0.0, ctx.boss_start_health - (ctx.player.health if ctx.player else ctx.boss_start_health))
+        is_fast = duration < BOSS_RATING_FAST_THRESHOLD and duration > 0.0
+        no_damage = dmg_taken < BOSS_RATING_NO_DAMAGE_THRESHOLD
+
+        if is_fast and no_damage:
+            rating = "S"
+        elif is_fast or no_damage:
+            rating = "A"
+        elif duration > BOSS_RATING_FAST_THRESHOLD * 1.5:
+            rating = "C"
+        else:
+            rating = "B"
+
+        rating_data = {
+            "boss_id": boss_def.id,
+            "boss_name": boss_def.name,
+            "rating": rating,
+            "duration": round(duration, 1),
+            "damage_taken": round(dmg_taken, 0),
+        }
+        ctx.boss_ratings[boss_def.id] = rating_data
+        ctx.latest_boss_rating = rating_data
+        ctx.boss_rating_timer = 3.5
+
         if ctx.particle_manager:
             ctx.particle_manager.spawn_boss_explosion(pos)
             ctx.particle_manager.spawn_floating_text(pos, f"BOSS DEFEATED! +{boss_def.reward_score}", COLOR_GOLD, 28)
@@ -240,7 +276,8 @@ class BossSystem:
             sx = max(100.0, min(WORLD_WIDTH - 100.0, self.active_boss.pos.x + math.cos(ang) * dist))
             sy = max(100.0, min(WORLD_HEIGHT - 100.0, self.active_boss.pos.y + math.sin(ang) * dist))
 
-            enemy = Enemy(enemy_type=etype, pos=(sx, sy), sector_idx=ctx.current_sector_idx)
+            enemy = Enemy(enemy_type=etype, pos=(sx, sy), sector_idx=ctx.current_sector_idx,
+                          hp_multiplier=getattr(ctx, "ng_plus_enemy_hp_mult", 1.0))
             ctx.target_group.add(enemy)
             self.active_reinforcements.append(enemy)
 

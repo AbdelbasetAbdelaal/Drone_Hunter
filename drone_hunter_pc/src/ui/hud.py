@@ -14,12 +14,13 @@ from src.data.settings import (
     COLOR_SHIELD, COLOR_OVERCLOCK, COLOR_WHITE, COLOR_NEON_RED
 )
 from src.data.game_data import WEAPON_DEFS
-from src.ui.font_manager import font_hud, font_card, font_banner
+from src.ui.font_manager import font_hud, font_card, font_banner, font_sub
 
 def draw_hud(canvas: pygame.Surface, player, sector_idx: int = 0, level_score: int = 0, total_score: int = 0,
              scrap: int = 0, difficulty_name: str = "NORMAL", combo_mult: int = 1, show_crt: bool = False,
              current_wave: int = 1, sub_level: int = 1, mission_id: str | None = None, input_manager=None,
-             objective_text: str | None = None):
+             objective_text: str | None = None, side_objectives: list | None = None, new_game_plus_count: int = 0,
+             achievement_popups: list = None):
     """Renders clean, responsive screen-space tactical HUD with dynamic device-aware action prompts."""
     vw, vh = canvas.get_size()
     margin_x = 24
@@ -156,6 +157,36 @@ def draw_hud(canvas: pygame.Surface, player, sector_idx: int = 0, level_score: i
         pygame.draw.rect(canvas, COLOR_EMERALD, obj_rect, 1, border_radius=4)
         canvas.blit(obj_txt, (obj_rect.left + 8, obj_rect.top + 5))
 
+    # Side Objectives Tracker
+    if side_objectives:
+        so_start_y = margin_y + 76
+        for so in side_objectives:
+            so_text = so.get("progress_text", so.get("description", ""))
+            is_completed = so.get("completed", False)
+            so_col = COLOR_EMERALD if is_completed else COLOR_TEXT_DIM
+            prefix = "[x]" if is_completed else "[ ]"
+            so_lbl = font_sub.render(f"{prefix} {so_text}", True, so_col)
+            so_bg_w = so_lbl.get_width() + 14
+            so_bg_h = 20
+            so_bg_rect = pygame.Rect(margin_x, so_start_y, so_bg_w, so_bg_h)
+            pygame.draw.rect(canvas, (15, 23, 42, 180), so_bg_rect, border_radius=3)
+            pygame.draw.rect(canvas, so_col, so_bg_rect, 1, border_radius=3)
+            canvas.blit(so_lbl, (so_bg_rect.left + 7, so_bg_rect.top + 3))
+            so_start_y += 22
+
+    # NG+ Cycle Indicator
+    if new_game_plus_count > 0:
+        ng_label = f"NEW GAME+ x{new_game_plus_count}"
+        ng_lbl = font_banner.render(ng_label, True, COLOR_EMERALD)
+        ng_w = ng_lbl.get_width() + 18
+        ng_h = 28
+        ng_x = margin_x
+        ng_y = margin_y + 45 + (22 if side_objectives else 0) + 5
+        ng_rect = pygame.Rect(ng_x, ng_y, ng_w, ng_h)
+        pygame.draw.rect(canvas, (16, 185, 129, 50), ng_rect, border_radius=4)
+        pygame.draw.rect(canvas, COLOR_EMERALD, ng_rect, 1, border_radius=4)
+        canvas.blit(ng_lbl, (ng_rect.left + 9, ng_rect.top + 5))
+
     # =========================================================================
     # 3. BOTTOM-CENTER: Screen-Space Ability Indicators
     # =========================================================================
@@ -248,6 +279,32 @@ def draw_hud(canvas: pygame.Surface, player, sector_idx: int = 0, level_score: i
             canvas.blit(lbl_wpn, (wpn_x + 9, start_y + 5))
             
             start_y -= (wpn_h + 5)
+
+    # Achievement Popup Notifications
+    if achievement_popups:
+        popup_y = vh - 120
+        for popup in achievement_popups:
+            if popup.get("timer", 0) <= 0:
+                continue
+            icon = popup.get("icon", "")
+            name = popup.get("name", "")
+            desc = popup.get("description", "")
+            pct = max(0.0, min(1.0, popup["timer"] / 3.0))
+            alpha = int(255 * pct)
+            popup_w = 320
+            popup_h = 56
+            popup_rect = pygame.Rect(margin_x, popup_y, popup_w, popup_h)
+            bg_surf = pygame.Surface((popup_w, popup_h), pygame.SRCALPHA)
+            bg_surf.fill((15, 23, 42, min(255, alpha * 220 // 255)))
+            canvas.blit(bg_surf, (margin_x, popup_y))
+            pygame.draw.rect(canvas, (245, 158, 11, min(255, alpha * 180 // 255)), popup_rect, 2, border_radius=6)
+            t_icon = font_card.render(icon, True, COLOR_GOLD)
+            t_name = font_card.render(name, True, COLOR_WHITE)
+            t_desc = font_card.render(desc, True, COLOR_TEXT_DIM)
+            canvas.blit(t_icon, (popup_rect.left + 10, popup_rect.top + 8))
+            canvas.blit(t_name, (popup_rect.left + 36, popup_rect.top + 6))
+            canvas.blit(t_desc, (popup_rect.left + 36, popup_rect.top + 28))
+            popup_y -= (popup_h + 6)
 
 
 
@@ -356,6 +413,45 @@ def draw_wave_announcement(canvas: pygame.Surface, wave_number: int, announcemen
     surf.set_alpha(alpha)
     rect = surf.get_rect(center=(vw // 2, vh // 3))
     canvas.blit(surf, rect)
+
+
+RATING_COLORS = {
+    "S": (245, 158, 11),
+    "A": (16, 185, 129),
+    "B": (59, 130, 246),
+    "C": (239, 68, 68),
+}
+
+
+def draw_boss_rating(canvas: pygame.Surface, rating_data: dict):
+    """Renders animated boss performance rating popup (S/A/B/C)."""
+    if not rating_data:
+        return
+
+    rating = rating_data.get("rating", "B")
+    boss_name = rating_data.get("boss_name", "BOSS")
+    duration = rating_data.get("duration", 0.0)
+    dmg_taken = rating_data.get("damage_taken", 0)
+    col = RATING_COLORS.get(rating, (255, 255, 255))
+
+    vw, vh = canvas.get_size()
+    cx, cy = vw // 2, vh // 2 - 20
+
+    bg_w, bg_h = 340, 150
+    bg_rect = pygame.Rect(cx - bg_w // 2, cy - bg_h // 2, bg_w, bg_h)
+    pygame.draw.rect(canvas, (8, 12, 24, 220), bg_rect, border_radius=10)
+    pygame.draw.rect(canvas, col, bg_rect, 2, border_radius=10)
+
+    t_rank = font_banner.render(rating, True, col)
+    canvas.blit(t_rank, t_rank.get_rect(center=(cx, cy - 30)))
+
+    t_name = font_card.render(boss_name.upper(), True, COLOR_WHITE)
+    canvas.blit(t_name, t_name.get_rect(center=(cx, cy + 5)))
+
+    t_stats = font_sub.render(f"TIME: {duration:.1f}s  |  DMG: {int(dmg_taken)}", True, (180, 195, 215))
+    canvas.blit(t_stats, t_stats.get_rect(center=(cx, cy + 38)))
+
+
 
 
 def draw_radar_minimap(canvas: pygame.Surface, player, targets_group, wingmen_group=None):

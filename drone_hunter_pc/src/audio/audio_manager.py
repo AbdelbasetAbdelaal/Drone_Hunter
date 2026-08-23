@@ -565,3 +565,18 @@ class AudioManager:
     def play_sector_ambient(self, sector_idx: int):
         """Ambient audio placeholder."""
         pass
+
+    def set_sound_enabled(self, enabled: bool):
+        self.sound_enabled = bool(enabled)
+
+    def set_sfx_volume(self, volume: float):
+        self.sfx_volume = max(0.0, min(1.0, float(volume)))
+
+    def set_music_volume(self, volume: float):
+        self.music_volume = max(0.0, min(1.0, float(volume)))
+
+    def set_engine_volume(self, volume: float):
+        self.engine_volume = max(0.0, min(1.0, float(volume)))
+
+    def set_master_volume(self, volume: float):
+        self.master_volume = max(0.0, min(1.0, float(volume)))

@@ -14,6 +14,7 @@ crash_log*.txt
 
 # Runtime / user data files (generated at runtime, not source)
 save_data_*.json
+save_slot_*.json
 test_*_save.json
 test_*.json
 *.tmp

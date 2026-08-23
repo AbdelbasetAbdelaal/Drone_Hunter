@@ -4,7 +4,8 @@ from src.data.settings import (
     COLOR_EMERALD, COLOR_WHITE, COLOR_BG, COLOR_HUD
 )
 from src.data.game_data import (
-    DIFFICULTY_MODIFIERS, DIFFICULTY_NAMES, SECTORS
+    DIFFICULTY_MODIFIERS, DIFFICULTY_NAMES, SECTORS, DIFFICULTY_CUSTOM,
+    CUSTOM_DIFFICULTY_DEFAULTS, get_custom_difficulty
 )
 from src.ui.font_manager import (
     font_title, font_header, font_banner, font_card, font_hud,
@@ -287,34 +288,86 @@ def draw_mission_briefing(canvas: pygame.Surface, mission_data: dict, scrap: int
     vw, vh = canvas.get_size()
     mx, my = _get_safe_mouse_pos(mouse_pos)
 
-    box_w, box_h = 640, 420
+    box_w, box_h = 640, 460
     box_rect = pygame.Rect(vw // 2 - box_w // 2, vh // 2 - box_h // 2, box_w, box_h)
     pygame.draw.rect(canvas, (14, 22, 38), box_rect, border_radius=10)
     pygame.draw.rect(canvas, COLOR_CYAN, box_rect, 2, border_radius=10)
 
     t_hdr = font_header.render("MISSION BRIEFING", True, COLOR_CYAN)
-    canvas.blit(t_hdr, t_hdr.get_rect(center=(vw // 2, box_rect.top + 32)))
-    
+    canvas.blit(t_hdr, t_hdr.get_rect(center=(vw // 2, box_rect.top + 28)))
+
     s_text = font_banner.render(f"SECTOR {mission_data['sector_id']}", True, COLOR_GOLD)
     m_text = font_banner.render(f"MISSION {mission_data['mission_number']}: {mission_data['name']}", True, COLOR_WHITE)
-    canvas.blit(s_text, s_text.get_rect(center=(vw // 2, box_rect.top + 80)))
-    canvas.blit(m_text, m_text.get_rect(center=(vw // 2, box_rect.top + 115)))
-    
+    canvas.blit(s_text, s_text.get_rect(center=(vw // 2, box_rect.top + 72)))
+    canvas.blit(m_text, m_text.get_rect(center=(vw // 2, box_rect.top + 108)))
+
     diff_val = mission_data.get("difficulty", 1)
     diff_names = {1: "EASY", 2: "NORMAL", 3: "HARD", 4: "VERY HARD", 5: "EXTREME"}
     diff_label = diff_names.get(diff_val, "NORMAL")
     d_text = font_card.render(f"DIFFICULTY: {diff_label} [{diff_val}/5]", True, COLOR_CRIMSON)
-    canvas.blit(d_text, d_text.get_rect(center=(vw // 2, box_rect.top + 160)))
-    
+    canvas.blit(d_text, d_text.get_rect(center=(vw // 2, box_rect.top + 150)))
+
     obj_str = mission_data["objective"].replace("_", " ").upper()
     if obj_str == "SURVIVE": obj_str += f" FOR {mission_data.get('duration', 60)} SECONDS"
     o_text = font_card.render(f"OBJECTIVE: {obj_str}", True, COLOR_WHITE)
-    canvas.blit(o_text, o_text.get_rect(center=(vw // 2, box_rect.top + 200)))
-    
+    canvas.blit(o_text, o_text.get_rect(center=(vw // 2, box_rect.top + 188)))
+
     from src.data.mission_data import MISSION_REWARDS
     rew = MISSION_REWARDS.get(mission_data.get("difficulty", 1), 150)
     r_text = font_card.render(f"REWARD: {rew} SCRAP", True, COLOR_GOLD)
-    canvas.blit(r_text, r_text.get_rect(center=(vw // 2, box_rect.top + 240)))
+    canvas.blit(r_text, r_text.get_rect(center=(vw // 2, box_rect.top + 224)))
+
+    lore_text = mission_data.get("lore", "")
+    if lore_text:
+        lore_y = box_rect.top + 264
+        l_label = font_card.render("INTEL BRIEF:", True, COLOR_CYAN)
+        canvas.blit(l_label, (box_rect.left + 36, lore_y))
+
+        words = lore_text.split()
+        lines = []
+        current_line = []
+        max_chars = 85
+        for word in words:
+            test = " ".join(current_line + [word])
+            if len(test) <= max_chars:
+                current_line.append(word)
+            else:
+                lines.append(" ".join(current_line))
+                current_line = [word]
+        if current_line:
+            lines.append(" ".join(current_line))
+
+        line_y = lore_y + 22
+        for line in lines:
+            l_surf = font_sub.render(line, True, COLOR_TEXT_DIM)
+            canvas.blit(l_surf, (box_rect.left + 36, line_y))
+            line_y += 18
+
+    side_objs = mission_data.get("side_objectives", [])
+    if side_objs:
+        so_start_y = box_rect.top + (264 + (len(lore_text.split()) // 85 + 1) * 20 + 20) if lore_text else box_rect + 300
+        so_label = font_card.render("SIDE OBJECTIVES:", True, COLOR_EMERALD)
+        canvas.blit(so_label, (box_rect.left + 36, so_start_y))
+
+        so_y = so_start_y + 24
+        from src.systems.mission_system import SIDE_OBJ_TYPE_NAMES
+        for so in side_objs:
+            so_type = so.get("type", "")
+            so_value = so.get("value", 0)
+            type_name = SIDE_OBJ_TYPE_NAMES.get(so_type, so_type.upper())
+            if so_type == "collect_data_cores":
+                so_desc = f"  [ ] Collect {so_value} Data Cores  (+{50} SCRAP)"
+            elif so_type == "no_damage_taken":
+                so_desc = f"  [ ] Take No Damage  (+{100} SCRAP)"
+            elif so_type == "time_limit":
+                so_desc = f"  [ ] Complete within {so_value}s  (+{75} SCRAP)"
+            elif so_type == "precision_strikes":
+                so_desc = f"  [ ] {so_value} Precision Strikes  (+{60} SCRAP)"
+            else:
+                so_desc = f"  [ ] {type_name}"
+            so_surf = font_sub.render(so_desc, True, COLOR_TEXT_DIM)
+            canvas.blit(so_surf, (box_rect.left + 36, so_y))
+            so_y += 20
 
     # Briefing Buttons
     r_back = pygame.Rect(box_rect.left + 30, box_rect.bottom - 60, 160, 42)
@@ -324,7 +377,7 @@ def draw_mission_briefing(canvas: pygame.Surface, mission_data: dict, scrap: int
     draw_button(canvas, r_back, "[ESC] BACK", (mx, my), base_color=COLOR_CYAN)
     draw_button(canvas, r_start, "[SPACE] DEPLOY", (mx, my), base_color=COLOR_EMERALD, text_color=COLOR_EMERALD)
     draw_button(canvas, r_exit, "[Q] QUIT", (mx, my), base_color=COLOR_CRIMSON, text_color=COLOR_CRIMSON)
-    
+
     return {"back": r_back, "start": r_start, "exit": r_exit}
 
 
@@ -490,7 +543,7 @@ def draw_pause_settings_ui(canvas: pygame.Surface, difficulty_mode: int, show_cr
     }
 
 
-def draw_campaign_victory_ui(canvas: pygame.Surface, total_score: int = 0, highscore: int = 0, scrap: int = 0, bosses_count: int = 5, missions_count: int = 25):
+def draw_campaign_victory_ui(canvas: pygame.Surface, total_score: int = 0, highscore: int = 0, scrap: int = 0, bosses_count: int = 5, missions_count: int = 25, ng_plus_count: int = 0):
     """Renders Phase 6 Campaign Complete end-game screen."""
     vw, vh = canvas.get_size()
     canvas.fill((5, 10, 20))
@@ -517,9 +570,23 @@ def draw_campaign_victory_ui(canvas: pygame.Surface, total_score: int = 0, highs
         canvas.blit(t_lbl, (vw // 2 - 240, sy))
         canvas.blit(t_val, (vw // 2 + 30, sy))
         sy += 45
+
+    if ng_plus_count > 0:
+        ng_txt = font_banner.render(f"NEW GAME+ CYCLE: {ng_plus_count}", True, COLOR_EMERALD)
+        canvas.blit(ng_txt, ng_txt.get_rect(center=(vw // 2, frame_rect.top + 140)))
         
     t_nav = font_hud.render("PRESS [SPACE / ENTER] TO RETURN TO SECTOR MAP  |  [H] HANGAR  |  [Q] QUIT", True, COLOR_WHITE)
     canvas.blit(t_nav, t_nav.get_rect(center=(vw // 2, frame_rect.bottom - 45)))
+
+    ng_rect = None
+    if ng_plus_count >= 0:
+        btn_w, btn_h = 280, 44
+        ng_rect = pygame.Rect(vw // 2 - btn_w // 2, frame_rect.bottom - 95, btn_w, btn_h)
+        m_pos = pygame.mouse.get_pos() if pygame.display.get_init() else (0, 0)
+        draw_button(canvas, ng_rect, f"[N] NEW GAME+  (CYCLE {ng_plus_count + 1})", m_pos,
+                    base_color=COLOR_EMERALD, text_color=COLOR_EMERALD)
+
+    return {"new_game_plus": ng_rect}
 
 
 def draw_sector_select_ui(*args, **kwargs): return {}, pygame.Rect(0,0,0,0), []
@@ -667,4 +734,164 @@ def draw_game_over_ui(canvas: pygame.Surface, sector_idx: int = 0, sub_level: in
     buttons["menu"] = b_quit
 
     return buttons
+
+
+def draw_save_slot_select_ui(canvas: pygame.Surface, save_system, mouse_pos: tuple[int, int] = None) -> dict:
+    """Renders save slot selection screen with 3 slots + legacy save detection."""
+    canvas.fill((6, 10, 18))
+    vw, vh = canvas.get_size()
+    mx, my = _get_safe_mouse_pos(mouse_pos)
+
+    title = font_title.render("SELECT SAVE SLOT", True, COLOR_CYAN)
+    canvas.blit(title, title.get_rect(center=(vw // 2, 60)))
+
+    sub = font_banner.render("CHOOSE A SLOT OR START A NEW GAME", True, COLOR_TEXT_DIM)
+    canvas.blit(sub, sub.get_rect(center=(vw // 2, 105)))
+
+    slots = save_system.get_save_slot_list()
+    slot_rects = {}
+    card_w, card_h = 520, 130
+    gap = 20
+    start_y = 150
+
+    for i, slot_meta in enumerate(slots[:3]):
+        cx = vw // 2 - card_w // 2
+        cy = start_y + i * (card_h + gap)
+        card_rect = pygame.Rect(cx, cy, card_w, card_h)
+
+        is_hover = card_rect.collidepoint(mx, my)
+        bg_c = (22, 36, 58) if is_hover else (14, 22, 38)
+        border_c = COLOR_WHITE if is_hover else COLOR_CYAN
+        border_w = 2 if is_hover else 1
+
+        pygame.draw.rect(canvas, bg_c, card_rect, border_radius=8)
+        pygame.draw.rect(canvas, border_c, card_rect, border_w, border_radius=8)
+
+        slot_label = font_header.render(f"SLOT {i + 1}", True, COLOR_CYAN if not slot_meta["exists"] else COLOR_GOLD)
+        canvas.blit(slot_label, (cx + 20, cy + 14))
+
+        if slot_meta["exists"]:
+            diff_name = DIFFICULTY_NAMES[slot_meta["difficulty_mode"]] if slot_meta["difficulty_mode"] < len(DIFFICULTY_NAMES) else "UNKNOWN"
+            info_lines = [
+                f"Sector: {slot_meta['sector']}  |  Difficulty: {diff_name}",
+                f"Scrap: {slot_meta['scrap']:,}  |  High Score: {slot_meta['highscore']:,}",
+                f"Play Time: {slot_meta['play_time'] // 60}m {slot_meta['play_time'] % 60}s",
+            ]
+            if slot_meta["last_played"]:
+                info_lines.append(f"Last Played: {slot_meta['last_played']}")
+
+            line_y = cy + 50
+            for line in info_lines:
+                info_surf = font_card.render(line, True, COLOR_TEXT_DIM)
+                canvas.blit(info_surf, (cx + 20, line_y))
+                line_y += 26
+
+            del_btn_w, del_btn_h = 100, 32
+            del_btn = pygame.Rect(cx + card_w - del_btn_w - 20, cy + card_h - del_btn_h - 12, del_btn_w, del_btn_h)
+            del_hover = del_btn.collidepoint(mx, my)
+            pygame.draw.rect(canvas, (60, 20, 25) if del_hover else (35, 15, 20), del_btn, border_radius=5)
+            pygame.draw.rect(canvas, COLOR_CRIMSON, del_btn, 2 if del_hover else 1, border_radius=5)
+            del_txt = font_sub.render("DELETE", True, COLOR_CRIMSON if del_hover else (180, 80, 90))
+            canvas.blit(del_txt, del_txt.get_rect(center=del_btn.center))
+            slot_rects[f"del_{i}"] = del_btn
+        else:
+            empty_txt = font_card.render("EMPTY SLOT", True, (80, 95, 115))
+            canvas.blit(empty_txt, (cx + 20, cy + 55))
+
+        slot_rects[f"slot_{i}"] = card_rect
+
+    btn_w, btn_h = 200, 40
+    bx = vw // 2 - btn_w // 2
+    by = start_y + 3 * (card_h + gap) + 10
+
+    r_back = pygame.Rect(bx, by, btn_w, btn_h)
+    draw_button(canvas, r_back, "[ESC] BACK", (mx, my), base_color=COLOR_CRIMSON)
+    slot_rects["back"] = r_back
+
+    return slot_rects
+
+
+def draw_custom_difficulty_ui(canvas: pygame.Surface, custom_settings: dict, mouse_pos: tuple[int, int] = None, dragging: int = -1) -> dict:
+    """Renders custom difficulty configuration with sliders for all multipliers."""
+    canvas.fill((8, 12, 22))
+    vw, vh = canvas.get_size()
+    mx, my = _get_safe_mouse_pos(mouse_pos)
+
+    panel_w, panel_h = 620, 520
+    panel_rect = pygame.Rect(vw // 2 - panel_w // 2, vh // 2 - panel_h // 2, panel_w, panel_h)
+    pygame.draw.rect(canvas, (14, 22, 38), panel_rect, border_radius=10)
+    pygame.draw.rect(canvas, COLOR_CYAN, panel_rect, 2, border_radius=10)
+
+    t_hdr = font_header.render("CUSTOM DIFFICULTY", True, COLOR_CYAN)
+    canvas.blit(t_hdr, t_hdr.get_rect(center=(vw // 2, panel_rect.top + 36)))
+
+    sub = font_card.render("Adjust multipliers below (0.5x - 3.0x)", True, COLOR_TEXT_DIM)
+    canvas.blit(sub, sub.get_rect(center=(vw // 2, panel_rect.top + 68)))
+
+    sliders = {
+        "hp_mult": {"label": "HP Multiplier", "min": 0.5, "max": 3.0, "step": 0.05},
+        "speed_mult": {"label": "Speed Multiplier", "min": 0.5, "max": 3.0, "step": 0.05},
+        "damage_mult": {"label": "Damage Multiplier", "min": 0.5, "max": 3.0, "step": 0.05},
+        "powerup_drop_rate": {"label": "Powerup Drop Rate", "min": 0.5, "max": 3.0, "step": 0.05},
+        "score_mult": {"label": "Score Multiplier", "min": 0.5, "max": 3.0, "step": 0.05},
+    }
+
+    slider_rects = {}
+    by = panel_rect.top + 100
+    slider_h = 14
+    track_h = 8
+    handle_w = 18
+    handle_h = 22
+
+    for key, cfg in sliders.items():
+        val = float(custom_settings.get(key, CUSTOM_DIFFICULTY_DEFAULTS.get(key, 1.0)))
+        val = max(cfg["min"], min(cfg["max"], val))
+
+        label_surf = font_card.render(cfg["label"], True, COLOR_WHITE)
+        canvas.blit(label_surf, (panel_rect.left + 40, by))
+
+        val_surf = font_card.render(f"{val:.2f}x", True, COLOR_GOLD)
+        canvas.blit(val_surf, (panel_rect.right - 90, by))
+
+        track_rect = pygame.Rect(panel_rect.left + 40, by + 28, panel_w - 160, track_h)
+        pygame.draw.rect(canvas, (30, 42, 62), track_rect, border_radius=4)
+
+        ratio = (val - cfg["min"]) / (cfg["max"] - cfg["min"])
+        fill_w = int(track_rect.width * ratio)
+        fill_rect = pygame.Rect(track_rect.left, track_rect.top, fill_w, track_rect.height)
+        pygame.draw.rect(canvas, COLOR_CYAN, fill_rect, border_radius=4)
+
+        handle_x = track_rect.left + fill_w - handle_w // 2
+        handle_rect = pygame.Rect(handle_x, track_rect.top - (handle_h - track_h) // 2, handle_w, handle_h)
+        handle_col = COLOR_WHITE if dragging == key else COLOR_CYAN
+        pygame.draw.rect(canvas, handle_col, handle_rect, border_radius=3)
+
+        slider_rects[key] = {
+            "track": track_rect,
+            "handle": handle_rect,
+            "value": val,
+            "min": cfg["min"],
+            "max": cfg["max"],
+            "step": cfg["step"]
+        }
+
+        by += 70
+
+    btn_w, btn_h = 200, 42
+    bx = vw // 2 - btn_w // 2
+    by = panel_rect.bottom - 60
+
+    r_back = pygame.Rect(bx - 110, by, btn_w, btn_h)
+    r_reset = pygame.Rect(bx, by, btn_w, btn_h)
+    r_save = pygame.Rect(bx + 110, by, btn_w, btn_h)
+
+    draw_button(canvas, r_back, "[ESC] BACK", (mx, my), base_color=COLOR_CRIMSON)
+    draw_button(canvas, r_reset, "RESET DEFAULTS", (mx, my), base_color=COLOR_GOLD, text_color=COLOR_GOLD)
+    draw_button(canvas, r_save, "[ENTER] SAVE", (mx, my), base_color=COLOR_EMERALD, text_color=COLOR_EMERALD)
+
+    slider_rects["back"] = r_back
+    slider_rects["reset"] = r_reset
+    slider_rects["save"] = r_save
+
+    return slider_rects
 

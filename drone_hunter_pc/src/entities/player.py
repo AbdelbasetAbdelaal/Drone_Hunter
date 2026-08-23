@@ -23,7 +23,7 @@ from src.data.game_data import (
     CLOAK_DURATION, CLOAK_COOLDOWN_MAX, OVERDRIVE_DURATION, OVERDRIVE_COOLDOWN_MAX,
     WEAPON_PULSE, WEAPON_SCATTER, WEAPON_MISSILE, WEAPON_RAPID, WEAPON_PLASMA,
     WEAPON_RAIL, WEAPON_BARRAGE, WEAPON_BEAM, WEAPON_TESLA, WEAPON_CLUSTER, WEAPON_EMP,
-    WEAPON_DEFS, DRONE_SKINS, DRONE_CLASSES, DRONE_CLASS_STRIKER
+    WEAPON_DEFS, WEAPON_UPGRADES, DRONE_SKINS, DRONE_CLASSES, DRONE_CLASS_STRIKER
 )
 from src.entities.bullet import (
     Bullet, HomingMissile, ContinuousBeam, TeslaArcBeam, ClusterTorpedo,
@@ -138,6 +138,7 @@ class Player(pygame.sprite.Sprite):
         self.current_weapon_idx = 0
         self.active_weapon = WEAPON_PULSE
         self.weapon_cooldowns = {w: 0.0 for w in WEAPON_DEFS}
+        self.weapon_upgrade_levels: dict[str, int] = {}
 
         # Wingmen Escort Squad
         self.wingmen: list[WingmanDrone] = []
@@ -370,6 +371,10 @@ class Player(pygame.sprite.Sprite):
         # Re-apply current drone class weapon loadout and upgrade bonuses
         self.set_drone_class(self.drone_class_id)
 
+    def apply_weapon_upgrades(self, weapon_upgrades: dict):
+        """Stores weapon-specific upgrade levels for per-weapon stat scaling."""
+        self.weapon_upgrade_levels = {str(k): max(0, int(v)) for k, v in weapon_upgrades.items()}
+
 
     def take_damage(self, amount: float, source: str = "bullet") -> bool:
         """Applies damage to shields and health hull. Returns True if destroyed."""
@@ -409,16 +414,20 @@ class Player(pygame.sprite.Sprite):
             return []
 
         w_def = WEAPON_DEFS.get(self.active_weapon, {})
-        base_cd = w_def.get("cooldown", 0.18)
+        w_upg = WEAPON_UPGRADES.get(self.active_weapon, {})
+        base_cd = w_upg.get("base_cooldown", w_def.get("cooldown", 0.18))
         cost = w_def.get("energy_cost", 0.0)
-        dmg = int(w_def.get("damage", 12) * self.weapon_effectiveness)
-        spd = float(w_def.get("speed", 650.0))
+        base_dmg = w_upg.get("base_damage", w_def.get("damage", 12))
+        base_spd = w_upg.get("base_projectile_speed", w_def.get("speed", 650.0))
+        w_lvl = self.weapon_upgrade_levels.get(self.active_weapon, 0)
+        dmg = int((base_dmg + w_upg.get("upgrade_damage_per_lvl", 0) * w_lvl) * self.weapon_effectiveness)
+        spd = float(base_spd + w_upg.get("upgrade_speed_per_lvl", 0.0) * w_lvl)
         col = w_def.get("color", COLOR_CYAN)
         proj_count = w_def.get("projectiles_per_shot", 1)
         spread_deg = w_def.get("spread_deg", 0.0)
 
         cd_scale = 0.50 if self.overdrive_timer > 0.0 else (0.65 if self.overclock_timer > 0.0 else 1.0)
-        self.weapon_cooldowns[self.active_weapon] = base_cd * self.cooldown_mult * cd_scale
+        self.weapon_cooldowns[self.active_weapon] = max(0.05, base_cd + w_upg.get("upgrade_cooldown_per_lvl", 0.0) * w_lvl) * self.cooldown_mult * cd_scale
 
         if self.overdrive_timer <= 0.0:
             self.energy = max(0.0, self.energy - cost)

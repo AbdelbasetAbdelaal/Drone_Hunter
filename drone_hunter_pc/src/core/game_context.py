@@ -10,7 +10,10 @@ import random
 import pygame
 from typing import Optional, List, Dict
 from src.data.settings import SCREEN_WIDTH, SCREEN_HEIGHT
-from src.data.game_data import DIFFICULTY_NORMAL, DIFFICULTY_MODIFIERS, SECTORS
+from src.data.game_data import (
+    DIFFICULTY_NORMAL, DIFFICULTY_MODIFIERS, SECTORS, DIFFICULTY_CUSTOM,
+    CUSTOM_DIFFICULTY_DEFAULTS
+)
 from src.core.game_state import GameState, STATE_PLAYING
 
 class GameContext:
@@ -48,8 +51,11 @@ class GameContext:
             "wingman": 0, "cloak": 0, "missiles": 0, "beam": 0,
             "tesla": 0, "cluster": 0, "overdrive": 0
         }
+        self.weapon_upgrade_levels: Dict[str, int] = {}
+        self.unlocked_weapons: List[str] = ["pulse", "scatter", "missile"]
         self.unlocked_sectors: List[bool] = [True, False, False, False, False]
         self.unlocked_stages: List[bool] = [True] + [False] * 14
+        self.unlocked_skins: List[int] = [0]
         
         # Phase 5 progression
         self.missions = {
@@ -67,10 +73,31 @@ class GameContext:
         self.bosses_defeated: List[str] = []
         self.campaign_completed: bool = False
         
+        # Achievement Tracking
+        self.achievements: List[str] = []
+        self.achievement_popups: List[dict] = []
+        self.total_kills: int = 0
+        self.emp_kills: int = 0
+        self.overdrive_kills: int = 0
+        self.mission_damage_taken: float = 0.0
+        self.mission_start_time: float = 0.0
+        self.mission_elapsed_time: float = 0.0
+        self.boss_ratings: dict = {}
+        self.boss_fight_start_time: float = 0.0
+        self.boss_start_health: float = 100.0
+        self.boss_rating_timer: float = 0.0
+        self.latest_boss_rating: dict = None
+
+        # New Game+ State
+        self.new_game_plus_count: int = 0
+        self._ng_plus_scrap_mult: float = 1.0
+        self._ng_plus_enemy_hp_mult: float = 1.0
+
         self.show_crt: bool = False
 
         # Gameplay & Difficulty State
         self.difficulty_mode: int = DIFFICULTY_NORMAL
+        self.custom_difficulty_settings: dict = CUSTOM_DIFFICULTY_DEFAULTS.copy()
         self.current_sector_idx: int = 0
         self.current_sub_level: int = 1
         self.current_wave: int = 1
@@ -109,6 +136,11 @@ class GameContext:
 
     @property
     def difficulty_data(self) -> dict:
+        if self.difficulty_mode == DIFFICULTY_CUSTOM:
+            custom = CUSTOM_DIFFICULTY_DEFAULTS.copy()
+            custom.update(self.custom_difficulty_settings)
+            custom["name"] = "CUSTOM"
+            return custom
         return DIFFICULTY_MODIFIERS.get(self.difficulty_mode, DIFFICULTY_MODIFIERS[DIFFICULTY_NORMAL])
 
     def trigger_shake(self, intensity: float = 6.0, duration: float = 0.25):
@@ -173,6 +205,18 @@ class GameContext:
         # Damage Flash
         if self.damage_flash_timer > 0:
             self.damage_flash_timer = max(0.0, self.damage_flash_timer - dt)
+
+    def update_ng_plus_multipliers(self):
+        self._ng_plus_scrap_mult = 1.0 + 0.10 * self.new_game_plus_count
+        self._ng_plus_enemy_hp_mult = 1.0 + 0.25 * self.new_game_plus_count
+
+    @property
+    def ng_plus_scrap_mult(self) -> float:
+        return self._ng_plus_scrap_mult
+
+    @property
+    def ng_plus_enemy_hp_mult(self) -> float:
+        return self._ng_plus_enemy_hp_mult
 
     def get_shake_offset(self) -> tuple[int, int]:
         """Calculates randomized pixel offset during active screen shake."""

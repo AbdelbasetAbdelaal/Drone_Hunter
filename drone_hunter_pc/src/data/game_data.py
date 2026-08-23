@@ -840,14 +840,161 @@ UPGRADES = {
 }
 
 # -----------------------------------------------------------------------------
+# Weapon Upgrade Catalog
+# -----------------------------------------------------------------------------
+WEAPON_UPGRADES = {
+    "pulse": {
+        "base_damage": 12,
+        "base_cooldown": 0.18,
+        "base_projectile_speed": 650.0,
+        "upgrade_damage_per_lvl": 3,
+        "upgrade_speed_per_lvl": 0.0,
+        "upgrade_cooldown_per_lvl": -0.02,
+        "max_level": 5,
+        "cost_base": 200,
+        "cost_mult": 1.6
+    },
+    "scatter": {
+        "base_damage": 10,
+        "base_cooldown": 0.75,
+        "base_projectile_speed": 500.0,
+        "upgrade_damage_per_lvl": 2,
+        "upgrade_speed_per_lvl": 15.0,
+        "upgrade_cooldown_per_lvl": -0.04,
+        "max_level": 5,
+        "cost_base": 200,
+        "cost_mult": 1.6
+    },
+    "missile": {
+        "base_damage": 65,
+        "base_cooldown": 2.5,
+        "base_projectile_speed": 260.0,
+        "upgrade_damage_per_lvl": 15,
+        "upgrade_speed_per_lvl": 20.0,
+        "upgrade_cooldown_per_lvl": -0.15,
+        "max_level": 5,
+        "cost_base": 200,
+        "cost_mult": 1.6
+    },
+    "rapid": {
+        "base_damage": 8,
+        "base_cooldown": 0.08,
+        "base_projectile_speed": 980.0,
+        "upgrade_damage_per_lvl": 2,
+        "upgrade_speed_per_lvl": 0.0,
+        "upgrade_cooldown_per_lvl": -0.005,
+        "max_level": 5,
+        "cost_base": 200,
+        "cost_mult": 1.6
+    },
+    "plasma": {
+        "base_damage": 90,
+        "base_cooldown": 0.85,
+        "base_projectile_speed": 460.0,
+        "upgrade_damage_per_lvl": 20,
+        "upgrade_speed_per_lvl": 15.0,
+        "upgrade_cooldown_per_lvl": -0.06,
+        "max_level": 5,
+        "cost_base": 200,
+        "cost_mult": 1.6
+    },
+    "rail": {
+        "base_damage": 115,
+        "base_cooldown": 1.10,
+        "base_projectile_speed": 1800.0,
+        "upgrade_damage_per_lvl": 25,
+        "upgrade_speed_per_lvl": 0.0,
+        "upgrade_cooldown_per_lvl": -0.08,
+        "max_level": 5,
+        "cost_base": 200,
+        "cost_mult": 1.6
+    },
+    "barrage": {
+        "base_damage": 38,
+        "base_cooldown": 2.2,
+        "base_projectile_speed": 620.0,
+        "upgrade_damage_per_lvl": 8,
+        "upgrade_speed_per_lvl": 20.0,
+        "upgrade_cooldown_per_lvl": -0.12,
+        "max_level": 5,
+        "cost_base": 200,
+        "cost_mult": 1.6
+    },
+    "beam": {
+        "base_damage": 26,
+        "base_cooldown": 0.08,
+        "base_projectile_speed": 1500.0,
+        "upgrade_damage_per_lvl": 6,
+        "upgrade_speed_per_lvl": 0.0,
+        "upgrade_cooldown_per_lvl": -0.005,
+        "max_level": 5,
+        "cost_base": 200,
+        "cost_mult": 1.6
+    },
+    "tesla": {
+        "base_damage": 44,
+        "base_cooldown": 0.40,
+        "base_projectile_speed": 1100.0,
+        "upgrade_damage_per_lvl": 10,
+        "upgrade_speed_per_lvl": 30.0,
+        "upgrade_cooldown_per_lvl": -0.02,
+        "max_level": 5,
+        "cost_base": 200,
+        "cost_mult": 1.6
+    },
+    "cluster": {
+        "base_damage": 85,
+        "base_cooldown": 2.0,
+        "base_projectile_speed": 520.0,
+        "upgrade_damage_per_lvl": 18,
+        "upgrade_speed_per_lvl": 15.0,
+        "upgrade_cooldown_per_lvl": -0.12,
+        "max_level": 5,
+        "cost_base": 200,
+        "cost_mult": 1.6
+    },
+    "emp": {
+        "base_damage": 30,
+        "base_cooldown": 0.50,
+        "base_projectile_speed": 1200.0,
+        "upgrade_damage_per_lvl": 8,
+        "upgrade_speed_per_lvl": 40.0,
+        "upgrade_cooldown_per_lvl": -0.03,
+        "max_level": 5,
+        "cost_base": 200,
+        "cost_mult": 1.6
+    }
+}
+
+WEAPON_UNLOCK_COSTS = {
+    "rapid": 300,
+    "plasma": 400,
+    "rail": 500,
+    "barrage": 500,
+    "beam": 400,
+    "tesla": 600,
+    "cluster": 700,
+    "emp": 800
+}
+
+# -----------------------------------------------------------------------------
 # Difficulty Modifiers & Presets
 # -----------------------------------------------------------------------------
 DIFFICULTY_EASY = 0
 DIFFICULTY_NORMAL = 1
 DIFFICULTY_HARD = 2
 DIFFICULTY_NIGHTMARE = 3
+DIFFICULTY_CUSTOM = 4
 
-DIFFICULTY_NAMES = ["EASY", "NORMAL", "HARD", "NIGHTMARE"]
+DIFFICULTY_NAMES = ["EASY", "NORMAL", "HARD", "NIGHTMARE", "CUSTOM"]
+
+CUSTOM_DIFFICULTY_DEFAULTS = {
+    "hp_mult": 1.0,
+    "speed_mult": 1.0,
+    "damage_mult": 1.0,
+    "powerup_drop_rate": 0.30,
+    "score_mult": 1.0
+}
 
 DIFFICULTY_MODIFIERS = {
     DIFFICULTY_EASY: {
@@ -886,6 +1033,30 @@ DIFFICULTY_MODIFIERS = {
         "score_mult": 2.00,
         "badge_color": COLOR_CRIMSON
     }
+}
+
+def get_custom_difficulty(overrides: dict = None) -> dict:
+    """Returns custom difficulty settings with optional overrides applied."""
+    settings = CUSTOM_DIFFICULTY_DEFAULTS.copy()
+    if overrides and isinstance(overrides, dict):
+        for key, value in overrides.items():
+            if key in settings:
+                try:
+                    settings[key] = max(0.5, min(3.0, float(value)))
+                except (ValueError, TypeError):
+                    pass
+    return settings
+
+# -----------------------------------------------------------------------------
+# Drone Skin Unlock Conditions
+# -----------------------------------------------------------------------------
+DRONE_SKIN_UNLOCKS = {
+    0: {"score": 0, "name": "Default"},
+    1: {"score": 5000, "name": "Score 5,000"},
+    2: {"score": 15000, "name": "Score 15,000"},
+    3: {"score": 30000, "name": "Score 30,000"},
+    4: {"score": 50000, "name": "Score 50,000"},
+    5: {"score": 75000, "name": "Score 75,000"},
 }
 
 # -----------------------------------------------------------------------------

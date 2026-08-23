@@ -9,14 +9,14 @@ Phase 4: Simplified progression system.
 import pygame
 from src.data.settings import (
     SCREEN_WIDTH, SCREEN_HEIGHT, COLOR_CYAN, COLOR_GOLD, COLOR_EMERALD,
-    COLOR_WHITE, COLOR_CRIMSON, COLOR_HUD
+    COLOR_WHITE, COLOR_CRIMSON, COLOR_HUD, COLOR_MAGENTA
 )
-from src.data.game_data import UPGRADE_COSTS, MAX_UPGRADE_LEVEL, DRONE_SKINS
+from src.data.game_data import UPGRADE_COSTS, MAX_UPGRADE_LEVEL, DRONE_SKINS, DRONE_SKIN_UNLOCKS, WEAPON_DEFS, WEAPON_UPGRADES, WEAPON_UNLOCK_COSTS
 from src.ui.font_manager import font_header, font_banner, font_card, font_button, font_sub
 from src.ui.menus import draw_button
 
 
-def draw_hangar_shop_ui(canvas: pygame.Surface, scrap: int, current_sector_idx: int, upgrade_levels: dict[str, int], mouse_pos: tuple[int, int] = None, player=None) -> dict:
+def draw_hangar_shop_ui(canvas: pygame.Surface, scrap: int, current_sector_idx: int, upgrade_levels: dict[str, int], mouse_pos: tuple[int, int] = None, player=None, weapon_upgrades: dict = None, unlocked_weapons: list = None, unlocked_skins: list = None, total_score: int = 0) -> dict:
     canvas.fill((8, 12, 22))
     vw, vh = canvas.get_size()
     mx, my = mouse_pos if mouse_pos is not None else pygame.mouse.get_pos()
@@ -124,21 +124,121 @@ def draw_hangar_shop_ui(canvas: pygame.Surface, scrap: int, current_sector_idx: 
     )
     canvas.blit(t_stats, (50, 438))
 
-    # Weapons Loadout List
-    w_names = []
-    from src.data.game_data import WEAPON_DEFS
+    # Stats Summary
+    spd_val = int(420.0 * c_info['speed_mult'])
+    acc_val = int(3600.0 * c_info['accel_mult'])
+    hp_val = c_info['max_health']
+    arm_val = c_info.get('armor', 0)
+
+    t_stats = font_sub.render(
+        f"FLIGHT SPEED: {spd_val} px/s  |  ACCELERATION: {acc_val} px/s²  |  HULL: {hp_val} HP  |  ARMOR: {arm_val}",
+        True, COLOR_WHITE
+    )
+    canvas.blit(t_stats, (50, 438))
+
+    weapon_upgrades = weapon_upgrades or {}
+    unlocked_weapons = unlocked_weapons or ["pulse", "scatter", "missile"]
+
     slot_names = ["PRIMARY", "SECONDARY", "HEAVY", "SPECIAL"]
+    slot_colors = [COLOR_CYAN, COLOR_GOLD, COLOR_CRIMSON, COLOR_MAGENTA]
+    weapon_slot_rects = {}
+
     for idx_w, w_id in enumerate(c_info.get("weapons", [])):
+        if idx_w >= 4:
+            break
         w_d = WEAPON_DEFS.get(w_id, {})
+        w_upg = WEAPON_UPGRADES.get(w_id, {})
+        w_lvl = weapon_upgrades.get(w_id, 0)
+        is_unlocked = w_id in unlocked_weapons
         s_tag = slot_names[idx_w] if idx_w < len(slot_names) else f"SLOT {idx_w+1}"
-        w_names.append(f"[{idx_w+1}] {s_tag}: {w_d.get('name', w_id.upper())}")
-    t_weapons = font_sub.render(f"FIXED LOADOUT:  {'   •   '.join(w_names)}", True, COLOR_EMERALD)
-    canvas.blit(t_weapons, (50, 472))
+        slot_color = slot_colors[idx_w] if idx_w < len(slot_colors) else COLOR_WHITE
+
+        slot_y = 468 + idx_w * 38
+        slot_rect = pygame.Rect(30, slot_y, vw - 60, 34)
+        is_slot_hover = slot_rect.collidepoint(mx, my)
+        weapon_slot_rects[idx_w] = slot_rect
+
+        bg = (18, 24, 38) if is_unlocked else (12, 16, 24)
+        border = slot_color if is_unlocked else (50, 60, 75)
+        txt = slot_color if is_unlocked else (80, 90, 110)
+        if is_slot_hover and is_unlocked:
+            bg = (24, 36, 58)
+            border = COLOR_WHITE
+            txt = COLOR_WHITE
+
+        pygame.draw.rect(canvas, bg, slot_rect, border_radius=6)
+        pygame.draw.rect(canvas, border, slot_rect, 1, border_radius=6)
+
+        name_txt = font_sub.render(f"[{idx_w+1}] {s_tag}: {w_d.get('name', w_id.upper())}", True, txt)
+        canvas.blit(name_txt, (48, slot_y + 8))
+
+        if is_unlocked:
+            max_wlvl = w_upg.get("max_level", 5)
+            cost = int(w_upg.get("cost_base", 200) * (w_upg.get("cost_mult", 1.6) ** w_lvl)) if w_lvl < max_wlvl else None
+            upg_txt = f" LVL {w_lvl}/{max_wlvl}"
+            if w_lvl < max_wlvl and cost is not None:
+                upg_txt += f"  UPGRADE: {cost:,} SCRAP"
+            elif w_lvl >= max_wlvl:
+                upg_txt += "  (MAX)"
+            t_upg = font_sub.render(upg_txt, True, COLOR_GOLD if (w_lvl < max_wlvl and scrap >= cost and cost is not None) else (130, 140, 155))
+            canvas.blit(t_upg, (vw - 320, slot_y + 8))
+        else:
+            unlock_cost = WEAPON_UNLOCK_COSTS.get(w_id, 999999)
+            t_lock = font_sub.render(f"UNLOCK: {unlock_cost:,} SCRAP", True, COLOR_CRIMSON if scrap < unlock_cost else COLOR_GOLD)
+            canvas.blit(t_lock, (vw - 320, slot_y + 8))
 
 
     # Controls hint
     t_hint = font_sub.render("PRESS [C] CYCLE CHASSIS   •   PRESS [V] CYCLE VISUAL SKIN   •   PRESS [1-4] SELECT WEAPON", True, (130, 145, 165))
     canvas.blit(t_hint, (50, 508))
+    
+    # Skin Selection Row
+    unlocked_skins = unlocked_skins if unlocked_skins is not None else [0]
+    total_score = total_score if total_score is not None else 0
+    skin_row_y = 468 + len(c_info.get("weapons", [])) * 38 + 16
+    t_skin_hdr = font_sub.render("DRONE SKINS:", True, COLOR_CYAN)
+    canvas.blit(t_skin_hdr, (30, skin_row_y))
+
+    skin_btns = {}
+    for idx, skin in enumerate(DRONE_SKINS):
+        sx = 130 + idx * 118
+        sy = skin_row_y - 2
+        sr = pygame.Rect(sx, sy, 110, 30)
+        is_unlocked = skin["id"] in unlocked_skins
+        is_active = player and getattr(player, "skin_theme", 0) == skin["id"]
+        req_score = DRONE_SKIN_UNLOCKS.get(skin["id"], {}).get("score", 0)
+        has_met = total_score >= req_score
+
+        if is_active:
+            bg_col = skin["primary_color"]
+            border_col = COLOR_WHITE
+            txt_col = COLOR_WHITE
+        elif is_unlocked:
+            bg_col = (20, 30, 50)
+            border_col = skin["primary_color"]
+            txt_col = skin["primary_color"]
+        else:
+            bg_col = (12, 16, 24)
+            border_col = (50, 60, 75)
+            txt_col = (80, 90, 110)
+
+        pygame.draw.rect(canvas, bg_col, sr, border_radius=5)
+        pygame.draw.rect(canvas, border_col, sr, 1 if not is_active else 2, border_radius=5)
+        skin_btns[skin["id"]] = sr
+
+        if is_unlocked:
+            label = "EQUIPPED" if is_active else skin["name"][:14]
+            t_label = font_sub.render(label, True, txt_col)
+            canvas.blit(t_label, (sx + 6, sy + 7))
+            if not is_active:
+                t_unlock = font_sub.render("UNLOCKED", True, COLOR_EMERALD)
+                canvas.blit(t_unlock, (sx + 6, sy + 18))
+        else:
+            t_lock = font_sub.render("LOCKED", True, txt_col)
+            canvas.blit(t_lock, (sx + 6, sy + 4))
+            req_str = f"{req_score:,} PTS"
+            t_req = font_sub.render(req_str, True, COLOR_CRIMSON if not has_met else COLOR_GOLD)
+            canvas.blit(t_req, (sx + 6, sy + 18))
     
     # Render active visual skin info
     if player:
@@ -166,7 +266,8 @@ def draw_hangar_shop_ui(canvas: pygame.Surface, scrap: int, current_sector_idx: 
         "skin": r_skin,
         "settings": r_settings,
         "exit": r_exit,
-        "upgrades": item_rects
+        "upgrades": item_rects,
+        "weapon_slots": weapon_slot_rects
     }
 
 

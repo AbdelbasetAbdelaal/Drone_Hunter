@@ -225,7 +225,8 @@ class EncounterSystem:
                     else:
                         enemy_type = self.config[self.spawned_count]
                         
-                    enemy = Enemy(enemy_type=enemy_type, pos=spawn_pos, sector_idx=ctx.current_sector_idx)
+                    enemy = Enemy(enemy_type=enemy_type, pos=spawn_pos, sector_idx=ctx.current_sector_idx,
+                                  hp_multiplier=getattr(ctx, "ng_plus_enemy_hp_mult", 1.0))
                     ctx.target_group.add(enemy)
                     
                     self.active_enemies.append(enemy)

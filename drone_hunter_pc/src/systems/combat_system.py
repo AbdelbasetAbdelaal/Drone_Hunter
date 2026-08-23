@@ -159,6 +159,8 @@ class CombatSystem:
                             if ctx.particle_manager:
                                 ctx.particle_manager.spawn_spark(target.rect.center, 5, COLOR_CYAN)
                         if is_dead:
+                            ctx.total_kills += 1
+                            ctx.emp_kills += 1
                             ctx.add_score(target.score_value)
                             if ctx.particle_manager: ctx.particle_manager.spawn_explosion(target.rect.center, 25, COLOR_CYAN)
 
@@ -217,13 +219,16 @@ class CombatSystem:
                             if chained_dead:
                                 if ctx.audio_manager: ctx.audio_manager.play_explosion()
                                 earned = ctx.add_score(chained_enemy.score_value)
+                                ctx.total_kills += 1
+                                if ctx.player and getattr(ctx.player, "overdrive_timer", 0.0) > 0.0:
+                                    ctx.overdrive_kills += 1
                                 
                                 if chained_enemy.enemy_type == TARGET_TYPE_SCOUT:
-                                    ctx.scrap += REWARD_SCOUT
+                                    ctx.scrap += int(REWARD_SCOUT * ctx.ng_plus_scrap_mult)
                                 elif chained_enemy.enemy_type == TARGET_TYPE_SHOOTER:
-                                    ctx.scrap += REWARD_SHOOTER
+                                    ctx.scrap += int(REWARD_SHOOTER * ctx.ng_plus_scrap_mult)
                                 elif chained_enemy.enemy_type == TARGET_TYPE_HEAVY:
-                                    ctx.scrap += REWARD_HEAVY
+                                    ctx.scrap += int(REWARD_HEAVY * ctx.ng_plus_scrap_mult)
 
                                 if ctx.particle_manager:
                                     score_col = getattr(chained_enemy, "color", COLOR_GOLD)
@@ -249,6 +254,9 @@ class CombatSystem:
                     ctx.audio_manager.play_hit(hit_target_type)
 
                 if is_dead:
+                    ctx.total_kills += 1
+                    if getattr(ctx.player, "overdrive_timer", 0.0) > 0.0:
+                        ctx.overdrive_kills += 1
                     if ctx.audio_manager:
                         death_type = getattr(target, "enemy_type", "")
                         if getattr(target, "is_boss", False):
@@ -262,31 +270,31 @@ class CombatSystem:
                     earned_pts = ctx.add_score(target.score_value)
                     
                     if target.enemy_type == TARGET_TYPE_SCOUT:
-                        ctx.scrap += REWARD_SCOUT
+                        ctx.scrap += int(REWARD_SCOUT * ctx.ng_plus_scrap_mult)
                     elif target.enemy_type == TARGET_TYPE_SHOOTER:
-                        ctx.scrap += REWARD_SHOOTER
+                        ctx.scrap += int(REWARD_SHOOTER * ctx.ng_plus_scrap_mult)
                     elif target.enemy_type == TARGET_TYPE_HEAVY:
-                        ctx.scrap += REWARD_HEAVY
+                        ctx.scrap += int(REWARD_HEAVY * ctx.ng_plus_scrap_mult)
 
-                    # Damage numbers on hit
-                    if ctx.particle_manager:
-                        dmg_color = (255, 255, 255) if dmg >= 50 else ((255, 200, 50) if dmg >= 25 else (200, 220, 255))
-                        ctx.particle_manager.spawn_floating_text(target.rect.center, f"-{int(dmg)}", dmg_color, 16)
+                # Damage numbers on hit
+                if ctx.particle_manager:
+                    dmg_color = (255, 255, 255) if dmg >= 50 else ((255, 200, 50) if dmg >= 25 else (200, 220, 255))
+                    ctx.particle_manager.spawn_floating_text(target.rect.center, f"-{int(dmg)}", dmg_color, 16)
 
-                    # Death Explosion Particles
-                    if ctx.particle_manager:
-                        if getattr(target, "is_boss", False):
-                            ctx.particle_manager.spawn_boss_explosion(target.rect.center)
-                        else:
-                            ctx.particle_manager.spawn_enemy_death(target.rect.center, target.color, enemy_type=target.enemy_type)
-                        score_color = getattr(target, "color", COLOR_GOLD)
-                        ctx.particle_manager.spawn_floating_text(target.rect.center, f"+{earned_pts}", score_color, 20)
+                # Death Explosion Particles
+                if ctx.particle_manager:
+                    if getattr(target, "is_boss", False):
+                        ctx.particle_manager.spawn_boss_explosion(target.rect.center)
+                    else:
+                        ctx.particle_manager.spawn_enemy_death(target.rect.center, target.color, enemy_type=target.enemy_type)
+                    score_color = getattr(target, "color", COLOR_GOLD)
+                    ctx.particle_manager.spawn_floating_text(target.rect.center, f"+{earned_pts}", score_color, 20)
 
-                    # Power-up drop roll with difficulty drop rate scaling
-                    drop_rate = 1.0 if getattr(target, "is_boss", False) else ctx.difficulty_data.get("powerup_drop_rate", 0.30)
-                    if random.random() < drop_rate:
-                        p_type = random.choice(["battery", "overclock", "shield", "slowmo", "coin", "wingman", "weapon"])
-                        ctx.powerup_group.add(PowerupItem(target.rect.center, p_type))
+                # Power-up drop roll with difficulty drop rate scaling
+                drop_rate = 1.0 if getattr(target, "is_boss", False) else ctx.difficulty_data.get("powerup_drop_rate", 0.30)
+                if random.random() < drop_rate:
+                    p_type = random.choice(["battery", "overclock", "shield", "slowmo", "coin", "wingman", "weapon"])
+                    ctx.powerup_group.add(PowerupItem(target.rect.center, p_type))
 
         # 3. Enemy Bullets vs Player Drone
         if player.alive and not player.is_invulnerable and not player.is_cloaked:
@@ -307,6 +315,8 @@ class CombatSystem:
                     ctx.damage_flash_timer = 0.18
                     if ctx.audio_manager: ctx.audio_manager.play_player_hit()
                     if ctx.particle_manager: ctx.particle_manager.spawn_explosion(player.rect.center, count=20, color=COLOR_CRIMSON)
+                    if ctx.mission_start_time > 0:
+                        ctx.mission_damage_taken += scaled_dmg
 
                 if is_destroyed:
                     if ctx.audio_manager: ctx.audio_manager.play_player_death()
@@ -332,7 +342,9 @@ class CombatSystem:
                         ctx.trigger_shake(4.0, 0.2)
                         ctx.damage_flash_timer = 0.18
                         if ctx.audio_manager: ctx.audio_manager.play_player_hit()
-                        if ctx.particle_manager: ctx.particle_manager.spawn_spark(player.rect.center, count=15, color=COLOR_CRIMSON)
+                        if ctx.particle_manager: ctx.particle_manager.spawn_explosion(player.rect.center, count=15, color=COLOR_CRIMSON)
+                        if ctx.mission_start_time > 0:
+                            ctx.mission_damage_taken += c_dmg
 
                     if is_destroyed:
                         if ctx.audio_manager: ctx.audio_manager.play_player_death()
@@ -349,6 +361,8 @@ class CombatSystem:
                     ctx.trigger_shake(4.0, 0.1)
                     if ctx.audio_manager: ctx.audio_manager.play_player_hit()
                     if ctx.particle_manager: ctx.particle_manager.spawn_spark(player.rect.center, count=4, color=COLOR_NEON_RED)
+                    if ctx.mission_start_time > 0:
+                        ctx.mission_damage_taken += 35.0 * dt
                     if is_destroyed:
                         if ctx.audio_manager: ctx.audio_manager.play_player_death()
                         if ctx.particle_manager:

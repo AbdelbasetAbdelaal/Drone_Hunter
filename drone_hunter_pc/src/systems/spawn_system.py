@@ -77,7 +77,7 @@ class Spawner:
         self.timer += dt
         current_wave = context.current_wave
         diff_data = context.difficulty_data
-        hp_mult = diff_data.get("hp_mult", 1.0)
+        hp_mult = diff_data.get("hp_mult", 1.0) * getattr(context, "ng_plus_enemy_hp_mult", 1.0)
         spd_mult = diff_data.get("speed_mult", 1.0)
 
         # Stage 3 Boss Spawn (Wave 4)

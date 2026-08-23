@@ -16,13 +16,14 @@ from src.data.settings import (
     COLOR_COIN, COLOR_NEON_RED, COLOR_TESLA, COLOR_CLUSTER
 )
 from src.data.game_data import (
-    SECTORS, DIFFICULTY_NAMES, DIFFICULTY_NIGHTMARE, WEAPON_DEFS, UPGRADES
+    SECTORS, DIFFICULTY_NAMES, DIFFICULTY_NIGHTMARE, WEAPON_DEFS, UPGRADES,
+    WEAPON_UPGRADES, WEAPON_UNLOCK_COSTS, DIFFICULTY_CUSTOM, CUSTOM_DIFFICULTY_DEFAULTS
 )
 from src.core.game_state import (
     GameState, STATE_MENU, STATE_SECTOR_SELECT, STATE_HANGAR, STATE_PLAYING,
     STATE_PAUSED, STATE_LEVEL_CLEAR, STATE_GAME_OVER, STATE_VICTORY,
     STATE_MISSION_BRIEFING, STATE_MISSION_COMPLETE, STATE_MISSION_FAILED,
-    STATE_SETTINGS, STATE_DRONE_SELECT
+    STATE_SETTINGS, STATE_DRONE_SELECT, STATE_SAVE_SELECT, STATE_CUSTOM_DIFFICULTY
 )
 from src.core.game_context import GameContext
 from src.core.clock import GameClock
@@ -32,6 +33,7 @@ from src.entities.obstacle import EnvironmentalObstacle
 from src.entities.hazard import LaserGridFence, GravityAnomaly
 from src.systems.save_system import SaveSystem
 from src.systems.progression_system import ProgressionSystem
+from src.systems.achievement_system import AchievementSystem
 from src.systems.spawn_system import Spawner, WaveManager
 from src.systems.encounter_system import EncounterSystem, SCOUT_SHOOTER_HEAVY_ENCOUNTER
 from src.systems.combat_director import CombatDirector
@@ -46,14 +48,15 @@ from src.rendering.renderer import GameRenderer
 from src.audio.audio_manager import AudioManager
 from src.ui.hud import (
     draw_hud, draw_boss_health_bar, draw_radar_minimap, draw_combo_banner,
-    draw_wave_announcement,
+    draw_wave_announcement, draw_boss_rating,
     draw_boss_intro_warning
 )
 from src.ui.menus import (
     draw_main_menu, draw_sector_select_ui, draw_pause_settings_ui,
     draw_mission_select_ui, draw_mission_briefing, draw_mission_complete,
     draw_mission_failed, draw_settings_menu_ui,
-    draw_level_clear_ui, draw_game_over_ui, draw_campaign_victory_ui
+    draw_level_clear_ui, draw_game_over_ui, draw_campaign_victory_ui,
+    draw_save_slot_select_ui, draw_custom_difficulty_ui
 )
 from src.ui.drone_select import draw_drone_select_ui
 from src.ui.hangar import draw_hangar_shop_ui
@@ -80,7 +83,7 @@ class Game:
         self.background = ParallaxBackground()
         self.particle_manager = ParticleManager()
         self.audio_manager = AudioManager()
-        self.save_system = SaveSystem()
+        self.save_system = SaveSystem(slot_index=0)
         from src.input import InputManager
         self.input_manager = InputManager()
         self.spawner = Spawner()
@@ -92,6 +95,18 @@ class Game:
         self.previous_state = STATE_MENU
         self.ui_rects_cache = {}
         self.combat_system = CombatSystem(self.context)
+        self.custom_difficulty_dragging = -1
+        self.selected_save_slot = 0
+        self.achievement_system = AchievementSystem()
+        self.achievement_system.register_callback(
+            lambda ach_id, ach_data: self.context.achievement_popups.append({
+                "id": ach_id,
+                "name": ach_data["name"],
+                "description": ach_data["description"],
+                "icon": ach_data.get("icon", ""),
+                "timer": 4.0
+            })
+        )
 
         # Inject references
         self.context.particle_manager = self.particle_manager
@@ -104,6 +119,7 @@ class Game:
         self.context.combat_director = self.combat_director
         self.context.mission_system = self.mission_system
         self.context.boss_system = self.boss_system
+        self.context.achievement_system = self.achievement_system
 
         # Load Save Data
         saved_data = self.save_system.load()
@@ -122,6 +138,20 @@ class Game:
         self.context.selected_drone = saved_data.get("selected_drone", "striker")
         self.context.selected_skin = saved_data.get("selected_skin", 0)
         self.context.selected_skin_override = self.context.selected_skin
+        self.context.weapon_upgrade_levels = saved_data.get("weapon_upgrades", {})
+        self.context.unlocked_weapons = saved_data.get("unlocked_weapons", ["pulse", "scatter", "missile"])
+        self.context.new_game_plus_count = saved_data.get("new_game_plus_count", 0)
+        self.context.achievements = saved_data.get("achievements", [])
+        self.achievement_system.unlocked = set(self.context.achievements)
+        self.context.update_ng_plus_multipliers()
+
+        audio = saved_data.get("audio_settings", {})
+        if audio and self.audio_manager:
+            self.audio_manager.set_sound_enabled(audio.get("sound_enabled", True))
+            self.audio_manager.set_sfx_volume(audio.get("sfx_volume", 0.80))
+            self.audio_manager.set_music_volume(audio.get("music_volume", 0.70))
+            self.audio_manager.set_engine_volume(audio.get("engine_volume", 0.35))
+            self.audio_manager.set_master_volume(audio.get("master_volume", 1.0))
 
         self.progression = ProgressionSystem(
             self.context.unlocked_sectors,
@@ -131,8 +161,9 @@ class Game:
         self.camera = Camera2D(world_w=WORLD_WIDTH, world_h=WORLD_HEIGHT, view_w=SCREEN_WIDTH, view_h=SCREEN_HEIGHT)
         self.running = True
         self.reset_game()
-        self.context.state = STATE_MENU
-        self.previous_state = STATE_MENU
+        self._load_slot_data(self.selected_save_slot)
+        self.context.state = STATE_SAVE_SELECT
+        self.previous_state = STATE_SAVE_SELECT
 
         if Game.DEBUG_PROFILE:
             self._prof = {
@@ -152,6 +183,46 @@ class Game:
                     "mission_state": "", "director_state": "", "encounter_state": "",
                 },
             }
+
+    def _load_slot_data(self, slot_index: int):
+        """Loads save data from the specified slot into the game context."""
+        self.save_system = SaveSystem(slot_index=slot_index)
+        self.selected_save_slot = slot_index
+        saved_data = self.save_system.load()
+        ctx = self.context
+        ctx.scrap = saved_data.get("scrap", 0)
+        ctx.coins = saved_data.get("coins", 0)
+        ctx.highscore = saved_data.get("highscore", 0)
+        ctx.upgrade_levels = saved_data.get("upgrades", {})
+        ctx.unlocked_sectors = saved_data.get("sectors", [])
+        ctx.unlocked_stages = saved_data.get("stages", [])
+        ctx.bosses_defeated = saved_data.get("bosses_defeated", [])
+        ctx.campaign_completed = saved_data.get("campaign_completed", False)
+        ctx.show_crt = saved_data.get("show_crt", False)
+        ctx.difficulty_mode = saved_data.get("difficulty_mode", 0)
+        ctx.custom_difficulty_settings = saved_data.get("custom_difficulty", CUSTOM_DIFFICULTY_DEFAULTS.copy())
+        ctx.missions = saved_data.get("missions", ctx.missions)
+        ctx.sector_progress = saved_data.get("sector_progress", ctx.sector_progress)
+        ctx.selected_drone = saved_data.get("selected_drone", "striker")
+        ctx.selected_skin = saved_data.get("selected_skin", 0)
+        ctx.selected_skin_override = ctx.selected_skin
+        ctx.weapon_upgrade_levels = saved_data.get("weapon_upgrades", {})
+        ctx.unlocked_weapons = saved_data.get("unlocked_weapons", ["pulse", "scatter", "missile"])
+        ctx.achievements = saved_data.get("achievements", [])
+        self.achievement_system.unlocked = set(ctx.achievements)
+
+        audio = saved_data.get("audio_settings", {})
+        if audio and self.audio_manager:
+            self.audio_manager.set_sound_enabled(audio.get("sound_enabled", True))
+            self.audio_manager.set_sfx_volume(audio.get("sfx_volume", 0.80))
+            self.audio_manager.set_music_volume(audio.get("music_volume", 0.70))
+            self.audio_manager.set_engine_volume(audio.get("engine_volume", 0.35))
+            self.audio_manager.set_master_volume(audio.get("master_volume", 1.0))
+
+        self.progression = ProgressionSystem(
+            ctx.unlocked_sectors,
+            ctx.unlocked_stages
+        )
 
     def start_phase5_mission(self, mission_id=None):
         if not mission_id:
@@ -175,6 +246,9 @@ class Game:
         ctx.damage_flash_timer = 0.0
         ctx.shake_timer = 0.0
         ctx.level_score = 0
+        ctx.mission_damage_taken = 0.0
+        ctx.mission_start_time = pygame.time.get_ticks() / 1000.0
+        ctx.mission_elapsed_time = 0.0
 
         # Update sector and stage telemetry based on mission_id
         try:
@@ -249,6 +323,7 @@ class Game:
         ctx.player.set_drone_class(selected_drone)
         ctx.player.set_visual_skin(selected_skin)
         ctx.player.apply_shop_upgrades(ctx.upgrade_levels)
+        ctx.player.apply_weapon_upgrades(ctx.weapon_upgrade_levels)
         self.progression.apply_to_player(ctx, ctx.player)
         ctx.player_group.add(ctx.player)
         self.camera.center_x = float(ctx.player.pos.x)
@@ -294,6 +369,13 @@ class Game:
         ctx = self.context
         skin_idx = getattr(ctx.player, "skin_theme", 0) if ctx.player else getattr(ctx, "selected_skin", 0)
         drone_name = getattr(ctx.player, "drone_class", "striker") if ctx.player else getattr(ctx, "selected_drone", "striker")
+        audio = {
+            "sound_enabled": self.audio_manager.sound_enabled,
+            "sfx_volume": self.audio_manager.sfx_volume,
+            "music_volume": self.audio_manager.music_volume,
+            "engine_volume": self.audio_manager.engine_volume,
+            "master_volume": self.audio_manager.master_volume
+        }
         self.save_system.save(
             scrap=ctx.scrap,
             coins=ctx.coins,
@@ -308,7 +390,14 @@ class Game:
             bosses_defeated=getattr(ctx, "bosses_defeated", []),
             campaign_completed=getattr(ctx, "campaign_completed", False),
             selected_drone=drone_name,
-            selected_skin=skin_idx
+            selected_skin=skin_idx,
+            weapon_upgrades=ctx.weapon_upgrade_levels,
+            unlocked_weapons=ctx.unlocked_weapons,
+            audio_settings=audio,
+            custom_difficulty=getattr(ctx, "custom_difficulty_settings", CUSTOM_DIFFICULTY_DEFAULTS.copy()),
+            play_time=getattr(ctx, "play_time", 0),
+            last_played=getattr(ctx, "last_played", None),
+            achievements=getattr(ctx, "achievements", [])
         )
 
     def start_next_stage(self):
@@ -323,6 +412,22 @@ class Game:
             ctx.state = STATE_VICTORY
         else:
             self.start_stage(next_sec, next_stg)
+
+    def start_new_game_plus(self):
+        """Increments NG+ count, applies difficulty multipliers, and launches S1_M1."""
+        ctx = self.context
+        ctx.new_game_plus_count += 1
+        ctx.update_ng_plus_multipliers()
+        ctx.campaign_completed = True
+        ctx.missions["completed"] = []
+        ctx.sector_progress["completed"] = []
+        ctx.sector_progress["unlocked"] = [1]
+        ctx.missions["current_sector"] = 1
+        ctx.missions["current_mission"] = 1
+        ctx.bosses_defeated = []
+        self.save_progress()
+        self.pending_mission_id = "S1_M1"
+        self.start_phase5_mission("S1_M1")
 
     def get_next_mission_id(self) -> str | None:
         """Determines the next mission ID in campaign sequence."""
@@ -359,14 +464,67 @@ class Game:
         info = UPGRADES[upgrade_id]
         cur_lvl = ctx.upgrade_levels.get(upgrade_id, 0)
         cost = int(info["base_cost"] * (info["cost_mult"] ** cur_lvl))
-        if cur_lvl < info["max_lvl"] and ctx.coins >= cost:
-            ctx.coins -= cost
+        if cur_lvl < info["max_lvl"] and ctx.scrap >= cost:
+            ctx.scrap -= cost
             ctx.upgrade_levels[upgrade_id] = cur_lvl + 1
             self.audio_manager.play_buy()
             self.save_progress()
             if ctx.player:
                 ctx.player.apply_shop_upgrades(ctx.upgrade_levels)
                 self.progression.apply_to_player(ctx, ctx.player)
+            return True
+        return False
+
+    def equip_weapon(self, slot_index: int, weapon_id: str) -> bool:
+        ctx = self.context
+        if not ctx.player:
+            return False
+        if weapon_id not in ctx.unlocked_weapons:
+            return False
+        weapons = ctx.player.available_weapons
+        if slot_index < 0 or slot_index >= len(weapons):
+            return False
+        weapons[slot_index] = weapon_id
+        if weapon_id not in ctx.player.weapon_cooldowns:
+            ctx.player.weapon_cooldowns[weapon_id] = 0.0
+        if ctx.player.active_weapon not in weapons:
+            ctx.player.active_weapon = weapons[0]
+            ctx.player.current_weapon_idx = 0
+        self.save_progress()
+        return True
+
+    def buy_weapon_upgrade(self, weapon_id: str) -> bool:
+        ctx = self.context
+        if weapon_id not in WEAPON_UPGRADES:
+            return False
+        info = WEAPON_UPGRADES[weapon_id]
+        cur_lvl = ctx.weapon_upgrade_levels.get(weapon_id, 0)
+        cost = int(info["cost_base"] * (info["cost_mult"] ** cur_lvl))
+        if cur_lvl < info["max_level"] and ctx.scrap >= cost:
+            ctx.scrap -= cost
+            ctx.weapon_upgrade_levels[weapon_id] = cur_lvl + 1
+            self.audio_manager.play_buy()
+            self.save_progress()
+            if ctx.player:
+                ctx.player.apply_weapon_upgrades(ctx.weapon_upgrade_levels)
+            return True
+        return False
+
+    def unlock_weapon(self, weapon_id: str) -> bool:
+        ctx = self.context
+        if weapon_id in ctx.unlocked_weapons:
+            return False
+        if weapon_id not in WEAPON_UNLOCK_COSTS:
+            return False
+        cost = WEAPON_UNLOCK_COSTS[weapon_id]
+        if ctx.scrap >= cost:
+            ctx.scrap -= cost
+            ctx.unlocked_weapons.append(weapon_id)
+            self.audio_manager.play_buy()
+            self.save_progress()
+            if ctx.player and weapon_id not in ctx.player.available_weapons:
+                ctx.player.available_weapons.append(weapon_id)
+                ctx.player.weapon_cooldowns[weapon_id] = 0.0
             return True
         return False
 
@@ -437,6 +595,19 @@ class Game:
                     elif event.key in (pygame.K_q, pygame.K_ESCAPE):
                         self.running = False
 
+                elif ctx.state == STATE_SAVE_SELECT:
+                    if event.key in (pygame.K_ESCAPE, pygame.K_q):
+                        self.running = False
+                    elif event.key in (pygame.K_1, pygame.K_KP1):
+                        self._load_slot_data(0)
+                        ctx.state = STATE_MENU
+                    elif event.key in (pygame.K_2, pygame.K_KP2):
+                        self._load_slot_data(1)
+                        ctx.state = STATE_MENU
+                    elif event.key in (pygame.K_3, pygame.K_KP3):
+                        self._load_slot_data(2)
+                        ctx.state = STATE_MENU
+
                 elif ctx.state == STATE_DRONE_SELECT:
                     if event.key in (pygame.K_ESCAPE, pygame.K_b, pygame.K_BACKSPACE):
                         ctx.state = STATE_MENU
@@ -449,6 +620,13 @@ class Game:
                 elif ctx.state == STATE_SETTINGS:
                     if event.key in (pygame.K_ESCAPE, pygame.K_b, pygame.K_BACKSPACE, pygame.K_SPACE, pygame.K_RETURN):
                         ctx.state = self.previous_state if self.previous_state != STATE_SETTINGS else STATE_SECTOR_SELECT
+
+                elif ctx.state == STATE_CUSTOM_DIFFICULTY:
+                    if event.key in (pygame.K_ESCAPE, pygame.K_b, pygame.K_BACKSPACE):
+                        ctx.state = STATE_SETTINGS
+                    elif event.key in (pygame.K_RETURN, pygame.K_SPACE):
+                        self.save_progress()
+                        ctx.state = STATE_SETTINGS
 
                 elif ctx.state == STATE_SECTOR_SELECT:
                     if event.key in (pygame.K_SPACE, pygame.K_RETURN):
@@ -558,7 +736,9 @@ class Game:
                         ctx.state = STATE_MENU
 
                 elif ctx.state == STATE_VICTORY:
-                    if event.key in (pygame.K_SPACE, pygame.K_RETURN, pygame.K_m, pygame.K_ESCAPE, pygame.K_b):
+                    if event.key in (pygame.K_n,):
+                        self.start_new_game_plus()
+                    elif event.key in (pygame.K_SPACE, pygame.K_RETURN, pygame.K_m, pygame.K_ESCAPE, pygame.K_b):
                         self.mission_system.active_mission_id = None
                         ctx.state = STATE_SECTOR_SELECT
                     elif event.key == pygame.K_h:
@@ -639,6 +819,20 @@ class Game:
                     elif cache.get('exit') and cache['exit'].collidepoint(mx, my):
                         self.running = False
 
+                elif ctx.state == STATE_SAVE_SELECT:
+                    for i in range(3):
+                        slot_key = f"slot_{i}"
+                        del_key = f"del_{i}"
+                        if cache.get(slot_key) and cache[slot_key].collidepoint(mx, my):
+                            if cache.get(del_key) and cache[del_key].collidepoint(mx, my):
+                                self.save_system.delete_save_slot(i)
+                            else:
+                                self._load_slot_data(i)
+                                ctx.state = STATE_MENU
+                            break
+                    if cache.get('back') and cache['back'].collidepoint(mx, my):
+                        self.running = False
+
                 elif ctx.state == STATE_DRONE_SELECT:
                     if cache.get('back') and cache['back'].collidepoint(mx, my):
                         ctx.state = STATE_MENU
@@ -661,7 +855,9 @@ class Game:
                     elif cache.get('sfx') and cache['sfx'].collidepoint(mx, my):
                         self.audio_manager.sound_enabled = not self.audio_manager.sound_enabled
                     elif cache.get('diff') and cache['diff'].collidepoint(mx, my):
-                        ctx.difficulty_mode = (ctx.difficulty_mode + 1) % 4
+                        ctx.difficulty_mode = (ctx.difficulty_mode + 1) % 5
+                        if ctx.difficulty_mode == DIFFICULTY_CUSTOM:
+                            ctx.state = STATE_CUSTOM_DIFFICULTY
                         self.save_progress()
                     elif cache.get('reset') and cache['reset'].collidepoint(mx, my):
                         ctx.scrap = 0
@@ -675,6 +871,31 @@ class Game:
                     elif cache.get('back') and cache['back'].collidepoint(mx, my):
                         ctx.state = self.previous_state if self.previous_state != STATE_SETTINGS else STATE_SECTOR_SELECT
 
+                elif ctx.state == STATE_CUSTOM_DIFFICULTY:
+                    custom_btns = draw_custom_difficulty_ui(self.renderer.canvas, ctx.custom_difficulty_settings, mouse_pos=(mx, my), dragging=self.custom_difficulty_dragging)
+                    if custom_btns.get("back") and custom_btns["back"].collidepoint(mx, my):
+                        ctx.state = STATE_SETTINGS
+                    elif custom_btns.get("save") and custom_btns["save"].collidepoint(mx, my):
+                        self.save_progress()
+                        ctx.state = STATE_SETTINGS
+                    elif custom_btns.get("reset") and custom_btns["reset"].collidepoint(mx, my):
+                        ctx.custom_difficulty_settings = CUSTOM_DIFFICULTY_DEFAULTS.copy()
+                    else:
+                        for key, rect_info in custom_btns.items():
+                            if key in ("back", "save", "reset"):
+                                continue
+                            if isinstance(rect_info, dict) and "track" in rect_info:
+                                track = rect_info["track"]
+                                handle = rect_info["handle"]
+                                if track.collidepoint(mx, my) or handle.collidepoint(mx, my):
+                                    self.custom_difficulty_dragging = key
+                                    ratio = max(0.0, min(1.0, (mx - track.left) / max(1, track.width)))
+                                    val = rect_info["min"] + ratio * (rect_info["max"] - rect_info["min"])
+                                    step = rect_info.get("step", 0.05)
+                                    val = round(val / step) * step
+                                    ctx.custom_difficulty_settings[key] = max(rect_info["min"], min(rect_info["max"], val))
+                                    break
+
                 elif ctx.state == STATE_SECTOR_SELECT:
                     if cache.get("back") and cache["back"].collidepoint(mx, my):
                         ctx.state = STATE_MENU
@@ -687,7 +908,9 @@ class Game:
                     elif cache.get("exit") and cache["exit"].collidepoint(mx, my):
                         self.running = False
                     elif cache.get("diff_rect") and cache["diff_rect"].collidepoint(mx, my):
-                        ctx.difficulty_mode = (ctx.difficulty_mode + 1) % 4
+                        ctx.difficulty_mode = (ctx.difficulty_mode + 1) % 5
+                        if ctx.difficulty_mode == DIFFICULTY_CUSTOM:
+                            ctx.state = STATE_CUSTOM_DIFFICULTY
                         self.save_progress()
                     elif "sectors" in cache and any(r.collidepoint(mx, my) for r in cache["sectors"].values()):
                         for s_id, rect in cache["sectors"].items():
@@ -728,11 +951,22 @@ class Game:
                             if upg_r.collidepoint(mx, my):
                                 self.buy_upgrade(upg_id)
                                 break
+                    elif "weapon_slots" in cache:
+                        for slot_idx, slot_r in cache["weapon_slots"].items():
+                            if slot_r.collidepoint(mx, my) and ctx.player:
+                                cur_weapon = ctx.player.available_weapons[slot_idx]
+                                unlocked = [w for w in ctx.unlocked_weapons if w != cur_weapon]
+                                if unlocked:
+                                    next_w = unlocked[0]
+                                    self.equip_weapon(slot_idx, next_w)
+                                break
 
                 elif ctx.state == STATE_PAUSED:
                     pause_btns = draw_pause_settings_ui(self.renderer.canvas, ctx.difficulty_mode, ctx.show_crt, self.audio_manager.sound_enabled)
                     if pause_btns["diff"].collidepoint(mx, my):
-                        ctx.difficulty_mode = (ctx.difficulty_mode + 1) % 4
+                        ctx.difficulty_mode = (ctx.difficulty_mode + 1) % 5
+                        if ctx.difficulty_mode == DIFFICULTY_CUSTOM:
+                            ctx.state = STATE_CUSTOM_DIFFICULTY
                     elif pause_btns["crt"].collidepoint(mx, my):
                         ctx.show_crt = not ctx.show_crt
                         self.save_progress()
@@ -795,8 +1029,11 @@ class Game:
                         self.start_next_stage()
 
                 elif ctx.state == STATE_VICTORY:
-                    self.mission_system.active_mission_id = None
-                    ctx.state = STATE_SECTOR_SELECT
+                    if cache.get("new_game_plus") and cache["new_game_plus"].collidepoint(mx, my):
+                        self.start_new_game_plus()
+                    else:
+                        self.mission_system.active_mission_id = None
+                        ctx.state = STATE_SECTOR_SELECT
 
                 elif ctx.state == STATE_GAME_OVER:
                     if cache.get("retry") and cache["retry"].collidepoint(mx, my):
@@ -815,6 +1052,23 @@ class Game:
                             self.start_phase5_mission(self.pending_mission_id)
                         else:
                             ctx.state = STATE_SECTOR_SELECT
+
+            elif event.type == pygame.MOUSEMOTION:
+                if ctx.state == STATE_CUSTOM_DIFFICULTY and self.custom_difficulty_dragging >= 0:
+                    mx, my = self.get_canvas_mouse_pos(getattr(event, "pos", None))
+                    custom_btns = draw_custom_difficulty_ui(self.renderer.canvas, ctx.custom_difficulty_settings, mouse_pos=(mx, my), dragging=self.custom_difficulty_dragging)
+                    rect_info = custom_btns.get(self.custom_difficulty_dragging)
+                    if rect_info and isinstance(rect_info, dict) and "track" in rect_info:
+                        track = rect_info["track"]
+                        ratio = max(0.0, min(1.0, (mx - track.left) / max(1, track.width)))
+                        val = rect_info["min"] + ratio * (rect_info["max"] - rect_info["min"])
+                        step = rect_info.get("step", 0.05)
+                        val = round(val / step) * step
+                        ctx.custom_difficulty_settings[self.custom_difficulty_dragging] = max(rect_info["min"], min(rect_info["max"], val))
+
+            elif event.type == pygame.MOUSEBUTTONUP:
+                if ctx.state == STATE_CUSTOM_DIFFICULTY:
+                    self.custom_difficulty_dragging = -1
 
         # Process discrete controller action triggers
         trig = self.input_manager.actions_triggered
@@ -877,6 +1131,10 @@ class Game:
         ctx = self.context
         self.background.update(dt)
         ctx.update_timers(dt)
+
+        for popup in ctx.achievement_popups:
+            popup["timer"] -= dt
+        ctx.achievement_popups = [p for p in ctx.achievement_popups if p.get("timer", 0) > 0]
 
         if ctx.state in (STATE_PLAYING, STATE_VICTORY):
             sec_info = SECTORS[ctx.current_sector_idx]
@@ -969,12 +1227,15 @@ class Game:
                     mission_done = self.mission_system.update(dt, ctx, self.combat_director, self.boss_system)
                     if mission_done:
                         if self.mission_system.is_mission_success:
+                            ctx.mission_elapsed_time = pygame.time.get_ticks() / 1000.0 - ctx.mission_start_time
                             if getattr(ctx, "campaign_completed", False) and self.mission_system.active_mission_id == "S5_M5":
                                 ctx.state = STATE_VICTORY
                                 self.audio_manager.play_victory()
                             else:
                                 ctx.state = STATE_MISSION_COMPLETE
                                 self.audio_manager.play_mission_complete()
+                            self.achievement_system.check_mission_complete(ctx, self)
+                            self.achievement_system.check_all(ctx, self)
                         else:
                             ctx.state = STATE_MISSION_FAILED
                             self.audio_manager.play_game_over()
@@ -1086,11 +1347,14 @@ class Game:
                     boss_just_died = getattr(ctx, "boss_defeat_timer", 0.0) > 0.0
                     if boss_just_died:
                         ctx.boss_defeat_timer = max(0.0, ctx.boss_defeat_timer - dt)
+                    if getattr(ctx, "boss_rating_timer", 0.0) > 0.0:
+                        ctx.boss_rating_timer = max(0.0, ctx.boss_rating_timer - dt)
                     
                     if (stage_complete or director_finished) and not boss_just_died:
                         ctx.state = STATE_LEVEL_CLEAR
                         self.audio_manager.play_mission_complete()
                         self.save_progress()
+            self.achievement_system.check_all(ctx, self)
         else:
             self.audio_manager.stop_engine_sound()
 
@@ -1106,10 +1370,18 @@ class Game:
             self.background.draw_menu_backdrop(canvas)
             self.ui_rects_cache = draw_main_menu(canvas, mouse_pos=canvas_m_pos)
 
+        elif ctx.state == STATE_SAVE_SELECT:
+            self.ui_rects_cache = draw_save_slot_select_ui(canvas, self.save_system, mouse_pos=canvas_m_pos)
+
         elif ctx.state == STATE_SETTINGS:
             self.ui_rects_cache = draw_settings_menu_ui(
                 canvas, ctx.difficulty_mode, ctx.show_crt,
                 self.audio_manager.sound_enabled, mouse_pos=canvas_m_pos
+            )
+
+        elif ctx.state == STATE_CUSTOM_DIFFICULTY:
+            self.ui_rects_cache = draw_custom_difficulty_ui(
+                canvas, ctx.custom_difficulty_settings, mouse_pos=canvas_m_pos, dragging=self.custom_difficulty_dragging
             )
 
         elif ctx.state == STATE_SECTOR_SELECT:
@@ -1123,7 +1395,7 @@ class Game:
             self.ui_rects_cache = draw_mission_briefing(canvas, get_mission_data(self.pending_mission_id), ctx.scrap, mouse_pos=canvas_m_pos)
 
         elif ctx.state == STATE_HANGAR:
-            self.ui_rects_cache = draw_hangar_shop_ui(canvas, ctx.scrap, ctx.current_sector_idx, ctx.upgrade_levels, mouse_pos=canvas_m_pos, player=ctx.player)
+            self.ui_rects_cache = draw_hangar_shop_ui(canvas, ctx.scrap, ctx.current_sector_idx, ctx.upgrade_levels, mouse_pos=canvas_m_pos, player=ctx.player, weapon_upgrades=ctx.weapon_upgrade_levels, unlocked_weapons=ctx.unlocked_weapons, unlocked_skins=ctx.unlocked_skins, total_score=ctx.total_score)
 
         elif ctx.state == STATE_VICTORY:
             draw_campaign_victory_ui(
@@ -1132,7 +1404,8 @@ class Game:
                 highscore=ctx.highscore,
                 scrap=ctx.scrap,
                 bosses_count=len(getattr(ctx, "bosses_defeated", [])),
-                missions_count=len(ctx.missions.get("completed", []))
+                missions_count=len(ctx.missions.get("completed", [])),
+                ng_plus_count=ctx.new_game_plus_count
             )
 
         elif ctx.state in (STATE_PLAYING, STATE_PAUSED, STATE_LEVEL_CLEAR, STATE_GAME_OVER, STATE_MISSION_COMPLETE, STATE_MISSION_FAILED):
@@ -1146,7 +1419,9 @@ class Game:
                 combo_mult=ctx.combo_count, show_crt=ctx.show_crt,
                 current_wave=ctx.current_wave, sub_level=ctx.current_sub_level,
                 mission_id=getattr(self.mission_system, "active_mission_id", None),
-                objective_text=getattr(self, "_current_objective_text", None)
+                objective_text=getattr(self, "_current_objective_text", None),
+                new_game_plus_count=ctx.new_game_plus_count,
+                achievement_popups=ctx.achievement_popups
             )
             
             draw_combo_banner(canvas, ctx.combo_count, ctx.combo_timer)
@@ -1177,6 +1452,9 @@ class Game:
                     sub = font_card.render("STAGE CLEAR INCOMING...", True, (226, 232, 240, alpha))
                     overlay.blit(sub, sub.get_rect(center=(vw // 2, vh // 2 + 10)))
                     canvas.blit(overlay, (0, 0))
+
+                if getattr(ctx, "boss_rating_timer", 0.0) > 0.0:
+                    draw_boss_rating(canvas, getattr(ctx, "latest_boss_rating", None))
             elif ctx.state == STATE_PAUSED:
                 draw_pause_settings_ui(canvas, ctx.difficulty_mode, ctx.show_crt, self.audio_manager.sound_enabled, mouse_pos=canvas_m_pos)
             elif ctx.state == STATE_LEVEL_CLEAR:

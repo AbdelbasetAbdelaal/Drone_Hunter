@@ -1,37 +1,57 @@
 """
-================================================================================
-                    DRONE HUNTER 2D - ATOMIC SAVE SYSTEM
-================================================================================
+===============================================================================
+                     DRONE HUNTER 2D - ATOMIC SAVE SYSTEM
+===============================================================================
 Robust, atomic JSON save & load persistence with data integrity validation,
-safe fallback defaults, and error logging.
+safe fallback defaults, and error logging. Supports 3 save slots with backward
+compatibility for the legacy single save file.
 """
 
 import os
 import json
 import logging
-from typing import Tuple, Dict, List
+import time
+from typing import Tuple, Dict, List, Optional
 from src.data.settings import SAVE_FILE_NAME
-from src.data.game_data import SECTORS
+from src.data.game_data import SECTORS, DIFFICULTY_CUSTOM, CUSTOM_DIFFICULTY_DEFAULTS
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s [%(levelname)s] %(message)s")
 
+LEGACY_SAVE_FILE = SAVE_FILE_NAME
+NUM_SAVE_SLOTS = 3
+
 class SaveSystem:
-    def __init__(self, save_filename: str = SAVE_FILE_NAME):
+    def __init__(self, save_filename: str = None, slot_index: int = None):
         base_dir = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-        self.save_path = os.path.join(base_dir, save_filename)
+        self.base_dir = base_dir
+
+        if slot_index is not None:
+            self.save_path = os.path.join(base_dir, f"save_slot_{slot_index + 1}.json")
+            self.slot_index = slot_index
+        elif save_filename is not None:
+            self.save_path = os.path.join(base_dir, save_filename)
+            self.slot_index = None
+        else:
+            self.save_path = os.path.join(base_dir, "save_slot_1.json")
+            self.slot_index = 0
+
         self.temp_path = self.save_path + ".tmp"
 
     def get_default_save_data(self) -> dict:
         return {
             "scrap": 0,
-            "coins": 0, # Legacy
+            "coins": 0,
             "highscore": 0,
+            "play_time": 0,
+            "last_played": None,
             "upgrades": {
                 "hull": 1, "energy": 1, "weapon": 1, "mobility": 1,
                 "battery": 0, "speed": 0, "fire_rate": 0, "emp_recharge": 0,
                 "wingman": 0, "cloak": 0, "missiles": 0, "beam": 0,
                 "tesla": 0, "cluster": 0, "overdrive": 0
             },
+            "weapon_upgrades": {},
+            "unlocked_weapons": ["pulse", "scatter", "missile"],
             "sectors": [True, False, False, False, False],
             "stages": [True] + [False] * 14,
             "missions": {
@@ -46,28 +66,115 @@ class SaveSystem:
             },
             "bosses_defeated": [],
             "campaign_completed": False,
+            "achievements": [],
             "show_crt": False,
             "difficulty_mode": 1,
+            "custom_difficulty": CUSTOM_DIFFICULTY_DEFAULTS.copy(),
             "selected_drone": "striker",
-            "selected_skin": 0
+            "selected_skin": 0,
+            "audio_settings": {
+                "sound_enabled": True,
+                "sfx_volume": 0.80,
+                "music_volume": 0.70,
+                "engine_volume": 0.35,
+                "master_volume": 1.0
+            }
         }
+
+    def _get_slot_path(self, slot_index: int) -> str:
+        return os.path.join(self.base_dir, f"save_slot_{slot_index + 1}.json")
+
+    def get_save_slot_list(self) -> List[Dict]:
+        """Returns metadata for all 3 save slots plus legacy save if it exists."""
+        slots = []
+        for i in range(NUM_SAVE_SLOTS):
+            slot_path = self._get_slot_path(i)
+            meta = {
+                "slot_index": i,
+                "filename": os.path.basename(slot_path),
+                "exists": os.path.exists(slot_path),
+                "play_time": 0,
+                "last_played": None,
+                "sector": 1,
+                "difficulty_mode": 1,
+                "scrap": 0,
+                "highscore": 0
+            }
+            if os.path.exists(slot_path):
+                try:
+                    with open(slot_path, "r", encoding="utf-8") as f:
+                        data = json.load(f)
+                    meta["play_time"] = int(data.get("play_time", 0))
+                    meta["last_played"] = data.get("last_played")
+                    missions = data.get("missions", {})
+                    meta["sector"] = missions.get("current_sector", 1)
+                    meta["difficulty_mode"] = int(data.get("difficulty_mode", 1))
+                    meta["scrap"] = int(data.get("scrap", 0))
+                    meta["highscore"] = int(data.get("highscore", 0))
+                except Exception:
+                    pass
+            slots.append(meta)
+
+        legacy_path = os.path.join(self.base_dir, LEGACY_SAVE_FILE)
+        if os.path.exists(legacy_path):
+            try:
+                with open(legacy_path, "r", encoding="utf-8") as f:
+                    data = json.load(f)
+                slots.append({
+                    "slot_index": "legacy",
+                    "filename": LEGACY_SAVE_FILE,
+                    "exists": True,
+                    "play_time": int(data.get("play_time", 0)),
+                    "last_played": data.get("last_played"),
+                    "sector": data.get("missions", {}).get("current_sector", 1),
+                    "difficulty_mode": int(data.get("difficulty_mode", 1)),
+                    "scrap": int(data.get("scrap", 0)),
+                    "highscore": int(data.get("highscore", 0))
+                })
+            except Exception:
+                pass
+
+        return slots
+
+    def delete_save_slot(self, slot_index: int) -> bool:
+        """Deletes the specified save slot file."""
+        if slot_index < 0 or slot_index >= NUM_SAVE_SLOTS:
+            return False
+        slot_path = self._get_slot_path(slot_index)
+        try:
+            if os.path.exists(slot_path):
+                os.remove(slot_path)
+            temp_path = slot_path + ".tmp"
+            if os.path.exists(temp_path):
+                os.remove(temp_path)
+            return True
+        except Exception as e:
+            logging.error(f"Failed to delete save slot {slot_index}: {e}")
+            return False
 
     def load(self) -> dict:
         """Loads and validates progress data from disk."""
         defaults = self.get_default_save_data()
-        if not os.path.exists(self.save_path):
-            logging.info(f"Save file not found at {self.save_path}. Using safe defaults.")
-            return defaults
+        load_path = self.save_path
+
+        if not os.path.exists(load_path):
+            legacy_path = os.path.join(self.base_dir, LEGACY_SAVE_FILE)
+            if os.path.exists(legacy_path) and self.slot_index is not None:
+                load_path = legacy_path
+            else:
+                logging.info(f"Save file not found at {self.save_path}. Using safe defaults.")
+                return defaults
 
         try:
-            with open(self.save_path, "r", encoding="utf-8") as f:
+            with open(load_path, "r", encoding="utf-8") as f:
                 data = json.load(f)
 
             legacy_coins = max(0, int(data.get("coins", defaults["coins"])))
             scrap = max(0, int(data.get("scrap", legacy_coins)))
             highscore = max(0, int(data.get("highscore", defaults["highscore"])))
-            
-            # Merge upgrades dictionary with defaults
+            play_time = max(0, int(data.get("play_time", 0)))
+            last_played = data.get("last_played")
+
             upgrades = defaults["upgrades"].copy()
             loaded_upgrades = data.get("upgrades", {})
             if isinstance(loaded_upgrades, dict):
@@ -76,13 +183,11 @@ class SaveSystem:
                         try: upgrades[k] = max(0, int(v))
                         except (ValueError, TypeError): pass
 
-            # Validate sectors list
             sectors = list(data.get("sectors", defaults["sectors"]))
             while len(sectors) < len(SECTORS):
                 sectors.append(False)
             sectors[0] = True
 
-            # Validate stages list
             stages = list(data.get("stages", defaults["stages"]))
             while len(stages) < 15:
                 stages.append(False)
@@ -93,27 +198,62 @@ class SaveSystem:
 
             bosses_defeated = list(data.get("bosses_defeated", defaults["bosses_defeated"]))
             campaign_completed = bool(data.get("campaign_completed", defaults["campaign_completed"]))
+            achievements = list(data.get("achievements", defaults["achievements"]))
+            if not isinstance(achievements, list):
+                achievements = list(defaults["achievements"])
+            else:
+                achievements = [str(a) for a in achievements]
 
             show_crt = bool(data.get("show_crt", False))
-            difficulty_mode = int(data.get("difficulty_mode", 1)) % 4
+            difficulty_mode = int(data.get("difficulty_mode", 1)) % 5
             selected_drone = str(data.get("selected_drone", "striker"))
             selected_skin = int(data.get("selected_skin", 0))
+
+            custom_difficulty = data.get("custom_difficulty", defaults["custom_difficulty"])
+            if not isinstance(custom_difficulty, dict):
+                custom_difficulty = defaults["custom_difficulty"].copy()
+            else:
+                custom_difficulty = {k: float(v) if isinstance(v, (int, float)) else defaults["custom_difficulty"][k]
+                                     for k, v in custom_difficulty.items()}
+
+            weapon_upgrades = data.get("weapon_upgrades", defaults["weapon_upgrades"])
+            if not isinstance(weapon_upgrades, dict):
+                weapon_upgrades = defaults["weapon_upgrades"]
+            else:
+                weapon_upgrades = {str(k): max(0, int(v)) for k, v in weapon_upgrades.items()}
+
+            unlocked_weapons = data.get("unlocked_weapons", defaults["unlocked_weapons"])
+            if not isinstance(unlocked_weapons, list):
+                unlocked_weapons = list(defaults["unlocked_weapons"])
+            else:
+                unlocked_weapons = [str(w) for w in unlocked_weapons]
+
+            audio_settings = data.get("audio_settings", defaults["audio_settings"])
+            if not isinstance(audio_settings, dict):
+                audio_settings = defaults["audio_settings"]
 
             return {
                 "scrap": scrap,
                 "coins": legacy_coins,
                 "highscore": highscore,
+                "play_time": play_time,
+                "last_played": last_played,
                 "upgrades": upgrades,
+                "weapon_upgrades": weapon_upgrades,
+                "unlocked_weapons": unlocked_weapons,
                 "sectors": sectors,
                 "stages": stages,
                 "missions": missions,
                 "sector_progress": sector_progress,
                 "bosses_defeated": bosses_defeated,
                 "campaign_completed": campaign_completed,
+                "achievements": achievements,
                 "show_crt": show_crt,
                 "difficulty_mode": difficulty_mode,
+                "custom_difficulty": custom_difficulty,
                 "selected_drone": selected_drone,
-                "selected_skin": selected_skin
+                "selected_skin": selected_skin,
+                "audio_settings": audio_settings
             }
 
         except json.JSONDecodeError as jde:
@@ -123,46 +263,60 @@ class SaveSystem:
             logging.error(f"Unexpected error loading save data: {e}. Using safe defaults.")
             return defaults
 
-    def save(self, scrap: int, coins: int, highscore: int, upgrades: dict, sectors: list, 
+    def save(self, scrap: int, coins: int, highscore: int, upgrades: dict, sectors: list,
              show_crt: bool = False, stages: list = None, difficulty_mode: int = 1,
              missions: dict = None, sector_progress: dict = None,
              bosses_defeated: list = None, campaign_completed: bool = False,
-             selected_drone: str = "striker", selected_skin: int = 0) -> bool:
+             selected_drone: str = "striker", selected_skin: int = 0,
+             weapon_upgrades: dict = None, unlocked_weapons: list = None,
+             audio_settings: dict = None, custom_difficulty: dict = None,
+             play_time: int = 0, last_played: str = None,
+             achievements: list = None) -> bool:
         """Atomically saves game data using a temporary write & replace pattern."""
         if stages is None:
             stages = [True] + [False] * 14
-        
+
         defaults = self.get_default_save_data()
         if missions is None: missions = defaults["missions"]
         if sector_progress is None: sector_progress = defaults["sector_progress"]
         if bosses_defeated is None: bosses_defeated = defaults["bosses_defeated"]
+        if weapon_upgrades is None: weapon_upgrades = defaults["weapon_upgrades"]
+        if unlocked_weapons is None: unlocked_weapons = defaults["unlocked_weapons"]
+        if audio_settings is None: audio_settings = defaults["audio_settings"]
+        if custom_difficulty is None: custom_difficulty = defaults["custom_difficulty"]
+        if last_played is None: last_played = time.strftime("%Y-%m-%dT%H:%M:%S")
+        if achievements is None: achievements = defaults["achievements"]
 
         save_dict = {
             "scrap": max(0, int(scrap)),
             "coins": max(0, int(coins)),
             "highscore": max(0, int(highscore)),
+            "play_time": max(0, int(play_time)),
+            "last_played": last_played,
             "upgrades": upgrades,
+            "weapon_upgrades": weapon_upgrades,
+            "unlocked_weapons": unlocked_weapons,
             "sectors": sectors,
             "stages": stages,
             "missions": missions,
             "sector_progress": sector_progress,
             "bosses_defeated": bosses_defeated,
             "campaign_completed": bool(campaign_completed),
+            "achievements": list(achievements),
             "show_crt": bool(show_crt),
-            "difficulty_mode": int(difficulty_mode),
+            "difficulty_mode": int(difficulty_mode) % 5,
+            "custom_difficulty": custom_difficulty,
             "selected_drone": str(selected_drone),
-            "selected_skin": int(selected_skin)
+            "selected_skin": int(selected_skin),
+            "audio_settings": audio_settings
         }
 
-
         try:
-            # Step 1: Write to temporary file
             with open(self.temp_path, "w", encoding="utf-8") as f:
                 json.dump(save_dict, f, indent=2)
                 f.flush()
                 os.fsync(f.fileno())
 
-            # Step 2: Atomic replace
             if os.path.exists(self.save_path):
                 os.replace(self.temp_path, self.save_path)
             else:

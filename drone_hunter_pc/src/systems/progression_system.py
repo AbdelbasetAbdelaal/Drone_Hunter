@@ -7,7 +7,7 @@ campaign victory state transitions.
 """
 
 from typing import Tuple
-from src.data.game_data import SECTORS
+from src.data.game_data import SECTORS, DRONE_SKIN_UNLOCKS
 
 class ProgressionSystem:
     def __init__(self, unlocked_sectors: list[bool] = None, unlocked_stages: list[bool] = None):
@@ -63,6 +63,18 @@ class ProgressionSystem:
                 self.unlocked_stages[flat_idx] = True
 
         return next_sector_idx, next_sub_level, is_campaign_victory
+
+    def check_skin_unlocks(self, ctx) -> list:
+        """Returns list of newly unlocked skin IDs based on total_score."""
+        unlocked = getattr(ctx, "unlocked_skins", [0])
+        total_score = getattr(ctx, "total_score", 0)
+        new_unlocks = []
+        for skin_id, cond in DRONE_SKIN_UNLOCKS.items():
+            if skin_id not in unlocked and total_score >= cond["score"]:
+                unlocked.append(skin_id)
+                new_unlocks.append(skin_id)
+        ctx.unlocked_skins = unlocked
+        return new_unlocks
 
     # -------------------------------------------------------------------------
     # Phase 4 Player Progression
