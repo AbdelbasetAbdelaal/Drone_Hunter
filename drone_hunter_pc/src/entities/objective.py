@@ -43,6 +43,9 @@ class ShieldGenerator(pygame.sprite.Sprite):
         self.armor = 0.10
         self.size = 50
         self.radius = 24
+        self.enemy_type = "shield_generator"
+        self.score_value = 150
+        self.color = COLOR_SHIELD
         self.alive = True
         self.hit_flash_timer = 0.0
         self.time_accum = random.uniform(0.0, 5.0)
@@ -107,6 +110,9 @@ class RadarNode(pygame.sprite.Sprite):
         self.armor = 0.05
         self.size = 64
         self.radius = 28
+        self.enemy_type = "radar"
+        self.score_value = 200
+        self.color = COLOR_CYAN
         self.alive = True
         self.hit_flash_timer = 0.0
         
@@ -218,6 +224,8 @@ class AAPlatform(pygame.sprite.Sprite):
         self.hp = self.max_hp
         self.armor = 0.15
         self.radius = self.size // 2
+        self.enemy_type = "aa_platform"
+        self.score_value = 250
         self.alive = True
         self.hit_flash_timer = 0.0
         
@@ -437,8 +445,10 @@ class GroundObjective(pygame.sprite.Sprite):
         self.armor = self.catalog_data["armor"]
         self.size = self.catalog_data["size"]
         self.radius = self.size // 2
+        self.enemy_type = "objective"
         self.score_value = self.catalog_data["reward_score"]
         self.scrap_reward = self.catalog_data["reward_scrap"]
+        self.color = self.catalog_data["color_inner"]
         
         self.pos = pygame.Vector2(pos)
         self.alive = True

@@ -272,23 +272,27 @@ class CombatSystem:
                     ctx.trigger_shake(shake_intensity, 0.25)
                     if getattr(ctx, "hit_stop_timer", 0.0) <= 0.0:
                         ctx.trigger_hit_stop(0.06 if not getattr(target, "is_boss", False) else 0.10)
-                    earned_pts = ctx.add_score(target.score_value)
+                    target_score = getattr(target, "score_value", 100)
+                    target_etype = getattr(target, "enemy_type", "")
+                    target_col = getattr(target, "color", getattr(target, "color_outer", COLOR_GOLD))
+                    earned_pts = ctx.add_score(target_score)
                     
-                    if target.enemy_type == TARGET_TYPE_SCOUT:
+                    if target_etype == TARGET_TYPE_SCOUT:
                         ctx.scrap += int(REWARD_SCOUT * ctx.ng_plus_scrap_mult)
-                    elif target.enemy_type == TARGET_TYPE_SHOOTER:
+                    elif target_etype == TARGET_TYPE_SHOOTER:
                         ctx.scrap += int(REWARD_SHOOTER * ctx.ng_plus_scrap_mult)
-                    elif target.enemy_type == TARGET_TYPE_HEAVY:
+                    elif target_etype == TARGET_TYPE_HEAVY:
                         ctx.scrap += int(REWARD_HEAVY * ctx.ng_plus_scrap_mult)
+                    elif hasattr(target, "scrap_reward"):
+                        ctx.scrap += int(target.scrap_reward * ctx.ng_plus_scrap_mult)
 
                     # Death Explosion Particles
                     if ctx.particle_manager:
                         if getattr(target, "is_boss", False):
                             ctx.particle_manager.spawn_boss_explosion(target.rect.center)
                         else:
-                            ctx.particle_manager.spawn_enemy_death(target.rect.center, target.color, enemy_type=target.enemy_type)
-                        score_color = getattr(target, "color", COLOR_GOLD)
-                        ctx.particle_manager.spawn_floating_text(target.rect.center, f"+{earned_pts}", score_color, 20)
+                            ctx.particle_manager.spawn_enemy_death(target.rect.center, target_col, enemy_type=target_etype)
+                        ctx.particle_manager.spawn_floating_text(target.rect.center, f"+{earned_pts}", target_col, 20)
 
                     # Power-up drop roll with difficulty drop rate scaling
                     drop_rate = 1.0 if getattr(target, "is_boss", False) else ctx.difficulty_data.get("powerup_drop_rate", 0.30)
