@@ -1,7 +1,7 @@
 import pygame
 from src.data.settings import (
     SCREEN_WIDTH, SCREEN_HEIGHT, COLOR_CYAN, COLOR_GOLD, COLOR_CRIMSON,
-    COLOR_EMERALD, COLOR_WHITE, COLOR_BG, COLOR_HUD
+    COLOR_EMERALD, COLOR_WHITE, COLOR_BG, COLOR_HUD, COLOR_TEXT_DIM
 )
 from src.data.game_data import (
     DIFFICULTY_MODIFIERS, DIFFICULTY_NAMES, SECTORS, DIFFICULTY_CUSTOM,
@@ -12,8 +12,6 @@ from src.ui.font_manager import (
     font_gameover, font_button, font_sub
 )
 from src.data.mission_data import SECTORS_PHASE5, get_missions_for_sector
-
-COLOR_TEXT_DIM = (120, 140, 160)
 
 
 def draw_button(canvas: pygame.Surface, rect: pygame.Rect, text: str,
