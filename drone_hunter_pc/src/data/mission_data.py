@@ -114,6 +114,19 @@ MISSIONS = [
         ]
     },
     {
+        "id": "S1_M1_ALT", "sector_id": 1, "mission_number": 1,
+        "name": "Coastal Radar Strike", "difficulty": 2,
+        "objective": OBJECTIVE_ASSAULT,
+        "objective_type": OBJECTIVE_TYPE_RADAR_COMMAND,
+        "defense_level": 1,
+        "encounter_sequence": [WAVE_SCOUTS_PATROL, WAVE_SCOUTS_ASSAULT],
+        "lore": "Reconnaissance confirms a lone coastal radar installation shielding the factory approach. Infiltrate the sector, bypass patrol drones, and destroy the radar to open the sky for the assault fleet.",
+        "side_objectives": [
+            {"type": "precision_strikes", "value": 10},
+            {"type": "no_damage_taken", "value": True},
+        ]
+    },
+    {
         "id": "S1_M2", "sector_id": 1, "mission_number": 2,
         "name": "Factory Approach", "difficulty": 1,
         "objective": OBJECTIVE_DESTROY_ALL,
@@ -207,6 +220,19 @@ MISSIONS = [
         ]
     },
     {
+        "id": "S2_M3_ALT", "sector_id": 2, "mission_number": 3,
+        "name": "Canyon Missile Complex", "difficulty": 3,
+        "objective": OBJECTIVE_ASSAULT,
+        "objective_type": OBJECTIVE_TYPE_MISSILE_COMPLEX,
+        "defense_level": 3,
+        "encounter_sequence": [WAVE_SCOUTS_SWARM, WAVE_SHIELD_VANGUARD, WAVE_HEAVY_BATTLEGROUP],
+        "lore": "Deep canyon bunkers house a fully operational missile complex capable of striking the Alliance fleet. Coordinate your strike team and raze the missile complex before it can fire.",
+        "side_objectives": [
+            {"type": "precision_strikes", "value": 10},
+            {"type": "time_limit", "value": 120},
+        ]
+    },
+    {
         "id": "S2_M4", "sector_id": 2, "mission_number": 4,
         "name": "Security Grid", "difficulty": 3,
         "objective": OBJECTIVE_SURVIVE, "duration": 45,
@@ -289,6 +315,19 @@ MISSIONS = [
         ]
     },
     {
+        "id": "S3_M4_ALT", "sector_id": 3, "mission_number": 4,
+        "name": "Jungle Power Reactor", "difficulty": 4,
+        "objective": OBJECTIVE_ASSAULT,
+        "objective_type": OBJECTIVE_TYPE_POWER_REACTOR,
+        "defense_level": 3,
+        "encounter_sequence": [WAVE_SHOOTERS_SQUAD, WAVE_HEAVY_BATTLEGROUP, WAVE_ELITE_STRIKE_FORCE],
+        "lore": "Deep in the jungle canopy, a shielded power reactor feeds the entire sector's drone network. Fight through the advance patrol and strike the reactor core before the jungle defenses can mobilize.",
+        "side_objectives": [
+            {"type": "precision_strikes", "value": 10},
+            {"type": "collect_data_cores", "value": 3},
+        ]
+    },
+    {
         "id": "S3_M5", "sector_id": 3, "mission_number": 5,
         "name": "Critical Overload", "difficulty": 5,
         "objective": OBJECTIVE_COMPLETE_ENCOUNTERS,
@@ -330,6 +369,19 @@ MISSIONS = [
         "side_objectives": [
             {"type": "no_damage_taken", "value": True},
             {"type": "collect_data_cores", "value": 3},
+        ]
+    },
+    {
+        "id": "S4_M2_ALT", "sector_id": 4, "mission_number": 2,
+        "name": "Megacity Comms Hub", "difficulty": 4,
+        "objective": OBJECTIVE_ASSAULT,
+        "objective_type": OBJECTIVE_TYPE_COMMUNICATION_HUB,
+        "defense_level": 4,
+        "encounter_sequence": [WAVE_SHIELD_VANGUARD, WAVE_ELITE_STRIKE_FORCE, WAVE_HEAVY_BATTLEGROUP],
+        "lore": "The megacity's central communications hub coordinates every drone in the Defense Grid. A direct assault is your only option — destroy the relay and sever the network before reinforcements overwhelm you.",
+        "side_objectives": [
+            {"type": "precision_strikes", "value": 10},
+            {"type": "time_limit", "value": 120},
         ]
     },
     {
@@ -437,6 +489,20 @@ MISSIONS = [
         "defense_level": 5,
         "encounter_sequence": [WAVE_SCOUTS_SWARM, WAVE_SHIELD_VANGUARD, WAVE_ELITE_STRIKE_FORCE, WAVE_HEAVY_BATTLEGROUP],
         "lore": "This is it — the Drone Command central processor. The AI controlling the entire enemy network stands before you. Destroy every hostile unit and shut down the command core forever.",
+        "side_objectives": [
+            {"type": "no_damage_taken", "value": True},
+            {"type": "precision_strikes", "value": 10},
+            {"type": "collect_data_cores", "value": 3},
+        ]
+    },
+    {
+        "id": "S5_M5_ALT", "sector_id": 5, "mission_number": 5,
+        "name": "Command Cyber Core", "difficulty": 5,
+        "objective": OBJECTIVE_ASSAULT,
+        "objective_type": OBJECTIVE_TYPE_CYBER_DEFENSE_CORE,
+        "defense_level": 5,
+        "encounter_sequence": [WAVE_SCOUTS_SWARM, WAVE_SHIELD_VANGUARD, WAVE_ELITE_STRIKE_FORCE, WAVE_HEAVY_BATTLEGROUP],
+        "lore": "The final objective: the Drone Command Cyber Core — the neural nexus orchestrating the entire enemy AI network. Push through the last resistance perimeter and deliver the killing blow.",
         "side_objectives": [
             {"type": "no_damage_taken", "value": True},
             {"type": "precision_strikes", "value": 10},

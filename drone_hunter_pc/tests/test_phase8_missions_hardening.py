@@ -32,7 +32,8 @@ from src.data.game_data import (
 )
 from src.data.mission_data import (
     MISSIONS, SECTORS_PHASE5,
-    OBJECTIVE_DESTROY_ALL, OBJECTIVE_SURVIVE, OBJECTIVE_COMPLETE_ENCOUNTERS
+    OBJECTIVE_DESTROY_ALL, OBJECTIVE_SURVIVE, OBJECTIVE_COMPLETE_ENCOUNTERS,
+    OBJECTIVE_ASSAULT
 )
 from src.systems.encounter_system import (
     EncounterSystem,
@@ -54,7 +55,7 @@ from src.core.game_context import GameContext
 from src.core.game_state import STATE_PLAYING
 
 VALID_ENCOUNTER_TYPES = {TARGET_TYPE_SCOUT, TARGET_TYPE_SHOOTER, TARGET_TYPE_HEAVY, TARGET_TYPE_SHIELD_DRONE}
-VALID_OBJECTIVES = {OBJECTIVE_DESTROY_ALL, OBJECTIVE_SURVIVE, OBJECTIVE_COMPLETE_ENCOUNTERS}
+VALID_OBJECTIVES = {OBJECTIVE_DESTROY_ALL, OBJECTIVE_SURVIVE, OBJECTIVE_COMPLETE_ENCOUNTERS, OBJECTIVE_ASSAULT}
 
 KNOWN_WAVE_CONSTANTS = [
     WAVE_SCOUTS_PATROL, WAVE_SCOUTS_ASSAULT, WAVE_SCOUTS_SWARM,
@@ -85,14 +86,14 @@ class TestMissionDataStructure(unittest.TestCase):
     def test_exactly_5_sectors(self):
         self.assertEqual(len(SECTORS_PHASE5), 5)
 
-    def test_exactly_25_missions(self):
-        self.assertEqual(len(MISSIONS), 25)
+    def test_at_least_25_missions(self):
+        self.assertGreaterEqual(len(MISSIONS), 25)
 
-    def test_exactly_5_missions_per_sector(self):
+    def test_at_least_5_missions_per_sector(self):
         from collections import Counter
         counts = Counter(m["sector_id"] for m in MISSIONS)
         for sid in range(1, 6):
-            self.assertEqual(counts[sid], 5, f"Sector {sid} must have 5 missions")
+            self.assertGreaterEqual(counts[sid], 5, f"Sector {sid} must have at least 5 missions")
 
     def test_unique_mission_ids(self):
         ids = [m["id"] for m in MISSIONS]
@@ -109,12 +110,18 @@ class TestMissionDataStructure(unittest.TestCase):
         for m in MISSIONS:
             by_sector[m["sector_id"]].append(m["mission_number"])
         for sid, nums in by_sector.items():
-            self.assertEqual(sorted(nums), [1, 2, 3, 4, 5])
+            base_nums = [n for n in nums if not str(n).endswith("_ALT")]
+            self.assertEqual(sorted(set(base_nums)), [1, 2, 3, 4, 5],
+                             f"Sector {sid} base missions must be numbered 1-5")
 
     def test_mission_id_format_matches_sector_and_number(self):
         for m in MISSIONS:
-            expected = f"S{m['sector_id']}_M{m['mission_number']}"
-            self.assertEqual(m["id"], expected)
+            mid = m["mission_number"]
+            expected = f"S{m['sector_id']}_M{mid}"
+            self.assertTrue(
+                m["id"] == expected or m["id"].startswith(expected + "_"),
+                f"Mission {m['id']} format mismatch"
+            )
 
     def test_sector_names_correct(self):
         names = {s["id"]: s["name"] for s in SECTORS_PHASE5}

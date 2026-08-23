@@ -8,7 +8,7 @@ Radar Networks, Anti-Air Platforms, Shield Generators, and Combat Aircraft.
 
 from src.data.settings import (
     COLOR_CYAN, COLOR_GOLD, COLOR_CRIMSON, COLOR_EMERALD, COLOR_WHITE,
-    COLOR_SHIELD, COLOR_NEON_RED
+    COLOR_SHIELD, COLOR_NEON_RED, WORLD_WIDTH, WORLD_HEIGHT
 )
 
 # -----------------------------------------------------------------------------
@@ -202,3 +202,54 @@ def get_objective_catalog_def(obj_type: str) -> dict:
 def get_defense_level_config(level: int) -> dict:
     """Returns defense configuration corresponding to level 1-5."""
     return DEFENSE_LEVEL_CONFIGS.get(level, DEFENSE_LEVEL_CONFIGS[DEFENSE_LEVEL_1])
+
+
+# -----------------------------------------------------------------------------
+# MISSION-SPECIFIC OBJECTIVE CONFIGS
+# -----------------------------------------------------------------------------
+MISSION_OBJECTIVE_CONFIGS = {
+    "S1_M1_ALT": {
+        "objective_position": (WORLD_WIDTH - 300.0, WORLD_HEIGHT // 2),
+        "reinforcement_spawn_points": [
+            (WORLD_WIDTH - 100.0, WORLD_HEIGHT // 2 - 200.0),
+            (WORLD_WIDTH - 100.0, WORLD_HEIGHT // 2 + 200.0),
+        ],
+    },
+    "S2_M3_ALT": {
+        "objective_position": (WORLD_WIDTH - 320.0, WORLD_HEIGHT // 2 - 100.0),
+        "reinforcement_spawn_points": [
+            (WORLD_WIDTH - 90.0, WORLD_HEIGHT // 2 - 300.0),
+            (WORLD_WIDTH - 90.0, WORLD_HEIGHT // 2),
+            (WORLD_WIDTH - 90.0, WORLD_HEIGHT // 2 + 300.0),
+        ],
+    },
+    "S3_M4_ALT": {
+        "objective_position": (WORLD_WIDTH - 340.0, WORLD_HEIGHT // 2 + 80.0),
+        "reinforcement_spawn_points": [
+            (WORLD_WIDTH - 80.0, WORLD_HEIGHT // 2 - 250.0),
+            (WORLD_WIDTH - 80.0, WORLD_HEIGHT // 2 + 250.0),
+        ],
+    },
+    "S4_M2_ALT": {
+        "objective_position": (WORLD_WIDTH - 300.0, WORLD_HEIGHT // 2 - 60.0),
+        "reinforcement_spawn_points": [
+            (WORLD_WIDTH - 100.0, WORLD_HEIGHT // 2 - 180.0),
+            (WORLD_WIDTH - 100.0, WORLD_HEIGHT // 2),
+            (WORLD_WIDTH - 100.0, WORLD_HEIGHT // 2 + 180.0),
+        ],
+    },
+    "S5_M5_ALT": {
+        "objective_position": (WORLD_WIDTH - 320.0, WORLD_HEIGHT // 2),
+        "reinforcement_spawn_points": [
+            (WORLD_WIDTH - 90.0, WORLD_HEIGHT // 2 - 280.0),
+            (WORLD_WIDTH - 90.0, WORLD_HEIGHT // 2 - 100.0),
+            (WORLD_WIDTH - 90.0, WORLD_HEIGHT // 2 + 100.0),
+            (WORLD_WIDTH - 90.0, WORLD_HEIGHT // 2 + 280.0),
+        ],
+    },
+}
+
+
+def get_mission_objective_config(mission_id: str) -> dict:
+    """Returns mission-specific objective configuration (position, spawn points)."""
+    return MISSION_OBJECTIVE_CONFIGS.get(mission_id, {})

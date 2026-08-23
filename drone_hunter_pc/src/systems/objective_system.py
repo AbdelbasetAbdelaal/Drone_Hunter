@@ -21,7 +21,7 @@ from src.data.objective_data import (
     OBJECTIVE_TYPE_RADAR_COMMAND, get_objective_catalog_def,
     get_defense_level_config, DEFENSE_LEVEL_1, DEFENSE_LEVEL_5,
     RADAR_STATE_ALERT, AA_TYPE_LIGHT, AA_TYPE_HEAVY, AA_TYPE_MISSILE,
-    AIRCRAFT_INTERCEPTOR, AIRCRAFT_ATTACK
+    AIRCRAFT_INTERCEPTOR, AIRCRAFT_ATTACK, get_mission_objective_config
 )
 from src.entities.objective import (
     GroundObjective, RadarNode, AAPlatform, ShieldGenerator, CombatAircraft
@@ -44,6 +44,11 @@ class ObjectiveSystem:
         self.is_completed = False
         self.destruction_timer = 0.0
         self.reinforcement_timer = 0.0
+        self._reinforcement_spawn_points: List[Tuple[float, float]] = []
+        self._entry_zone_x: float = 0.0
+        self._combat_zone_x: float = 0.0
+        self._defense_zone_x: float = 0.0
+        self._objective_zone_x: float = 0.0
 
     def reset(self):
         """Cleans up all active objective structures and state."""
@@ -58,6 +63,11 @@ class ObjectiveSystem:
         self.is_completed = False
         self.destruction_timer = 0.0
         self.reinforcement_timer = 0.0
+        self._reinforcement_spawn_points.clear()
+        self._entry_zone_x = 0.0
+        self._combat_zone_x = 0.0
+        self._defense_zone_x = 0.0
+        self._objective_zone_x = 0.0
 
     @property
     def is_radar_alert_active(self) -> bool:
@@ -78,11 +88,35 @@ class ObjectiveSystem:
         
         obj_type = mission_config.get("objective_type", OBJECTIVE_TYPE_RADAR_COMMAND)
         def_level = mission_config.get("defense_level", 1)
+        mission_id = mission_config.get("id", "")
         self.defense_level = def_level
         def_cfg = get_defense_level_config(def_level)
 
-        # 1. Spawn Ground Objective at end of route
-        obj_pos = (WORLD_WIDTH - 280.0, WORLD_HEIGHT // 2 + random.uniform(-100.0, 100.0))
+        # 1. Load mission-specific objective config (position, reinforcement spawn points)
+        mission_obj_cfg = get_mission_objective_config(mission_id)
+        obj_pos = mission_obj_cfg.get("objective_position")
+        if obj_pos is None:
+            obj_pos = (WORLD_WIDTH - 280.0, WORLD_HEIGHT // 2 + random.uniform(-100.0, 100.0))
+        self._reinforcement_spawn_points = mission_obj_cfg.get("reinforcement_spawn_points", [(WORLD_WIDTH - 80.0, WORLD_HEIGHT // 2)])
+
+        # Zone definitions for reinforcement intensity scaling
+        # entry_zone: far left, player entering sector (lighter defenses)
+        # combat_zone: mid-field, player approaching objective (normal)
+        # defense_zone: near objective, outer perimeter (heavy)
+        # objective_zone: at objective itself (max)
+        ox, oy = obj_pos
+        self._entry_zone_x    = WORLD_WIDTH * 0.15
+        self._combat_zone_x   = WORLD_WIDTH * 0.45
+        self._defense_zone_x  = ox - 300.0
+        self._objective_zone_x = ox - 120.0
+
+        logging.debug(
+            f"ObjectiveSystem: Zones for '{mission_id}' - "
+            f"entry={self._entry_zone_x:.0f} combat={self._combat_zone_x:.0f} "
+            f"defense={self._defense_zone_x:.0f} objective={self._objective_zone_x:.0f}"
+        )
+
+        # 2. Spawn Ground Objective at end of route
         objective = GroundObjective(
             objective_type=obj_type,
             pos=obj_pos,
@@ -169,10 +203,26 @@ class ObjectiveSystem:
             self.reinforcement_timer -= dt
             if self.reinforcement_timer <= 0:
                 self.reinforcement_timer = def_cfg.get("reinforcement_interval", 9.0)
-                # Dispatch 1 bounded reinforcement drone
-                rx = WORLD_WIDTH - 80.0
-                ry = random.uniform(200.0, WORLD_HEIGHT - 200.0)
-                reinf_type = random.choice([Scout, Shooter]) if self.defense_level < 4 else random.choice([Shooter, Heavy, CombatAircraft])
+
+                # Zone-based reinforcement intensity: closer to objective = heavier units
+                px = p_pos[0] if p_pos else (WORLD_WIDTH // 2)
+                if px >= self._objective_zone_x:
+                    zone_reinf_types = [Shooter, Heavy, CombatAircraft]
+                elif px >= self._defense_zone_x:
+                    zone_reinf_types = [Shooter, Heavy] if self.defense_level >= 3 else [Scout, Shooter]
+                elif px >= self._combat_zone_x:
+                    zone_reinf_types = [Scout, Shooter]
+                else:
+                    zone_reinf_types = [Scout]
+
+                reinf_type = random.choice(zone_reinf_types)
+
+                # Use mission-defined reinforcement spawn point if available
+                spawn_pt = random.choice(self._reinforcement_spawn_points) if self._reinforcement_spawn_points else (WORLD_WIDTH - 80.0, random.uniform(200.0, WORLD_HEIGHT - 200.0))
+                rx, ry = spawn_pt
+                # Add small random offset so waves don't all stack at identical position
+                rx += random.uniform(-30.0, 30.0)
+                ry += random.uniform(-40.0, 40.0)
                 reinf = reinf_type(pos=(rx, ry))
                 self.active_reinforcements.append(reinf)
                 ctx.target_group.add(reinf)

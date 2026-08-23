@@ -152,7 +152,7 @@ class MissionSystem:
                 self._trigger_success(ctx)
                 return True
 
-        elif obj in (OBJECTIVE_COMPLETE_ENCOUNTERS, OBJECTIVE_DESTROY_ALL, OBJECTIVE_ASSAULT):
+        elif obj in (OBJECTIVE_COMPLETE_ENCOUNTERS, OBJECTIVE_DESTROY_ALL):
             if director.state == "complete" and len(living_enemies) == 0:
                 self._check_side_objectives_on_success(ctx)
                 self._trigger_success(ctx)

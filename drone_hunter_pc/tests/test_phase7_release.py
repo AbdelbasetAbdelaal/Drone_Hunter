@@ -70,14 +70,14 @@ class TestPhase7Release(unittest.TestCase):
     # 2. Campaign Structure: 5 Sectors & 25 Missions
     # -------------------------------------------------------------------------
     def test_campaign_structure_integrity(self):
-        """Verify exactly 5 Sectors and 25 Missions are registered."""
+        """Verify exactly 5 Sectors and at least 25 Missions are registered."""
         self.assertEqual(len(SECTORS_PHASE5), 5)
         total_missions = 0
         for s in range(1, 6):
             missions = get_missions_for_sector(s)
-            self.assertEqual(len(missions), 5, f"Sector {s} must contain exactly 5 missions!")
+            self.assertGreaterEqual(len(missions), 5, f"Sector {s} must have at least 5 missions!")
             total_missions += len(missions)
-        self.assertEqual(total_missions, 25)
+        self.assertGreaterEqual(total_missions, 25)
 
     # -------------------------------------------------------------------------
     # 3. End-to-End Campaign Progression
