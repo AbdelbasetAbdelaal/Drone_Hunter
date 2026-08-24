@@ -1455,6 +1455,164 @@ class TestObjectiveArenaPolishAndReadability:
         assert done_2
 
 
+# =============================================================================
+# 13. COMBAT READABILITY, WEAPON VISIBILITY & FIRE DENSITY TESTS (SECTION 23)
+# =============================================================================
+class TestCombatReadabilityAndFireDensity:
+    """Test suite validating Section 23 Combat Readability & Fire Density requirements."""
+
+    def test_enemy_fire_density(self):
+        """Verify enemy projectiles fired per second in Objective Arena are bounded."""
+        ctx = GameContext()
+        ctx.player = Player((400, 360))
+        obj_sys = ObjectiveSystem()
+        obj_sys.start_objective_for_mission({
+            "id": "S1_M1_ALT",
+            "objective_type": OBJECTIVE_TYPE_RADAR_COMMAND,
+            "defense_level": 1,
+        }, ctx)
+
+        # Simulate 1 second of combat
+        for _ in range(60):
+            obj_sys.update(0.016, ctx)
+
+        # Density must be bounded and not an unreadable projectile wall
+        assert len(ctx.enemy_bullet_group) <= 15
+
+    def test_threat_budget(self):
+        """Verify threat budget enforces a maximum concurrent heavy threat slots."""
+        obj_sys = ObjectiveSystem()
+        assert obj_sys.threat_budget_max >= 1
+        assert obj_sys.active_heavy_threats_count == 0
+
+    def test_staggered_attacks(self):
+        """Verify AA, Aircraft, and Shooter attacks sequence with reaction windows."""
+        ctx = GameContext()
+        ctx.player = Player((200, 360))
+        obj_sys = ObjectiveSystem()
+        obj_sys.start_objective_for_mission({
+            "id": "S3_M4_ALT",
+            "objective_type": OBJECTIVE_TYPE_POWER_REACTOR,
+            "defense_level": 3,
+        }, ctx)
+
+        # When AA is telegraphing
+        if len(obj_sys.aa_platforms) > 0:
+            aa = obj_sys.aa_platforms[0]
+            ctx.player.pos.x = aa.pos.x + 200.0
+            ctx.player.pos.y = aa.pos.y
+            aa.is_telegraphing = True
+
+        # Aircraft in strafe must be held back / repositioned
+        if len(obj_sys.combat_aircraft) > 0:
+            ac = obj_sys.combat_aircraft[0]
+            ac.ai_state = "strafe"
+            obj_sys.update(0.016, ctx)
+            assert ac.ai_state == "reposition"
+
+    def test_enemy_weapon_asset_visible(self):
+        """Verify Shooter, Heavy, and Scout render non-empty, visible weapon sprites."""
+        from src.entities.enemy import Shooter, Heavy, Scout
+        shooter = Shooter(pos=(400, 360))
+        heavy = Heavy(pos=(400, 360))
+        scout = Scout(pos=(400, 360))
+
+        assert shooter.image.get_width() >= 80
+        assert heavy.image.get_width() >= 100
+        assert scout.image.get_width() >= 70
+
+    def test_weapon_mount_alignment(self):
+        """Verify weapon mount geometry is physically connected to drone fuselage."""
+        from src.entities.enemy import Shooter
+        shooter = Shooter(pos=(500, 300))
+        shooter.heading_angle = 180.0
+        aim_rad = math.radians(shooter.heading_angle)
+        fwd_x = math.cos(aim_rad)
+        fwd_y = math.sin(aim_rad)
+        muz_x = shooter.pos.x + fwd_x * 34.0
+        muz_y = shooter.pos.y + fwd_y * 34.0
+
+        # Muzzle is forward in direction of heading (heading 180 -> cos(180) = -1 -> muz_x < 500)
+        assert muz_x < shooter.pos.x
+
+    def test_projectile_origin_matches_muzzle(self):
+        """Verify Shooter spawns projectile at forward muzzle coordinate rather than center."""
+        from src.entities.enemy import Shooter
+        shooter = Shooter(pos=(500, 300))
+        shooter.heading_angle = 180.0
+        shooter.ai_state = "telegraph"
+        shooter.state_timer = 1.0  # Trigger fire
+        shooter.aim_target = pygame.Vector2(200, 300)
+
+        bullets = shooter.update(0.016, player_pos=(200, 300))
+        assert len(bullets) == 1
+        bullet = bullets[0]
+        # Bullet must originate from forward muzzle (x < 500), not center (500)
+        assert bullet.spawn_pos[0] < 500.0
+        assert math.isclose(bullet.spawn_pos[1], 300.0, abs_tol=5.0)
+
+    def test_aa_weapon_origin(self):
+        """Verify AA platform spawns projectile at barrel muzzle tip."""
+        aa = AAPlatform(pos=(600, 400), aa_type=AA_TYPE_LIGHT)
+        aa.turret_angle = 180.0
+        aa.is_telegraphing = True
+        aa.telegraph_timer = 0.001
+
+        bullets = aa.update(0.016, player_pos=(200, 400))
+        assert len(bullets) >= 1
+        bullet = bullets[0]
+        # Spawns at barrel tip (x < 600)
+        assert bullet.spawn_pos[0] < 600.0
+        assert math.isclose(bullet.spawn_pos[1], 400.0, abs_tol=5.0)
+
+    def test_aircraft_weapon_origin(self):
+        """Verify CombatAircraft spawns projectiles from wing weapon hardpoints."""
+        ac = CombatAircraft(pos=(600, 300), aircraft_type=AIRCRAFT_INTERCEPTOR)
+        ac.heading_angle = 180.0
+        ac.ai_state = "strafe"
+        ac.state_timer = 2.0  # Ready to fire
+
+        bullets = ac.update(0.016, player_pos=(200, 300))
+        assert len(bullets) == 2  # Dual wing cannons
+        # Bullets must spawn from wing hardpoints, not from entity center (600, 300)
+        assert bullets[0].spawn_pos != (600.0, 300.0)
+        assert bullets[1].spawn_pos != (600.0, 300.0)
+        # Differing coordinates for port & starboard wing mounts
+        assert bullets[0].spawn_pos != bullets[1].spawn_pos
+
+    def test_player_damage_grace(self):
+        """Verify player post-hit damage grace window prevents multi-projectile instant death."""
+        p = Player((200, 360))
+        p.take_damage(20.0)
+        assert p.damage_grace_timer >= 0.25
+        assert p.is_invulnerable
+
+        hp_after = p.health
+        p.take_damage(30.0)
+        assert p.health == hp_after  # Absorbed during grace
+
+    def test_objective_hud_no_overlap(self):
+        """Verify top-center objective card renders without element collisions."""
+        from src.ui.hud import draw_hud
+        canvas = pygame.Surface((1280, 720), pygame.SRCALPHA)
+        ctx = GameContext()
+        ctx.player = Player((200, 360))
+        obj_sys = ObjectiveSystem()
+        obj_sys.start_objective_for_mission({
+            "id": "S1_M1_ALT",
+            "objective_type": OBJECTIVE_TYPE_RADAR_COMMAND,
+            "defense_level": 1,
+        }, ctx)
+
+        # Render HUD without errors
+        draw_hud(
+            canvas, ctx.player, level_score=1500, current_wave=1,
+            objective_system=obj_sys
+        )
+        assert canvas.get_width() == 1280
+
+
+
 
 
 

@@ -460,10 +460,21 @@ class ObjectiveSystem:
 
                 new_bullets = ac.update(dt, player_pos=p_pos, player_obj=p_obj,
                                          target_group=getattr(ctx, "target_group", None))
+                if len(new_bullets) > 0:
+                    # Aircraft just fired an attack run -> set reaction window (0.4s)
+                    self._stagger_timer = 0.4
                 if combat_frozen or self._combat_window_active:
                     new_bullets.clear()
                 for b in new_bullets:
                     ctx.enemy_bullet_group.add(b)
+
+        # 4b. Stagger Reinforcement Shooters so their fire does not overlap with AA or Aircraft
+        if aa_telegraphing or self._stagger_timer > 0.0:
+            for reinf in self.active_reinforcements:
+                if getattr(reinf, "alive", False) and getattr(reinf, "enemy_type", "") == TARGET_TYPE_SHOOTER:
+                    if getattr(reinf, "ai_state", "") == "telegraph":
+                        reinf.ai_state = "position"
+                        reinf.fire_timer = 0.0
 
         # 5. Clean and manage Bounded Reinforcements (skip when frozen)
         self.active_reinforcements = [e for e in self.active_reinforcements if getattr(e, "alive", False)]

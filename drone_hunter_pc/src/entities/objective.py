@@ -310,24 +310,27 @@ class AAPlatform(pygame.sprite.Sprite):
             else:
                 self.telegraph_timer -= dt
                 if self.telegraph_timer <= 0:
-                    # FIRE!
+                    # FIRE from physical barrel muzzle tip!
                     self.is_telegraphing = False
                     self.fire_timer = self.fire_cooldown_max + self.fire_cooldown_jitter
-                    cx, cy = self.rect.center
+                    
+                    rad = math.radians(self.turret_angle)
+                    bx = self.pos.x + math.cos(rad) * (self.radius + 6.0)
+                    by = self.pos.y + math.sin(rad) * (self.radius + 6.0)
 
                     if self.aa_type == AA_TYPE_LIGHT:
-                        new_bullets.append(EnemyBullet((cx, cy), player_pos, speed=self.projectile_speed,
-                                                       damage=self.projectile_damage))
+                        new_bullets.append(EnemyBullet((bx, by), player_pos, speed=self.projectile_speed,
+                                                       damage=self.projectile_damage, weapon_id="aa_light"))
                     elif self.aa_type == AA_TYPE_HEAVY:
-                        new_bullets.append(EnemyBullet((cx, cy), player_pos, speed=self.projectile_speed,
-                                                       damage=self.projectile_damage))
-                        new_bullets.append(EnemyBullet((cx, cy), player_pos, speed=self.projectile_speed * 0.95,
-                                                       damage=self.projectile_damage // 2, angle_offset_deg=-14.0))
-                        new_bullets.append(EnemyBullet((cx, cy), player_pos, speed=self.projectile_speed * 0.95,
-                                                       damage=self.projectile_damage // 2, angle_offset_deg=14.0))
+                        new_bullets.append(EnemyBullet((bx, by), player_pos, speed=self.projectile_speed,
+                                                       damage=self.projectile_damage, weapon_id="aa_heavy"))
+                        new_bullets.append(EnemyBullet((bx, by), player_pos, speed=self.projectile_speed * 0.95,
+                                                       damage=self.projectile_damage // 2, angle_offset_deg=-14.0, weapon_id="aa_heavy"))
+                        new_bullets.append(EnemyBullet((bx, by), player_pos, speed=self.projectile_speed * 0.95,
+                                                       damage=self.projectile_damage // 2, angle_offset_deg=14.0, weapon_id="aa_heavy"))
                     else: # AA_TYPE_MISSILE
-                        new_bullets.append(EnemyBullet((cx, cy), player_pos, speed=self.projectile_speed,
-                                                       damage=self.projectile_damage))
+                        new_bullets.append(EnemyBullet((bx, by), player_pos, speed=self.projectile_speed,
+                                                       damage=self.projectile_damage, weapon_id="aa_missile"))
         else:
             self.is_telegraphing = False
 
@@ -343,18 +346,43 @@ class AAPlatform(pygame.sprite.Sprite):
         if self.aa_type == AA_TYPE_MISSILE:
             turret_surf = sm.get_structure_sprite("missile_launcher", (self.size, self.size))
             self.image.blit(turret_surf, (0, 0))
+            # Quad missile tube apertures
+            for dx, dy in ((-8, -8), (8, -8), (-8, 8), (8, 8)):
+                pygame.draw.circle(self.image, (15, 23, 42), (cx + dx, cy + dy), 4)
+                pygame.draw.circle(self.image, (239, 68, 68), (cx + dx, cy + dy), 2)
         else:
             raw_turret = sm.get_structure_sprite("aa_platform", (self.size, self.size))
             rot_turret = pygame.transform.rotate(raw_turret, -self.turret_angle)
             t_rect = rot_turret.get_rect(center=(cx, cy))
             self.image.blit(rot_turret, t_rect.topleft)
 
+            # Heavy Physical Gun Barrels
+            rad = math.radians(self.turret_angle)
+            cos_a = math.cos(rad)
+            sin_a = math.sin(rad)
+            r_perp_x = -sin_a
+            r_perp_y = cos_a
+
+            if self.aa_type == AA_TYPE_HEAVY:
+                # Dual heavy flak barrels
+                for side in (-5.0, 5.0):
+                    b_start = (cx + r_perp_x * side, cy + r_perp_y * side)
+                    b_end = (cx + cos_a * (self.radius + 6) + r_perp_x * side, cy + sin_a * (self.radius + 6) + r_perp_y * side)
+                    pygame.draw.line(self.image, (30, 41, 59), b_start, b_end, 5)
+                    pygame.draw.line(self.image, (71, 85, 105), b_start, (b_end[0] - cos_a * 2, b_end[1] - sin_a * 2), 2)
+            else:
+                # Single heavy flak barrel
+                b_start = (cx, cy)
+                b_end = (cx + cos_a * (self.radius + 6), cy + sin_a * (self.radius + 6))
+                pygame.draw.line(self.image, (30, 41, 59), b_start, b_end, 6)
+                pygame.draw.line(self.image, (56, 189, 248), b_start, (b_end[0] - cos_a * 2, b_end[1] - sin_a * 2), 2)
+
         # 2. Telegraph charge flare at barrel tip when aiming / preparing to fire
         if self.is_telegraphing:
             rad = math.radians(self.turret_angle)
-            bx = cx + math.cos(rad) * (self.radius - 2)
-            by = cy + math.sin(rad) * (self.radius - 2)
-            charge_r = int(5 + 3 * math.sin(pygame.time.get_ticks() * 0.02)) if pygame.get_init() else 6
+            bx = cx + math.cos(rad) * (self.radius + 4)
+            by = cy + math.sin(rad) * (self.radius + 4)
+            charge_r = int(6 + 3 * math.sin(pygame.time.get_ticks() * 0.02)) if pygame.get_init() else 7
             charge_col = (255, 200, 50) if self.aa_type != AA_TYPE_MISSILE else COLOR_NEON_RED
             pygame.draw.circle(self.image, charge_col, (int(round(bx)), int(round(by))), charge_r)
             pygame.draw.circle(self.image, COLOR_WHITE, (int(round(bx)), int(round(by))), max(2, charge_r - 3))
@@ -433,11 +461,20 @@ class CombatAircraft(Enemy):
             self.pos += move_vec * self.speed * dt
             self.heading_angle = math.degrees(math.atan2(move_vec.y, move_vec.x))
 
-            # Fire short readable burst
+            # Fire short readable burst from wing hardpoints
             if self.state_timer >= getattr(self, "burst_cooldown", 1.2):
                 self.state_timer = 0.0
-                cx, cy = self.rect.center
-                new_bullets.append(EnemyBullet((cx, cy), player_pos, speed=360.0, damage=self.projectile_damage))
+                ang_rad = math.radians(self.heading_angle)
+                fwd_x = math.cos(ang_rad)
+                fwd_y = math.sin(ang_rad)
+                right_x = -fwd_y
+                right_y = fwd_x
+                # Dual wing autocannon burst
+                for side in (-10.0, 10.0):
+                    wx = self.pos.x + fwd_x * 18.0 + right_x * side
+                    wy = self.pos.y + fwd_y * 18.0 + right_y * side
+                    new_bullets.append(EnemyBullet((wx, wy), player_pos, speed=380.0,
+                                                   damage=self.projectile_damage, weapon_id="enemy_aircraft"))
                 if dist < 280.0:
                     self.ai_state = "reposition"
                     self.state_timer = 0.0
@@ -477,11 +514,24 @@ class CombatAircraft(Enemy):
         surf = pygame.Surface((s, s), pygame.SRCALPHA)
         center = (s // 2, s // 2)
         
-        # Aerodynamic jet fuselage
-        pts = [(s, s // 2), (4, s // 4), (s // 3, s // 2), (4, s * 3 // 4)]
+        # 1. Aerodynamic jet fuselage
+        pts = [(s - 4, s // 2), (6, s // 4), (s // 3, s // 2), (6, s * 3 // 4)]
         pygame.draw.polygon(surf, self.color_outer, pts)
         pygame.draw.polygon(surf, (255, 255, 255, 200), pts, 2)
         pygame.draw.circle(surf, self.color_inner, center, 4)
+
+        # 2. Twin Wing Autocannons & Muzzle Flares
+        for side in (-10, 10):
+            gx = center[0] + 4
+            gy = center[1] + side
+            pygame.draw.line(surf, (30, 41, 59), (gx - 10, gy), (gx + 8, gy), 3)
+            pygame.draw.line(surf, (71, 85, 105), (gx - 10, gy), (gx + 6, gy), 1)
+            if self.ai_state == "strafe":
+                pygame.draw.circle(surf, (244, 63, 94), (gx + 8, gy), 4)
+                pygame.draw.circle(surf, (255, 255, 255), (gx + 8, gy), 2)
+
+        # 3. Rear jet thruster exhaust
+        pygame.draw.line(surf, (56, 189, 248), (6, s // 2), (0, s // 2), 3)
 
         if self.hit_flash_timer > 0:
             mask = pygame.mask.from_surface(surf)

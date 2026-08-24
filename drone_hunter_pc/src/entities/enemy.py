@@ -392,10 +392,15 @@ class Enemy(pygame.sprite.Sprite):
                 if aim_vec.length() > 0.001:
                     self.heading_angle = math.degrees(math.atan2(aim_vec.y, aim_vec.x))
                 if self.state_timer >= SHOOTER_TELEGRAPH_TIME:
-                    cx, cy = self.rect.center
+                    ang_rad = math.radians(self.heading_angle)
+                    fwd_x = math.cos(ang_rad)
+                    fwd_y = math.sin(ang_rad)
+                    muz_x = self.pos.x + fwd_x * 34.0
+                    muz_y = self.pos.y + fwd_y * 34.0
                     bullet = EnemyBullet(
-                        (cx, cy), (self.aim_target.x, self.aim_target.y),
-                        speed=self.projectile_speed, damage=self.projectile_damage
+                        (muz_x, muz_y), (self.aim_target.x, self.aim_target.y),
+                        speed=self.projectile_speed, damage=self.projectile_damage,
+                        weapon_id="enemy_laser"
                     )
                     new_bullets.append(bullet)
                     self.fire_timer = 0.0
@@ -411,11 +416,16 @@ class Enemy(pygame.sprite.Sprite):
                         self.reposition_dir = lateral.normalize()
 
             elif self.ai_state == "fire":
-                # Fire exactly ONE deliberate hostile projectile
-                cx, cy = self.rect.center
+                # Fire exactly ONE deliberate hostile projectile from muzzle
+                ang_rad = math.radians(self.heading_angle)
+                fwd_x = math.cos(ang_rad)
+                fwd_y = math.sin(ang_rad)
+                muz_x = self.pos.x + fwd_x * 34.0
+                muz_y = self.pos.y + fwd_y * 34.0
                 bullet = EnemyBullet(
-                    (cx, cy), (self.aim_target.x, self.aim_target.y),
-                    speed=self.projectile_speed, damage=self.projectile_damage
+                    (muz_x, muz_y), (self.aim_target.x, self.aim_target.y),
+                    speed=self.projectile_speed, damage=self.projectile_damage,
+                    weapon_id="enemy_laser"
                 )
                 new_bullets.append(bullet)
                 self.fire_timer = 0.0
@@ -597,12 +607,24 @@ class Enemy(pygame.sprite.Sprite):
             else:
                 surf.blit(rotated_scout, rot_rect)
 
-            # ── SCOUT IDENTITY VFX: Bright cyan/blue propulsion streak (fast/light identity) ──
+            # ── SCOUT IDENTITY VFX: Forward interceptor needle cannon + propulsion streaks ──
             aim_rad = math.radians(-self.heading_angle)
             fwd_x = math.cos(aim_rad)
             fwd_y = math.sin(aim_rad)
             right_x = -fwd_y
             right_y = fwd_x
+
+            # Forward kinetic needle cannon mount
+            nx_base = center[0] + fwd_x * 8
+            ny_base = center[1] + fwd_y * 8
+            nx_tip = center[0] + fwd_x * 36
+            ny_tip = center[1] + fwd_y * 36
+            pygame.draw.line(surf, (51, 65, 85), (int(nx_base), int(ny_base)), (int(nx_tip), int(ny_tip)), 4)
+            pygame.draw.line(surf, (148, 163, 184), (int(nx_base), int(ny_base)), (int(nx_tip - fwd_x * 3), int(ny_tip - fwd_y * 3)), 2)
+            # Needle ionization muzzle tip
+            tip_col = (244, 63, 94) if self.ai_state != "dive" else (255, 255, 255)
+            pygame.draw.circle(surf, tip_col, (int(nx_tip), int(ny_tip)), 4 if self.ai_state == "dive" else 2)
+
             # Two narrow propulsion bursts at rear
             thruster_intensity = int(160 + 80 * math.sin(self.time_accum * 12.0))
             for side in (-12.0, 12.0):
@@ -648,32 +670,49 @@ class Enemy(pygame.sprite.Sprite):
             rot_rect = rotated_shooter.get_rect(center=center)
             surf.blit(rotated_shooter, rot_rect)
 
-            # ── SHOOTER IDENTITY VFX: Weapon-platform emitter glow at front hardpoints ──
+            # ── SHOOTER IDENTITY: Physical Heavy Rail Cannon Assembly + Muzzle Flares ──
             aim_rad = math.radians(-self.heading_angle)
             fwd_x = math.cos(aim_rad)
             fwd_y = math.sin(aim_rad)
             right_x = -fwd_y
             right_y = fwd_x
 
+            # 1. Main Forward Heavy Cannon Barrel (Hardware visible at gameplay scale)
+            c_base_x = center[0] + fwd_x * 8
+            c_base_y = center[1] + fwd_y * 8
+            c_tip_x = center[0] + fwd_x * 34
+            c_tip_y = center[1] + fwd_y * 34
+            # Dark heavy casing
+            pygame.draw.line(surf, (30, 41, 59), (int(c_base_x), int(c_base_y)), (int(c_tip_x), int(c_tip_y)), 7)
+            # Titanium shroud highlight
+            pygame.draw.line(surf, (71, 85, 105), (int(c_base_x), int(c_base_y)), (int(c_tip_x - fwd_x * 4), int(c_tip_y - fwd_y * 4)), 4)
+            # Searing energy conduit channel along barrel
+            pygame.draw.line(surf, (245, 158, 11), (int(c_base_x), int(c_base_y)), (int(c_tip_x - fwd_x * 2), int(c_tip_y - fwd_y * 2)), 2)
+
+            # 2. Side Stabilizer Pylons
+            for side in (-14.0, 14.0):
+                p_base_x = center[0] + fwd_x * 12 + right_x * side
+                p_base_y = center[1] + fwd_y * 12 + right_y * side
+                p_tip_x = center[0] + fwd_x * 26 + right_x * side
+                p_tip_y = center[1] + fwd_y * 26 + right_y * side
+                pygame.draw.line(surf, (51, 65, 85), (int(p_base_x), int(p_base_y)), (int(p_tip_x), int(p_tip_y)), 3)
+                pygame.draw.circle(surf, (245, 158, 11, 180), (int(p_tip_x), int(p_tip_y)), 2)
+
+            # 3. Telegraph Muzzle Flash & Charging Burst
+            muz_x = center[0] + fwd_x * 34
+            muz_y = center[1] + fwd_y * 34
             if self.ai_state == "telegraph":
-                charge_alpha = int(160 + 95 * math.sin(self.state_timer * 26.0))
-                charge_r = max(3, int(10 * (self.state_timer / SHOOTER_TELEGRAPH_TIME)))
-                # Central bright weapon muzzle charge glow
-                muz_x = center[0] + fwd_x * 32
-                muz_y = center[1] + fwd_y * 32
-                pygame.draw.circle(surf, (255, 220, 60, max(0, min(255, charge_alpha))), (int(muz_x), int(muz_y)), charge_r + 2)
-                pygame.draw.circle(surf, (255, 255, 255, max(0, min(255, charge_alpha))), (int(muz_x), int(muz_y)), max(1, charge_r - 1))
+                charge_alpha = int(180 + 75 * math.sin(self.state_timer * 28.0))
+                charge_r = max(5, int(14 * (self.state_timer / SHOOTER_TELEGRAPH_TIME)))
+                # Searing charging flare
+                pygame.draw.circle(surf, (239, 68, 68, max(0, min(255, charge_alpha))), (int(muz_x), int(muz_y)), charge_r + 4)
+                pygame.draw.circle(surf, (245, 158, 11, 230), (int(muz_x), int(muz_y)), charge_r + 1)
+                pygame.draw.circle(surf, (255, 255, 255, 255), (int(muz_x), int(muz_y)), max(2, charge_r - 2))
             else:
-                # Subtle persistent weapon-emitter dot (readability in idle)
-                muz_x = center[0] + fwd_x * 30
-                muz_y = center[1] + fwd_y * 30
-                emitter_alpha = int(80 + 50 * math.sin(self.time_accum * 6.0))
-                pygame.draw.circle(surf, (255, 200, 80, max(0, min(255, emitter_alpha))), (int(muz_x), int(muz_y)), 4)
-                # Side hardpoint dots
-                for side in (-14.0, 14.0):
-                    hx = center[0] + fwd_x * 22 + right_x * side
-                    hy = center[1] + fwd_y * 22 + right_y * side
-                    pygame.draw.circle(surf, (200, 160, 60, 90), (int(hx), int(hy)), 2)
+                # Persistent ready glow dot at muzzle
+                emitter_alpha = int(90 + 50 * math.sin(self.time_accum * 6.0))
+                pygame.draw.circle(surf, (245, 158, 11, max(0, min(255, emitter_alpha))), (int(muz_x), int(muz_y)), 4)
+                pygame.draw.circle(surf, (255, 255, 255, 200), (int(muz_x), int(muz_y)), 2)
 
             if self.hit_flash_timer > 0:
                 flash_copy = surf.copy()
@@ -704,14 +743,31 @@ class Enemy(pygame.sprite.Sprite):
             rot_rect = rotated_heavy.get_rect(center=center)
             surf.blit(rotated_heavy, rot_rect)
 
-            # ── HEAVY IDENTITY VFX: Hot orange engine exhaust + threat ring in pressure ──
+            # ── HEAVY IDENTITY: Twin Wing Autocannon Sponsons + Hot Exhaust ──
             aim_rad = math.radians(-self.heading_angle)
             fwd_x = math.cos(aim_rad)
             fwd_y = math.sin(aim_rad)
             right_x = -fwd_y
             right_y = fwd_x
 
-            # Dual hot engine plumes at rear (large, hot orange — armored threat identity)
+            # Twin Heavy Autocannons on Port & Starboard
+            for side in (-26.0, 26.0):
+                h_base_x = center[0] + fwd_x * 6 + right_x * side
+                h_base_y = center[1] + fwd_y * 6 + right_y * side
+                h_tip_x = center[0] + fwd_x * 40 + right_x * side
+                h_tip_y = center[1] + fwd_y * 40 + right_y * side
+                # Heavy gun barrel
+                pygame.draw.line(surf, (30, 41, 59), (int(h_base_x), int(h_base_y)), (int(h_tip_x), int(h_tip_y)), 6)
+                pygame.draw.line(surf, (71, 85, 105), (int(h_base_x), int(h_base_y)), (int(h_tip_x - fwd_x * 3), int(h_tip_y - fwd_y * 3)), 3)
+                # Searing heat-vent conduit
+                pygame.draw.line(surf, (245, 120, 20), (int(h_base_x), int(h_base_y)), (int(h_tip_x - fwd_x * 5), int(h_tip_y - fwd_y * 5)), 2)
+                # Muzzle brake
+                pygame.draw.circle(surf, (15, 23, 42), (int(h_tip_x), int(h_tip_y)), 3)
+                if self.ai_state == "pressure":
+                    pygame.draw.circle(surf, (245, 158, 11, 220), (int(h_tip_x), int(h_tip_y)), 5)
+                    pygame.draw.circle(surf, (255, 255, 255, 255), (int(h_tip_x), int(h_tip_y)), 2)
+
+            # Dual hot engine plumes at rear
             eng_intensity = int(190 + 60 * math.sin(self.time_accum * 8.0))
             for side in (-18.0, 18.0):
                 ex = center[0] - fwd_x * 42 + right_x * side

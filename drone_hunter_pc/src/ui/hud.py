@@ -164,8 +164,8 @@ def draw_hud(canvas: pygame.Surface, player, sector_idx: int = 0, level_score: i
         obj = objective_system.active_objective
         if obj.alive:
             # Top-Center Tactical Objective Card (Clean, Uncluttered, Priority 1)
-            top_w = 400
-            top_h = 48
+            top_w = 460
+            top_h = 52
             top_x = (vw - top_w) // 2
             top_y = margin_y
             top_rect = pygame.Rect(top_x, top_y, top_w, top_h)
@@ -178,7 +178,7 @@ def draw_hud(canvas: pygame.Surface, player, sector_idx: int = 0, level_score: i
             p_pos = (player.pos.x, player.pos.y) if player else (0, 0)
             dist_m = int(math.hypot(obj.pos.x - p_pos[0], obj.pos.y - p_pos[1]))
             t_obj_title = font_card.render(f"TARGET: {obj.title}", True, COLOR_WHITE)
-            canvas.blit(t_obj_title, (top_x + 12, top_y + 4))
+            canvas.blit(t_obj_title, (top_x + 12, top_y + 5))
 
             if obj.is_shielded:
                 gens_alive = objective_system.active_shield_generators_count
@@ -187,13 +187,13 @@ def draw_hud(canvas: pygame.Surface, player, sector_idx: int = 0, level_score: i
                 sh_lbl = font_sub.render(sh_txt, True, COLOR_SHIELD)
             else:
                 sh_lbl = font_sub.render("EXPOSED", True, COLOR_NEON_RED)
-            canvas.blit(sh_lbl, (top_x + top_w - sh_lbl.get_width() - 12, top_y + 5))
+            canvas.blit(sh_lbl, (top_x + top_w - sh_lbl.get_width() - 12, top_y + 6))
 
             # Row 2: Objective Health Bar
             hp_w = top_w - 24
             hp_h = 7
             hp_x = top_x + 12
-            hp_y = top_y + 24
+            hp_y = top_y + 26
             pygame.draw.rect(canvas, (30, 41, 59), (hp_x, hp_y, hp_w, hp_h), border_radius=2)
             fill_w = max(0, int(hp_w * obj.hp_percent))
             bar_col = COLOR_SHIELD if obj.is_shielded else (COLOR_NEON_RED if obj.hp_percent < 0.3 else COLOR_GOLD)
@@ -209,7 +209,7 @@ def draw_hud(canvas: pygame.Surface, player, sector_idx: int = 0, level_score: i
             if getattr(objective_system, "is_radar_alert_active", False):
                 info_txt += "  [⚠ RADAR TRACKING]"
             t_info = font_sub.render(info_txt, True, (148, 163, 184))
-            canvas.blit(t_info, (top_x + 12, top_y + 33))
+            canvas.blit(t_info, (top_x + 12, top_y + 36))
 
             # Direction Navigation Arrow on Card
             if player:

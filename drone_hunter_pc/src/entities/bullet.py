@@ -506,17 +506,67 @@ class EMPPulse(pygame.sprite.Sprite):
 
 
 class EnemyBullet(pygame.sprite.Sprite):
-    """Hostile enemy projectile."""
-    _cached_default_image = None
+    """Hostile enemy projectile with weapon-specific readable silhouettes and glowing cores."""
+    _cached_sprites: dict[str, pygame.Surface] = {}
+    _cached_default_image: pygame.Surface | None = None
 
     @classmethod
-    def _get_default_image(cls) -> pygame.Surface | None:
+    def _get_enemy_projectile_sprite(cls, weapon_id: str) -> pygame.Surface:
+        if weapon_id in cls._cached_sprites and cls._cached_sprites[weapon_id] is not None:
+            return cls._cached_sprites[weapon_id]
+
+        if weapon_id in ("aa_missile", "missile"):
+            w, h = 40, 16
+            surf = pygame.Surface((w, h), pygame.SRCALPHA)
+            # Aerodynamic missile fuselage
+            pygame.draw.polygon(surf, (220, 38, 38), [(w - 4, h // 2), (10, 2), (6, 4), (10, h - 2)])
+            # Warhead tip
+            pygame.draw.polygon(surf, (254, 240, 138), [(w, h // 2), (w - 6, 3), (w - 6, h - 3)])
+            # Dark stabilizing fins
+            pygame.draw.polygon(surf, (51, 65, 85), [(10, 2), (2, 0), (6, 6)])
+            pygame.draw.polygon(surf, (51, 65, 85), [(10, h - 2), (2, h), (6, h - 6)])
+            # Rocket exhaust glow
+            pygame.draw.circle(surf, (245, 158, 11, 200), (4, h // 2), 5)
+            pygame.draw.circle(surf, (255, 255, 255, 240), (4, h // 2), 2)
+        elif weapon_id in ("aa_heavy", "enemy_heavy"):
+            w, h = 36, 16
+            surf = pygame.Surface((w, h), pygame.SRCALPHA)
+            # Heavy kinetic plasma shell
+            pygame.draw.ellipse(surf, (234, 88, 12), (0, 0, w, h))
+            pygame.draw.ellipse(surf, (251, 146, 60), (4, 2, w - 8, h - 4))
+            pygame.draw.ellipse(surf, (255, 255, 255), (10, 4, w - 16, h - 8))
+        elif weapon_id in ("aa_light", "aa_flak"):
+            w, h = 28, 12
+            surf = pygame.Surface((w, h), pygame.SRCALPHA)
+            # Fast flak tracer bolt (Cyan / Amber energy)
+            pygame.draw.ellipse(surf, (6, 182, 212), (0, 0, w, h))
+            pygame.draw.ellipse(surf, (224, 242, 254), (4, 2, w - 8, h - 4))
+            pygame.draw.ellipse(surf, (255, 255, 255), (10, 4, w - 16, h - 8))
+        elif weapon_id in ("enemy_aircraft", "aircraft_laser"):
+            w, h = 30, 12
+            surf = pygame.Surface((w, h), pygame.SRCALPHA)
+            # Supersonic crimson fighter tracer
+            pygame.draw.ellipse(surf, (244, 63, 94), (0, 0, w, h))
+            pygame.draw.ellipse(surf, (254, 205, 211), (4, 2, w - 8, h - 4))
+            pygame.draw.ellipse(surf, (255, 255, 255), (8, 4, w - 14, h - 8))
+        else: # Default enemy laser (Shooter / Turret)
+            w, h = 32, 14
+            surf = pygame.Surface((w, h), pygame.SRCALPHA)
+            # Searing orange/amber plasma bolt
+            pygame.draw.ellipse(surf, (239, 68, 68), (0, 0, w, h))
+            pygame.draw.ellipse(surf, (245, 158, 11), (3, 2, w - 6, h - 4))
+            pygame.draw.ellipse(surf, (254, 240, 138), (8, 3, w - 14, h - 6))
+            pygame.draw.ellipse(surf, (255, 255, 255), (14, 4, w - 22, h - 8))
+
+        cls._cached_sprites[weapon_id] = surf
         if cls._cached_default_image is None:
-            try:
-                from src.rendering.sprite_manager import get_sprite_manager
-                cls._cached_default_image = get_sprite_manager().get_projectile_sprite('scatter', (20, 20))
-            except Exception:
-                cls._cached_default_image = None
+            cls._cached_default_image = cls._cached_sprites.get("enemy_laser", surf)
+        return surf
+
+    @classmethod
+    def _get_default_image(cls) -> pygame.Surface:
+        if cls._cached_default_image is None:
+            cls._cached_default_image = cls._get_enemy_projectile_sprite("enemy_laser")
         return cls._cached_default_image
 
     def __init__(self, start_pos: tuple[float, float], target_pos: tuple[float, float],
@@ -533,10 +583,8 @@ class EnemyBullet(pygame.sprite.Sprite):
         if image is not None:
             self.original_image = image
         else:
-            self.original_image = EnemyBullet._get_default_image()
-            if self.original_image is None:
-                from src.rendering.sprite_manager import get_sprite_manager
-                self.original_image = get_sprite_manager().get_projectile_sprite("scatter", (20, 20))
+            self.original_image = EnemyBullet._get_enemy_projectile_sprite(self.weapon_id)
+            if EnemyBullet._cached_default_image is None:
                 EnemyBullet._cached_default_image = self.original_image
         
         dx = target_pos[0] - start_pos[0]
@@ -550,7 +598,7 @@ class EnemyBullet(pygame.sprite.Sprite):
         self.image = pygame.transform.rotate(self.original_image, self.angle_deg)
         self.pos = pygame.Vector2(start_pos)
         self.rect = self.image.get_rect(center=start_pos)
-        self.radius = 7
+        self.radius = 8
 
     def update(self, dt: float):
         self.lifetime -= dt
