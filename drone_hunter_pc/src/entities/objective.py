@@ -29,13 +29,14 @@ from src.data.objective_data import (
 )
 from src.entities.bullet import EnemyBullet, HomingMissile
 from src.entities.enemy import Enemy
+from src.rendering.sprite_manager import get_sprite_manager
 
 
 # -----------------------------------------------------------------------------
 # SHIELD GENERATOR PERIMETER ENTITY
 # -----------------------------------------------------------------------------
 class ShieldGenerator(pygame.sprite.Sprite):
-    """Auxiliary power structure providing invulnerability to the Ground Objective."""
+    """Auxiliary physical power structure providing invulnerability to the Ground Objective."""
     def __init__(self, pos: Tuple[float, float], parent_objective=None, defense_layer: str = LAYER_INNER):
         super().__init__()
         self.pos = pygame.Vector2(pos)
@@ -44,8 +45,8 @@ class ShieldGenerator(pygame.sprite.Sprite):
         self.max_hp = 120
         self.hp = self.max_hp
         self.armor = 0.10
-        self.size = 50
-        self.radius = 24
+        self.size = 64
+        self.radius = 28
         self.enemy_type = "shield_generator"
         self.score_value = 150
         self.color = COLOR_SHIELD
@@ -82,16 +83,20 @@ class ShieldGenerator(pygame.sprite.Sprite):
     def _render(self):
         self.image.fill((0, 0, 0, 0))
         cx, cy = self.size // 2, self.size // 2
+        sm = get_sprite_manager()
         
-        # Outer chassis
-        pygame.draw.circle(self.image, (30, 41, 59), (cx, cy), self.radius)
-        pygame.draw.circle(self.image, COLOR_SHIELD, (cx, cy), self.radius, 2)
-        
-        # Rotating power core
-        core_r = int(10 + 3 * math.sin(self.time_accum * 6.0))
-        pygame.draw.circle(self.image, (56, 189, 248), (cx, cy), core_r)
-        pygame.draw.circle(self.image, COLOR_WHITE, (cx, cy), max(2, core_r - 4))
+        # 1. Physical 2.5D Tri-Pylon Shield Generator Sprite
+        gen_surf = sm.get_structure_sprite("shield_generator", (self.size, self.size))
+        self.image.blit(gen_surf, (0, 0))
 
+        # 2. Dynamic Pulsing Core Glow
+        core_r = int(5 + 2 * math.sin(self.time_accum * 6.0))
+        core_surf = pygame.Surface((self.size, self.size), pygame.SRCALPHA)
+        pygame.draw.circle(core_surf, (56, 189, 248, 180), (cx, cy), core_r + 4)
+        pygame.draw.circle(core_surf, COLOR_WHITE, (cx, cy), core_r)
+        self.image.blit(core_surf, (0, 0), special_flags=pygame.BLEND_RGBA_ADD)
+
+        # 3. Hit flash feedback
         if self.hit_flash_timer > 0:
             mask = pygame.mask.from_surface(self.image)
             flash_surf = mask.to_surface(setcolor=(255, 255, 255, 160), unsetcolor=(0, 0, 0, 0))
@@ -102,7 +107,7 @@ class ShieldGenerator(pygame.sprite.Sprite):
 # RADAR NODE EARLY WARNING ENTITY
 # -----------------------------------------------------------------------------
 class RadarNode(pygame.sprite.Sprite):
-    """Early-warning sensor dome that tracks player and alerts regional defenses."""
+    """Physical early-warning sensor tower tracking player and coordinating regional defenses."""
     def __init__(self, pos: Tuple[float, float], scan_radius: float = 950.0, defense_layer: str = LAYER_MIDDLE):
         super().__init__()
         self.pos = pygame.Vector2(pos)
@@ -112,8 +117,8 @@ class RadarNode(pygame.sprite.Sprite):
         self.max_hp = 140
         self.hp = self.max_hp
         self.armor = 0.05
-        self.size = 64
-        self.radius = 28
+        self.size = 72
+        self.radius = 32
         self.enemy_type = "radar"
         self.score_value = 200
         self.color = COLOR_CYAN
@@ -176,20 +181,28 @@ class RadarNode(pygame.sprite.Sprite):
     def _render(self):
         self.image.fill((0, 0, 0, 0))
         cx, cy = self.size // 2, self.size // 2
-        
-        # Base platform
-        pygame.draw.circle(self.image, (15, 23, 42), (cx, cy), self.radius)
-        ring_col = COLOR_NEON_RED if self.state == RADAR_STATE_ALERT else COLOR_CYAN
-        pygame.draw.circle(self.image, ring_col, (cx, cy), self.radius, 2)
-        
-        # Rotating radar antenna dish
-        rad = math.radians(self.sweep_angle)
-        dx = math.cos(rad) * (self.radius - 4)
-        dy = math.sin(rad) * (self.radius - 4)
-        pygame.draw.line(self.image, ring_col, (cx, cy), (cx + dx, cy + dy), 3)
-        pygame.draw.circle(self.image, COLOR_WHITE, (int(round(cx + dx)), int(round(cy + dy))), 3)
-        pygame.draw.circle(self.image, ring_col, (cx, cy), 6)
+        sm = get_sprite_manager()
 
+        # 1. Physical 2.5D Radar Base Tower
+        state_key = "destroyed" if not self.alive or self.state == RADAR_STATE_DESTROYED else "healthy"
+        tower_surf = sm.get_damaged_structure_sprite("radar_command_tower", state=state_key, target_size=(self.size, self.size))
+        self.image.blit(tower_surf, (0, 0))
+
+        # 2. Rotating Physical Radar Dish Assembly
+        if self.alive:
+            dish_sz = int(self.size * 0.70)
+            raw_dish = sm.get_structure_sprite("radar_dish", (dish_sz, dish_sz))
+            rot_dish = pygame.transform.rotate(raw_dish, -self.sweep_angle)
+            dish_rect = rot_dish.get_rect(center=(cx, cy - 4))
+            self.image.blit(rot_dish, dish_rect.topleft)
+
+            # Alert Beacon / Warning Light
+            if self.state == RADAR_STATE_ALERT:
+                pulse_a = int(180 + 75 * math.sin(pygame.time.get_ticks() * 0.015)) if pygame.get_init() else 200
+                pygame.draw.circle(self.image, (239, 68, 68, pulse_a), (cx, cy + 8), 6)
+                pygame.draw.circle(self.image, COLOR_WHITE, (cx, cy + 8), 2)
+
+        # 3. Hit Flash Feedback
         if self.hit_flash_timer > 0:
             mask = pygame.mask.from_surface(self.image)
             flash_surf = mask.to_surface(setcolor=(255, 255, 255, 160), unsetcolor=(0, 0, 0, 0))
@@ -324,29 +337,29 @@ class AAPlatform(pygame.sprite.Sprite):
     def _render(self):
         self.image.fill((0, 0, 0, 0))
         cx, cy = self.size // 2, self.size // 2
-        
-        # Heavy bunker base
-        pygame.draw.rect(self.image, (30, 41, 59), (4, 4, self.size - 8, self.size - 8), border_radius=8)
-        pygame.draw.rect(self.image, (71, 85, 105), (4, 4, self.size - 8, self.size - 8), 2, border_radius=8)
-        
-        # Rotating barrel
-        rad = math.radians(self.turret_angle)
-        bx = cx + math.cos(rad) * (self.radius - 2)
-        by = cy + math.sin(rad) * (self.radius - 2)
-        barrel_col = COLOR_NEON_RED if self.is_telegraphing else self.color
-        pygame.draw.line(self.image, barrel_col, (cx, cy), (bx, by), 4)
-        
-        # Center turret hub
-        pygame.draw.circle(self.image, (15, 23, 42), (cx, cy), 12)
-        pygame.draw.circle(self.image, barrel_col, (cx, cy), 10)
-        pygame.draw.circle(self.image, COLOR_WHITE, (cx, cy), 4)
+        sm = get_sprite_manager()
 
-        # Telegraph charge flare at barrel tip
+        # 1. Physical Structure Sprite (AA Flak Turret or Missile Silo)
+        if self.aa_type == AA_TYPE_MISSILE:
+            turret_surf = sm.get_structure_sprite("missile_launcher", (self.size, self.size))
+            self.image.blit(turret_surf, (0, 0))
+        else:
+            raw_turret = sm.get_structure_sprite("aa_platform", (self.size, self.size))
+            rot_turret = pygame.transform.rotate(raw_turret, -self.turret_angle)
+            t_rect = rot_turret.get_rect(center=(cx, cy))
+            self.image.blit(rot_turret, t_rect.topleft)
+
+        # 2. Telegraph charge flare at barrel tip when aiming / preparing to fire
         if self.is_telegraphing:
+            rad = math.radians(self.turret_angle)
+            bx = cx + math.cos(rad) * (self.radius - 2)
+            by = cy + math.sin(rad) * (self.radius - 2)
             charge_r = int(5 + 3 * math.sin(pygame.time.get_ticks() * 0.02)) if pygame.get_init() else 6
-            pygame.draw.circle(self.image, (255, 200, 50), (int(round(bx)), int(round(by))), charge_r)
+            charge_col = (255, 200, 50) if self.aa_type != AA_TYPE_MISSILE else COLOR_NEON_RED
+            pygame.draw.circle(self.image, charge_col, (int(round(bx)), int(round(by))), charge_r)
             pygame.draw.circle(self.image, COLOR_WHITE, (int(round(bx)), int(round(by))), max(2, charge_r - 3))
 
+        # 3. Hit Flash Overlay
         if self.hit_flash_timer > 0:
             mask = pygame.mask.from_surface(self.image)
             flash_surf = mask.to_surface(setcolor=(255, 255, 255, 160), unsetcolor=(0, 0, 0, 0))
@@ -609,115 +622,71 @@ class GroundObjective(pygame.sprite.Sprite):
         self._render()
         return []
 
+    @property
+    def visual_damage_state(self) -> str:
+        if not self.alive or self.hp <= 0:
+            return "destroyed"
+        pct = self.hp_percent
+        if pct <= 0.25:
+            return "critical"
+        if pct <= 0.50:
+            return "damaged"
+        return "healthy"
+
     def _render(self):
         self.image.fill((0, 0, 0, 0))
         ix, iy = self.image.get_width() // 2, self.image.get_height() // 2
         r = self.radius
         cx = ix
         cy = iy
+        sm = get_sprite_manager()
 
-        col_outer = self.catalog_data["color_outer"]
-        col_inner = self.catalog_data["color_inner"]
+        # 1. Physical 2.5D Gameworld Structure Sprite with Damage State
+        state_key = self.visual_damage_state
+        reactor_surf = sm.get_damaged_structure_sprite("critical_power_reactor", state=state_key, target_size=(self.size, self.size))
+        rx = cx - self.size // 2
+        ry = cy - self.size // 2
+        self.image.blit(reactor_surf, (rx, ry))
 
-        # --- Damage Discoloration Overlay ---
-        # At 50% HP: surface cracks pattern; at CRITICAL (25%): deeper discoloration + more cracks
-        damage_pct = self.hp_percent
-        is_critical = damage_pct <= 0.25
-        is_damaged = damage_pct <= 0.50
+        # 2. Dynamic Internal Reactor Core Plasma Glow
+        if self.alive:
+            pulse_rad = int(22 + 4 * math.sin(self.time_accum * (10.0 if state_key == "critical" else 4.0)))
+            core_col = (239, 68, 68) if state_key == "critical" else (14, 165, 233)
+            core_surf = pygame.Surface((self.image.get_width(), self.image.get_height()), pygame.SRCALPHA)
+            pygame.draw.circle(core_surf, (*core_col, 160), (cx, cy), pulse_rad + 6)
+            pygame.draw.circle(core_surf, COLOR_WHITE, (cx, cy), max(3, pulse_rad - 8))
+            self.image.blit(core_surf, (0, 0), special_flags=pygame.BLEND_RGBA_ADD)
 
-        # Pulsing outline glow (always visible, intensity scales with phase)
-        glow_alpha = int(40 + 25 * math.sin(self.outline_glow_timer * 5.0) + 15 * math.sin(self.outline_glow_timer * 2.3))
-        glow_r = r + 18 + (6 if is_critical else (3 if is_damaged else 0))
-        if is_critical:
-            glow_col = COLOR_NEON_RED
-            glow_alpha = int(60 + 50 * math.sin(self.outline_glow_timer * 8.0))
-        elif is_damaged:
-            glow_col = COLOR_CRIMSON
-        else:
-            glow_col = COLOR_SHIELD
+        # 3. Protective Energy Shield Barrier (when generators active)
+        if self.is_shielded and self.alive:
+            shield_r = r + 14
+            shield_alpha = int(170 + 60 * math.sin(self.time_accum * 6.0))
+            shield_surf = pygame.Surface((self.image.get_width(), self.image.get_height()), pygame.SRCALPHA)
+            pygame.draw.circle(shield_surf, (56, 189, 248, max(0, min(255, shield_alpha))), (cx, cy), shield_r, 4)
+            pygame.draw.circle(shield_surf, (180, 230, 255, 100), (cx, cy), shield_r - 4, 1)
+            self.image.blit(shield_surf, (0, 0), special_flags=pygame.BLEND_RGBA_ADD)
 
-        # Draw multiple concentric glow rings for a "halo" effect
-        for ring_i in range(3):
-            ring_r = glow_r + ring_i * 6
-            ring_a = max(0, glow_alpha - ring_i * 45)
-            pygame.draw.circle(self.image, (*glow_col, ring_a), (cx, cy), ring_r, 3)
-
-        # Base reinforced fortification
-        pygame.draw.rect(self.image, col_outer, (cx - r, cy - r, r * 2, r * 2), border_radius=16)
-        pygame.draw.rect(self.image, (100, 116, 139), (cx - r, cy - r, r * 2, r * 2), 3, border_radius=16)
-
-        # Damage crack overlay (visible at 50% and below)
-        if is_damaged or is_critical:
-            crack_phase = self.time_accum * 3.0
-            crack_alpha = int(140 + 60 * math.sin(crack_phase))
-            crack_color = (180, 180, 190, min(255, crack_alpha))
-            crack_density = 6 if is_critical else 3
-            for ci in range(crack_density):
-                angle = (math.tau / max(1, crack_density)) * ci + self.time_accum * 0.5
-                ex = cx + math.cos(angle) * r * 0.7
-                ey = cy + math.sin(angle) * r * 0.7
-                pygame.draw.line(self.image, crack_color, (cx, cy), (ex, ey), 2)
-                # Branch cracks
-                branch_ang = angle + 0.4
-                bx = cx + math.cos(branch_ang) * r * 0.5
-                by = cy + math.sin(branch_ang) * r * 0.5
-                pygame.draw.line(self.image, crack_color, (ex, ey), (bx, by), 1)
-
-        # Critical discoloration (reddish wash)
-        if is_critical:
-            flash_a = int(40 + 30 * math.sin(self.time_accum * 12.0))
-            flash_surf = pygame.Surface(self.image.get_size(), pygame.SRCALPHA)
-            flash_surf.fill((*COLOR_CRIMSON[:3], flash_a))
+        # 4. Hit Flash on Damage
+        if self.damage_flash_timer > 0 or self.hit_flash_timer > 0:
+            mask = pygame.mask.from_surface(self.image)
+            flash_surf = mask.to_surface(setcolor=(255, 255, 255, 150), unsetcolor=(0, 0, 0, 0))
             self.image.blit(flash_surf, (0, 0), special_flags=pygame.BLEND_RGBA_ADD)
 
-        # Internal glowing reactor / command core
-        pulse = int(r * 0.45 + 4 * math.sin(self.time_accum * 4.0))
-        if is_critical:
-            pulse = int(r * 0.30 + 2 * math.sin(self.time_accum * 10.0))  # erratic pulse
-        elif is_damaged:
-            pulse = int(r * 0.38 + 3 * math.sin(self.time_accum * 6.0))
-        core_col = col_inner if not is_critical else COLOR_NEON_RED
-        pygame.draw.circle(self.image, core_col, (cx, cy), pulse)
-        pygame.draw.circle(self.image, COLOR_WHITE, (cx, cy), max(3, pulse - 8))
-
-        # Hit flash on damage
-        if self.damage_flash_timer > 0 or self.hit_flash_timer > 0:
-            mask_surf = pygame.Surface(self.image.get_size(), pygame.SRCALPHA)
-            pygame.draw.circle(mask_surf, (255, 255, 255, 140), (cx, cy), r + 10)
-            self.image.blit(mask_surf, (0, 0), special_flags=pygame.BLEND_RGBA_ADD)
-
-        # Protective energy shield barrier
-        if self.is_shielded:
-            shield_r = r + 14
-            shield_alpha = int(180 + 60 * math.sin(self.time_accum * 6.0))
-            pygame.draw.circle(self.image, (56, 189, 248, max(0, min(255, shield_alpha))), (cx, cy), shield_r, 4)
-            pygame.draw.circle(self.image, (180, 230, 255, 120), (cx, cy), shield_r - 4, 1)
-
-        # Beacon effect: rotating light above the objective
-        beacon_y = cy - r - 28
-        beacon_angle = self.time_accum * 4.0
-        beacon_r = 14
-        beacon_alpha = int(170 + 80 * math.sin(self.time_accum * 6.0))
-        bx = cx + math.cos(beacon_angle) * (beacon_r + 4)
-        by = beacon_y + math.sin(beacon_angle) * (beacon_r + 4)
-        pygame.draw.circle(self.image, (*COLOR_SHIELD, beacon_alpha), (int(bx), int(by)), beacon_r)
-        pygame.draw.circle(self.image, COLOR_WHITE, (int(bx), int(by)), max(3, beacon_r - 6))
-        # Beacon vertical beam
-        pygame.draw.line(self.image, (*COLOR_SHIELD, 80), (cx, beacon_y + beacon_r), (cx, beacon_y - 10), 2)
-
-        # --- HP / Shield bar directly below objective ---
-        bar_w = int(r * 1.6)
-        bar_h = 6
-        bar_x = cx - bar_w // 2
-        bar_y = cy + r + 18
-        # Background
-        pygame.draw.rect(self.image, (15, 23, 42, 200), (bar_x, bar_y, bar_w, bar_h), border_radius=3)
-        # HP fill
-        hp_pct = self.hp_percent
-        fill_w = max(0, int(bar_w * hp_pct))
-        hp_col = COLOR_SHIELD if self.is_shielded else (COLOR_CRIMSON if hp_pct < 0.3 else COLOR_GOLD)
-        if fill_w > 0:
-            pygame.draw.rect(self.image, hp_col, (bar_x, bar_y, fill_w, bar_h), border_radius=3)
+        # 5. Dedicated In-World Structure Health Bar (clean, below base)
+        if self.alive:
+            bar_w = int(r * 1.6)
+            bar_h = 6
+            bar_x = cx - bar_w // 2
+            bar_y = cy + r + 10
+            # Background
+            pygame.draw.rect(self.image, (15, 23, 42, 220), (bar_x, bar_y, bar_w, bar_h), border_radius=3)
+            # HP fill
+            hp_pct = self.hp_percent
+            fill_w = max(0, int(bar_w * hp_pct))
+            hp_col = COLOR_SHIELD if self.is_shielded else (COLOR_CRIMSON if hp_pct < 0.3 else COLOR_GOLD)
+            if fill_w > 0:
+                pygame.draw.rect(self.image, hp_col, (bar_x, bar_y, fill_w, bar_h), border_radius=3)
+            pygame.draw.rect(self.image, (71, 85, 105), (bar_x, bar_y, bar_w, bar_h), 1, border_radius=3)
         # Shield overlay bar (if shielded)
         if self.is_shielded:
             sh_fill = max(0, int(bar_w * 1.0))

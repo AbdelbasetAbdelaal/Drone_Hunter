@@ -612,6 +612,90 @@ class SpriteManager:
         return scaled
 
     # -------------------------------------------------------------------------
+    # PRODUCTION 2.5D PHYSICAL GAMEWORLD STRUCTURES
+    # -------------------------------------------------------------------------
+    STRUCTURE_ASSETS = {
+        'critical_power_reactor': 'structures/critical_power_reactor.png',
+        'radar_command_tower': 'structures/radar_command_tower.png',
+        'radar_dish': 'structures/radar_dish.png',
+        'aa_platform': 'structures/aa_platform.png',
+        'missile_launcher': 'structures/missile_launcher.png',
+        'shield_generator': 'structures/shield_generator.png',
+    }
+
+    def get_structure_sprite(self, structure_id: str, target_size: tuple[int, int] = None) -> pygame.Surface:
+        """Returns cached production 2.5D physical structure gameworld sprite."""
+        cache_key = ('structure', structure_id, target_size)
+        if cache_key in self._skin_cache:
+            return self._skin_cache[cache_key]
+
+        rel_path = self.STRUCTURE_ASSETS.get(structure_id, f'structures/{structure_id}.png')
+        raw = self._load_raw_image(rel_path)
+
+        if raw is None:
+            # Fallback procedural surface if file not found
+            sz = target_size if target_size else (128, 128)
+            surf = pygame.Surface(sz, pygame.SRCALPHA)
+            pygame.draw.rect(surf, (51, 65, 85), (4, 4, sz[0] - 8, sz[1] - 8), border_radius=8)
+            self._skin_cache[cache_key] = surf
+            return surf
+
+        if target_size and raw.get_size() != target_size:
+            scaled = pygame.transform.smoothscale(raw, target_size)
+        else:
+            scaled = raw
+
+        self._skin_cache[cache_key] = scaled
+        return scaled
+
+    def get_damaged_structure_sprite(self, structure_id: str, state: str = "healthy",
+                                     target_size: tuple[int, int] = None) -> pygame.Surface:
+        """Returns pre-cached state-specific damaged/critical/destroyed structure surface."""
+        cache_key = ('structure_damage', structure_id, state, target_size)
+        if cache_key in self._skin_cache:
+            return self._skin_cache[cache_key]
+
+        base = self.get_structure_sprite(structure_id, target_size).copy()
+        w, h = base.get_size()
+        cx, cy = w // 2, h // 2
+
+        if state == "damaged":
+            # Add crack marks and spark burns
+            for i in range(4):
+                ang = i * (math.pi / 2) + 0.3
+                ex = cx + math.cos(ang) * (w * 0.35)
+                ey = cy + math.sin(ang) * (h * 0.35)
+                pygame.draw.line(base, (15, 23, 42, 220), (cx, cy), (ex, ey), 3)
+                pygame.draw.line(base, (245, 158, 11, 180), (cx, cy), (ex, ey), 1)
+
+        elif state == "critical":
+            # Heavy damage: extensive cracks, scorched hull, emergency red wash
+            for i in range(8):
+                ang = i * (math.pi / 4) + 0.2
+                ex = cx + math.cos(ang) * (w * 0.42)
+                ey = cy + math.sin(ang) * (h * 0.42)
+                pygame.draw.line(base, (15, 23, 42, 240), (cx, cy), (ex, ey), 4)
+                pygame.draw.line(base, (239, 68, 68, 200), (cx, cy), (ex, ey), 2)
+            # Red warning tint overlay
+            warn_surf = pygame.Surface((w, h), pygame.SRCALPHA)
+            warn_surf.fill((239, 68, 68, 60))
+            base.blit(warn_surf, (0, 0), special_flags=pygame.BLEND_RGBA_ADD)
+
+        elif state == "destroyed":
+            # Scorched wreckage
+            wreck_surf = pygame.Surface((w, h), pygame.SRCALPHA)
+            wreck_surf.fill((30, 41, 59, 200))
+            base.blit(wreck_surf, (0, 0), special_flags=pygame.BLEND_RGBA_MULT)
+            # Broken fractures
+            for i in range(6):
+                p1 = (int(cx + math.cos(i) * w * 0.4), int(cy + math.sin(i) * h * 0.4))
+                p2 = (int(cx - math.cos(i) * w * 0.4), int(cy - math.sin(i) * h * 0.4))
+                pygame.draw.line(base, (10, 10, 15, 255), p1, p2, 5)
+
+        self._skin_cache[cache_key] = base
+        return base
+
+    # -------------------------------------------------------------------------
     # CACHE INTROSPECTION & PROFILING
     # -------------------------------------------------------------------------
     def get_cache_stats(self) -> dict:

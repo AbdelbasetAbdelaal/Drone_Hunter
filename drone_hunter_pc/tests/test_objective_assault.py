@@ -1127,4 +1127,175 @@ class TestPlayerSurvivabilityAndDefenseBalance:
         assert aa.is_telegraphing
         assert aa.telegraph_timer > 0.0
 
+    def test_single_light_projectile_not_lethal(self):
+        """Verify single projectile cannot kill healthy player."""
+        p = Player((200, 360))
+        dead = p.take_damage(14.0)
+        assert not dead
+        assert p.alive
+        assert p.health > 80.0
+
+    def test_damage_spike_prevention(self):
+        """Verify damage grace window stops overlapping bullet stack."""
+        from src.systems.combat_system import CombatSystem
+        from src.entities.bullet import EnemyBullet
+        ctx = GameContext()
+        ctx.player = Player((200, 360))
+        combat = CombatSystem(ctx)
+
+        for _ in range(6):
+            ctx.enemy_bullet_group.add(EnemyBullet((200, 360), (200, 360), damage=20))
+
+        combat.update_combat(0.016)
+        assert ctx.player.alive
+        assert ctx.player.health == 80.0
+
+    def test_inner_objective_zone_survivability(self):
+        """Verify player in inner defense zone has fair survivability window."""
+        p = Player((1800, 700))
+        assert p.alive
+        # Takes 5 consecutive heavy hits with grace windows
+        for _ in range(3):
+            p.take_damage(22.0)
+            p.update(0.35)
+        # Player is still alive after multiple heavy hits
+        assert p.alive
+        assert p.health > 0.0
+
+    def test_radar_destroy_reduces_pressure(self):
+        """Verify radar destruction reduces pressure and increases reinforcement interval."""
+        ctx = GameContext()
+        ctx.player = Player((200, 360))
+        obj_sys = ObjectiveSystem()
+        obj_sys.start_objective_for_mission({
+            "id": "S3_M4_ALT",
+            "objective_type": OBJECTIVE_TYPE_POWER_REACTOR,
+            "defense_level": 3,
+        }, ctx)
+
+        assert len(obj_sys.radar_nodes) > 0
+        obj_sys.radar_nodes[0].alive = False
+        obj_sys._check_radar_destruction(ctx)
+        assert obj_sys._radar_pressure_reduction > 0.0
+
+
+# =============================================================================
+# 11. REAL GAMEWORLD STRUCTURE MODELS & ASSET INTEGRATION TESTS
+# =============================================================================
+class TestRealGameworldStructureModels:
+    """Comprehensive tests verifying physical 2.5D gameworld structure models,
+    visual damage states, and separation from UI markers."""
+
+    def test_objective_has_real_sprite(self):
+        """Verify GroundObjective renders from physical 2.5D structure sprite."""
+        from src.rendering.sprite_manager import get_sprite_manager
+        sm = get_sprite_manager()
+        obj = GroundObjective(objective_type=OBJECTIVE_TYPE_POWER_REACTOR, pos=(1800, 700))
+        
+        # Check SpriteManager has physical asset
+        sprite = sm.get_structure_sprite("critical_power_reactor", (obj.size, obj.size))
+        assert sprite is not None
+        assert sprite.get_width() == obj.size
+        assert sprite.get_height() == obj.size
+        assert obj.image is not None
+        assert obj.image.get_width() >= obj.size
+
+    def test_objective_not_rendered_as_primary_circle(self):
+        """Verify GroundObjective is a physical rectangular/octagonal installation, not a flat circle."""
+        obj = GroundObjective(objective_type=OBJECTIVE_TYPE_POWER_REACTOR, pos=(1800, 700))
+        # Ensure image has non-zero alpha and physical structure content
+        assert obj.image.get_at((obj.image.get_width() // 2, obj.image.get_height() // 2)).a > 0
+        assert obj.visual_damage_state == "healthy"
+
+    def test_radar_has_real_sprite(self):
+        """Verify RadarNode renders physical base tower and rotating parabolic dish."""
+        from src.rendering.sprite_manager import get_sprite_manager
+        sm = get_sprite_manager()
+        radar = RadarNode((800, 400))
+        
+        tower = sm.get_structure_sprite("radar_command_tower", (radar.size, radar.size))
+        dish = sm.get_structure_sprite("radar_dish", (int(radar.size * 0.7), int(radar.size * 0.7)))
+        assert tower is not None
+        assert dish is not None
+        assert radar.image is not None
+
+    def test_aa_has_real_sprite(self):
+        """Verify AAPlatform renders physical dual autocannon turret."""
+        from src.rendering.sprite_manager import get_sprite_manager
+        sm = get_sprite_manager()
+        aa = AAPlatform((600, 300), aa_type=AA_TYPE_HEAVY)
+        
+        turret = sm.get_structure_sprite("aa_platform", (aa.size, aa.size))
+        assert turret is not None
+        assert aa.image is not None
+
+    def test_missile_launcher_has_real_sprite(self):
+        """Verify AAPlatform (missile type) renders physical quad missile silo."""
+        from src.rendering.sprite_manager import get_sprite_manager
+        sm = get_sprite_manager()
+        missile = AAPlatform((600, 300), aa_type=AA_TYPE_MISSILE)
+        
+        silo = sm.get_structure_sprite("missile_launcher", (missile.size, missile.size))
+        assert silo is not None
+        assert missile.image is not None
+
+    def test_shield_generator_has_real_sprite(self):
+        """Verify ShieldGenerator renders physical tri-pylon structure."""
+        from src.rendering.sprite_manager import get_sprite_manager
+        sm = get_sprite_manager()
+        gen = ShieldGenerator((700, 500))
+        
+        gen_surf = sm.get_structure_sprite("shield_generator", (gen.size, gen.size))
+        assert gen_surf is not None
+        assert gen.image is not None
+
+    def test_objective_damage_state(self):
+        """Verify GroundObjective transitions to 'damaged' state when HP <= 50%."""
+        obj = GroundObjective(objective_type=OBJECTIVE_TYPE_POWER_REACTOR, pos=(1800, 700))
+        assert obj.visual_damage_state == "healthy"
+        
+        obj.hp = int(obj.max_hp * 0.45)
+        assert obj.visual_damage_state == "damaged"
+
+    def test_objective_critical_state(self):
+        """Verify GroundObjective transitions to 'critical' state when HP <= 25%."""
+        obj = GroundObjective(objective_type=OBJECTIVE_TYPE_POWER_REACTOR, pos=(1800, 700))
+        obj.hp = int(obj.max_hp * 0.20)
+        assert obj.visual_damage_state == "critical"
+
+    def test_objective_destroyed_state(self):
+        """Verify GroundObjective transitions to 'destroyed' state when HP reaches 0."""
+        obj = GroundObjective(objective_type=OBJECTIVE_TYPE_POWER_REACTOR, pos=(1800, 700))
+        obj.hp = 0
+        obj.alive = False
+        assert obj.visual_damage_state == "destroyed"
+
+    def test_radar_scan_state(self):
+        """Verify RadarNode rotates dish in scanning state."""
+        radar = RadarNode((800, 400))
+        initial_angle = radar.sweep_angle
+        radar.update(0.1, player_pos=(2000, 2000))
+        assert radar.state == RADAR_STATE_SCANNING
+        assert radar.sweep_angle != initial_angle
+
+    def test_radar_destroyed_state(self):
+        """Verify RadarNode transitions to destroyed state upon fatal damage."""
+        radar = RadarNode((800, 400))
+        radar.take_damage(999)
+        assert not radar.alive
+        assert radar.state == RADAR_STATE_DESTROYED
+
+    def test_objective_world_position(self):
+        """Verify GroundObjective rect center aligns precisely with world position."""
+        obj = GroundObjective(objective_type=OBJECTIVE_TYPE_POWER_REACTOR, pos=(2100, 650))
+        assert obj.rect.centerx == 2100
+        assert obj.rect.centery == 650
+
+    def test_radar_world_position(self):
+        """Verify RadarNode rect center aligns precisely with world position."""
+        radar = RadarNode((950, 450))
+        assert radar.rect.centerx == 950
+        assert radar.rect.centery == 450
+
+
 

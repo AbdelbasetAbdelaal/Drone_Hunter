@@ -102,7 +102,7 @@ class Player(pygame.sprite.Sprite):
         # Shield Hit System
         self.shield_hits = 0
         self.damage_grace_timer = 0.0
-        self.damage_grace_duration = 0.25
+        self.damage_grace_duration = 0.30
 
         # Ability Timers & Cooldowns
         self.emp_cooldown = 0.0

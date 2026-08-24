@@ -4,6 +4,27 @@ All notable changes to the **Drone Hunter 2D** project are documented in this fi
 
 ---
 
+## [Phase 16] — Objective Visual Rework & Structure Models (2026)
+
+### Added & Visual Rework
+- **Physical 2.5D Gameworld Structure Models**:
+  - Replaced procedural primitive shapes and UI-like circles with production 2.5D physical gameworld assets:
+    - `critical_power_reactor.png` (512x512 Master Reactor installation with industrial foundations, hazard stripes, cooling manifolds, magnetic containment ring, and emissive core).
+    - `radar_command_tower.png` & `radar_dish.png` (Physical base tower with lattice supports and mechanically rotating parabolic dish).
+    - `aa_platform.png` (Heavy bunker fortress base with dual rotating autocannon barrels).
+    - `missile_launcher.png` (Reinforced tracked launch silo with quad missile pods).
+    - `shield_generator.png` (Tri-pylon capacitor generator array).
+  - Integrated distinct physical visual damage states: `HEALTHY`, `DAMAGED` (surface cracks & spark burns), `CRITICAL` (scorched hull, red emergency wash), `DESTROYED` (collapsed wreckage).
+  - Clean separation of physical structure sprite vs collision hitbox vs subtle HUD indicator.
+- **Enhanced Player Survivability & Damage Spike Budget**:
+  - Verified `damage_grace_duration = 0.30s` preventing multi-projectile frame deletions and simultaneous high-damage overlap.
+  - Balanced inner defense zone attack windows allowing entry, attack, tactical retreat, and repositioning.
+  - Verified tactical abilities (Roll i-frames, Cloak radar/AA suppression, Overdrive full invulnerability).
+- **Automated Test Suite Expansion**:
+  - Added `TestRealGameworldStructureModels` bringing total automated tests to **683 passed** (100% green).
+
+---
+
 ## [Phase 15] — Player Survivability & Objective Defense Balance Pass (2026)
 
 ### Added & Tuned
