@@ -39,9 +39,21 @@ ACTION_CONFIRM = "CONFIRM"
 ACTION_CANCEL = "CANCEL"
 ACTION_SECTOR_MAP = "SECTOR_MAP"
 ACTION_HANGAR_BAY = "HANGAR_BAY"
+ACTION_SETTINGS = "SETTINGS"
 ACTION_FRONT_TOP = "FRONT_TOP"
 ACTION_FRONT_BOTTOM = "FRONT_BOTTOM"
 ACTION_CYCLE_CLASS = "CYCLE_CLASS"
+ACTION_WEAPON_SLOT_1 = "WEAPON_SLOT_1"
+ACTION_WEAPON_SLOT_2 = "WEAPON_SLOT_2"
+ACTION_WEAPON_SLOT_3 = "WEAPON_SLOT_3"
+ACTION_WEAPON_SLOT_4 = "WEAPON_SLOT_4"
+ACTION_WEAPON_SLOT_5 = "WEAPON_SLOT_5"
+ACTION_WEAPON_SLOT_6 = "WEAPON_SLOT_6"
+ACTION_SELECT_SLOT_1 = "SELECT_SLOT_1"
+ACTION_SELECT_SLOT_2 = "SELECT_SLOT_2"
+ACTION_SELECT_SLOT_3 = "SELECT_SLOT_3"
+ACTION_SELECT_SLOT_4 = "SELECT_SLOT_4"
+ACTION_SELECT_SLOT_5 = "SELECT_SLOT_5"
 
 DEVICE_KEYBOARD_MOUSE = "keyboard_mouse"
 DEVICE_GAMEPAD = "gamepad"
@@ -352,6 +364,19 @@ class InputManager:
                         pygame.K_SPACE: ACTION_FIRE_PRIMARY,
                         pygame.K_ESCAPE: ACTION_PAUSE,
                         pygame.K_p: ACTION_PAUSE,
+                        pygame.K_m: ACTION_SECTOR_MAP,
+                        pygame.K_1: ACTION_WEAPON_SLOT_1,
+                        pygame.K_KP1: ACTION_WEAPON_SLOT_1,
+                        pygame.K_2: ACTION_WEAPON_SLOT_2,
+                        pygame.K_KP2: ACTION_WEAPON_SLOT_2,
+                        pygame.K_3: ACTION_WEAPON_SLOT_3,
+                        pygame.K_KP3: ACTION_WEAPON_SLOT_3,
+                        pygame.K_4: ACTION_WEAPON_SLOT_4,
+                        pygame.K_KP4: ACTION_WEAPON_SLOT_4,
+                        pygame.K_5: ACTION_WEAPON_SLOT_5,
+                        pygame.K_KP5: ACTION_WEAPON_SLOT_5,
+                        pygame.K_6: ACTION_WEAPON_SLOT_6,
+                        pygame.K_KP6: ACTION_WEAPON_SLOT_6,
                     }
                     action = keyboard_actions.get(event.key)
                     if action:
@@ -376,11 +401,25 @@ class InputManager:
                         pygame.K_p: ACTION_PAUSE,
                         pygame.K_h: ACTION_HANGAR_BAY,
                     }
+                    if self.context in (InputContext.MISSION_FAILED, InputContext.MISSION_COMPLETE) and event.key == pygame.K_r:
+                        menu_actions[pygame.K_r] = ACTION_CONFIRM
+
                     action = menu_actions.get(event.key)
                     if action:
                         self.actions_triggered[action] = True
                     if self.context == InputContext.HANGAR and event.key == pygame.K_c:
                         self.actions_triggered[ACTION_CYCLE_CLASS] = True
+
+                    slot_actions = {
+                        pygame.K_1: ACTION_SELECT_SLOT_1, pygame.K_KP1: ACTION_SELECT_SLOT_1,
+                        pygame.K_2: ACTION_SELECT_SLOT_2, pygame.K_KP2: ACTION_SELECT_SLOT_2,
+                        pygame.K_3: ACTION_SELECT_SLOT_3, pygame.K_KP3: ACTION_SELECT_SLOT_3,
+                        pygame.K_4: ACTION_SELECT_SLOT_4, pygame.K_KP4: ACTION_SELECT_SLOT_4,
+                        pygame.K_5: ACTION_SELECT_SLOT_5, pygame.K_KP5: ACTION_SELECT_SLOT_5,
+                    }
+                    slot_act = slot_actions.get(event.key)
+                    if slot_act:
+                        self.actions_triggered[slot_act] = True
 
             elif event.type == pygame.MOUSEBUTTONDOWN:
                 self.active_device = DEVICE_KEYBOARD_MOUSE

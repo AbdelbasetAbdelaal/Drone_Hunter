@@ -30,7 +30,12 @@ from src.input import (
     ACTION_ROLL, ACTION_WEAPON_NEXT, ACTION_WEAPON_PREV, ACTION_SPECIAL,
     ACTION_CLOAK, ACTION_CYCLE_CLASS, ACTION_PAUSE,
     ACTION_FULLSCREEN, ACTION_CONFIRM, ACTION_CANCEL, ACTION_SECTOR_MAP,
-    ACTION_HANGAR_BAY, DEVICE_KEYBOARD_MOUSE
+    ACTION_HANGAR_BAY, ACTION_SETTINGS,
+    ACTION_WEAPON_SLOT_1, ACTION_WEAPON_SLOT_2, ACTION_WEAPON_SLOT_3,
+    ACTION_WEAPON_SLOT_4, ACTION_WEAPON_SLOT_5, ACTION_WEAPON_SLOT_6,
+    ACTION_SELECT_SLOT_1, ACTION_SELECT_SLOT_2, ACTION_SELECT_SLOT_3,
+    ACTION_SELECT_SLOT_4, ACTION_SELECT_SLOT_5,
+    DEVICE_KEYBOARD_MOUSE
 )
 from src.data.mission_data import get_missions_for_sector
 
@@ -184,11 +189,6 @@ class InputController:
                         input_ctx.save_callback()
                     continue
 
-                if not self._handle_keyboard_menu_navigation(event, input_ctx):
-                    if input_ctx.quit_callback:
-                        input_ctx.quit_callback()
-                    return False
-
             elif event.type == pygame.MOUSEBUTTONDOWN and event.button == 1:
                 mx, my = self.get_canvas_mouse_pos(input_ctx.win_w, input_ctx.win_h, screen_pos=event.pos)
                 self._handle_mouse_click(mx, my, input_ctx)
@@ -207,7 +207,7 @@ class InputController:
                         input_ctx.quit_callback()
                     return False
 
-        # Process discrete controller action triggers
+        # Process discrete action triggers (Single Authoritative Input Path)
         if im is not None:
             trig = getattr(im, "actions_triggered", {})
 
@@ -219,8 +219,10 @@ class InputController:
             # Gameplay actions
             if ctx.state == STATE_PLAYING and ctx.player:
                 if trig.get(ACTION_PAUSE):
+                    trig[ACTION_PAUSE] = False
                     ctx.state = STATE_PAUSED
                 elif trig.get(ACTION_SECTOR_MAP):
+                    trig[ACTION_SECTOR_MAP] = False
                     self._set_previous_state(input_ctx, STATE_PLAYING)
                     ctx.state = STATE_SECTOR_SELECT
                 elif trig.get(ACTION_ROLL):
@@ -261,6 +263,36 @@ class InputController:
                     if input_ctx.save_callback: input_ctx.save_callback()
                     if input_ctx.audio_manager:
                         input_ctx.audio_manager.play_powerup()
+                elif trig.get(ACTION_WEAPON_SLOT_1):
+                    previous_weapon = ctx.player.active_weapon
+                    ctx.player.select_weapon(0)
+                    if ctx.player.active_weapon != previous_weapon and input_ctx.audio_manager:
+                        input_ctx.audio_manager.play_weapon_switch()
+                elif trig.get(ACTION_WEAPON_SLOT_2):
+                    previous_weapon = ctx.player.active_weapon
+                    ctx.player.select_weapon(1)
+                    if ctx.player.active_weapon != previous_weapon and input_ctx.audio_manager:
+                        input_ctx.audio_manager.play_weapon_switch()
+                elif trig.get(ACTION_WEAPON_SLOT_3):
+                    previous_weapon = ctx.player.active_weapon
+                    ctx.player.select_weapon(2)
+                    if ctx.player.active_weapon != previous_weapon and input_ctx.audio_manager:
+                        input_ctx.audio_manager.play_weapon_switch()
+                elif trig.get(ACTION_WEAPON_SLOT_4):
+                    previous_weapon = ctx.player.active_weapon
+                    ctx.player.select_weapon(3)
+                    if ctx.player.active_weapon != previous_weapon and input_ctx.audio_manager:
+                        input_ctx.audio_manager.play_weapon_switch()
+                elif trig.get(ACTION_WEAPON_SLOT_5):
+                    previous_weapon = ctx.player.active_weapon
+                    ctx.player.select_weapon(4)
+                    if ctx.player.active_weapon != previous_weapon and input_ctx.audio_manager:
+                        input_ctx.audio_manager.play_weapon_switch()
+                elif trig.get(ACTION_WEAPON_SLOT_6):
+                    previous_weapon = ctx.player.active_weapon
+                    ctx.player.select_weapon(5)
+                    if ctx.player.active_weapon != previous_weapon and input_ctx.audio_manager:
+                        input_ctx.audio_manager.play_weapon_switch()
 
             elif ctx.state in (STATE_HANGAR, STATE_DRONE_SELECT) and ctx.player:
                 if trig.get(ACTION_CYCLE_CLASS):
@@ -412,19 +444,16 @@ class InputController:
                 ctx.state = STATE_SECTOR_SELECT
 
         elif ctx.state == STATE_PLAYING:
-            if event.key in (pygame.K_ESCAPE, pygame.K_p):
-                ctx.state = STATE_PAUSED
-                if am: am.stop_engine_sound()
-            elif event.key in (pygame.K_1, pygame.K_2, pygame.K_3,
-                               pygame.K_4, pygame.K_5, pygame.K_6):
-                # Direct weapon slots are limited by the weapons the player
-                # has actually unlocked; unavailable slots are a safe no-op.
+            if event.key in (pygame.K_1, pygame.K_2, pygame.K_3, pygame.K_4, pygame.K_5, pygame.K_6):
                 if ctx.player:
                     slot_index = event.key - pygame.K_1
                     previous_weapon = ctx.player.active_weapon
                     ctx.player.select_weapon(slot_index)
                     if ctx.player.active_weapon != previous_weapon and am:
                         am.play_weapon_switch()
+            elif event.key in (pygame.K_ESCAPE, pygame.K_p):
+                ctx.state = STATE_PAUSED
+                if am: am.stop_engine_sound()
 
         return True
 
@@ -726,6 +755,28 @@ class InputController:
         am = input_ctx.audio_manager
 
         if ctx.state == STATE_SAVE_SELECT:
+            if trig.get(ACTION_SELECT_SLOT_1):
+                if input_ctx.select_save_slot_callback:
+                    input_ctx.select_save_slot_callback(1)
+                ctx.state = STATE_MENU
+                self.menu_cursor = 0
+                if am: am.play_powerup()
+                return
+            elif trig.get(ACTION_SELECT_SLOT_2):
+                if input_ctx.select_save_slot_callback:
+                    input_ctx.select_save_slot_callback(2)
+                ctx.state = STATE_MENU
+                self.menu_cursor = 0
+                if am: am.play_powerup()
+                return
+            elif trig.get(ACTION_SELECT_SLOT_3):
+                if input_ctx.select_save_slot_callback:
+                    input_ctx.select_save_slot_callback(3)
+                ctx.state = STATE_MENU
+                self.menu_cursor = 0
+                if am: am.play_powerup()
+                return
+
             if d_up:
                 self.menu_cursor = (self.menu_cursor - 1) % 4
                 if am: am.play_weapon_switch()
@@ -749,6 +800,12 @@ class InputController:
                     input_ctx.quit_callback()
 
         elif ctx.state == STATE_MENU:
+            if trig.get(ACTION_SETTINGS):
+                self._set_previous_state(input_ctx, STATE_MENU)
+                ctx.state = STATE_SETTINGS
+                if am: am.play_click()
+                return
+
             if d_up:
                 self.menu_cursor = (self.menu_cursor - 1) % 4
                 if am: am.play_weapon_switch()
@@ -778,6 +835,17 @@ class InputController:
 
         elif ctx.state == STATE_DRONE_SELECT:
             drone_keys = ["striker", "phantom", "titan", "specter", "tempest"]
+            for slot_idx, slot_act in enumerate([ACTION_SELECT_SLOT_1, ACTION_SELECT_SLOT_2, ACTION_SELECT_SLOT_3, ACTION_SELECT_SLOT_4, ACTION_SELECT_SLOT_5]):
+                if trig.get(slot_act):
+                    ctx.selected_drone = drone_keys[slot_idx]
+                    if ctx.player:
+                        ctx.player.apply_drone_class(slot_idx)
+                        ctx.selected_drone_override = ctx.player.drone_class_id
+                    if am: am.play_powerup()
+                    self.menu_cursor = 0
+                    ctx.state = STATE_SECTOR_SELECT
+                    return
+
             if d_left or weapon_prev:
                 if self.menu_cursor == 5:
                     self.menu_cursor = 0
@@ -797,7 +865,9 @@ class InputController:
             elif d_up:
                 if self.menu_cursor == 5:
                     self.menu_cursor = 0
-                    if am: am.play_weapon_switch()
+                else:
+                    self.menu_cursor = (self.menu_cursor - 1) % 5
+                if am: am.play_weapon_switch()
 
             if self.menu_cursor < 5:
                 ctx.selected_drone = drone_keys[self.menu_cursor]
@@ -820,6 +890,12 @@ class InputController:
                 ctx.state = STATE_MENU
 
         elif ctx.state == STATE_SECTOR_SELECT:
+            if trig.get(ACTION_SETTINGS):
+                self._set_previous_state(input_ctx, STATE_SECTOR_SELECT)
+                ctx.state = STATE_SETTINGS
+                if am: am.play_click()
+                return
+
             cur_sec = ctx.missions.get("current_sector", 1)
             sec_missions = get_missions_for_sector(cur_sec)
 
@@ -861,6 +937,11 @@ class InputController:
                 ctx.state = STATE_SECTOR_SELECT
 
         elif ctx.state == STATE_HANGAR:
+            if trig.get(ACTION_SETTINGS):
+                self._set_previous_state(input_ctx, STATE_HANGAR)
+                ctx.state = STATE_SETTINGS
+                if am: am.play_click()
+                return
             if (cycle_class or trig.get(ACTION_CYCLE_CLASS)) and ctx.player:
                 ctx.player.cycle_drone_class(1)
                 if am: am.play_powerup()
