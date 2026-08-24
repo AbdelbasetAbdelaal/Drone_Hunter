@@ -390,17 +390,38 @@ class InputController:
             return
 
         if ctx.state == STATE_MENU:
-            if "start" in cache and cache["start"].collidepoint(mx, my):
+            if ("play" in cache and cache["play"].collidepoint(mx, my)) or ("start" in cache and cache["start"].collidepoint(mx, my)):
                 ctx.state = STATE_DRONE_SELECT
                 if am: am.play_powerup()
             elif "hangar" in cache and cache["hangar"].collidepoint(mx, my):
                 self._set_previous_state(input_ctx, STATE_MENU)
                 ctx.state = STATE_HANGAR
+                if am: am.play_click()
             elif "settings" in cache and cache["settings"].collidepoint(mx, my):
                 self._set_previous_state(input_ctx, STATE_MENU)
                 ctx.state = STATE_SETTINGS
-            elif "exit" in cache and cache["exit"].collidepoint(mx, my):
+                if am: am.play_click()
+            elif ("exit" in cache and cache["exit"].collidepoint(mx, my)) or ("quit" in cache and cache["quit"].collidepoint(mx, my)):
                 if input_ctx.quit_callback: input_ctx.quit_callback()
+
+        elif ctx.state == STATE_DRONE_SELECT:
+            drone_keys = ["striker", "phantom", "titan", "specter", "tempest"]
+            if "drones" in cache and isinstance(cache["drones"], dict):
+                for idx, d_rect in cache["drones"].items():
+                    if d_rect and d_rect.collidepoint(mx, my):
+                        if idx < len(drone_keys):
+                            ctx.selected_drone = drone_keys[idx]
+                            if ctx.player:
+                                ctx.player.apply_drone_class(idx)
+                                ctx.selected_drone_override = ctx.player.drone_class_id
+                                ctx.selected_skin_override = ctx.player.skin_theme
+                            if am: am.play_powerup()
+                            self.menu_cursor = 0
+                            ctx.state = STATE_SECTOR_SELECT
+                            return
+            if "back" in cache and cache["back"] and cache["back"].collidepoint(mx, my):
+                ctx.state = STATE_MENU
+                if am: am.play_click()
 
         elif ctx.state == STATE_SAVE_SELECT:
             for i in range(3):
@@ -413,37 +434,48 @@ class InputController:
                 if input_ctx.quit_callback: input_ctx.quit_callback()
 
         elif ctx.state == STATE_SECTOR_SELECT:
-            if "back" in cache and cache["back"].collidepoint(mx, my):
+            if "back" in cache and cache["back"] and cache["back"].collidepoint(mx, my):
                 ctx.state = STATE_MENU
-            elif "hangar" in cache and cache["hangar"].collidepoint(mx, my):
+                if am: am.play_click()
+            elif "hangar" in cache and cache["hangar"] and cache["hangar"].collidepoint(mx, my):
                 self._set_previous_state(input_ctx, STATE_SECTOR_SELECT)
                 ctx.state = STATE_HANGAR
-            elif "settings" in cache and cache["settings"].collidepoint(mx, my):
+                if am: am.play_click()
+            elif "settings" in cache and cache["settings"] and cache["settings"].collidepoint(mx, my):
                 self._set_previous_state(input_ctx, STATE_SECTOR_SELECT)
                 ctx.state = STATE_SETTINGS
-            elif "missions" in cache:
+                if am: am.play_click()
+            elif "exit" in cache and cache["exit"] and cache["exit"].collidepoint(mx, my):
+                if input_ctx.quit_callback: input_ctx.quit_callback()
+            elif "diff_rect" in cache and cache["diff_rect"] and cache["diff_rect"].collidepoint(mx, my):
+                ctx.difficulty_mode = (ctx.difficulty_mode + 1) % 5
+                if input_ctx.save_callback: input_ctx.save_callback()
+                if am: am.play_click()
+            elif "missions" in cache and isinstance(cache["missions"], dict):
                 for m_id, m_rect in cache["missions"].items():
-                    if m_rect.collidepoint(mx, my):
+                    if m_rect and m_rect.collidepoint(mx, my):
                         self._set_pending_mission(input_ctx, m_id)
                         ctx.state = STATE_MISSION_BRIEFING
+                        if am: am.play_powerup()
                         return
-            elif "sectors" in cache:
-                for idx, s_rect in enumerate(cache["sectors"]):
-                    if s_rect.collidepoint(mx, my) and ctx.unlocked_sectors[idx]:
-                        ctx.current_sector_idx = idx
-                        missions = get_missions_for_sector(idx + 1)
-                        if missions:
-                            self._set_pending_mission(input_ctx, missions[0]["id"])
-                            ctx.state = STATE_MISSION_BRIEFING
+            elif "sectors" in cache and isinstance(cache["sectors"], dict):
+                for s_id, s_rect in cache["sectors"].items():
+                    if s_rect and s_rect.collidepoint(mx, my):
+                        ctx.missions["current_sector"] = s_id
+                        if am: am.play_weapon_switch()
                         return
 
         elif ctx.state == STATE_MISSION_BRIEFING:
-            if "start" in cache and cache["start"].collidepoint(mx, my):
+            if ("start" in cache and cache["start"] and cache["start"].collidepoint(mx, my)) or \
+               ("launch" in cache and cache["launch"] and cache["launch"].collidepoint(mx, my)) or \
+               ("deploy" in cache and cache["deploy"] and cache["deploy"].collidepoint(mx, my)):
                 if input_ctx.start_mission_callback: input_ctx.start_mission_callback(input_ctx.pending_mission_id)
-            elif "back" in cache and cache["back"].collidepoint(mx, my):
+            elif "back" in cache and cache["back"] and cache["back"].collidepoint(mx, my):
                 ctx.state = STATE_SECTOR_SELECT
-            elif "exit" in cache and cache["exit"].collidepoint(mx, my):
+                if am: am.play_click()
+            elif "exit" in cache and cache["exit"] and cache["exit"].collidepoint(mx, my):
                 ctx.state = STATE_MENU
+                if am: am.play_click()
 
         elif ctx.state == STATE_HANGAR:
             if "back" in cache and cache["back"].collidepoint(mx, my):

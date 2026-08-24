@@ -555,6 +555,14 @@ class AudioManager:
         """Campaign victory fanfare."""
         self._play_cached("victory", min_interval_ms=200, channel_id=CHANNEL_UI, volume_scale=1.0)
 
+    def play_click(self):
+        """UI button click sound."""
+        self._play_cached("buy", min_interval_ms=40, channel_id=CHANNEL_UI, volume_scale=0.60)
+
+    def play_weapon_switch(self):
+        """Weapon switch / menu navigation blip."""
+        self._play_cached("buy", min_interval_ms=40, channel_id=CHANNEL_UI, volume_scale=0.50)
+
     def play_buy(self):
         """Upgrade purchase."""
         self._play_cached("buy", min_interval_ms=50, channel_id=CHANNEL_UI, volume_scale=0.80)
