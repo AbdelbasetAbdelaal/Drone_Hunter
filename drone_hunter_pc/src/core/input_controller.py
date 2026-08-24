@@ -99,6 +99,9 @@ class InputController:
                 context=g.context,
                 input_manager=g.input_manager,
                 audio_manager=getattr(g, "audio_manager", None),
+                combat_system=getattr(g, "combat_system", None),
+                particle_manager=getattr(g, "particle_manager", None),
+                mission_system=getattr(g, "mission_system", None),
                 ui_rects_cache=getattr(g, "ui_rects_cache", {}),
                 win_w=getattr(g, "win_w", SCREEN_WIDTH),
                 win_h=getattr(g, "win_h", SCREEN_HEIGHT),
@@ -121,6 +124,9 @@ class InputController:
             context=input_ctx_or_game,
             input_manager=kwargs.get("input_manager"),
             audio_manager=kwargs.get("audio_manager"),
+            combat_system=kwargs.get("combat_system"),
+            particle_manager=kwargs.get("particle_manager"),
+            mission_system=kwargs.get("mission_system"),
             ui_rects_cache=kwargs.get("ui_rects_cache", {}),
             win_w=kwargs.get("win_w", SCREEN_WIDTH),
             win_h=kwargs.get("win_h", SCREEN_HEIGHT),
@@ -178,21 +184,7 @@ class InputController:
                         input_ctx.save_callback()
                     continue
 
-                # Keyboard menus share the same cursor/action engine as a
-                # gamepad.  The legacy handler remains for gameplay and the
-                # custom-difficulty editor, which has slider-specific keys.
-                keyboard_menu_states = (
-                    STATE_MENU, STATE_SAVE_SELECT, STATE_DRONE_SELECT,
-                    STATE_SETTINGS, STATE_CONTROLLER_BINDING,
-                    STATE_CONTROLLER_TEST, STATE_PAUSED,
-                    STATE_MISSION_COMPLETE, STATE_LEVEL_CLEAR, STATE_VICTORY,
-                    STATE_MISSION_FAILED, STATE_GAME_OVER, STATE_HANGAR,
-                    STATE_SECTOR_SELECT, STATE_MISSION_BRIEFING,
-                )
-                if (
-                    ctx.state not in keyboard_menu_states
-                    and not self._handle_keyboard_menu_navigation(event, input_ctx)
-                ):
+                if not self._handle_keyboard_menu_navigation(event, input_ctx):
                     if input_ctx.quit_callback:
                         input_ctx.quit_callback()
                     return False
@@ -265,6 +257,16 @@ class InputController:
                             input_ctx.particle_manager.spawn_spark(ctx.player.pos, count=15, color=(147, 51, 234))
                 elif trig.get(ACTION_CYCLE_CLASS):
                     ctx.player.cycle_drone_class(1)
+                    ctx.selected_drone = ctx.player.drone_class
+                    if input_ctx.save_callback: input_ctx.save_callback()
+                    if input_ctx.audio_manager:
+                        input_ctx.audio_manager.play_powerup()
+
+            elif ctx.state in (STATE_HANGAR, STATE_DRONE_SELECT) and ctx.player:
+                if trig.get(ACTION_CYCLE_CLASS):
+                    ctx.player.cycle_drone_class(1)
+                    ctx.selected_drone = ctx.player.drone_class
+                    if input_ctx.save_callback: input_ctx.save_callback()
                     if input_ctx.audio_manager:
                         input_ctx.audio_manager.play_powerup()
 
@@ -362,6 +364,12 @@ class InputController:
             elif event.key == pygame.K_s:
                 self._set_previous_state(input_ctx, STATE_HANGAR)
                 ctx.state = STATE_SETTINGS
+            elif event.key == pygame.K_c:
+                if ctx.player:
+                    ctx.player.cycle_drone_class()
+                    ctx.selected_drone = ctx.player.drone_class
+                    if input_ctx.save_callback: input_ctx.save_callback()
+                    if am: am.play_powerup()
 
         elif ctx.state == STATE_SECTOR_SELECT:
             if event.key in (pygame.K_ESCAPE, pygame.K_q):
