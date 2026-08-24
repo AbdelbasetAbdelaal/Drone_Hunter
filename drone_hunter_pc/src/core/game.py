@@ -694,8 +694,7 @@ class Game:
     def run(self):
         """Executes the master variable-timestep game loop until termination."""
         while self.running:
-            raw_dt = self.clock.get_delta_time()
-            dt = min(raw_dt, 0.05)
+            dt = self.clock.tick()
             self._last_dt = dt
 
             self.handle_events()

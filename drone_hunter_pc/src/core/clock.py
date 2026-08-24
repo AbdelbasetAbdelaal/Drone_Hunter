@@ -23,5 +23,9 @@ class GameClock:
         self.dt = min(self.raw_dt, 0.05)
         return self.dt
 
+    def get_delta_time(self) -> float:
+        """Ticks the clock and returns delta time in seconds."""
+        return self.tick()
+
     def get_fps(self) -> float:
         return self.clock.get_fps()
