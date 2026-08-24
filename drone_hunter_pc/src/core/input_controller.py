@@ -1,14 +1,14 @@
 """
 ================================================================================
-                   DRONE HUNTER 2D - INPUT CONTROLLER
+                    DRONE HUNTER 2D - INPUT CONTROLLER
 ================================================================================
-Orchestrates event handling, mouse coordinate projection, context-aware input
-routing, and controller D-pad menu navigation across all game screens.
+Handles virtual canvas mouse coordinate projections, context-aware event routing,
+menu button clicks, slider dragging, and controller D-pad navigation.
+Receives dependencies explicitly through InputHandlingContext without coupling to Game.
 """
 
-import math
 import pygame
-from typing import Optional, Dict, Any, Tuple
+from typing import Optional, Dict, Any, Tuple, Callable
 
 from src.data.settings import (
     SCREEN_WIDTH, SCREEN_HEIGHT
@@ -23,19 +23,15 @@ from src.core.game_state import (
     STATE_SETTINGS, STATE_DRONE_SELECT, STATE_SAVE_SELECT, STATE_CUSTOM_DIFFICULTY,
     STATE_CONTROLLER_BINDING, STATE_CONTROLLER_TEST
 )
+from src.core.gameplay_context import InputHandlingContext
 from src.input import (
-    InputContext,
-    ACTION_CONFIRM, ACTION_CANCEL, ACTION_SECTOR_MAP, ACTION_HANGAR_BAY,
-    ACTION_CYCLE_SKIN, ACTION_FRONT_TOP, ACTION_FRONT_BOTTOM, ACTION_CYCLE_CLASS,
-    ACTION_PAUSE, ACTION_FULLSCREEN, ACTION_FIRE_PRIMARY, ACTION_EMP,
-    ACTION_ULTIMATE, ACTION_ROLL, ACTION_WEAPON_NEXT, ACTION_WEAPON_PREV,
-    ACTION_CLOAK
+    InputManager, InputContext, ACTION_FULLSCREEN
 )
-from src.data.mission_data import get_missions_for_sector, get_mission_data
+from src.data.mission_data import get_missions_for_sector
 
 
 class InputController:
-    """Coordinates event processing, input context routing, and UI navigation."""
+    """Encapsulates input event routing, canvas projections, and menu navigation."""
 
     def __init__(self):
         self.menu_cursor: int = 0
@@ -87,65 +83,145 @@ class InputController:
             return InputContext.MISSION_FAILED
         return InputContext.GAMEPLAY
 
-    def handle_events(self, game) -> bool:
+    def _resolve_input_context(self, input_ctx_or_game: Any, **kwargs) -> InputHandlingContext:
+        """Helper to accept either an InputHandlingContext or duck-typed legacy container."""
+        if isinstance(input_ctx_or_game, InputHandlingContext):
+            return input_ctx_or_game
+
+        g = input_ctx_or_game
+        if hasattr(g, "context") and hasattr(g, "input_manager"):
+            return InputHandlingContext(
+                context=g.context,
+                input_manager=g.input_manager,
+                audio_manager=getattr(g, "audio_manager", None),
+                ui_rects_cache=getattr(g, "ui_rects_cache", {}),
+                win_w=getattr(g, "win_w", SCREEN_WIDTH),
+                win_h=getattr(g, "win_h", SCREEN_HEIGHT),
+                is_fullscreen=getattr(g, "is_fullscreen", False),
+                previous_state=getattr(g, "previous_state", None),
+                pending_mission_id=getattr(g, "pending_mission_id", "S1_M1"),
+                save_callback=getattr(g, "save_progress", None),
+                start_mission_callback=getattr(g, "start_phase5_mission", None),
+                select_save_slot_callback=getattr(g, "select_save_slot", None),
+                buy_upgrade_callback=getattr(g, "buy_upgrade", None),
+                toggle_fullscreen_callback=getattr(g, "toggle_fullscreen", None),
+                resize_window_callback=lambda w, h: setattr(g, "win_w", w) or setattr(g, "win_h", h),
+                get_next_mission_id_callback=getattr(g, "get_next_mission_id", None),
+                set_previous_state_callback=lambda s: setattr(g, "previous_state", s),
+                set_pending_mission_id_callback=lambda m: setattr(g, "pending_mission_id", m),
+                quit_callback=lambda: setattr(g, "running", False),
+            )
+
+        return InputHandlingContext(
+            context=input_ctx_or_game,
+            input_manager=kwargs.get("input_manager"),
+            audio_manager=kwargs.get("audio_manager"),
+            ui_rects_cache=kwargs.get("ui_rects_cache", {}),
+            win_w=kwargs.get("win_w", SCREEN_WIDTH),
+            win_h=kwargs.get("win_h", SCREEN_HEIGHT),
+            is_fullscreen=kwargs.get("is_fullscreen", False),
+            previous_state=kwargs.get("previous_state"),
+            pending_mission_id=kwargs.get("pending_mission_id", "S1_M1"),
+            save_callback=kwargs.get("save_callback"),
+            start_mission_callback=kwargs.get("start_mission_callback"),
+            select_save_slot_callback=kwargs.get("select_save_slot_callback"),
+            buy_upgrade_callback=kwargs.get("buy_upgrade_callback"),
+            toggle_fullscreen_callback=kwargs.get("toggle_fullscreen_callback"),
+            resize_window_callback=kwargs.get("resize_window_callback"),
+            get_next_mission_id_callback=kwargs.get("get_next_mission_id_callback"),
+            set_previous_state_callback=kwargs.get("set_previous_state_callback"),
+            set_pending_mission_id_callback=kwargs.get("set_pending_mission_id_callback"),
+            quit_callback=kwargs.get("quit_callback"),
+        )
+
+    def handle_events(self, input_ctx_or_game: Any) -> bool:
         """Processes all pending SDL/Pygame events and dispatches to appropriate handlers.
         Returns False if game should quit, True otherwise."""
-        ctx = game.context
-        game.input_manager.set_context(self.get_current_input_context(ctx.state))
-        events = pygame.event.get()
-        game.input_manager.process_events(events)
+        input_ctx = self._resolve_input_context(input_ctx_or_game)
+        ctx = input_ctx.context
+        im = input_ctx.input_manager
+
+        if im is not None:
+            im.set_context(self.get_current_input_context(ctx.state))
+            events = pygame.event.get()
+            im.process_events(events)
+        else:
+            events = pygame.event.get()
 
         for event in events:
             if event.type == pygame.QUIT:
+                if input_ctx.quit_callback:
+                    input_ctx.quit_callback()
                 return False
 
             elif event.type == pygame.VIDEORESIZE:
-                if not getattr(game, "is_fullscreen", False):
-                    game.win_w, game.win_h = event.w, event.h
-                    game.screen = pygame.display.set_mode((game.win_w, game.win_h), pygame.RESIZABLE)
+                if not input_ctx.is_fullscreen:
+                    input_ctx.win_w, input_ctx.win_h = event.w, event.h
+                    if input_ctx.resize_window_callback:
+                        input_ctx.resize_window_callback(event.w, event.h)
+                    else:
+                        pygame.display.set_mode((input_ctx.win_w, input_ctx.win_h), pygame.RESIZABLE)
 
             elif event.type == pygame.KEYDOWN:
                 if event.key == pygame.K_F11:
-                    game.toggle_fullscreen()
+                    if input_ctx.toggle_fullscreen_callback:
+                        input_ctx.toggle_fullscreen_callback()
                     continue
                 elif event.key == pygame.K_F2:
                     ctx.show_crt = not ctx.show_crt
-                    game.save_progress()
+                    if input_ctx.save_callback:
+                        input_ctx.save_callback()
                     continue
 
-                if not self._handle_keyboard_menu_navigation(event, game):
+                if not self._handle_keyboard_menu_navigation(event, input_ctx):
+                    if input_ctx.quit_callback:
+                        input_ctx.quit_callback()
                     return False
 
             elif event.type == pygame.MOUSEBUTTONDOWN and event.button == 1:
-                mx, my = self.get_canvas_mouse_pos(game.win_w, game.win_h, screen_pos=event.pos)
-                self._handle_mouse_click(mx, my, game)
+                mx, my = self.get_canvas_mouse_pos(input_ctx.win_w, input_ctx.win_h, screen_pos=event.pos)
+                self._handle_mouse_click(mx, my, input_ctx)
 
             elif event.type == pygame.MOUSEBUTTONUP and event.button == 1:
                 self.custom_difficulty_dragging = -1
 
             elif event.type == pygame.MOUSEMOTION:
                 if self.custom_difficulty_dragging >= 0 and ctx.state == STATE_CUSTOM_DIFFICULTY:
-                    mx, _ = self.get_canvas_mouse_pos(game.win_w, game.win_h, screen_pos=event.pos)
-                    self._update_slider_drag(mx, game)
+                    mx, _ = self.get_canvas_mouse_pos(input_ctx.win_w, input_ctx.win_h, screen_pos=event.pos)
+                    self._update_slider_drag(mx, input_ctx)
 
             elif event.type == pygame.JOYBUTTONDOWN:
-                if not self._handle_controller_button_down(event, game):
+                if not self._handle_controller_button_down(event, input_ctx):
+                    if input_ctx.quit_callback:
+                        input_ctx.quit_callback()
                     return False
 
         return True
 
-    def _handle_keyboard_menu_navigation(self, event, game) -> bool:
+    def _set_previous_state(self, input_ctx: InputHandlingContext, state: str):
+        input_ctx.previous_state = state
+        if input_ctx.set_previous_state_callback:
+            input_ctx.set_previous_state_callback(state)
+
+    def _set_pending_mission(self, input_ctx: InputHandlingContext, mission_id: str):
+        input_ctx.pending_mission_id = mission_id
+        if input_ctx.set_pending_mission_id_callback:
+            input_ctx.set_pending_mission_id_callback(mission_id)
+
+    def _handle_keyboard_menu_navigation(self, event, input_ctx: InputHandlingContext) -> bool:
         """Handles keyboard shortcut and keydown events for menu screens."""
-        ctx = game.context
+        ctx = input_ctx.context
+        am = input_ctx.audio_manager
+
         if ctx.state == STATE_MENU:
             if event.key in (pygame.K_SPACE, pygame.K_RETURN):
                 ctx.state = STATE_DRONE_SELECT
-                if game.audio_manager: game.audio_manager.play_powerup()
+                if am: am.play_powerup()
             elif event.key == pygame.K_h:
-                game.previous_state = STATE_MENU
+                self._set_previous_state(input_ctx, STATE_MENU)
                 ctx.state = STATE_HANGAR
             elif event.key == pygame.K_s:
-                game.previous_state = STATE_MENU
+                self._set_previous_state(input_ctx, STATE_MENU)
                 ctx.state = STATE_SETTINGS
             elif event.key in (pygame.K_q, pygame.K_ESCAPE):
                 return False
@@ -154,13 +230,13 @@ class InputController:
             if event.key in (pygame.K_ESCAPE, pygame.K_q):
                 return False
             elif event.key in (pygame.K_1, pygame.K_KP1):
-                game.select_save_slot(0)
+                if input_ctx.select_save_slot_callback: input_ctx.select_save_slot_callback(0)
                 ctx.state = STATE_MENU
             elif event.key in (pygame.K_2, pygame.K_KP2):
-                game.select_save_slot(1)
+                if input_ctx.select_save_slot_callback: input_ctx.select_save_slot_callback(1)
                 ctx.state = STATE_MENU
             elif event.key in (pygame.K_3, pygame.K_KP3):
-                game.select_save_slot(2)
+                if input_ctx.select_save_slot_callback: input_ctx.select_save_slot_callback(2)
                 ctx.state = STATE_MENU
 
         elif ctx.state == STATE_DRONE_SELECT:
@@ -174,14 +250,14 @@ class InputController:
 
         elif ctx.state in (STATE_SETTINGS, STATE_CONTROLLER_BINDING, STATE_CONTROLLER_TEST):
             if event.key in (pygame.K_ESCAPE, pygame.K_b, pygame.K_BACKSPACE, pygame.K_SPACE, pygame.K_RETURN):
-                ctx.state = game.previous_state if game.previous_state != STATE_SETTINGS else STATE_SECTOR_SELECT
+                ctx.state = input_ctx.previous_state if input_ctx.previous_state != STATE_SETTINGS else STATE_SECTOR_SELECT
 
         elif ctx.state == STATE_CUSTOM_DIFFICULTY:
             if event.key in (pygame.K_ESCAPE, pygame.K_b, pygame.K_BACKSPACE):
                 ctx.state = STATE_SETTINGS
             elif event.key in (pygame.K_RETURN, pygame.K_SPACE):
                 ctx.state = STATE_SETTINGS
-                game.save_progress()
+                if input_ctx.save_callback: input_ctx.save_callback()
 
         elif ctx.state == STATE_PAUSED:
             if event.key in (pygame.K_ESCAPE, pygame.K_p, pygame.K_SPACE):
@@ -191,10 +267,10 @@ class InputController:
 
         elif ctx.state in (STATE_MISSION_COMPLETE, STATE_LEVEL_CLEAR, STATE_VICTORY):
             if event.key in (pygame.K_SPACE, pygame.K_RETURN):
-                next_m = game.get_next_mission_id()
+                next_m = input_ctx.get_next_mission_id_callback() if input_ctx.get_next_mission_id_callback else None
                 if next_m:
-                    game.pending_mission_id = next_m
-                    game.start_phase5_mission(next_m)
+                    self._set_pending_mission(input_ctx, next_m)
+                    if input_ctx.start_mission_callback: input_ctx.start_mission_callback(next_m)
                 else:
                     ctx.state = STATE_SECTOR_SELECT
             elif event.key in (pygame.K_h, pygame.K_b):
@@ -204,86 +280,89 @@ class InputController:
 
         elif ctx.state in (STATE_MISSION_FAILED, STATE_GAME_OVER):
             if event.key in (pygame.K_SPACE, pygame.K_RETURN, pygame.K_r):
-                game.start_phase5_mission(game.pending_mission_id)
+                if input_ctx.start_mission_callback: input_ctx.start_mission_callback(input_ctx.pending_mission_id)
             elif event.key == pygame.K_ESCAPE:
                 ctx.state = STATE_SECTOR_SELECT
 
         elif ctx.state == STATE_HANGAR:
             if event.key in (pygame.K_ESCAPE, pygame.K_b, pygame.K_q):
-                ctx.state = game.previous_state if game.previous_state != STATE_HANGAR else STATE_SECTOR_SELECT
+                ctx.state = input_ctx.previous_state if input_ctx.previous_state != STATE_HANGAR else STATE_SECTOR_SELECT
             elif event.key == pygame.K_s:
-                game.previous_state = STATE_HANGAR
+                self._set_previous_state(input_ctx, STATE_HANGAR)
                 ctx.state = STATE_SETTINGS
 
         elif ctx.state == STATE_SECTOR_SELECT:
             if event.key in (pygame.K_ESCAPE, pygame.K_q):
                 ctx.state = STATE_MENU
             elif event.key == pygame.K_h:
-                game.previous_state = STATE_SECTOR_SELECT
+                self._set_previous_state(input_ctx, STATE_SECTOR_SELECT)
                 ctx.state = STATE_HANGAR
             elif event.key == pygame.K_s:
-                game.previous_state = STATE_SECTOR_SELECT
+                self._set_previous_state(input_ctx, STATE_SECTOR_SELECT)
                 ctx.state = STATE_SETTINGS
 
         elif ctx.state == STATE_PLAYING:
             if event.key in (pygame.K_ESCAPE, pygame.K_p, pygame.K_SPACE):
                 ctx.state = STATE_PAUSED
-                if game.audio_manager: game.audio_manager.stop_engine_sound()
+                if am: am.stop_engine_sound()
             elif event.key == pygame.K_c:
-                ctx.player.cycle_drone_class()
-                ctx.selected_drone = ctx.player.drone_class
-                game.save_progress()
+                if ctx.player:
+                    ctx.player.cycle_drone_class()
+                    ctx.selected_drone = ctx.player.drone_class
+                    if input_ctx.save_callback: input_ctx.save_callback()
             elif event.key == pygame.K_v:
-                ctx.player.cycle_visual_skin()
-                ctx.selected_skin = ctx.player.skin_id
-                ctx.selected_skin_override = ctx.selected_skin
-                game.save_progress()
+                if ctx.player:
+                    ctx.player.cycle_visual_skin()
+                    ctx.selected_skin = ctx.player.skin_id
+                    ctx.selected_skin_override = ctx.selected_skin
+                    if input_ctx.save_callback: input_ctx.save_callback()
 
         return True
 
-    def _handle_mouse_click(self, mx: int, my: int, game):
+    def _handle_mouse_click(self, mx: int, my: int, input_ctx: InputHandlingContext):
         """Processes mouse clicks across UI screens."""
-        ctx = game.context
-        cache = game.ui_rects_cache
+        ctx = input_ctx.context
+        cache = input_ctx.ui_rects_cache
+        am = input_ctx.audio_manager
         if not cache:
             return
 
         if ctx.state == STATE_MENU:
             if "start" in cache and cache["start"].collidepoint(mx, my):
                 ctx.state = STATE_DRONE_SELECT
-                if game.audio_manager: game.audio_manager.play_powerup()
+                if am: am.play_powerup()
             elif "hangar" in cache and cache["hangar"].collidepoint(mx, my):
-                game.previous_state = STATE_MENU
+                self._set_previous_state(input_ctx, STATE_MENU)
                 ctx.state = STATE_HANGAR
             elif "settings" in cache and cache["settings"].collidepoint(mx, my):
-                game.previous_state = STATE_MENU
+                self._set_previous_state(input_ctx, STATE_MENU)
                 ctx.state = STATE_SETTINGS
             elif "exit" in cache and cache["exit"].collidepoint(mx, my):
-                game.running = False
+                if input_ctx.quit_callback: input_ctx.quit_callback()
 
         elif ctx.state == STATE_SAVE_SELECT:
             for i in range(3):
                 key = f"slot_{i}"
                 if key in cache and cache[key].collidepoint(mx, my):
-                    game.select_save_slot(i)
+                    if input_ctx.select_save_slot_callback: input_ctx.select_save_slot_callback(i)
                     ctx.state = STATE_MENU
                     return
             if "back" in cache and cache["back"].collidepoint(mx, my):
-                game.running = False
+                if input_ctx.quit_callback: input_ctx.quit_callback()
 
         elif ctx.state == STATE_SECTOR_SELECT:
             if "back" in cache and cache["back"].collidepoint(mx, my):
                 ctx.state = STATE_MENU
             elif "hangar" in cache and cache["hangar"].collidepoint(mx, my):
-                game.previous_state = STATE_SECTOR_SELECT
+                self._set_previous_state(input_ctx, STATE_SECTOR_SELECT)
                 ctx.state = STATE_HANGAR
             elif "settings" in cache and cache["settings"].collidepoint(mx, my):
-                game.previous_state = STATE_SECTOR_SELECT
+                self._set_previous_state(input_ctx, STATE_SECTOR_SELECT)
                 ctx.state = STATE_SETTINGS
             elif "missions" in cache:
                 for m_id, m_rect in cache["missions"].items():
                     if m_rect.collidepoint(mx, my):
-                        game.pending_mission_id = m_id
+                        self._set_pending_mission(input_ctx, m_id)
                         ctx.state = STATE_MISSION_BRIEFING
                         return
             elif "sectors" in cache:
@@ -292,13 +371,13 @@ class InputController:
                         ctx.current_sector_idx = idx
                         missions = get_missions_for_sector(idx + 1)
                         if missions:
-                            game.pending_mission_id = missions[0]["id"]
+                            self._set_pending_mission(input_ctx, missions[0]["id"])
                             ctx.state = STATE_MISSION_BRIEFING
                         return
 
         elif ctx.state == STATE_MISSION_BRIEFING:
             if "start" in cache and cache["start"].collidepoint(mx, my):
-                game.start_phase5_mission(game.pending_mission_id)
+                if input_ctx.start_mission_callback: input_ctx.start_mission_callback(input_ctx.pending_mission_id)
             elif "back" in cache and cache["back"].collidepoint(mx, my):
                 ctx.state = STATE_SECTOR_SELECT
             elif "exit" in cache and cache["exit"].collidepoint(mx, my):
@@ -306,28 +385,28 @@ class InputController:
 
         elif ctx.state == STATE_HANGAR:
             if "back" in cache and cache["back"].collidepoint(mx, my):
-                ctx.state = game.previous_state if game.previous_state != STATE_HANGAR else STATE_SECTOR_SELECT
+                ctx.state = input_ctx.previous_state if input_ctx.previous_state != STATE_HANGAR else STATE_SECTOR_SELECT
             elif "settings" in cache and cache["settings"].collidepoint(mx, my):
-                game.previous_state = STATE_HANGAR
+                self._set_previous_state(input_ctx, STATE_HANGAR)
                 ctx.state = STATE_SETTINGS
             elif "exit" in cache and cache["exit"].collidepoint(mx, my):
                 ctx.state = STATE_MENU
             elif "upgrades" in cache:
                 for u_id, u_rect in cache["upgrades"].items():
                     if u_rect.collidepoint(mx, my):
-                        game.buy_upgrade(u_id)
+                        if input_ctx.buy_upgrade_callback: input_ctx.buy_upgrade_callback(u_id)
                         return
             if "drone" in cache and cache["drone"].collidepoint(mx, my):
                 if ctx.player:
                     ctx.player.cycle_drone_class()
                     ctx.selected_drone = ctx.player.drone_class
-                    game.save_progress()
+                    if input_ctx.save_callback: input_ctx.save_callback()
             elif "skin" in cache and cache["skin"].collidepoint(mx, my):
                 if ctx.player:
                     ctx.player.cycle_visual_skin()
                     ctx.selected_skin = ctx.player.skin_id
                     ctx.selected_skin_override = ctx.selected_skin
-                    game.save_progress()
+                    if input_ctx.save_callback: input_ctx.save_callback()
             elif "skins" in cache:
                 skins_items = cache["skins"].items() if isinstance(cache["skins"], dict) else enumerate(cache["skins"])
                 for skin_idx, s_rect in skins_items:
@@ -336,44 +415,44 @@ class InputController:
                             ctx.player.set_visual_skin(skin_idx)
                             ctx.selected_skin = skin_idx
                             ctx.selected_skin_override = skin_idx
-                            game.save_progress()
+                            if input_ctx.save_callback: input_ctx.save_callback()
                         return
 
         elif ctx.state == STATE_SETTINGS:
             if "fullscreen" in cache and cache["fullscreen"].collidepoint(mx, my):
-                game.toggle_fullscreen()
+                if input_ctx.toggle_fullscreen_callback: input_ctx.toggle_fullscreen_callback()
             elif "crt" in cache and cache["crt"].collidepoint(mx, my):
                 ctx.show_crt = not ctx.show_crt
-                game.save_progress()
+                if input_ctx.save_callback: input_ctx.save_callback()
             elif "sfx" in cache and cache["sfx"].collidepoint(mx, my):
-                if game.audio_manager:
-                    game.audio_manager.set_sound_enabled(not game.audio_manager.sound_enabled)
-                game.save_progress()
+                if am:
+                    am.set_sound_enabled(not am.sound_enabled)
+                if input_ctx.save_callback: input_ctx.save_callback()
             elif "diff" in cache and cache["diff"].collidepoint(mx, my):
                 ctx.difficulty_mode = (ctx.difficulty_mode + 1) % 5
-                game.save_progress()
+                if input_ctx.save_callback: input_ctx.save_callback()
             elif "controller" in cache and cache["controller"].collidepoint(mx, my):
                 ctx.state = STATE_CONTROLLER_TEST
             elif "back" in cache and cache["back"].collidepoint(mx, my):
-                ctx.state = game.previous_state if game.previous_state != STATE_SETTINGS else STATE_SECTOR_SELECT
+                ctx.state = input_ctx.previous_state if input_ctx.previous_state != STATE_SETTINGS else STATE_SECTOR_SELECT
 
         elif ctx.state == STATE_PAUSED:
             if "resume" in cache and cache["resume"].collidepoint(mx, my):
                 ctx.state = STATE_PLAYING
             elif "settings" in cache and cache["settings"].collidepoint(mx, my):
-                game.previous_state = STATE_PAUSED
+                self._set_previous_state(input_ctx, STATE_PAUSED)
                 ctx.state = STATE_SETTINGS
             elif "restart" in cache and cache["restart"].collidepoint(mx, my):
-                game.start_phase5_mission(game.pending_mission_id)
+                if input_ctx.start_mission_callback: input_ctx.start_mission_callback(input_ctx.pending_mission_id)
             elif "menu" in cache and cache["menu"].collidepoint(mx, my):
                 ctx.state = STATE_MENU
 
         elif ctx.state in (STATE_MISSION_COMPLETE, STATE_LEVEL_CLEAR, STATE_VICTORY):
             if "next" in cache and cache["next"].collidepoint(mx, my):
-                next_m = game.get_next_mission_id()
+                next_m = input_ctx.get_next_mission_id_callback() if input_ctx.get_next_mission_id_callback else None
                 if next_m:
-                    game.pending_mission_id = next_m
-                    game.start_phase5_mission(next_m)
+                    self._set_pending_mission(input_ctx, next_m)
+                    if input_ctx.start_mission_callback: input_ctx.start_mission_callback(next_m)
                 else:
                     ctx.state = STATE_SECTOR_SELECT
             elif "hangar" in cache and cache["hangar"].collidepoint(mx, my):
@@ -383,7 +462,7 @@ class InputController:
 
         elif ctx.state in (STATE_MISSION_FAILED, STATE_GAME_OVER):
             if "retry" in cache and cache["retry"].collidepoint(mx, my):
-                game.start_phase5_mission(game.pending_mission_id)
+                if input_ctx.start_mission_callback: input_ctx.start_mission_callback(input_ctx.pending_mission_id)
             elif "hangar" in cache and cache["hangar"].collidepoint(mx, my):
                 ctx.state = STATE_HANGAR
             elif "menu" in cache and cache["menu"].collidepoint(mx, my):
@@ -399,9 +478,9 @@ class InputController:
             if "back" in cache and cache["back"].collidepoint(mx, my):
                 ctx.state = STATE_SETTINGS
 
-    def _update_slider_drag(self, mx: int, game):
+    def _update_slider_drag(self, mx: int, input_ctx: InputHandlingContext):
         """Updates custom difficulty slider values when dragging."""
-        cache = game.ui_rects_cache
+        cache = input_ctx.ui_rects_cache
         sliders = [("hp_mult", 0.5, 3.0), ("speed_mult", 0.5, 2.0),
                    ("rate_mult", 0.5, 2.5), ("dmg_mult", 0.5, 3.0),
                    ("scrap_mult", 0.25, 3.0)]
@@ -411,18 +490,22 @@ class InputController:
                 rect = cache[key]
                 norm = max(0.0, min(1.0, (mx - rect.left) / max(1.0, rect.width)))
                 val = round(min_v + norm * (max_v - min_v), 2)
-                game.context.custom_difficulty_settings[key] = val
+                input_ctx.context.custom_difficulty_settings[key] = val
 
-    def _handle_controller_button_down(self, event, game) -> bool:
+    def _handle_controller_button_down(self, event, input_ctx: InputHandlingContext) -> bool:
         """Processes raw controller button clicks for navigation and actions."""
-        ctx = game.context
+        ctx = input_ctx.context
+        im = input_ctx.input_manager
+        if not im:
+            return True
+
         js_id = getattr(event, "instance_id", 0)
-        js = game.input_manager.connected_joysticks.get(js_id)
+        js = im.connected_joysticks.get(js_id)
         if not js:
             return True
 
         btn = event.button
-        mgr = getattr(game.input_manager, "mapping_manager", None)
+        mgr = getattr(im, "mapping_manager", None)
         if not mgr:
             return True
 
@@ -434,22 +517,26 @@ class InputController:
             mgr.save_profiles()
             self.binding_waiting = False
             self.binding_action = None
-            if game.audio_manager: game.audio_manager.play_buy()
+            if input_ctx.audio_manager: input_ctx.audio_manager.play_buy()
             return True
 
         if profile.is_action_button(btn, ACTION_FULLSCREEN):
-            game.toggle_fullscreen()
+            if input_ctx.toggle_fullscreen_callback:
+                input_ctx.toggle_fullscreen_callback()
             return True
 
         return True
 
-    def update_controller_navigation(self, dt: float, game):
+    def update_controller_navigation(self, dt: float, input_ctx_or_game: Any):
         """Updates D-pad cursor movement, slider tuning, and button triggers across all menus."""
-        ctx = game.context
+        input_ctx = self._resolve_input_context(input_ctx_or_game)
+        ctx = input_ctx.context
         if ctx.state == STATE_PLAYING:
             return
 
-        im = game.input_manager
+        im = input_ctx.input_manager
+        if not im:
+            return
         js = im.active_joystick
         if not js or not im.mapping_manager:
             return
@@ -487,4 +574,4 @@ class InputController:
         if triggered_dir:
             if triggered_dir == "up": self.menu_cursor = max(0, self.menu_cursor - 1)
             elif triggered_dir == "down": self.menu_cursor += 1
-            if game.audio_manager: game.audio_manager.play_click()
+            if input_ctx.audio_manager: input_ctx.audio_manager.play_click()

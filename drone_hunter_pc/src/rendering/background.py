@@ -8,6 +8,7 @@ dynamic stage variations, and screen-space menu backdrops.
 """
 
 import pygame
+from typing import Any
 from src.data.settings import SCREEN_WIDTH, SCREEN_HEIGHT, WORLD_WIDTH, WORLD_HEIGHT
 from src.data.game_data import SECTORS
 from src.rendering.environment import (
@@ -62,9 +63,15 @@ class CyberFactoryArenaBackground:
             for gy in range(0, vh, 80):
                 pygame.draw.line(surface, (14, 20, 32), (0, gy), (vw, gy), 1)
 
-    def draw(self, surface: pygame.Surface, camera_offset: tuple[float, float] = (0.0, 0.0)):
+    def draw(self, surface: pygame.Surface, camera_offset: Any = (0.0, 0.0)):
         """Renders 2D Sector Environment in world space with camera viewport offset."""
-        self.env.draw(surface, camera_offset)
+        if hasattr(camera_offset, "get_offset"):
+            offset = camera_offset.get_offset()
+        elif isinstance(camera_offset, (list, tuple)):
+            offset = camera_offset
+        else:
+            offset = (0.0, 0.0)
+        self.env.draw(surface, offset)
 
 
 ParallaxBackground = CyberFactoryArenaBackground

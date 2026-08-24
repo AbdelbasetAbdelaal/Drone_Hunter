@@ -155,7 +155,7 @@ class AchievementSystem:
         ):
             self.unlock("speed_run")
 
-        if "survivalist" not in unlocked and game is not None:
+        if "survivalist" not in unlocked:
             try:
                 from src.data.mission_data import get_mission_data
                 missions = getattr(ctx, "missions", {})

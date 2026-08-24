@@ -15,12 +15,14 @@ Comprehensive verification for Release Readiness:
 """
 
 import os
+import sys
 import unittest
 import pygame
 
 # Initialize headless pygame for testing
 os.environ["SDL_VIDEODRIVER"] = "dummy"
 os.environ["SDL_AUDIODRIVER"] = "dummy"
+sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 pygame.init()
 
 from src.data.settings import VERSION, SCREEN_WIDTH, SCREEN_HEIGHT

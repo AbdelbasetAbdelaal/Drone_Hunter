@@ -4,6 +4,7 @@
 ================================================================================
 Master game orchestrator coordinating the main loop, state transitions,
 save orchestration, gameplay lifecycle, input dispatching, and rendering pipeline.
+Acts as the composition root for subsystems and controllers.
 """
 
 import sys
@@ -27,6 +28,7 @@ from src.core.game_state import (
     STATE_CONTROLLER_BINDING, STATE_CONTROLLER_TEST
 )
 from src.core.game_context import GameContext
+from src.core.gameplay_context import GameplayContext, InputHandlingContext
 from src.core.clock import GameClock
 from src.core.game_state_manager import GameStateManager
 from src.core.save_controller import SaveController
@@ -78,6 +80,16 @@ class Game:
     DEBUG_PROFILE = False
 
     def __init__(self, test_mode: bool = False):
+        self._initialize_foundation(test_mode)
+        self._initialize_systems()
+        self._initialize_controllers()
+        self._wire_context()
+        self._initialize_save_state(test_mode)
+
+    # --------------------------------------------------------------------------
+    # Initialization Helpers (Composition Root)
+    # --------------------------------------------------------------------------
+    def _initialize_foundation(self, test_mode: bool):
         self._test_mode: bool = test_mode
         pygame.init()
         pygame.font.init()
@@ -91,7 +103,6 @@ class Game:
         self.screen = pygame.display.set_mode((self.win_w, self.win_h), pygame.RESIZABLE)
         pygame.display.set_caption(f"{TITLE} [PC EDITION]")
 
-        # Core Foundation & Context
         self.clock = GameClock()
         self.context = GameContext()
         self.is_fullscreen: bool = False
@@ -99,7 +110,7 @@ class Game:
         self.ui_rects_cache: dict = {}
         self._last_dt: float = 0.016
 
-        # Subsystems
+    def _initialize_systems(self):
         self.renderer = GameRenderer()
         self.background = ParallaxBackground()
         self.particle_manager = ParticleManager()
@@ -126,7 +137,13 @@ class Game:
             })
         )
 
-        # Injected Context References
+    def _initialize_controllers(self):
+        self.state_manager = GameStateManager(initial_state=STATE_SAVE_SELECT)
+        self.save_controller = SaveController(save_system=self.save_system, initial_slot=0)
+        self.gameplay_controller = GameplayController(progression_system=self.progression)
+        self.input_controller = InputController()
+
+    def _wire_context(self):
         self.context.particle_manager = self.particle_manager
         self.context.audio_manager = self.audio_manager
         self.context.save_system = self.save_system
@@ -140,27 +157,85 @@ class Game:
         self.context.boss_system = self.boss_system
         self.context.achievement_system = self.achievement_system
 
-        # Controllers (Phase 1 Refactored Architecture)
-        self.state_manager = GameStateManager(initial_state=STATE_SAVE_SELECT)
-        self.save_controller = SaveController(save_system=self.save_system, initial_slot=0)
-        self.gameplay_controller = GameplayController(progression_system=self.progression)
-        self.input_controller = InputController()
-
-        # Synchronize context state with state manager
         self.context.state = STATE_SAVE_SELECT
         self.state_manager.register_transition_listener(self._on_state_changed)
 
-        # Initial Boot Load
-        self.save_controller.load_slot(
-            0, self.context, self.audio_manager, self.input_manager, self.achievement_system
-        )
-        self.progression.unlocked_sectors = self.context.unlocked_sectors
-        self.progression.unlocked_stages = self.context.unlocked_stages
+    def _initialize_save_state(self, test_mode: bool):
+        if not test_mode:
+            self.save_controller.load_slot(
+                0, self.context, self.audio_manager, self.input_manager, self.achievement_system
+            )
+            self.progression.unlocked_sectors = self.context.unlocked_sectors
+            self.progression.unlocked_stages = self.context.unlocked_stages
         self.reset_game()
         self.context.state = STATE_SAVE_SELECT
 
     def _on_state_changed(self, old_state: str, new_state: str):
         self.context.state = new_state
+
+    # --------------------------------------------------------------------------
+    # Context Factories
+    # --------------------------------------------------------------------------
+    def create_gameplay_context(self) -> GameplayContext:
+        """Constructs explicit runtime context for GameplayController operations."""
+        return GameplayContext(
+            context=self.context,
+            progression=self.progression,
+            particle_manager=self.particle_manager,
+            camera=self.camera,
+            spawner=self.spawner,
+            encounter_system=self.encounter_system,
+            combat_director=self.combat_director,
+            mission_system=self.mission_system,
+            boss_system=self.boss_system,
+            objective_system=self.objective_system,
+            combat_system=self.combat_system,
+            background=self.background,
+            audio_manager=self.audio_manager,
+            input_manager=self.input_manager,
+            achievement_system=self.achievement_system,
+            save_callback=self.save_progress,
+            get_canvas_mouse_pos_func=self.get_canvas_mouse_pos,
+            start_mission_callback=self.start_phase5_mission,
+            start_stage_callback=self.start_stage,
+        )
+
+    def create_input_handling_context(self) -> InputHandlingContext:
+        """Constructs explicit runtime context for InputController operations."""
+        return InputHandlingContext(
+            context=self.context,
+            input_manager=self.input_manager,
+            audio_manager=self.audio_manager,
+            ui_rects_cache=self.ui_rects_cache,
+            win_w=self.win_w,
+            win_h=self.win_h,
+            is_fullscreen=self.is_fullscreen,
+            previous_state=self.previous_state,
+            pending_mission_id=self.pending_mission_id,
+            save_callback=self.save_progress,
+            start_mission_callback=self.start_phase5_mission,
+            select_save_slot_callback=self.select_save_slot,
+            buy_upgrade_callback=self.buy_upgrade,
+            toggle_fullscreen_callback=self.toggle_fullscreen,
+            resize_window_callback=self._on_resize_window,
+            get_next_mission_id_callback=self.get_next_mission_id,
+            set_previous_state_callback=self._set_previous_state,
+            set_pending_mission_id_callback=self._set_pending_mission_id,
+            quit_callback=self._on_quit,
+        )
+
+    def _on_resize_window(self, w: int, h: int):
+        self.win_w, self.win_h = w, h
+        self.screen = pygame.display.set_mode((self.win_w, self.win_h), pygame.RESIZABLE)
+
+    def _set_previous_state(self, state: str):
+        self.previous_state = state
+
+    def _set_pending_mission_id(self, mission_id: str):
+        self.pending_mission_id = mission_id
+
+    def _on_quit(self):
+        self.running = False
 
     # --------------------------------------------------------------------------
     # Backward Compatibility Properties
@@ -180,6 +255,20 @@ class Game:
     @previous_state.setter
     def previous_state(self, val: str):
         self.state_manager.previous_state = val
+
+    @property
+    def save_system(self):
+        if hasattr(self, "save_controller") and self.save_controller is not None:
+            return self.save_controller.save_system
+        return getattr(self, "_save_system", None)
+
+    @save_system.setter
+    def save_system(self, val):
+        self._save_system = val
+        if hasattr(self, "save_controller") and self.save_controller is not None:
+            self.save_controller.save_system = val
+        if hasattr(self, "context") and self.context is not None:
+            self.context.save_system = val
 
     @property
     def selected_save_slot(self) -> int:
@@ -257,62 +346,39 @@ class Game:
     # --------------------------------------------------------------------------
     def start_phase5_mission(self, mission_id: Optional[str] = None):
         """Prepares and launches a tactical mission."""
+        self.state_manager.change_state(STATE_PLAYING)
         self.gameplay_controller.start_mission(
             mission_id=mission_id,
-            context=self.context,
-            progression=self.progression,
-            particle_manager=self.particle_manager,
-            camera=self.camera,
-            encounter_system=self.encounter_system,
-            combat_director=self.combat_director,
-            boss_system=self.boss_system,
-            objective_system=self.objective_system,
-            mission_system=self.mission_system,
-            background=self.background
+            gp_ctx_or_context=self.create_gameplay_context()
         )
+        self.context.state = STATE_PLAYING
 
     def reset_game(self):
         """Initializes or resets player, spawner, and stage wave tracking."""
         self.gameplay_controller.reset_game(
-            context=self.context,
-            progression=self.progression,
-            particle_manager=self.particle_manager,
-            camera=self.camera,
-            spawner=self.spawner,
-            encounter_system=self.encounter_system,
-            combat_director=self.combat_director,
-            background=self.background
+            gp_ctx_or_context=self.create_gameplay_context()
         )
 
     def start_stage(self, sector_idx: Optional[int] = None, stage_idx: Optional[int] = None):
         """Prepares and launches a gameplay stage."""
+        self.state_manager.change_state(STATE_PLAYING)
         self.gameplay_controller.start_stage(
             sector_idx=sector_idx,
             stage_idx=stage_idx,
-            context=self.context,
-            progression=self.progression,
-            particle_manager=self.particle_manager,
-            camera=self.camera,
-            spawner=self.spawner,
-            encounter_system=self.encounter_system,
-            combat_director=self.combat_director,
-            background=self.background
+            gp_ctx_or_context=self.create_gameplay_context()
         )
+        self.context.state = STATE_PLAYING
 
     def start_next_stage(self):
         """Advances to next stage or triggers Campaign Victory."""
         self.gameplay_controller.start_next_stage(
-            self.context, self.progression,
-            save_callback=self.save_progress,
-            start_stage_callback=self.start_stage
+            gp_ctx_or_context=self.create_gameplay_context()
         )
 
     def start_new_game_plus(self):
         """Increments NG+ count, applies difficulty multipliers, and launches S1_M1."""
         self.gameplay_controller.start_new_game_plus(
-            self.context,
-            save_callback=self.save_progress,
-            start_mission_callback=self.start_phase5_mission
+            gp_ctx_or_context=self.create_gameplay_context()
         )
 
     def get_next_mission_id(self) -> Optional[str]:
@@ -321,23 +387,22 @@ class Game:
 
     def buy_upgrade(self, upgrade_id: str) -> bool:
         return self.gameplay_controller.buy_upgrade(
-            upgrade_id, self.context, self.progression,
-            audio_manager=self.audio_manager, save_callback=self.save_progress
+            upgrade_id, gp_ctx_or_context=self.create_gameplay_context()
         )
 
     def equip_weapon(self, slot_index: int, weapon_id: str) -> bool:
         return self.gameplay_controller.equip_weapon(
-            slot_index, weapon_id, self.context, save_callback=self.save_progress
+            slot_index, weapon_id, gp_ctx_or_context=self.create_gameplay_context()
         )
 
     def buy_weapon_upgrade(self, weapon_id: str) -> bool:
         return self.gameplay_controller.buy_weapon_upgrade(
-            weapon_id, self.context, audio_manager=self.audio_manager, save_callback=self.save_progress
+            weapon_id, gp_ctx_or_context=self.create_gameplay_context()
         )
 
     def unlock_weapon(self, weapon_id: str) -> bool:
         return self.gameplay_controller.unlock_weapon(
-            weapon_id, self.context, audio_manager=self.audio_manager, save_callback=self.save_progress
+            weapon_id, gp_ctx_or_context=self.create_gameplay_context()
         )
 
     # --------------------------------------------------------------------------
@@ -366,12 +431,14 @@ class Game:
 
     def handle_events(self):
         """Dispatches input events to InputController."""
-        if not self.input_controller.handle_events(self):
+        input_ctx = self.create_input_handling_context()
+        if not self.input_controller.handle_events(input_ctx):
             self.running = False
 
     def _update_controller_menu_navigation(self, dt: float):
         """Updates D-pad menu cursor navigation."""
-        self.input_controller.update_controller_navigation(dt, self)
+        input_ctx = self.create_input_handling_context()
+        self.input_controller.update_controller_navigation(dt, input_ctx)
 
     # --------------------------------------------------------------------------
     # Frame Update Loop
@@ -391,25 +458,8 @@ class Game:
 
         if ctx.state in (STATE_PLAYING, STATE_VICTORY):
             if ctx.state == STATE_PLAYING:
-                self.gameplay_controller.update_gameplay(
-                    dt=dt,
-                    context=self.context,
-                    input_manager=self.input_manager,
-                    audio_manager=self.audio_manager,
-                    particle_manager=self.particle_manager,
-                    combat_system=self.combat_system,
-                    combat_director=self.combat_director,
-                    mission_system=self.mission_system,
-                    boss_system=self.boss_system,
-                    objective_system=self.objective_system,
-                    spawner=self.spawner,
-                    encounter_system=self.encounter_system,
-                    achievement_system=self.achievement_system,
-                    camera=self.camera,
-                    save_callback=self.save_progress,
-                    get_canvas_mouse_pos_func=self.get_canvas_mouse_pos,
-                    game_ref=self
-                )
+                gp_ctx = self.create_gameplay_context()
+                self.gameplay_controller.update_gameplay(dt=dt, gp_ctx=gp_ctx)
             else:
                 sec_info = SECTORS[ctx.current_sector_idx]
                 self.particle_manager.spawn_weather(sec_info.get("weather", "clear"))
@@ -454,168 +504,203 @@ class Game:
         elif ctx.state == STATE_CUSTOM_DIFFICULTY:
             self.ui_rects_cache = draw_custom_difficulty_ui(
                 canvas, ctx.custom_difficulty_settings, mouse_pos=canvas_m_pos,
-                dragging=self.custom_difficulty_dragging,
+                dragging_index=self.custom_difficulty_dragging,
                 input_manager=self.input_manager,
                 selected_index=self._menu_cursor if active_is_gamepad else None
             )
 
         elif ctx.state == STATE_CONTROLLER_BINDING:
             self.ui_rects_cache = draw_controller_binding_ui(
-                canvas, self.input_manager.mapping_manager, mouse_pos=canvas_m_pos,
+                canvas, getattr(self.input_manager, "mapping_manager", None), mouse_pos=canvas_m_pos,
                 binding_action=self._binding_action,
-                waiting=bool(self._binding_action)
+                waiting=self._binding_waiting
             )
 
         elif ctx.state == STATE_CONTROLLER_TEST:
-            js = self.input_manager.active_joystick
             self.ui_rects_cache = draw_controller_test_ui(
-                canvas, js, self.input_manager.mapping_manager, mouse_pos=canvas_m_pos
+                canvas, self.input_manager.active_joystick, getattr(self.input_manager, "mapping_manager", None),
+                mouse_pos=canvas_m_pos
             )
 
-        elif ctx.state == STATE_SECTOR_SELECT:
-            self.ui_rects_cache = draw_mission_select_ui(canvas, ctx, ctx.scrap, mouse_pos=canvas_m_pos)
-
         elif ctx.state == STATE_DRONE_SELECT:
+            from src.rendering.sprite_manager import get_sprite_manager
             self.background.draw_menu_backdrop(canvas)
             self.ui_rects_cache = draw_drone_select_ui(
-                canvas, canvas_m_pos, self.renderer.sprite_manager,
+                canvas, mouse_pos=canvas_m_pos,
+                sprite_manager=get_sprite_manager(),
                 selected_index=self._menu_cursor if active_is_gamepad else None
             )
 
-        elif ctx.state == STATE_MISSION_BRIEFING:
-            self.ui_rects_cache = draw_mission_briefing(
-                canvas, get_mission_data(self.pending_mission_id), ctx.scrap,
-                mouse_pos=canvas_m_pos, input_manager=self.input_manager
-            )
-
         elif ctx.state == STATE_HANGAR:
+            self.background.draw_menu_backdrop(canvas)
             self.ui_rects_cache = draw_hangar_shop_ui(
                 canvas, ctx.scrap, ctx.current_sector_idx, ctx.upgrade_levels,
-                mouse_pos=canvas_m_pos, player=ctx.player,
-                weapon_upgrades=ctx.weapon_upgrade_levels,
-                unlocked_weapons=ctx.unlocked_weapons,
-                unlocked_skins=ctx.unlocked_skins, total_score=ctx.total_score,
+                mouse_pos=canvas_m_pos,
+                player=ctx.player,
+                weapon_upgrades=getattr(ctx, "weapon_upgrade_levels", {}),
+                unlocked_weapons=getattr(ctx, "unlocked_weapons", ["pulse", "scatter", "missile"]),
+                unlocked_skins=getattr(ctx, "unlocked_skins", [0]),
+                total_score=getattr(ctx, "total_score", 0),
                 selected_index=self._menu_cursor if active_is_gamepad else None,
                 input_manager=self.input_manager
             )
 
-        elif ctx.state == STATE_VICTORY:
-            draw_campaign_victory_ui(
-                canvas,
+        elif ctx.state == STATE_SECTOR_SELECT:
+            self.background.draw_menu_backdrop(canvas)
+            self.ui_rects_cache = draw_mission_select_ui(
+                canvas, ctx, ctx.scrap, mouse_pos=canvas_m_pos
+            )
+
+        elif ctx.state == STATE_MISSION_BRIEFING:
+            self.background.draw_menu_backdrop(canvas)
+            m_data = get_mission_data(self.pending_mission_id)
+            self.ui_rects_cache = draw_mission_briefing(
+                canvas, m_data, ctx.scrap, mouse_pos=canvas_m_pos,
+                input_manager=self.input_manager
+            )
+
+        elif ctx.state == STATE_PLAYING:
+            self.renderer.render_gameplay(
+                ctx, self.background, self.particle_manager,
+                camera_offset=self.camera.get_offset()
+            )
+            # HUD Overlay
+            self.ui_rects_cache = draw_hud(
+                canvas, ctx.player,
+                sector_idx=ctx.current_sector_idx,
+                level_score=ctx.level_score,
                 total_score=ctx.total_score,
-                highscore=ctx.highscore,
                 scrap=ctx.scrap,
-                bosses_count=len(getattr(ctx, "bosses_defeated", [])),
-                missions_count=len(ctx.missions.get("completed", [])),
-                ng_plus_count=ctx.new_game_plus_count
-            )
-
-        elif ctx.state in (STATE_PLAYING, STATE_PAUSED, STATE_LEVEL_CLEAR, STATE_GAME_OVER, STATE_MISSION_COMPLETE, STATE_MISSION_FAILED):
-            camera_offset = self.camera.get_offset()
-            self.renderer.render_gameplay(ctx, self.background, self.particle_manager, camera_offset=camera_offset)
-
-            # Draw Minimal HUD
-            draw_hud(
-                canvas, ctx.player, ctx.current_sector_idx, ctx.level_score,
-                ctx.total_score, ctx.scrap, DIFFICULTY_NAMES[ctx.difficulty_mode],
-                combo_mult=ctx.combo_count, show_crt=ctx.show_crt,
-                current_wave=ctx.current_wave, sub_level=ctx.current_sub_level,
+                difficulty_name=DIFFICULTY_NAMES[ctx.difficulty_mode] if 0 <= ctx.difficulty_mode < len(DIFFICULTY_NAMES) else "NORMAL",
+                combo_mult=ctx.combo_count,
+                show_crt=ctx.show_crt,
+                current_wave=ctx.current_wave,
+                sub_level=ctx.current_sub_level,
                 mission_id=getattr(self.mission_system, "active_mission_id", None),
+                input_manager=self.input_manager,
                 objective_text=self._current_objective_text,
-                new_game_plus_count=ctx.new_game_plus_count,
-                achievement_popups=ctx.achievement_popups,
                 objective_system=self.objective_system,
-                camera_offset=camera_offset
+                camera_offset=self.camera.get_offset()
+            )
+            draw_radar_minimap(canvas, ctx.player, ctx.target_group)
+            draw_combo_banner(canvas, ctx.combo_count, ctx.combo_timer)
+            draw_wave_announcement(canvas, ctx.current_wave, getattr(ctx, "wave_announcement_timer", 0.0))
+
+            for target in ctx.target_group:
+                if getattr(target, "is_boss", False) and getattr(target, "alive", False):
+                    draw_boss_health_bar(canvas, target)
+                    draw_boss_intro_warning(canvas, target)
+                    break
+
+            if getattr(ctx, "boss_defeat_timer", 0.0) > 0.0:
+                overlay = pygame.Surface((vw, vh), pygame.SRCALPHA)
+                overlay.fill((0, 0, 0, 160))
+                canvas.blit(overlay, (0, 0))
+                t_vic = font_banner.render("TARGET DESTROYED", True, (245, 158, 11))
+                canvas.blit(t_vic, (vw // 2 - t_vic.get_width() // 2, vh // 2 - 40))
+                t_sub = font_card.render("TACTICAL DATA RETRIEVED - STANDBY", True, (56, 189, 248))
+                canvas.blit(t_sub, (vw // 2 - t_sub.get_width() // 2, vh // 2 + 30))
+
+        elif ctx.state == STATE_PAUSED:
+            self.renderer.render_gameplay(
+                ctx, self.background, self.particle_manager,
+                camera_offset=self.camera.get_offset()
+            )
+            self.ui_rects_cache = draw_pause_settings_ui(
+                canvas, ctx.difficulty_mode, ctx.show_crt, self.audio_manager.sound_enabled,
+                mouse_pos=canvas_m_pos,
+                selected_index=self._menu_cursor if active_is_gamepad else None
             )
 
-            draw_combo_banner(canvas, ctx.combo_count, ctx.combo_timer)
-            draw_wave_announcement(canvas, ctx.last_wave, ctx.wave_announcement_timer)
-            draw_radar_minimap(canvas, ctx.player, ctx.target_group)
+        elif ctx.state == STATE_MISSION_COMPLETE:
+            self.renderer.render_gameplay(
+                ctx, self.background, self.particle_manager,
+                camera_offset=self.camera.get_offset()
+            )
+            m_data = getattr(self.mission_system, "active_mission_data", None) or get_mission_data(self.pending_mission_id)
+            self.ui_rects_cache = draw_mission_complete(
+                canvas, m_data,
+                was_first_clear=getattr(self.mission_system, "is_first_clear", False),
+                is_sector_clear=getattr(self.mission_system, "is_sector_clear", False),
+                mouse_pos=canvas_m_pos,
+                selected_index=self._menu_cursor if active_is_gamepad else None
+            )
 
-            # Boss Health Bar & Intro Warning
-            if self.boss_system.is_intro_active and self.boss_system.active_boss_def:
-                draw_boss_intro_warning(canvas, self.boss_system.active_boss_def.name, self.boss_system.intro_timer)
+        elif ctx.state == STATE_MISSION_FAILED:
+            self.renderer.render_gameplay(
+                ctx, self.background, self.particle_manager,
+                camera_offset=self.camera.get_offset()
+            )
+            self.ui_rects_cache = draw_mission_failed(
+                canvas, ctx.scrap, mouse_pos=canvas_m_pos,
+                selected_index=self._menu_cursor if active_is_gamepad else None
+            )
 
-            boss_entity = next((t for t in ctx.target_group if getattr(t, "is_boss", False) and t.alive), None)
-            if boss_entity:
-                draw_boss_health_bar(canvas, boss_entity)
+        elif ctx.state == STATE_LEVEL_CLEAR:
+            self.renderer.render_gameplay(
+                ctx, self.background, self.particle_manager,
+                camera_offset=self.camera.get_offset()
+            )
+            self.ui_rects_cache = draw_level_clear_ui(
+                canvas, sector_idx=ctx.current_sector_idx, sub_level=ctx.current_sub_level,
+                score=ctx.level_score, scrap=ctx.scrap, mouse_pos=canvas_m_pos,
+                selected_index=self._menu_cursor if active_is_gamepad else None
+            )
 
-            if ctx.state == STATE_PLAYING:
-                self.renderer.draw_crosshair(canvas_m_pos)
+        elif ctx.state == STATE_GAME_OVER:
+            self.renderer.render_gameplay(
+                ctx, self.background, self.particle_manager,
+                camera_offset=self.camera.get_offset()
+            )
+            self.ui_rects_cache = draw_game_over_ui(
+                canvas, sector_idx=ctx.current_sector_idx, sub_level=ctx.current_sub_level,
+                score=ctx.level_score, mouse_pos=canvas_m_pos,
+                selected_index=self._menu_cursor if active_is_gamepad else None
+            )
 
-                if getattr(ctx, "boss_defeat_timer", 0.0) > 0.0:
-                    vw, vh = canvas.get_size()
-                    pct = max(0.0, min(1.0, ctx.boss_defeat_timer / 2.5))
-                    alpha = int(200 * pct)
-                    overlay = pygame.Surface((vw, vh), pygame.SRCALPHA)
-                    overlay.fill((0, 0, 0, 0))
-                    txt = font_banner.render("BOSS DEFEATED", True, (16, 185, 129, alpha))
-                    overlay.blit(txt, txt.get_rect(center=(vw // 2, vh // 2 - 40)))
-                    sub = font_card.render("STAGE CLEAR INCOMING...", True, (226, 232, 240, alpha))
-                    overlay.blit(sub, sub.get_rect(center=(vw // 2, vh // 2 + 10)))
-                    canvas.blit(overlay, (0, 0))
+        elif ctx.state == STATE_VICTORY:
+            self.renderer.render_gameplay(
+                ctx, self.background, self.particle_manager,
+                camera_offset=self.camera.get_offset()
+            )
+            self.ui_rects_cache = draw_campaign_victory_ui(
+                canvas, total_score=getattr(ctx, "total_score", 0),
+                highscore=ctx.highscore, scrap=ctx.scrap,
+                ng_plus_count=getattr(ctx, "new_game_plus_count", 0)
+            )
 
-                if getattr(ctx, "boss_rating_timer", 0.0) > 0.0:
-                    draw_boss_rating(canvas, getattr(ctx, "latest_boss_rating", None))
+        # Draw Achievement Popups
+        y_off = 20
+        for popup in ctx.achievement_popups:
+            alpha = min(255, int(popup["timer"] * 255))
+            pop_surf = pygame.Surface((320, 60), pygame.SRCALPHA)
+            pygame.draw.rect(pop_surf, (15, 23, 42, min(240, alpha)), (0, 0, 320, 60), border_radius=8)
+            pygame.draw.rect(pop_surf, (245, 158, 11, alpha), (0, 0, 320, 60), 2, border_radius=8)
 
-            elif ctx.state == STATE_PAUSED:
-                draw_pause_settings_ui(
-                    canvas, ctx.difficulty_mode, ctx.show_crt,
-                    self.audio_manager.sound_enabled, mouse_pos=canvas_m_pos,
-                    selected_index=self._menu_cursor if active_is_gamepad else None
-                )
-            elif ctx.state == STATE_LEVEL_CLEAR:
-                self.ui_rects_cache = draw_level_clear_ui(
-                    canvas, ctx.current_sector_idx, ctx.current_sub_level, ctx.level_score,
-                    getattr(ctx, "scrap", 0), mouse_pos=canvas_m_pos,
-                    selected_index=self._menu_cursor if active_is_gamepad else None
-                )
-            elif ctx.state == STATE_GAME_OVER:
-                self.ui_rects_cache = draw_game_over_ui(
-                    canvas, ctx.current_sector_idx, ctx.current_sub_level, ctx.level_score,
-                    mouse_pos=canvas_m_pos,
-                    selected_index=self._menu_cursor if active_is_gamepad else None
-                )
-            elif ctx.state == STATE_MISSION_COMPLETE:
-                is_sec = (self.mission_system.active_mission_data["mission_number"] == 5) if self.mission_system.active_mission_data else False
-                self.ui_rects_cache = draw_mission_complete(
-                    canvas, self.mission_system.active_mission_data or {},
-                    self.mission_system.is_mission_success, is_sec, mouse_pos=canvas_m_pos,
-                    selected_index=self._menu_cursor if active_is_gamepad else None
-                )
-            elif ctx.state == STATE_MISSION_FAILED:
-                self.ui_rects_cache = draw_mission_failed(
-                    canvas, ctx.scrap, mouse_pos=canvas_m_pos,
-                    selected_index=self._menu_cursor if active_is_gamepad else None
-                )
+            t_title = font_card.render(f"ACHIEVEMENT UNLOCKED!", True, (245, 158, 11))
+            t_name = font_card.render(f"{popup['icon']} {popup['name']}", True, (255, 255, 255))
+            pop_surf.blit(t_title, (12, 8))
+            pop_surf.blit(t_name, (12, 32))
+            canvas.blit(pop_surf, (vw - 340, y_off))
+            y_off += 70
 
-        self.renderer.present(self.screen, ctx, self.win_w, self.win_h)
+        # Blit virtual canvas to presentation window
+        if not self._test_mode:
+            self.renderer.present(self.screen, ctx, self.win_w, self.win_h)
 
     # --------------------------------------------------------------------------
-    # Main Execution Loop
+    # Main Game Execution Loop
     # --------------------------------------------------------------------------
     def run(self):
-        """Primary game execution loop ticking clock and driving update/render."""
-        try:
-            while self.running:
-                dt = self.clock.tick()
-                self._last_dt = dt
-                self.handle_events()
-                self.update(dt)
-                self.render()
-        except KeyboardInterrupt:
-            pass
-        except Exception as e:
-            import logging
-            logging.critical(f"Fatal error during game execution: {e}", exc_info=True)
-            raise e
-        finally:
-            self.shutdown()
+        """Executes the master variable-timestep game loop until termination."""
+        while self.running:
+            raw_dt = self.clock.get_delta_time()
+            dt = min(raw_dt, 0.05)
+            self._last_dt = dt
 
-    def shutdown(self):
-        """Cleans up audio, persist progress, and safely exits pygame."""
-        try:
-            self.save_progress()
-        except Exception:
-            pass
+            self.handle_events()
+            self.update(dt)
+            self.render()
+
         pygame.quit()
+        sys.exit()

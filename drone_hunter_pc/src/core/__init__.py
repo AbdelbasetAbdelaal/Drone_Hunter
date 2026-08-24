@@ -6,9 +6,16 @@ from src.core.game_state import (
     STATE_CONTROLLER_BINDING, STATE_CONTROLLER_TEST
 )
 from src.core.game_context import GameContext
+from src.core.gameplay_context import GameplayContext, InputHandlingContext
 from src.core.clock import GameClock
 from src.core.game_state_manager import GameStateManager
 from src.core.save_controller import SaveController
 from src.core.gameplay_controller import GameplayController
 from src.core.input_controller import InputController
-from src.core.game import Game
+
+
+def __getattr__(name: str):
+    if name == "Game":
+        from src.core.game import Game
+        return Game
+    raise AttributeError(f"module '{__name__}' has no attribute '{name}'")
