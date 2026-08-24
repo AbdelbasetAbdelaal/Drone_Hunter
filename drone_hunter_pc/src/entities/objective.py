@@ -143,13 +143,19 @@ class RadarNode(pygame.sprite.Sprite):
             return True
         return False
 
-    def update(self, dt: float, player_pos: Tuple[float, float] = (0, 0), *args, **kwargs) -> list:
+    def update(self, dt: float, player_pos: Tuple[float, float] = (0, 0), player_obj=None, *args, **kwargs) -> list:
         if not self.alive:
             return []
         
         self.sweep_angle = (self.sweep_angle + self.sweep_speed * dt) % 360.0
         if self.hit_flash_timer > 0:
             self.hit_flash_timer -= dt
+
+        if player_obj and getattr(player_obj, "is_cloaked", False):
+            self.is_player_detected = False
+            self.state = RADAR_STATE_SCANNING
+            self._render()
+            return []
 
         # Distance check to player
         dist = math.hypot(player_pos[0] - self.pos.x, player_pos[1] - self.pos.y)
@@ -203,28 +209,31 @@ class AAPlatform(pygame.sprite.Sprite):
         
         if aa_type == AA_TYPE_LIGHT:
             self.max_hp = 160
-            self.fire_cooldown_max = 1.6
-            self.range = 750.0
-            self.projectile_speed = 460.0
-            self.projectile_damage = 18
+            self.fire_cooldown_max = 2.0
+            self.range = 700.0
+            self.projectile_speed = 420.0
+            self.projectile_damage = 14
             self.color = COLOR_CYAN
             self.size = 56
+            self.telegraph_duration = 0.35
         elif aa_type == AA_TYPE_HEAVY:
             self.max_hp = 260
-            self.fire_cooldown_max = 2.4
-            self.range = 850.0
-            self.projectile_speed = 400.0
-            self.projectile_damage = 32
+            self.fire_cooldown_max = 3.0
+            self.range = 800.0
+            self.projectile_speed = 360.0
+            self.projectile_damage = 22
             self.color = COLOR_GOLD
             self.size = 68
+            self.telegraph_duration = 0.50
         else: # AA_TYPE_MISSILE
             self.max_hp = 220
-            self.fire_cooldown_max = 3.2
-            self.range = 950.0
-            self.projectile_speed = 340.0
-            self.projectile_damage = 40
+            self.fire_cooldown_max = 4.0
+            self.range = 900.0
+            self.projectile_speed = 300.0
+            self.projectile_damage = 28
             self.color = COLOR_CRIMSON
             self.size = 64
+            self.telegraph_duration = 0.65
 
         self.hp = self.max_hp
         self.armor = 0.15
@@ -234,14 +243,13 @@ class AAPlatform(pygame.sprite.Sprite):
         self.alive = True
         self.hit_flash_timer = 0.0
         
-        self.fire_timer = random.uniform(0.5, self.fire_cooldown_max)
+        self.fire_timer = random.uniform(0.8, self.fire_cooldown_max)
         # Stagger fire timers so nearby AAs don't create unreadable projectile walls
-        self.fire_timer += random.uniform(0.0, self.fire_cooldown_max * 0.4)
-        self.fire_cooldown_jitter = random.uniform(-0.05, 0.15)
+        self.fire_timer += random.uniform(0.0, self.fire_cooldown_max * 0.5)
+        self.fire_cooldown_jitter = random.uniform(-0.1, 0.2)
         self.turret_angle = 180.0
         self.is_telegraphing = False
         self.telegraph_timer = 0.0
-        self.telegraph_duration = 0.40
 
         self.image = pygame.Surface((self.size, self.size), pygame.SRCALPHA)
         self.rect = self.image.get_rect(center=(round(self.pos.x), round(self.pos.y)))
@@ -260,13 +268,18 @@ class AAPlatform(pygame.sprite.Sprite):
             return True
         return False
 
-    def update(self, dt: float, player_pos: Tuple[float, float] = (0, 0), *args, **kwargs) -> list:
+    def update(self, dt: float, player_pos: Tuple[float, float] = (0, 0), player_obj=None, *args, **kwargs) -> list:
         if not self.alive:
             return []
         
         new_bullets = []
         if self.hit_flash_timer > 0:
             self.hit_flash_timer -= dt
+
+        if player_obj and getattr(player_obj, "is_cloaked", False):
+            self.is_telegraphing = False
+            self._render()
+            return []
 
         to_player = pygame.Vector2(player_pos[0] - self.pos.x, player_pos[1] - self.pos.y)
         dist = to_player.length()
@@ -328,6 +341,12 @@ class AAPlatform(pygame.sprite.Sprite):
         pygame.draw.circle(self.image, barrel_col, (cx, cy), 10)
         pygame.draw.circle(self.image, COLOR_WHITE, (cx, cy), 4)
 
+        # Telegraph charge flare at barrel tip
+        if self.is_telegraphing:
+            charge_r = int(5 + 3 * math.sin(pygame.time.get_ticks() * 0.02)) if pygame.get_init() else 6
+            pygame.draw.circle(self.image, (255, 200, 50), (int(round(bx)), int(round(by))), charge_r)
+            pygame.draw.circle(self.image, COLOR_WHITE, (int(round(bx)), int(round(by))), max(2, charge_r - 3))
+
         if self.hit_flash_timer > 0:
             mask = pygame.mask.from_surface(self.image)
             flash_surf = mask.to_surface(setcolor=(255, 255, 255, 160), unsetcolor=(0, 0, 0, 0))
@@ -346,18 +365,22 @@ class CombatAircraft(Enemy):
         
         if aircraft_type == AIRCRAFT_INTERCEPTOR:
             self.max_hp = 35
-            self.speed = 340.0
+            self.speed = 300.0
             self.points = 240
             self.color_outer = (239, 68, 68) # Red Jet
             self.color_inner = COLOR_GOLD
             self.size = 44
+            self.burst_cooldown = 0.80
+            self.projectile_damage = 12
         else: # AIRCRAFT_ATTACK
             self.max_hp = 60
-            self.speed = 260.0
+            self.speed = 240.0
             self.points = 320
             self.color_outer = (59, 130, 246) # Blue Bomber
             self.color_inner = COLOR_WHITE
             self.size = 52
+            self.burst_cooldown = 1.20
+            self.projectile_damage = 16
 
         self.hp = self.max_hp
         self.score_value = self.points
@@ -372,6 +395,12 @@ class CombatAircraft(Enemy):
         new_bullets = []
         if self.hit_flash_timer > 0:
             self.hit_flash_timer -= dt
+
+        # Suppress attacks and break away if player is cloaked
+        if player_obj and getattr(player_obj, "is_cloaked", False):
+            self.ai_state = "reposition"
+            self._render_aircraft_sprite()
+            return []
 
         # High-speed fluid flight kinematics
         to_player = pygame.Vector2(player_pos[0] - self.pos.x, player_pos[1] - self.pos.y)
@@ -391,23 +420,24 @@ class CombatAircraft(Enemy):
             self.pos += move_vec * self.speed * dt
             self.heading_angle = math.degrees(math.atan2(move_vec.y, move_vec.x))
 
-            # Fire short burst
-            if self.state_timer >= 0.8:
+            # Fire short readable burst
+            if self.state_timer >= getattr(self, "burst_cooldown", 1.2):
                 self.state_timer = 0.0
                 cx, cy = self.rect.center
-                new_bullets.append(EnemyBullet((cx, cy), player_pos, speed=380.0, damage=14))
+                new_bullets.append(EnemyBullet((cx, cy), player_pos, speed=360.0, damage=self.projectile_damage))
                 if dist < 280.0:
                     self.ai_state = "reposition"
+                    self.state_timer = 0.0
         elif self.ai_state == "reposition":
-            # Evasive breakaway — fly perpendicular to player vector for a strafing turn
+            # Evasive breakaway — fly perpendicular and away from player vector for breathing room
             self.state_timer += dt
             perp = pygame.Vector2(-norm_to_p.y, norm_to_p.x) * self.strafe_dir
             away = -norm_to_p
             move_vec = (perp * 0.6 + away * 0.4).normalize()
             self.pos += move_vec * self.speed * dt
             self.heading_angle = math.degrees(math.atan2(move_vec.y, move_vec.x))
-            # Circle back after a brief disengage, never hover over objective
-            if self.state_timer >= 1.2 or dist > 650.0:
+            # Circle back after a 1.5s disengage, never hover over player
+            if self.state_timer >= 1.5 or dist > 650.0:
                 self.ai_state = "approach"
                 self.state_timer = 0.0
 

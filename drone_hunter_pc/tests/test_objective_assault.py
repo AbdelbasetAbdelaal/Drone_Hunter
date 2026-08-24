@@ -943,3 +943,188 @@ class TestDefenseLayerPositioning:
         types2 = [type(r).__name__ for r in obj_sys2.active_reinforcements]
         assert types1 == types2, "Same seed should produce same reinforcement types"
 
+
+# =============================================================================
+# 10. PLAYER SURVIVABILITY & OBJECTIVE DEFENSE BALANCE TESTS
+# =============================================================================
+class TestPlayerSurvivabilityAndDefenseBalance:
+    """Comprehensive tests verifying player survivability, damage grace window,
+    armor reduction, defensive abilities (Roll, Cloak, Overdrive), and objective defense attack pacing."""
+
+    def test_player_damage_grace_window(self):
+        """Verify taking damage activates damage_grace_timer and renders player temporarily invulnerable."""
+        p = Player((200, 360))
+        assert p.damage_grace_timer == 0.0
+        assert not p.is_invulnerable
+
+        p.take_damage(15.0)
+        assert p.damage_grace_timer > 0.20
+        assert p.is_invulnerable
+
+        # Tick 0.1s -> still in grace window
+        p.update(0.10)
+        assert p.is_invulnerable
+        # Second hit inside grace window is absorbed without damage
+        prev_health = p.health
+        p.take_damage(15.0)
+        assert p.health == prev_health
+
+        # Tick remaining 0.2s -> grace window expires
+        p.update(0.20)
+        assert p.damage_grace_timer == 0.0
+        assert not p.is_invulnerable
+
+    def test_single_light_hit_survivable(self):
+        """Verify an ordinary light hit is easily survivable with ~86% HP remaining."""
+        p = Player((200, 360))
+        destroyed = p.take_damage(14.0)
+        assert not destroyed
+        assert p.alive
+        assert p.health == 86.0
+
+    def test_heavy_hit_survivable(self):
+        """Verify a heavy hit is dangerous but survivable (~76% HP remaining)."""
+        p = Player((200, 360))
+        destroyed = p.take_damage(24.0)
+        assert not destroyed
+        assert p.alive
+        assert p.health == 76.0
+
+    def test_damage_not_stacked_in_same_frame(self):
+        """Verify multiple simultaneous bullets in the same frame do NOT delete player in 1 instant."""
+        from src.systems.combat_system import CombatSystem
+        from src.entities.bullet import EnemyBullet
+
+        ctx = GameContext()
+        ctx.player = Player((200, 360))
+        combat = CombatSystem(ctx)
+
+        # Spawn 5 overlapping bullets at player position
+        for _ in range(5):
+            b = EnemyBullet((200, 360), (200, 360), damage=25)
+            ctx.enemy_bullet_group.add(b)
+
+        assert len(ctx.enemy_bullet_group) == 5
+
+        # Update combat for 1 frame
+        combat.update_combat(0.016)
+
+        # Only 1 hit should have applied damage (health ~75.0), player must be ALIVE
+        assert ctx.player.alive
+        assert ctx.player.health == 75.0
+
+    def test_roll_protection(self):
+        """Verify Tactical Barrel Roll grants invulnerability during active roll."""
+        p = Player((200, 360))
+        p.trigger_roll()
+        assert p.is_rolling
+        assert p.is_invulnerable
+
+        # Incoming damage during roll must deal 0 damage
+        initial_hp = p.health
+        p.take_damage(50.0)
+        assert p.health == initial_hp
+
+    def test_cloak_survivability(self):
+        """Verify Tactical Cloak suppresses enemy detection and AA targeting."""
+        p = Player((200, 360))
+        p.trigger_cloak()
+        assert p.is_cloaked
+
+        # Radar does not alert on cloaked player
+        radar = RadarNode((300, 360))
+        radar.update(0.05, player_pos=(200, 360), player_obj=p)
+        assert not radar.is_player_detected
+        assert radar.state == RADAR_STATE_SCANNING
+
+        # AA platform does not telegraph or fire at cloaked player
+        aa = AAPlatform((300, 360), aa_type=AA_TYPE_LIGHT)
+        bullets = aa.update(0.05, player_pos=(200, 360), player_obj=p)
+        assert len(bullets) == 0
+        assert not aa.is_telegraphing
+
+    def test_overdrive_invulnerability(self):
+        """Verify Overdrive Ultimate grants full invulnerability."""
+        p = Player((200, 360))
+        p.trigger_overdrive()
+        assert p.overdrive_timer > 0.0
+        assert p.is_invulnerable
+
+        initial_hp = p.health
+        p.take_damage(999.0)
+        assert p.health == initial_hp
+        assert p.alive
+
+    def test_radar_reduces_pressure(self):
+        """Verify destroying radar nodes reduces reinforcement pressure."""
+        ctx = GameContext()
+        ctx.player = Player((200, 360))
+        obj_sys = ObjectiveSystem()
+        obj_sys.start_objective_for_mission({
+            "id": "S2_M1",
+            "objective_type": OBJECTIVE_TYPE_RADAR_COMMAND,
+            "defense_level": 2,
+        }, ctx)
+
+        initial_radars = len(obj_sys.radar_nodes)
+        assert initial_radars > 0
+
+        # Destroy a radar node
+        obj_sys.radar_nodes[0].alive = False
+        obj_sys._check_radar_destruction(ctx)
+
+        assert obj_sys._radars_destroyed_count >= 1
+        assert obj_sys._radar_pressure_reduction > 0.0
+
+    def test_reinforcement_cap(self):
+        """Verify active reinforcements do not exceed configured cap."""
+        ctx = GameContext()
+        ctx.player = Player((200, 360))
+        obj_sys = ObjectiveSystem()
+        obj_sys.start_objective_for_mission({
+            "id": "S1_M1",
+            "objective_type": OBJECTIVE_TYPE_RADAR_COMMAND,
+            "defense_level": 1,
+        }, ctx)
+
+        def_cfg = get_defense_level_config(1)
+        max_reinf = def_cfg["reinforcement_max"]
+
+        # Alert radar and simulate multiple timer triggers
+        for r in obj_sys.radar_nodes:
+            r.state = RADAR_STATE_ALERT
+
+        for _ in range(20):
+            obj_sys.reinforcement_timer = 0.0
+            obj_sys.update(0.1, ctx)
+
+        assert len(obj_sys.active_reinforcements) <= max_reinf
+
+    def test_aircraft_attack_window(self):
+        """Verify Combat Aircraft disengages after strafe run to provide fair attack windows."""
+        ac = CombatAircraft(pos=(500, 360), aircraft_type=AIRCRAFT_INTERCEPTOR)
+        assert ac.ai_state == "approach"
+
+        # Advance until strafe
+        ac.update(0.5, player_pos=(400, 360))
+        assert ac.ai_state in ("approach", "strafe")
+
+        # Force strafe completion -> must enter reposition (disengage)
+        ac.ai_state = "strafe"
+        ac.state_timer = 1.3
+        ac.update(0.05, player_pos=(200, 360))
+        assert ac.ai_state == "reposition"
+
+    def test_aa_attack_window(self):
+        """Verify AA platforms feature telegraph charging duration before firing."""
+        aa = AAPlatform((600, 360), aa_type=AA_TYPE_HEAVY)
+        aa.fire_timer = 0.0
+        aa.is_telegraphing = False
+
+        # Updating should start telegraph
+        bullets = aa.update(0.016, player_pos=(200, 360))
+        assert len(bullets) == 0
+        assert aa.is_telegraphing
+        assert aa.telegraph_timer > 0.0
+
+

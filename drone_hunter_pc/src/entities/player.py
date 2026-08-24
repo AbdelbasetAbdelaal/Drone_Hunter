@@ -101,6 +101,8 @@ class Player(pygame.sprite.Sprite):
 
         # Shield Hit System
         self.shield_hits = 0
+        self.damage_grace_timer = 0.0
+        self.damage_grace_duration = 0.25
 
         # Ability Timers & Cooldowns
         self.emp_cooldown = 0.0
@@ -218,7 +220,7 @@ class Player(pygame.sprite.Sprite):
 
     @property
     def is_invulnerable(self) -> bool:
-        return self.is_rolling or self.invulnerable_timer > 0.0 or self.overdrive_timer > 0.0
+        return self.is_rolling or self.invulnerable_timer > 0.0 or self.overdrive_timer > 0.0 or self.damage_grace_timer > 0.0
 
     @property
     def is_jammed(self) -> bool:
@@ -376,9 +378,9 @@ class Player(pygame.sprite.Sprite):
         self.weapon_upgrade_levels = {str(k): max(0, int(v)) for k, v in weapon_upgrades.items()}
 
 
-    def take_damage(self, amount: float, source: str = "bullet") -> bool:
+    def take_damage(self, amount: float, source: str = "bullet", ignore_grace: bool = False) -> bool:
         """Applies damage to shields and health hull. Returns True if destroyed."""
-        if self.is_invulnerable:
+        if not ignore_grace and self.is_invulnerable:
             return False
 
         self.damage_flash_timer = 0.18
@@ -387,14 +389,16 @@ class Player(pygame.sprite.Sprite):
             self.shield_hits -= 1
             return False
 
-        effective_damage = max(1.0, float(amount) - self.armor)
+        effective_damage = max(1.0, float(amount) - float(self.armor))
         self.health = max(0.0, self.health - effective_damage)
+        self.damage_grace_timer = self.damage_grace_duration
+
         if self.health <= 0.0:
             if not self.is_destroyed:
-                self.alive = False
-                self.is_destroyed = True
-                self.destruction_timer = 1.4
-                return True
+               self.alive = False
+               self.is_destroyed = True
+               self.destruction_timer = 1.4
+               return True
         return False
 
     def can_shoot(self) -> bool:
@@ -667,6 +671,7 @@ class Player(pygame.sprite.Sprite):
                 self.weapon_cooldowns[w] -= dt
                 
         if self.invulnerable_timer > 0: self.invulnerable_timer -= dt
+        if self.damage_grace_timer > 0: self.damage_grace_timer = max(0.0, self.damage_grace_timer - dt)
         if self.overclock_timer > 0: self.overclock_timer -= dt
         if self.emp_jammed_timer > 0: self.emp_jammed_timer = max(0.0, self.emp_jammed_timer - dt)
         if self.emp_cooldown > 0: self.emp_cooldown = max(0.0, self.emp_cooldown - dt)

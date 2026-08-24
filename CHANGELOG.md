@@ -4,6 +4,25 @@ All notable changes to the **Drone Hunter 2D** project are documented in this fi
 
 ---
 
+## [Phase 15] — Player Survivability & Objective Defense Balance Pass (2026)
+
+### Added & Tuned
+- **Damage Resolution & Spike Prevention**:
+  - Implemented configurable **Damage Grace Window (`damage_grace_duration = 0.25s`)** preventing multi-projectile frame deletions.
+  - Sequenced bullet and hazard collisions in `CombatSystem` to honor temporary post-hit invulnerability and post-shield absorption windows.
+  - Subdued camera shake and damage flash for clear tactical visibility on hit.
+- **Objective Defense Staggering & Attack Windows**:
+  - **Anti-Air Platforms (`AAPlatform`)**: Staggered fire cooldowns (`2.0s` Light, `3.0s` Heavy, `4.0s` Missile), balanced damages (`14`, `22`, `28`), and distinct charging telegraphs (`0.35s - 0.65s`).
+  - **Combat Aircraft (`CombatAircraft`)**: Tuned kinematic flight paths (`300px/s` Interceptor, `240px/s` Bomber), reduced burst damages (`12`, `16`), and enforced `1.5s` disengagement repositioning.
+  - **Radar & Strategic Suppression**: Radar destruction materially reduces reinforcement pressure by +50% per node; cloaked players suppress radar alerts, AA targeting, and aircraft runs.
+- **Defensive Abilities & Armor**:
+  - Verified Barrel Roll i-frames, Tactical Cloak detection suppression, and Overdrive invulnerability.
+  - Meaningful armor reduction subtracting directly from projectile damage.
+- **Comprehensive Survivability Test Suite**:
+  - Added `TestPlayerSurvivabilityAndDefenseBalance` bringing total passing automated tests to **666 passed**.
+
+---
+
 ## [Phase 14] — Objective Assault Gameplay Overhaul (2026)
 
 ### Added

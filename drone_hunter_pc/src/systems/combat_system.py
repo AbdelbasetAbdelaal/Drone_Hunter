@@ -304,21 +304,25 @@ class CombatSystem:
         if player.alive and not player.is_invulnerable and not player.is_cloaked:
             e_hits = pygame.sprite.spritecollide(player, ctx.enemy_bullet_group, True)
             for eb in e_hits:
-                dmg = getattr(eb, "damage", 20)
+                if not player.alive or player.is_invulnerable or player.is_cloaked:
+                    continue
+
+                dmg = getattr(eb, "damage", 16)
                 diff_dmg_mult = ctx.difficulty_data.get("damage_mult", 1.0)
                 scaled_dmg = dmg * diff_dmg_mult
 
                 had_shield = player.shield_hits > 0
                 is_destroyed = player.take_damage(scaled_dmg)
+                player.damage_grace_timer = player.damage_grace_duration
 
                 if had_shield:
                     if ctx.audio_manager: ctx.audio_manager.play_hit_shield()
-                    if ctx.particle_manager: ctx.particle_manager.spawn_spark(player.rect.center, count=10, color=COLOR_SHIELD)
+                    if ctx.particle_manager: ctx.particle_manager.spawn_spark(player.rect.center, count=8, color=COLOR_SHIELD)
                 else:
-                    ctx.trigger_shake(4.0, 0.2)
-                    ctx.damage_flash_timer = 0.18
+                    ctx.trigger_shake(2.5, 0.12)
+                    ctx.damage_flash_timer = 0.14
                     if ctx.audio_manager: ctx.audio_manager.play_player_hit()
-                    if ctx.particle_manager: ctx.particle_manager.spawn_explosion(player.rect.center, count=20, color=COLOR_CRIMSON)
+                    if ctx.particle_manager: ctx.particle_manager.spawn_explosion(player.rect.center, count=12, color=COLOR_CRIMSON)
                     if ctx.mission_start_time > 0:
                         ctx.mission_damage_taken += scaled_dmg
 
@@ -326,27 +330,31 @@ class CombatSystem:
                     if ctx.audio_manager: ctx.audio_manager.play_player_death()
                     if ctx.particle_manager:
                         ctx.particle_manager.spawn_player_destruction(player.rect.center)
-                    ctx.trigger_shake(10.0, 0.7)
+                    ctx.trigger_shake(8.0, 0.6)
+                    break
 
         # 3B. Hostile Enemies vs Player Drone (Contact Damage with Cooldown)
         if player.alive and not player.is_invulnerable and not player.is_cloaked:
             c_hits = pygame.sprite.spritecollide(player, ctx.target_group, False)
             for enemy in c_hits:
+                if not player.alive or player.is_invulnerable or player.is_cloaked:
+                    break
                 if getattr(enemy, "alive", True) and getattr(enemy, "contact_cooldown_timer", 0.0) <= 0.0:
-                    c_dmg = getattr(enemy, "contact_damage", 20.0)
+                    c_dmg = getattr(enemy, "contact_damage", 15.0)
                     enemy.contact_cooldown_timer = 1.0 # 1.0s contact cooldown per enemy
 
                     had_shield = player.shield_hits > 0
                     is_destroyed = player.take_damage(c_dmg)
+                    player.damage_grace_timer = player.damage_grace_duration
 
                     if had_shield:
                         if ctx.audio_manager: ctx.audio_manager.play_hit_shield()
-                        if ctx.particle_manager: ctx.particle_manager.spawn_spark(player.rect.center, count=12, color=COLOR_SHIELD)
+                        if ctx.particle_manager: ctx.particle_manager.spawn_spark(player.rect.center, count=8, color=COLOR_SHIELD)
                     else:
-                        ctx.trigger_shake(4.0, 0.2)
-                        ctx.damage_flash_timer = 0.18
+                        ctx.trigger_shake(2.5, 0.12)
+                        ctx.damage_flash_timer = 0.14
                         if ctx.audio_manager: ctx.audio_manager.play_player_hit()
-                        if ctx.particle_manager: ctx.particle_manager.spawn_explosion(player.rect.center, count=15, color=COLOR_CRIMSON)
+                        if ctx.particle_manager: ctx.particle_manager.spawn_explosion(player.rect.center, count=12, color=COLOR_CRIMSON)
                         if ctx.mission_start_time > 0:
                             ctx.mission_damage_taken += c_dmg
 
@@ -354,24 +362,26 @@ class CombatSystem:
                         if ctx.audio_manager: ctx.audio_manager.play_player_death()
                         if ctx.particle_manager:
                             ctx.particle_manager.spawn_player_destruction(player.rect.center)
-                        ctx.trigger_shake(10.0, 0.7)
+                        ctx.trigger_shake(8.0, 0.6)
+                        break
 
         # 4. Hazards vs Player
-        if player.alive and not player.is_cloaked:
+        if player.alive and not player.is_invulnerable and not player.is_cloaked:
             h_hits = pygame.sprite.spritecollide(player, ctx.hazard_group, False)
             for h in h_hits:
                 if hasattr(h, "gap_y"): # LaserGridFence
-                    is_destroyed = player.take_damage(35.0 * dt)
-                    ctx.trigger_shake(4.0, 0.1)
+                    is_destroyed = player.take_damage(20.0 * dt)
+                    ctx.trigger_shake(2.0, 0.08)
                     if ctx.audio_manager: ctx.audio_manager.play_player_hit()
                     if ctx.particle_manager: ctx.particle_manager.spawn_spark(player.rect.center, count=4, color=COLOR_NEON_RED)
                     if ctx.mission_start_time > 0:
-                        ctx.mission_damage_taken += 35.0 * dt
+                        ctx.mission_damage_taken += 20.0 * dt
                     if is_destroyed:
                         if ctx.audio_manager: ctx.audio_manager.play_player_death()
                         if ctx.particle_manager:
                             ctx.particle_manager.spawn_player_destruction(player.rect.center)
-                        ctx.trigger_shake(10.0, 0.7)
+                        ctx.trigger_shake(8.0, 0.6)
+                        break
 
 
         # 5. Player vs Power-up Items

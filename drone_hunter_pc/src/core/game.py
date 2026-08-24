@@ -1178,7 +1178,7 @@ class Game:
                             ctx.state = STATE_SECTOR_SELECT
 
             elif event.type == pygame.MOUSEMOTION:
-                if ctx.state == STATE_CUSTOM_DIFFICULTY and self.custom_difficulty_dragging >= 0:
+                if ctx.state == STATE_CUSTOM_DIFFICULTY and self.custom_difficulty_dragging is not None and self.custom_difficulty_dragging != -1:
                     mx, my = self.get_canvas_mouse_pos(getattr(event, "pos", None))
                     custom_btns = draw_custom_difficulty_ui(self.renderer.canvas, ctx.custom_difficulty_settings, mouse_pos=(mx, my), dragging=self.custom_difficulty_dragging)
                     rect_info = custom_btns.get(self.custom_difficulty_dragging)
@@ -1192,7 +1192,7 @@ class Game:
 
             elif event.type == pygame.MOUSEBUTTONUP:
                 if ctx.state == STATE_CUSTOM_DIFFICULTY:
-                    self.custom_difficulty_dragging = -1
+                    self.custom_difficulty_dragging = None
 
             # Controller binding wizard raw event capture
             elif ctx.state == STATE_CONTROLLER_BINDING:

@@ -403,10 +403,12 @@ class ObjectiveSystem:
         if self.active_objective and getattr(self.active_objective, "hit_effect_timer", 0.0) > 0:
             self.trigger_combat_window(2.5)
 
+        p_obj = getattr(ctx, "player", None)
+
         # 2. Update Radar Nodes
         for r in list(self.radar_nodes):
             if r.alive:
-                r.update(dt, player_pos=p_pos, ctx=ctx)
+                r.update(dt, player_pos=p_pos, player_obj=p_obj, ctx=ctx)
 
         # 2b. Radar strategic choice: detect destroyed radars and reduce pressure
         self._check_radar_destruction(ctx)
@@ -417,7 +419,7 @@ class ObjectiveSystem:
         # 3. Update AA Platforms & Collect hostile bullets (skip during combat window or freeze)
         for aa in list(self.aa_platforms):
             if aa.alive:
-                new_bullets = aa.update(dt, player_pos=p_pos, ctx=ctx)
+                new_bullets = aa.update(dt, player_pos=p_pos, player_obj=p_obj, ctx=ctx)
                 if combat_frozen or self._combat_window_active:
                     new_bullets.clear()
                 for b in new_bullets:
@@ -426,7 +428,7 @@ class ObjectiveSystem:
         # 4. Update Combat Aircraft (skip during combat window or freeze)
         for ac in list(self.combat_aircraft):
             if ac.alive:
-                new_bullets = ac.update(dt, player_pos=p_pos,
+                new_bullets = ac.update(dt, player_pos=p_pos, player_obj=p_obj,
                                          target_group=getattr(ctx, "target_group", None))
                 if combat_frozen or self._combat_window_active:
                     new_bullets.clear()
