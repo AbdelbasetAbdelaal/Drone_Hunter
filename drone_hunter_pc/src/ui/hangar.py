@@ -2,146 +2,220 @@
 ================================================================================
                     DRONE HUNTER 2D - HANGAR & WEAPONS BAY
 ================================================================================
-Hangar upgrade shop and drone skin customizer interface.
-Phase 4: Simplified progression system.
+Hangar upgrade shop, active chassis showcase, and drone skin customizer interface.
+Provides clean 2-column responsive layout, live animated chassis preview,
+weapon loadout status, and controller-aware navigation.
 """
 
+import math
 import pygame
 from src.data.settings import (
     SCREEN_WIDTH, SCREEN_HEIGHT, COLOR_CYAN, COLOR_GOLD, COLOR_EMERALD,
-    COLOR_WHITE, COLOR_CRIMSON, COLOR_HUD, COLOR_MAGENTA
+    COLOR_WHITE, COLOR_CRIMSON, COLOR_HUD, COLOR_MAGENTA, COLOR_TEXT_DIM
 )
-from src.data.game_data import UPGRADE_COSTS, MAX_UPGRADE_LEVEL, DRONE_SKINS, DRONE_SKIN_UNLOCKS, WEAPON_DEFS, WEAPON_UPGRADES, WEAPON_UNLOCK_COSTS
+from src.data.game_data import (
+    UPGRADE_COSTS, MAX_UPGRADE_LEVEL, DRONE_SKINS, DRONE_SKIN_UNLOCKS,
+    WEAPON_DEFS, WEAPON_UPGRADES, WEAPON_UNLOCK_COSTS, get_drone_class_by_id
+)
 from src.ui.font_manager import font_header, font_banner, font_card, font_button, font_sub
 from src.ui.menus import draw_button
 
 
-def draw_hangar_shop_ui(canvas: pygame.Surface, scrap: int, current_sector_idx: int, upgrade_levels: dict[str, int], mouse_pos: tuple[int, int] = None, player=None, weapon_upgrades: dict = None, unlocked_weapons: list = None, unlocked_skins: list = None, total_score: int = 0, selected_index: int = None) -> dict:
+def draw_hangar_shop_ui(
+    canvas: pygame.Surface, scrap: int, current_sector_idx: int,
+    upgrade_levels: dict[str, int], mouse_pos: tuple[int, int] = None,
+    player=None, weapon_upgrades: dict = None, unlocked_weapons: list = None,
+    unlocked_skins: list = None, total_score: int = 0, selected_index: int = None,
+    input_manager=None
+) -> dict:
+    """Renders polished, responsive 2-column Hangar & Upgrade Bay."""
     canvas.fill((8, 12, 22))
     vw, vh = canvas.get_size()
     mx, my = mouse_pos if mouse_pos is not None else pygame.mouse.get_pos()
 
-    # Top Header
-    header_rect = pygame.Rect(30, 14, vw - 60, 52)
+    is_controller = False
+    if input_manager and getattr(input_manager, "active_device", "") in ("gamepad", "joystick"):
+        is_controller = True
+
+    # 1. Safe layout margins
+    pad_x = max(24, int(vw * 0.025))
+    pad_y = max(14, int(vh * 0.02))
+    content_w = vw - pad_x * 2
+    footer_h = 44
+    header_h = 46
+
+    # 2. Header Bar
+    header_rect = pygame.Rect(pad_x, pad_y, content_w, header_h)
     pygame.draw.rect(canvas, (14, 22, 38), header_rect, border_radius=8)
     pygame.draw.rect(canvas, COLOR_CYAN, header_rect, 2, border_radius=8)
-    
+
     t_hdr = font_header.render("DRONE HANGAR & UPGRADE BAY", True, COLOR_CYAN)
-    scrap_hdr = font_banner.render(f"SCRAP: {scrap:,}", True, COLOR_GOLD)
-    canvas.blit(t_hdr, (48, 18))
-    canvas.blit(scrap_hdr, (vw - 250, 26))
+    canvas.blit(t_hdr, (pad_x + 18, pad_y + 10))
+
+    # Scrap pill on top right
+    scrap_txt = font_banner.render(f"SCRAP: {scrap:,}", True, COLOR_GOLD)
+    scrap_rect = pygame.Rect(header_rect.right - scrap_txt.get_width() - 32, pad_y + 8, scrap_txt.get_width() + 24, 30)
+    pygame.draw.rect(canvas, (30, 41, 59), scrap_rect, border_radius=6)
+    pygame.draw.rect(canvas, COLOR_GOLD, scrap_rect, 1, border_radius=6)
+    canvas.blit(scrap_txt, (scrap_rect.left + 12, scrap_rect.top + 3))
+
+    # 3. Two-Column Layout Calculations
+    col_gap = 20
+    col_w = (content_w - col_gap) // 2
+    top_y = header_rect.bottom + 12
+    avail_h = vh - top_y - footer_h - pad_y - 12
+
+    # =========================================================================
+    # LEFT COLUMN: SYSTEM UPGRADES GRID (4 Vertical Cards)
+    # =========================================================================
+    left_x = pad_x
+    upg_title = font_card.render("CYBERNETIC SYSTEMS UPGRADES", True, COLOR_CYAN)
+    canvas.blit(upg_title, (left_x + 4, top_y))
 
     items = [
-        ("1", "hull", "HULL INTEGRITY", COLOR_EMERALD, lambda lvl: f"+25 HP -> {225 + (lvl)*25} Max HP"),
-        ("2", "energy", "ENERGY CORE OUTPUT", COLOR_CYAN, lambda lvl: f"+15 NRG -> {100 + (lvl)*15} Max Energy"),
-        ("3", "weapon", "WEAPON SYSTEM BOOST", COLOR_GOLD, lambda lvl: f"+5% DMG -> {100 + (lvl)*5}% Effectiveness"),
-        ("4", "mobility", "THRUSTER MOBILITY", COLOR_WHITE, lambda lvl: f"+5% SPD -> {100 + (lvl)*5}% Flight Speed")
+        ("1", "hull", "HULL INTEGRITY", "HP", COLOR_EMERALD, lambda lvl: f"+25 HP ({225 + (lvl-1)*25} → {225 + (lvl)*25} HP)"),
+        ("2", "energy", "ENERGY CORE OUTPUT", "NRG", COLOR_CYAN, lambda lvl: f"+15 NRG ({100 + (lvl-1)*15} → {100 + (lvl)*15} NRG)"),
+        ("3", "weapon", "WEAPON SYSTEM BOOST", "DMG", COLOR_GOLD, lambda lvl: f"+5% DMG ({100 + (lvl-1)*5}% → {100 + (lvl)*5}%)"),
+        ("4", "mobility", "THRUSTER MOBILITY", "SPD", COLOR_WHITE, lambda lvl: f"+5% SPD ({100 + (lvl-1)*5}% → {100 + (lvl)*5}%)")
     ]
 
-    card_w, card_h = 590, 100
+    card_y_start = top_y + 26
+    card_spacing = 8
+    card_h = max(70, min(86, (avail_h - 26 - card_spacing * 3) // 4))
     item_rects = {}
 
-    for idx, (key_num, upg_id, upg_name, color, stat_func) in enumerate(items):
-        col_idx = idx % 2
-        row_idx = idx // 2
-        
-        cx = 30 + col_idx * 610
-        cy = 86 + row_idx * 118
-        
+    for idx, (key_num, upg_id, upg_name, tag, color, stat_func) in enumerate(items):
+        cy = card_y_start + idx * (card_h + card_spacing)
         lvl = upgrade_levels.get(upg_id, 1)
         max_lvl = MAX_UPGRADE_LEVEL
         cost = UPGRADE_COSTS.get(lvl, 999999)
 
-        card_rect = pygame.Rect(cx, cy, card_w, card_h)
+        card_rect = pygame.Rect(left_x, cy, col_w, card_h)
         is_hover = card_rect.collidepoint(mx, my) or (selected_index == idx)
-        
         can_afford = (scrap >= cost) and (lvl < max_lvl)
-        
-        if not can_afford and lvl < max_lvl:
-            bg_col = (18, 22, 32) if is_hover else (12, 16, 24)
-            border_col = (50, 60, 75)
-            txt_col = (130, 145, 165)
-        else:
-            bg_col = (24, 40, 65) if is_hover else (15, 24, 40)
-            border_col = COLOR_WHITE if is_hover else color
-            txt_col = COLOR_WHITE if is_hover else color
 
-        pygame.draw.rect(canvas, bg_col, card_rect, border_radius=8)
-        pygame.draw.rect(canvas, border_col, card_rect, 2 if is_hover else 1, border_radius=8)
+        bg_col = (26, 42, 68) if is_hover else ((18, 26, 42) if can_afford else (12, 16, 26))
+        border_col = COLOR_WHITE if is_hover else (color if can_afford else (45, 58, 78))
+        pygame.draw.rect(canvas, bg_col, card_rect, border_radius=6)
+        pygame.draw.rect(canvas, border_col, card_rect, 2 if is_hover else 1, border_radius=6)
         item_rects[upg_id] = card_rect
 
-        lbl = font_button.render(f"[{key_num}] {upg_name}", True, txt_col)
-        canvas.blit(lbl, (cx + 16, cy + 12))
+        # Left system tag icon box
+        tag_w = 44
+        tag_rect = pygame.Rect(left_x + 8, cy + 8, tag_w, card_h - 16)
+        pygame.draw.rect(canvas, (20, 30, 48), tag_rect, border_radius=4)
+        pygame.draw.rect(canvas, color, tag_rect, 1, border_radius=4)
+        tag_lbl = font_sub.render(tag, True, color)
+        canvas.blit(tag_lbl, tag_lbl.get_rect(center=tag_rect.center))
 
+        # Title & Key Prompt
+        name_x = tag_rect.right + 12
+        lbl_key = f"[{key_num}]" if not is_controller else f"[D-PAD {idx+1}]"
+        lbl_title = font_card.render(f"{lbl_key} {upg_name}", True, COLOR_WHITE if is_hover else color)
+        canvas.blit(lbl_title, (name_x, cy + 8))
+
+        # Level & Cost / Stat
         if lvl >= max_lvl:
             txt_lvl = font_sub.render(f"LEVEL {lvl}/{max_lvl} (MAX LEVEL REACHED)", True, COLOR_EMERALD)
-            txt_stat = font_sub.render(f"CURRENT: {stat_func(lvl - 1).split('->')[1].strip()}", True, COLOR_EMERALD)
+            canvas.blit(txt_lvl, (name_x, cy + 30))
         else:
-            txt_lvl = font_sub.render(f"LV {lvl} -> LV {lvl+1}   |   Upgrade Cost: {cost:,} SCRAP", True, COLOR_GOLD if can_afford else (130, 140, 155))
-            txt_stat = font_sub.render(stat_func(lvl), True, txt_col)
-            
-        canvas.blit(txt_lvl, (cx + 16, cy + 42))
-        canvas.blit(txt_stat, (cx + 16, cy + 68))
+            txt_stat = font_sub.render(stat_func(lvl), True, (190, 205, 225))
+            canvas.blit(txt_stat, (name_x, cy + 30))
 
-        # Progress bar
-        bar_w = 180
-        bar_x = cx + card_w - bar_w - 18
-        pygame.draw.rect(canvas, (25, 35, 50), (bar_x, cy + 44, bar_w, 14), border_radius=4)
+            cost_lbl = font_sub.render(f"COST: {cost:,} SCRAP", True, COLOR_GOLD if can_afford else (148, 163, 184))
+            canvas.blit(cost_lbl, (name_x, cy + 48))
+
+        # Progress bar on the right
+        bar_w = 110
+        bar_h = 8
+        bar_x = card_rect.right - bar_w - 14
+        bar_y = cy + (card_h - bar_h) // 2
+        pygame.draw.rect(canvas, (25, 35, 52), (bar_x, bar_y, bar_w, bar_h), border_radius=3)
         fill_w = int(bar_w * (lvl / max_lvl))
         if fill_w > 0:
             fill_col = COLOR_EMERALD if lvl >= max_lvl else color
-            pygame.draw.rect(canvas, fill_col, (bar_x, cy + 44, fill_w, 14), border_radius=4)
+            pygame.draw.rect(canvas, fill_col, (bar_x, bar_y, fill_w, bar_h), border_radius=3)
+        pygame.draw.rect(canvas, (51, 65, 85), (bar_x, bar_y, bar_w, bar_h), 1, border_radius=3)
 
-    # -------------------------------------------------------------------------
-    # Drone Combat Class Showcase Profile Card
-    # -------------------------------------------------------------------------
-    from src.data.game_data import get_drone_class_by_id, DRONE_SKINS
+    # =========================================================================
+    # RIGHT COLUMN: ACTIVE CHASSIS SHOWCASE + WEAPONS + SKINS
+    # =========================================================================
+    right_x = pad_x + col_w + col_gap
     class_id = getattr(player, "drone_class_id", "striker") if player else "striker"
     c_info = get_drone_class_by_id(class_id)
+    skin_id = getattr(player, "skin_theme", 0) if player else 0
 
-    profile_rect = pygame.Rect(30, 330, vw - 60, 260)
-    pygame.draw.rect(canvas, (12, 18, 30), profile_rect, border_radius=8)
-    pygame.draw.rect(canvas, (30, 48, 75), profile_rect, 1, border_radius=8)
+    # 1. Active Chassis Profile Card
+    chassis_h = 160
+    chassis_rect = pygame.Rect(right_x, top_y, col_w, chassis_h)
+    pygame.draw.rect(canvas, (14, 22, 36), chassis_rect, border_radius=8)
+    pygame.draw.rect(canvas, (40, 60, 90), chassis_rect, 1, border_radius=8)
 
-    # Class Header
-    t_class_hdr = font_card.render(f"ACTIVE CHASSIS: {c_info['name']} — {c_info['title']}", True, COLOR_CYAN)
-    t_role = font_sub.render(f"COMBAT IDENTITY: {c_info['role']}", True, COLOR_GOLD)
-    t_desc = font_sub.render(c_info['description'], True, (180, 195, 215))
+    # Live Emissive Drone Preview Box
+    preview_box_w = 110
+    preview_rect = pygame.Rect(right_x + 10, top_y + 10, preview_box_w, chassis_h - 20)
+    pygame.draw.rect(canvas, (10, 16, 28), preview_rect, border_radius=6)
+    pygame.draw.rect(canvas, COLOR_CYAN, preview_rect, 1, border_radius=6)
 
-    canvas.blit(t_class_hdr, (50, 346))
-    canvas.blit(t_role, (50, 376))
-    canvas.blit(t_desc, (50, 404))
+    # Ambient radar ring in preview box
+    p_cx, p_cy = preview_rect.center
+    t_now = pygame.time.get_ticks() * 0.003 if pygame.get_init() else 0.0
+    radar_r = int(24 + 8 * math.sin(t_now))
+    pygame.draw.circle(canvas, (30, 60, 90, 80), (p_cx, p_cy), max(10, radar_r), 1)
 
-    # Stats Summary
+    # Draw player chassis sprite
+    try:
+        from src.rendering.sprite_manager import get_sprite_manager
+        sm = get_sprite_manager()
+        drone_surf = sm.get_player_sprite(skin_idx=skin_id, target_size=(84, 74))
+        canvas.blit(drone_surf, drone_surf.get_rect(center=(p_cx, p_cy)))
+    except Exception:
+        pygame.draw.circle(canvas, COLOR_CYAN, (p_cx, p_cy), 20)
+
+    # Chassis Info & Tactical Telemetry
+    info_x = preview_rect.right + 14
+    t_class_name = font_card.render(f"{c_info['name'].upper()} — {c_info['title']}", True, COLOR_CYAN)
+    t_role_txt = font_sub.render(f"ROLE: {c_info['role'].upper()}", True, COLOR_GOLD)
+    canvas.blit(t_class_name, (info_x, top_y + 12))
+    canvas.blit(t_role_txt, (info_x, top_y + 34))
+
+    # Core Stats Grid Chips
     spd_val = int(420.0 * c_info['speed_mult'])
     acc_val = int(3600.0 * c_info['accel_mult'])
     hp_val = c_info['max_health']
     arm_val = c_info.get('armor', 0)
 
-    t_stats = font_sub.render(
-        f"FLIGHT SPEED: {spd_val} px/s  |  ACCELERATION: {acc_val} px/s²  |  HULL: {hp_val} HP  |  ARMOR: {arm_val}",
-        True, COLOR_WHITE
-    )
-    canvas.blit(t_stats, (50, 438))
+    stat_chips = [
+        f"SPEED: {spd_val} px/s",
+        f"ACCEL: {acc_val} px/s²",
+        f"HULL: {hp_val} HP",
+        f"ARMOR: {arm_val}"
+    ]
+    for s_i, stat_str in enumerate(stat_chips):
+        sc_x = info_x + (s_i % 2) * 160
+        sc_y = top_y + 60 + (s_i // 2) * 22
+        s_lbl = font_sub.render(stat_str, True, (170, 185, 205))
+        canvas.blit(s_lbl, (sc_x, sc_y))
 
-    # Stats Summary
-    spd_val = int(420.0 * c_info['speed_mult'])
-    acc_val = int(3600.0 * c_info['accel_mult'])
-    hp_val = c_info['max_health']
-    arm_val = c_info.get('armor', 0)
+    # Active Skin Indicator Badge
+    skin_data = DRONE_SKINS[skin_id] if skin_id < len(DRONE_SKINS) else DRONE_SKINS[0]
+    t_skin_badge = font_sub.render(f"SKIN: {skin_data['name'].upper()}", True, skin_data['primary_color'])
+    canvas.blit(t_skin_badge, (info_x, top_y + 114))
 
-    t_stats = font_sub.render(
-        f"FLIGHT SPEED: {spd_val} px/s  |  ACCELERATION: {acc_val} px/s²  |  HULL: {hp_val} HP  |  ARMOR: {arm_val}",
-        True, COLOR_WHITE
-    )
-    canvas.blit(t_stats, (50, 438))
+    # 2. Weapon Loadout Panel
+    weap_y = chassis_rect.bottom + 12
+    weap_title = font_card.render("TACTICAL WEAPONS LOADOUT", True, COLOR_CYAN)
+    canvas.blit(weap_title, (right_x + 4, weap_y))
 
     weapon_upgrades = weapon_upgrades or {}
     unlocked_weapons = unlocked_weapons or ["pulse", "scatter", "missile"]
-
     slot_names = ["PRIMARY", "SECONDARY", "HEAVY", "SPECIAL"]
     slot_colors = [COLOR_CYAN, COLOR_GOLD, COLOR_CRIMSON, COLOR_MAGENTA]
     weapon_slot_rects = {}
+
+    w_card_y = weap_y + 24
+    w_row_h = 32
+    w_row_gap = 4
 
     for idx_w, w_id in enumerate(c_info.get("weapons", [])):
         if idx_w >= 4:
@@ -153,113 +227,112 @@ def draw_hangar_shop_ui(canvas: pygame.Surface, scrap: int, current_sector_idx: 
         s_tag = slot_names[idx_w] if idx_w < len(slot_names) else f"SLOT {idx_w+1}"
         slot_color = slot_colors[idx_w] if idx_w < len(slot_colors) else COLOR_WHITE
 
-        slot_y = 468 + idx_w * 38
-        slot_rect = pygame.Rect(30, slot_y, vw - 60, 34)
-        is_slot_hover = slot_rect.collidepoint(mx, my)
+        slot_y = w_card_y + idx_w * (w_row_h + w_row_gap)
+        slot_rect = pygame.Rect(right_x, slot_y, col_w, w_row_h)
         weapon_slot_rects[idx_w] = slot_rect
 
-        bg = (18, 24, 38) if is_unlocked else (12, 16, 24)
-        border = slot_color if is_unlocked else (50, 60, 75)
-        txt = slot_color if is_unlocked else (80, 90, 110)
-        if is_slot_hover and is_unlocked:
-            bg = (24, 36, 58)
-            border = COLOR_WHITE
-            txt = COLOR_WHITE
+        bg = (18, 28, 44) if is_unlocked else (12, 16, 24)
+        border = slot_color if is_unlocked else (45, 55, 75)
+        txt = slot_color if is_unlocked else (100, 115, 135)
 
-        pygame.draw.rect(canvas, bg, slot_rect, border_radius=6)
-        pygame.draw.rect(canvas, border, slot_rect, 1, border_radius=6)
+        pygame.draw.rect(canvas, bg, slot_rect, border_radius=5)
+        pygame.draw.rect(canvas, border, slot_rect, 1, border_radius=5)
 
-        name_txt = font_sub.render(f"[{idx_w+1}] {s_tag}: {w_d.get('name', w_id.upper())}", True, txt)
-        canvas.blit(name_txt, (48, slot_y + 8))
+        name_txt = font_sub.render(f"[{s_tag}] {w_d.get('name', w_id.upper())}", True, txt)
+        canvas.blit(name_txt, (right_x + 10, slot_y + 7))
 
         if is_unlocked:
             max_wlvl = w_upg.get("max_level", 5)
             cost = int(w_upg.get("cost_base", 200) * (w_upg.get("cost_mult", 1.6) ** w_lvl)) if w_lvl < max_wlvl else None
-            upg_txt = f" LVL {w_lvl}/{max_wlvl}"
+            upg_txt = f"LVL {w_lvl}/{max_wlvl}"
             if w_lvl < max_wlvl and cost is not None:
-                upg_txt += f"  UPGRADE: {cost:,} SCRAP"
+                upg_txt += f"  (UPGRADE: {cost:,} SCRAP)"
             elif w_lvl >= max_wlvl:
                 upg_txt += "  (MAX)"
-            t_upg = font_sub.render(upg_txt, True, COLOR_GOLD if (w_lvl < max_wlvl and scrap >= cost and cost is not None) else (130, 140, 155))
-            canvas.blit(t_upg, (vw - 320, slot_y + 8))
+            t_upg = font_sub.render(upg_txt, True, COLOR_GOLD if (w_lvl < max_wlvl and scrap >= cost and cost is not None) else (148, 163, 184))
+            canvas.blit(t_upg, (slot_rect.right - t_upg.get_width() - 10, slot_y + 7))
         else:
             unlock_cost = WEAPON_UNLOCK_COSTS.get(w_id, 999999)
             t_lock = font_sub.render(f"UNLOCK: {unlock_cost:,} SCRAP", True, COLOR_CRIMSON if scrap < unlock_cost else COLOR_GOLD)
-            canvas.blit(t_lock, (vw - 320, slot_y + 8))
+            canvas.blit(t_lock, (slot_rect.right - t_lock.get_width() - 10, slot_y + 7))
 
+    # 3. Skin Selector Row
+    skin_sect_y = w_card_y + 4 * (w_row_h + w_row_gap) + 8
+    skin_title = font_card.render("CHASSIS CAMOUFLAGE / SKINS", True, COLOR_CYAN)
+    canvas.blit(skin_title, (right_x + 4, skin_sect_y))
 
-    # Controls hint
-    t_hint = font_sub.render("PRESS [C] CYCLE CHASSIS   •   PRESS [V] CYCLE VISUAL SKIN   •   PRESS [1-4] SELECT WEAPON", True, (130, 145, 165))
-    canvas.blit(t_hint, (50, 508))
-    
-    # Skin Selection Row
     unlocked_skins = unlocked_skins if unlocked_skins is not None else [0]
     total_score = total_score if total_score is not None else 0
-    skin_row_y = 468 + len(c_info.get("weapons", [])) * 38 + 16
-    t_skin_hdr = font_sub.render("DRONE SKINS:", True, COLOR_CYAN)
-    canvas.blit(t_skin_hdr, (30, skin_row_y))
-
     skin_btns = {}
-    for idx, skin in enumerate(DRONE_SKINS):
-        sx = 130 + idx * 118
-        sy = skin_row_y - 2
-        sr = pygame.Rect(sx, sy, 110, 30)
+
+    skin_cards_y = skin_sect_y + 22
+    skin_card_w = (col_w - 3 * 8) // 4
+    skin_card_h = 36
+
+    for idx_s, skin in enumerate(DRONE_SKINS):
+        sx = right_x + idx_s * (skin_card_w + 8)
+        sr = pygame.Rect(sx, skin_cards_y, skin_card_w, skin_card_h)
         is_unlocked = skin["id"] in unlocked_skins
-        is_active = player and getattr(player, "skin_theme", 0) == skin["id"]
+        is_active = (skin_id == skin["id"])
         req_score = DRONE_SKIN_UNLOCKS.get(skin["id"], {}).get("score", 0)
         has_met = total_score >= req_score
 
         if is_active:
-            bg_col = skin["primary_color"]
+            bg_col = (35, 55, 85)
             border_col = COLOR_WHITE
             txt_col = COLOR_WHITE
         elif is_unlocked:
-            bg_col = (20, 30, 50)
+            bg_col = (18, 26, 42)
             border_col = skin["primary_color"]
             txt_col = skin["primary_color"]
         else:
             bg_col = (12, 16, 24)
-            border_col = (50, 60, 75)
-            txt_col = (80, 90, 110)
+            border_col = (45, 55, 75)
+            txt_col = (100, 115, 135)
 
         pygame.draw.rect(canvas, bg_col, sr, border_radius=5)
-        pygame.draw.rect(canvas, border_col, sr, 1 if not is_active else 2, border_radius=5)
+        pygame.draw.rect(canvas, border_col, sr, 2 if is_active else 1, border_radius=5)
         skin_btns[skin["id"]] = sr
 
-        if is_unlocked:
-            label = "EQUIPPED" if is_active else skin["name"][:14]
-            t_label = font_sub.render(label, True, txt_col)
-            canvas.blit(t_label, (sx + 6, sy + 7))
-            if not is_active:
-                t_unlock = font_sub.render("UNLOCKED", True, COLOR_EMERALD)
-                canvas.blit(t_unlock, (sx + 6, sy + 18))
+        # Color dot thumbnail
+        pygame.draw.circle(canvas, skin["primary_color"], (sx + 10, skin_cards_y + skin_card_h // 2), 4)
+
+        if is_active:
+            s_lbl = font_sub.render("ACTIVE", True, COLOR_WHITE)
+            canvas.blit(s_lbl, (sx + 20, skin_cards_y + 4))
+            s_sub = font_sub.render(skin["name"][:9], True, COLOR_CYAN)
+            canvas.blit(s_sub, (sx + 20, skin_cards_y + 18))
+        elif is_unlocked:
+            s_lbl = font_sub.render(skin["name"][:9], True, txt_col)
+            canvas.blit(s_lbl, (sx + 20, skin_cards_y + 4))
+            s_sub = font_sub.render("READY", True, COLOR_EMERALD)
+            canvas.blit(s_sub, (sx + 20, skin_cards_y + 18))
         else:
-            t_lock = font_sub.render("LOCKED", True, txt_col)
-            canvas.blit(t_lock, (sx + 6, sy + 4))
-            req_str = f"{req_score:,} PTS"
-            t_req = font_sub.render(req_str, True, COLOR_CRIMSON if not has_met else COLOR_GOLD)
-            canvas.blit(t_req, (sx + 6, sy + 18))
-    
-    # Render active visual skin info
-    if player:
-        skin_id = getattr(player, "skin_theme", 0)
-        skin_data = DRONE_SKINS[skin_id] if skin_id < len(DRONE_SKINS) else DRONE_SKINS[0]
-        t_skin = font_sub.render(f"ACTIVE SKIN: {skin_data['name']}", True, skin_data['primary_color'])
-        canvas.blit(t_skin, (vw - 320, 346))
+            s_lbl = font_sub.render("LOCKED", True, txt_col)
+            canvas.blit(s_lbl, (sx + 20, skin_cards_y + 4))
+            s_sub = font_sub.render(f"{req_score:,}P", True, COLOR_GOLD if has_met else COLOR_CRIMSON)
+            canvas.blit(s_sub, (sx + 20, skin_cards_y + 18))
 
-    # -------------------------------------------------------------------------
-    # Bottom Universal Navigation Bar
-    # -------------------------------------------------------------------------
-    nav_y = vh - 60
-    r_back = pygame.Rect(26, nav_y - 2, 175, 48)
-    r_skin = pygame.Rect(215, nav_y - 2, 235, 48)
-    r_settings = pygame.Rect(465, nav_y - 2, 150, 48)
-    r_exit = pygame.Rect(vw - 160, nav_y - 2, 134, 48)
+    # =========================================================================
+    # FOOTER: DEVICE-AWARE NAVIGATION BAR
+    # =========================================================================
+    nav_y = vh - footer_h - pad_y
+    btn_w = (content_w - 3 * 16) // 4
 
-    draw_button(canvas, r_back, "[ESC] BACK TO MAP", (mx, my), base_color=COLOR_CYAN, is_selected=(selected_index == 4))
-    draw_button(canvas, r_skin, "[C] CYCLE DRONE CLASS", (mx, my), base_color=COLOR_EMERALD, text_color=COLOR_EMERALD, is_selected=(selected_index == 5))
-    draw_button(canvas, r_settings, "[S] SETTINGS", (mx, my), base_color=COLOR_CYAN, is_selected=(selected_index == 6))
-    draw_button(canvas, r_exit, "[Q] QUIT", (mx, my), base_color=COLOR_CRIMSON, text_color=COLOR_CRIMSON, is_selected=(selected_index == 7))
+    r_back = pygame.Rect(pad_x, nav_y, btn_w, footer_h)
+    r_skin = pygame.Rect(pad_x + btn_w + 16, nav_y, btn_w, footer_h)
+    r_settings = pygame.Rect(pad_x + 2 * (btn_w + 16), nav_y, btn_w, footer_h)
+    r_exit = pygame.Rect(pad_x + 3 * (btn_w + 16), nav_y, btn_w, footer_h)
+
+    lbl_back = "[O] BACK TO MAP" if is_controller else "[ESC] BACK TO MAP"
+    lbl_skin = "[FRONT BOTTOM] CYCLE CHASSIS" if is_controller else "[C] CYCLE CHASSIS"
+    lbl_settings = "[START] SETTINGS" if is_controller else "[S] SETTINGS"
+    lbl_exit = "[SELECT] QUIT" if is_controller else "[Q] QUIT"
+
+    draw_button(canvas, r_back, lbl_back, (mx, my), base_color=COLOR_CYAN, is_selected=(selected_index == 4))
+    draw_button(canvas, r_skin, lbl_skin, (mx, my), base_color=COLOR_EMERALD, text_color=COLOR_EMERALD, is_selected=(selected_index == 5))
+    draw_button(canvas, r_settings, lbl_settings, (mx, my), base_color=COLOR_GOLD, text_color=COLOR_GOLD, is_selected=(selected_index == 6))
+    draw_button(canvas, r_exit, lbl_exit, (mx, my), base_color=COLOR_CRIMSON, text_color=COLOR_CRIMSON, is_selected=(selected_index == 7))
 
     return {
         "back": r_back,
@@ -267,7 +340,9 @@ def draw_hangar_shop_ui(canvas: pygame.Surface, scrap: int, current_sector_idx: 
         "settings": r_settings,
         "exit": r_exit,
         "upgrades": item_rects,
-        "weapon_slots": weapon_slot_rects
+        "weapon_slots": weapon_slot_rects,
+        "skins": skin_btns
     }
+
 
 

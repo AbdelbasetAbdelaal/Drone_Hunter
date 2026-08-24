@@ -32,6 +32,7 @@ from src.entities.objective import (
     GroundObjective, RadarNode, AAPlatform, ShieldGenerator, CombatAircraft
 )
 from src.entities.enemy import Enemy, Scout, Shooter, Heavy
+from src.data.game_data import TARGET_TYPE_SHOOTER, TARGET_TYPE_SCOUT, TARGET_TYPE_HEAVY
 
 
 # Phase constant aliases for backward-compatible references
@@ -471,7 +472,7 @@ class ObjectiveSystem:
         # 4b. Stagger Reinforcement Shooters so their fire does not overlap with AA or Aircraft
         if aa_telegraphing or self._stagger_timer > 0.0:
             for reinf in self.active_reinforcements:
-                if getattr(reinf, "alive", False) and getattr(reinf, "enemy_type", "") == TARGET_TYPE_SHOOTER:
+                if getattr(reinf, "alive", False) and (getattr(reinf, "enemy_type", "") in (TARGET_TYPE_SHOOTER, "shooter") or isinstance(reinf, Shooter)):
                     if getattr(reinf, "ai_state", "") == "telegraph":
                         reinf.ai_state = "position"
                         reinf.fire_timer = 0.0

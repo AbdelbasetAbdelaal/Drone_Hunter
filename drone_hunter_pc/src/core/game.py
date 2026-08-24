@@ -2135,7 +2135,10 @@ class Game:
             )
 
         elif ctx.state == STATE_MISSION_BRIEFING:
-            self.ui_rects_cache = draw_mission_briefing(canvas, get_mission_data(self.pending_mission_id), ctx.scrap, mouse_pos=canvas_m_pos)
+            self.ui_rects_cache = draw_mission_briefing(
+                canvas, get_mission_data(self.pending_mission_id), ctx.scrap,
+                mouse_pos=canvas_m_pos, input_manager=self.input_manager
+            )
 
         elif ctx.state == STATE_HANGAR:
             self.ui_rects_cache = draw_hangar_shop_ui(
@@ -2144,7 +2147,8 @@ class Game:
                 weapon_upgrades=ctx.weapon_upgrade_levels,
                 unlocked_weapons=ctx.unlocked_weapons,
                 unlocked_skins=ctx.unlocked_skins, total_score=ctx.total_score,
-                selected_index=self._menu_cursor if self.input_manager.active_device in (DEVICE_GAMEPAD, DEVICE_JOYSTICK) else None
+                selected_index=self._menu_cursor if self.input_manager.active_device in (DEVICE_GAMEPAD, DEVICE_JOYSTICK) else None,
+                input_manager=self.input_manager
             )
 
         elif ctx.state == STATE_VICTORY:
