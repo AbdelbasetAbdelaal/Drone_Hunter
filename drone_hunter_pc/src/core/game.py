@@ -427,9 +427,14 @@ class Game:
         """Toggles between bordered window and borderless/exclusive fullscreen."""
         self.is_fullscreen = not self.is_fullscreen
         if self.is_fullscreen:
-            info = pygame.display.Info()
-            self.win_w, self.win_h = info.current_w, info.current_h
-            self.screen = pygame.display.set_mode((self.win_w, self.win_h), pygame.FULLSCREEN)
+            try:
+                info = pygame.display.Info()
+                self.win_w = info.current_w if info.current_w > 0 else SCREEN_WIDTH
+                self.win_h = info.current_h if info.current_h > 0 else SCREEN_HEIGHT
+                self.screen = pygame.display.set_mode((self.win_w, self.win_h), pygame.FULLSCREEN)
+            except Exception:
+                self.screen = pygame.display.set_mode((0, 0), pygame.FULLSCREEN)
+                self.win_w, self.win_h = self.screen.get_size()
         else:
             self.win_w, self.win_h = SCREEN_WIDTH, SCREEN_HEIGHT
             self.screen = pygame.display.set_mode((self.win_w, self.win_h), pygame.RESIZABLE)
@@ -509,7 +514,8 @@ class Game:
                 canvas, ctx.difficulty_mode, ctx.show_crt,
                 self.audio_manager.sound_enabled, mouse_pos=canvas_m_pos,
                 input_manager=self.input_manager,
-                selected_index=self._menu_cursor if active_is_gamepad else None
+                selected_index=self._menu_cursor if active_is_gamepad else None,
+                is_fullscreen=self.is_fullscreen
             )
 
         elif ctx.state == STATE_CUSTOM_DIFFICULTY:

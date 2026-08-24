@@ -347,6 +347,12 @@ class InputManager:
             elif event.type == pygame.KEYDOWN:
                 self.active_device = DEVICE_KEYBOARD_MOUSE
 
+                # Global shortcuts (available in all contexts)
+                mod = getattr(event, "mod", 0) | pygame.key.get_mods()
+                is_alt = bool(mod & (pygame.KMOD_ALT | pygame.KMOD_LALT | pygame.KMOD_RALT))
+                if event.key == pygame.K_F11 or (event.key in (pygame.K_RETURN, pygame.K_KP_ENTER) and is_alt):
+                    self.actions_triggered[ACTION_FULLSCREEN] = True
+
                 # Gameplay shortcuts are edge-triggered actions. Continuous
                 # actions such as movement and primary fire are handled by
                 # ``poll_input`` so holding the key remains responsive.

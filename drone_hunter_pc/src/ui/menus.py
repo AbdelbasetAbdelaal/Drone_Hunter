@@ -451,7 +451,7 @@ def draw_mission_briefing(canvas: pygame.Surface, mission_data: dict, scrap: int
     return {"back": r_back, "start": r_start, "exit": r_exit}
 
 
-def draw_settings_menu_ui(canvas: pygame.Surface, difficulty_mode: int, show_crt: bool, sound_enabled: bool, mouse_pos: tuple[int, int] = None, input_manager=None, selected_index: int = None) -> dict:
+def draw_settings_menu_ui(canvas: pygame.Surface, difficulty_mode: int, show_crt: bool, sound_enabled: bool, mouse_pos: tuple[int, int] = None, input_manager=None, selected_index: int = None, is_fullscreen: bool = False) -> dict:
     """Renders clean, categorized System & Audio Settings with clear visual focus and controller navigation."""
     canvas.fill((8, 12, 22))
     vw, vh = canvas.get_size()
@@ -480,10 +480,11 @@ def draw_settings_menu_ui(canvas: pygame.Surface, difficulty_mode: int, show_crt
 
     diff_name = DIFFICULTY_NAMES[difficulty_mode]
     diff_col = DIFFICULTY_MODIFIERS[difficulty_mode]["badge_color"]
+    disp_mode_str = "FULLSCREEN" if is_fullscreen else "WINDOWED"
 
     buttons_def = [
         # (key, text, base_col, text_col, category_header)
-        ("fullscreen", "DISPLAY: FULLSCREEN TOGGLE [F11]" if not is_controller else "DISPLAY: FULLSCREEN TOGGLE  [X]", COLOR_CYAN, COLOR_WHITE, "DISPLAY & VISUALS"),
+        ("fullscreen", f"DISPLAY: {disp_mode_str} [F11]" if not is_controller else f"DISPLAY: {disp_mode_str}  [X]", COLOR_CYAN, COLOR_WHITE, "DISPLAY & VISUALS"),
         ("crt", f"CRT SCANLINES: {'ENABLED' if show_crt else 'DISABLED'} [F2]" if not is_controller else f"CRT SCANLINES: {'ENABLED' if show_crt else 'DISABLED'}  [X]", COLOR_CYAN, COLOR_CYAN, None),
         ("sfx", f"AUDIO SFX: {'ENABLED' if sound_enabled else 'MUTED'}" if not is_controller else f"AUDIO SFX: {'ENABLED' if sound_enabled else 'MUTED'}  [X]", COLOR_GOLD, COLOR_GOLD, "AUDIO & SOUND"),
         ("diff", f"COMBAT DIFFICULTY: {diff_name}" if not is_controller else f"COMBAT DIFFICULTY: {diff_name}  [D-PAD ◀ / ▶]", diff_col, diff_col, "GAMEPLAY & BALANCE"),

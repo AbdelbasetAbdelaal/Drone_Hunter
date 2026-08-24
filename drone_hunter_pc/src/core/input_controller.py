@@ -179,11 +179,12 @@ class InputController:
                         pygame.display.set_mode((input_ctx.win_w, input_ctx.win_h), pygame.RESIZABLE)
 
             elif event.type == pygame.KEYDOWN:
-                if event.key == pygame.K_F11:
-                    if input_ctx.toggle_fullscreen_callback:
-                        input_ctx.toggle_fullscreen_callback()
-                    continue
-                elif event.key == pygame.K_F2:
+                if im is None:
+                    if event.key == pygame.K_F11 or (event.key == pygame.K_RETURN and (pygame.key.get_mods() & pygame.KMOD_ALT)):
+                        if input_ctx.toggle_fullscreen_callback:
+                            input_ctx.toggle_fullscreen_callback()
+                        continue
+                if event.key == pygame.K_F2:
                     ctx.show_crt = not ctx.show_crt
                     if input_ctx.save_callback:
                         input_ctx.save_callback()
@@ -211,8 +212,9 @@ class InputController:
         if im is not None:
             trig = getattr(im, "actions_triggered", {})
 
-            # Fullscreen trigger
+            # Fullscreen trigger (F11 / Alt+Enter / Gamepad Hold)
             if trig.get(ACTION_FULLSCREEN):
+                trig[ACTION_FULLSCREEN] = False
                 if input_ctx.toggle_fullscreen_callback:
                     input_ctx.toggle_fullscreen_callback()
 
