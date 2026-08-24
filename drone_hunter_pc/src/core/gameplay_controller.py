@@ -132,22 +132,15 @@ class GameplayController:
         if m_data:
             sec_num = m_data.get("sector_id", 1)
             m_num = m_data.get("mission_number", 1)
-            ctx.current_sector_idx = max(0, min(4, sec_num - 1))
-            ctx.current_sub_level = m_num
-            ctx.missions["current_sector"] = sec_num
-            ctx.missions["current_mission"] = m_num
+            ctx.campaign_state.set_current_sector_and_stage(sec_num - 1, m_num)
         else:
             try:
                 digits = [int(c) for c in str(mission_id) if c.isdigit()]
                 sec_num = digits[0] if len(digits) > 0 else 1
                 m_num = digits[1] if len(digits) > 1 else 1
-                ctx.current_sector_idx = max(0, min(4, sec_num - 1))
-                ctx.current_sub_level = m_num
-                ctx.missions["current_sector"] = sec_num
-                ctx.missions["current_mission"] = m_num
+                ctx.campaign_state.set_current_sector_and_stage(sec_num - 1, m_num)
             except Exception:
-                ctx.current_sector_idx = 0
-                ctx.current_sub_level = 1
+                ctx.campaign_state.set_current_sector_and_stage(0, 1)
 
         if bg is not None:
             bg.set_sector(ctx.current_sector_idx)
@@ -343,15 +336,8 @@ class GameplayController:
         save_cb = resolved_ctx.save_callback
         start_cb = resolved_ctx.start_mission_callback
 
-        ctx.new_game_plus_count += 1
+        ctx.campaign_state.start_new_game_plus()
         ctx.update_ng_plus_multipliers()
-        ctx.campaign_completed = True
-        ctx.missions["completed"] = []
-        ctx.sector_progress["completed"] = []
-        ctx.sector_progress["unlocked"] = [1]
-        ctx.missions["current_sector"] = 1
-        ctx.missions["current_mission"] = 1
-        ctx.bosses_defeated = []
         if save_cb:
             save_cb()
         self.pending_mission_id = "S1_M1"
@@ -575,10 +561,10 @@ class GameplayController:
                 # Fire weapons if active
                 is_firing = False
                 if input_state:
-                    is_firing = input_state.get("fire_primary", False)
+                    is_firing = input_state.get("fire_primary", False) or input_state.get("fire_secondary", False)
                 else:
                     m_btns = pygame.mouse.get_pressed()
-                    is_firing = m_btns[0] or keys[pygame.K_SPACE]
+                    is_firing = m_btns[0] or m_btns[2] or keys[pygame.K_SPACE]
 
                 if is_firing:
                     active_weapon_name = getattr(ctx.player, "active_weapon", "pulse")
@@ -591,8 +577,8 @@ class GameplayController:
                     )
                     for b in bullets:
                         ctx.bullet_group.add(b)
-                    if audio_manager and active_weapon_name in ("pulse", "scatter", "plasma", "rapid", "barrage"):
-                        audio_manager.play_shoot(active_weapon_name)
+                    if bullets and audio_manager:
+                        audio_manager.play_weapon(active_weapon_name)
 
                 if audio_manager:
                     speed_ratio = ctx.player.velocity.length() / max(1.0, getattr(ctx.player, "max_speed", 300.0))

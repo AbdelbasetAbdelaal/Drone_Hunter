@@ -100,7 +100,7 @@ class AchievementSystem:
         if "first_kill" not in unlocked and getattr(ctx, "total_kills", 0) >= 1:
             self.unlock("first_kill")
 
-        if "first_boss" not in unlocked and len(getattr(ctx, "bosses_defeated", [])) > 0:
+        if "first_boss" not in unlocked and len(getattr(ctx, "campaign_state", None).bosses_defeated if hasattr(ctx, "campaign_state") else []) > 0:
             self.unlock("first_boss")
 
         if "combo_10" not in unlocked and getattr(ctx, "combo_count", 1) >= 10:
@@ -110,7 +110,9 @@ class AchievementSystem:
             self.unlock("combo_25")
 
         if "all_sectors_cleared" not in unlocked:
-            if len(getattr(ctx, "sector_progress", {}).get("completed", [])) >= 5:
+            cs = getattr(ctx, "campaign_state", None)
+            completed_sectors = cs.completed_sectors if cs else getattr(ctx, "sector_progress", {}).get("completed", [])
+            if len(completed_sectors) >= 5:
                 self.unlock("all_sectors_cleared")
 
         if "all_weapons_unlocked" not in unlocked:

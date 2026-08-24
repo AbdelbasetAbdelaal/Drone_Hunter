@@ -30,7 +30,7 @@ from src.input import (
     ACTION_ROLL, ACTION_WEAPON_NEXT, ACTION_WEAPON_PREV, ACTION_SPECIAL,
     ACTION_CLOAK, ACTION_CYCLE_CLASS, ACTION_CYCLE_SKIN, ACTION_PAUSE,
     ACTION_FULLSCREEN, ACTION_CONFIRM, ACTION_CANCEL, ACTION_SECTOR_MAP,
-    ACTION_HANGAR_BAY
+    ACTION_HANGAR_BAY, DEVICE_KEYBOARD_MOUSE
 )
 from src.data.mission_data import get_missions_for_sector
 
@@ -178,7 +178,21 @@ class InputController:
                         input_ctx.save_callback()
                     continue
 
-                if not self._handle_keyboard_menu_navigation(event, input_ctx):
+                # Keyboard menus share the same cursor/action engine as a
+                # gamepad.  The legacy handler remains for gameplay and the
+                # custom-difficulty editor, which has slider-specific keys.
+                keyboard_menu_states = (
+                    STATE_MENU, STATE_SAVE_SELECT, STATE_DRONE_SELECT,
+                    STATE_SETTINGS, STATE_CONTROLLER_BINDING,
+                    STATE_CONTROLLER_TEST, STATE_PAUSED,
+                    STATE_MISSION_COMPLETE, STATE_LEVEL_CLEAR, STATE_VICTORY,
+                    STATE_MISSION_FAILED, STATE_GAME_OVER, STATE_HANGAR,
+                    STATE_SECTOR_SELECT, STATE_MISSION_BRIEFING,
+                )
+                if (
+                    ctx.state not in keyboard_menu_states
+                    and not self._handle_keyboard_menu_navigation(event, input_ctx)
+                ):
                     if input_ctx.quit_callback:
                         input_ctx.quit_callback()
                     return False
@@ -356,6 +370,29 @@ class InputController:
         elif ctx.state == STATE_SECTOR_SELECT:
             if event.key in (pygame.K_ESCAPE, pygame.K_q):
                 ctx.state = STATE_MENU
+            elif event.key in (pygame.K_SPACE, pygame.K_RETURN):
+                current_sector = ctx.missions.get("current_sector", 1)
+                sector_missions = get_missions_for_sector(current_sector)
+                mission_system = input_ctx.mission_system
+                selected_mission = next(
+                    (
+                        mission["id"] for mission in sector_missions
+                        if (
+                            mission_system
+                            and hasattr(mission_system, "get_mission_state")
+                            and mission_system.get_mission_state(ctx, mission["id"]) != "locked"
+                        )
+                        or (
+                            (not mission_system or not hasattr(mission_system, "get_mission_state"))
+                            and mission["id"] in ctx.missions.get("unlocked", [])
+                        )
+                    ),
+                    None,
+                )
+                if selected_mission:
+                    self._set_pending_mission(input_ctx, selected_mission)
+                    ctx.state = STATE_MISSION_BRIEFING
+                    if am: am.play_powerup()
             elif event.key == pygame.K_h:
                 self._set_previous_state(input_ctx, STATE_SECTOR_SELECT)
                 ctx.state = STATE_HANGAR
@@ -363,15 +400,27 @@ class InputController:
                 self._set_previous_state(input_ctx, STATE_SECTOR_SELECT)
                 ctx.state = STATE_SETTINGS
 
+        elif ctx.state == STATE_MISSION_BRIEFING:
+            if event.key in (pygame.K_SPACE, pygame.K_RETURN):
+                if input_ctx.start_mission_callback:
+                    input_ctx.start_mission_callback(input_ctx.pending_mission_id)
+            elif event.key in (pygame.K_ESCAPE, pygame.K_b, pygame.K_BACKSPACE):
+                ctx.state = STATE_SECTOR_SELECT
+
         elif ctx.state == STATE_PLAYING:
-            if event.key in (pygame.K_ESCAPE, pygame.K_p, pygame.K_SPACE):
+            if event.key in (pygame.K_ESCAPE, pygame.K_p):
                 ctx.state = STATE_PAUSED
                 if am: am.stop_engine_sound()
-            elif event.key == pygame.K_c:
+            elif event.key in (pygame.K_1, pygame.K_2, pygame.K_3,
+                               pygame.K_4, pygame.K_5, pygame.K_6):
+                # Direct weapon slots are limited by the weapons the player
+                # has actually unlocked; unavailable slots are a safe no-op.
                 if ctx.player:
-                    ctx.player.cycle_drone_class()
-                    ctx.selected_drone = ctx.player.drone_class
-                    if input_ctx.save_callback: input_ctx.save_callback()
+                    slot_index = event.key - pygame.K_1
+                    previous_weapon = ctx.player.active_weapon
+                    ctx.player.select_weapon(slot_index)
+                    if ctx.player.active_weapon != previous_weapon and am:
+                        am.play_weapon_switch()
             elif event.key == pygame.K_v:
                 if ctx.player:
                     ctx.player.cycle_visual_skin()
@@ -461,7 +510,7 @@ class InputController:
             elif "sectors" in cache and isinstance(cache["sectors"], dict):
                 for s_id, s_rect in cache["sectors"].items():
                     if s_rect and s_rect.collidepoint(mx, my):
-                        ctx.missions["current_sector"] = s_id
+                        ctx.campaign_state.set_current_sector_and_stage(s_id - 1, ctx.current_sub_level)
                         if am: am.play_weapon_switch()
                         return
 
@@ -638,7 +687,11 @@ class InputController:
         if not im:
             return
         js = im.active_joystick
-        if not js or not im.mapping_manager or not getattr(im, "enabled", True):
+        keyboard_navigation = im.active_device == DEVICE_KEYBOARD_MOUSE
+        if (
+            not keyboard_navigation
+            and (not js or not im.mapping_manager or not getattr(im, "enabled", True))
+        ):
             return
 
         trig = getattr(im, "actions_triggered", {})
@@ -653,32 +706,41 @@ class InputController:
         weapon_next = trig.get(ACTION_WEAPON_NEXT, False)
         weapon_prev = trig.get(ACTION_WEAPON_PREV, False)
 
-        dpad = im.mapping_manager.get_dpad_input(js)
         d_up = False
         d_down = False
         d_left = False
         d_right = False
 
-        any_dir = dpad.get("up", False) or dpad.get("down", False) or dpad.get("left", False) or dpad.get("right", False)
-        if any_dir:
-            if not any(self.dpad_last_state.values()):
-                d_up = dpad.get("up", False)
-                d_down = dpad.get("down", False)
-                d_left = dpad.get("left", False)
-                d_right = dpad.get("right", False)
-                self.dpad_repeat_timer = 0.35
-            else:
-                self.dpad_repeat_timer -= dt
-                if self.dpad_repeat_timer <= 0.0:
+        if keyboard_navigation:
+            nav = getattr(im, "navigation_triggered", {})
+            d_up = nav.get("up", False)
+            d_down = nav.get("down", False)
+            d_left = nav.get("left", False)
+            d_right = nav.get("right", False)
+            self.dpad_repeat_timer = 0.0
+            self.dpad_last_state = {"up": False, "down": False, "left": False, "right": False}
+        else:
+            dpad = im.mapping_manager.get_dpad_input(js)
+            any_dir = dpad.get("up", False) or dpad.get("down", False) or dpad.get("left", False) or dpad.get("right", False)
+            if any_dir:
+                if not any(self.dpad_last_state.values()):
                     d_up = dpad.get("up", False)
                     d_down = dpad.get("down", False)
                     d_left = dpad.get("left", False)
                     d_right = dpad.get("right", False)
-                    self.dpad_repeat_timer = 0.18
-        else:
-            self.dpad_repeat_timer = 0.0
+                    self.dpad_repeat_timer = 0.35
+                else:
+                    self.dpad_repeat_timer -= dt
+                    if self.dpad_repeat_timer <= 0.0:
+                        d_up = dpad.get("up", False)
+                        d_down = dpad.get("down", False)
+                        d_left = dpad.get("left", False)
+                        d_right = dpad.get("right", False)
+                        self.dpad_repeat_timer = 0.18
+            else:
+                self.dpad_repeat_timer = 0.0
 
-        self.dpad_last_state = {"up": dpad.get("up", False), "down": dpad.get("down", False), "left": dpad.get("left", False), "right": dpad.get("right", False)}
+            self.dpad_last_state = {"up": dpad.get("up", False), "down": dpad.get("down", False), "left": dpad.get("left", False), "right": dpad.get("right", False)}
 
         # STATE-SPECIFIC NAVIGATION
         am = input_ctx.audio_manager
@@ -784,10 +846,10 @@ class InputController:
             sec_missions = get_missions_for_sector(cur_sec)
 
             if d_left:
-                ctx.missions["current_sector"] = max(1, cur_sec - 1)
+                ctx.campaign_state.set_current_sector_and_stage(max(0, cur_sec - 1), ctx.current_sub_level)
                 if am: am.play_weapon_switch()
             elif d_right:
-                ctx.missions["current_sector"] = min(5, cur_sec + 1)
+                ctx.campaign_state.set_current_sector_and_stage(min(4, cur_sec + 1), ctx.current_sub_level)
                 if am: am.play_weapon_switch()
 
             if confirm:

@@ -199,6 +199,9 @@ class InputManager:
         self.aim_vector: pygame.Vector2 = pygame.Vector2(0.0, 0.0)
         self.actions_pressed: Dict[str, bool] = {}
         self.actions_triggered: Dict[str, bool] = {}
+        # One-shot keyboard directions for menu navigation.  Kept separate
+        # from movement so WASD can retain its gameplay meaning.
+        self.navigation_triggered: Dict[str, bool] = {}
 
         # Last raw inputs for transition stability
         self._last_mouse_pos: Tuple[int, int] = (0, 0)
@@ -312,6 +315,7 @@ class InputManager:
     def process_events(self, events: list, dt: float = 0.016):
         """Processes pygame event queue for hot-plugging, discrete actions, and device priority."""
         self.actions_triggered.clear()
+        self.navigation_triggered.clear()
 
         front_top_up = False
         front_bottom_up = False
@@ -332,8 +336,62 @@ class InputManager:
                 if abs(rel[0]) > 2 or abs(rel[1]) > 2:
                     self.active_device = DEVICE_KEYBOARD_MOUSE
 
-            elif event.type in (pygame.KEYDOWN, pygame.MOUSEBUTTONDOWN):
+            elif event.type == pygame.KEYDOWN:
                 self.active_device = DEVICE_KEYBOARD_MOUSE
+
+                # Gameplay shortcuts are edge-triggered actions. Continuous
+                # actions such as movement and primary fire are handled by
+                # ``poll_input`` so holding the key remains responsive.
+                if self.context == InputContext.GAMEPLAY:
+                    keyboard_actions = {
+                        pygame.K_LSHIFT: ACTION_ROLL,
+                        pygame.K_RSHIFT: ACTION_ROLL,
+                        pygame.K_e: ACTION_EMP,
+                        pygame.K_f: ACTION_ULTIMATE,
+                        pygame.K_q: ACTION_ULTIMATE,
+                        pygame.K_TAB: ACTION_WEAPON_NEXT,
+                        pygame.K_b: ACTION_SPECIAL,
+                        pygame.K_c: ACTION_CLOAK,
+                        pygame.K_k: ACTION_CLOAK,
+                        pygame.K_SPACE: ACTION_FIRE_PRIMARY,
+                        pygame.K_ESCAPE: ACTION_PAUSE,
+                        pygame.K_p: ACTION_PAUSE,
+                    }
+                    action = keyboard_actions.get(event.key)
+                    if action:
+                        self.actions_triggered[action] = True
+                else:
+                    navigation_keys = {
+                        pygame.K_UP: "up", pygame.K_w: "up",
+                        pygame.K_DOWN: "down", pygame.K_s: "down",
+                        pygame.K_LEFT: "left", pygame.K_a: "left",
+                        pygame.K_RIGHT: "right", pygame.K_d: "right",
+                    }
+                    direction = navigation_keys.get(event.key)
+                    if direction:
+                        self.navigation_triggered[direction] = True
+
+                    menu_actions = {
+                        pygame.K_RETURN: ACTION_CONFIRM,
+                        pygame.K_SPACE: ACTION_CONFIRM,
+                        pygame.K_ESCAPE: ACTION_CANCEL,
+                        pygame.K_BACKSPACE: ACTION_CANCEL,
+                        pygame.K_b: ACTION_CANCEL,
+                        pygame.K_p: ACTION_PAUSE,
+                        pygame.K_h: ACTION_HANGAR_BAY,
+                    }
+                    action = menu_actions.get(event.key)
+                    if action:
+                        self.actions_triggered[action] = True
+                    if self.context == InputContext.HANGAR and event.key == pygame.K_c:
+                        self.actions_triggered[ACTION_CYCLE_CLASS] = True
+
+            elif event.type == pygame.MOUSEBUTTONDOWN:
+                self.active_device = DEVICE_KEYBOARD_MOUSE
+                if self.context == InputContext.GAMEPLAY and event.button == 5:
+                    # Keep the documented wheel-down shortcut for cycling to
+                    # the previous weapon slot.
+                    self.actions_triggered[ACTION_WEAPON_PREV] = True
 
             # Controller Button Down
             elif event.type == pygame.JOYBUTTONDOWN:
@@ -344,12 +402,26 @@ class InputManager:
                         btn = event.button
                         profile = self.mapping_manager.get_profile_for_joystick(js)
                         if profile:
-                            # 1. CROSS: Primary fire in GAMEPLAY, Confirm in UI
-                            if btn in (profile.button_map.get("fire_primary", 2), profile.button_map.get("confirm", 2)):
-                                if self.context == InputContext.GAMEPLAY:
-                                    self.actions_triggered[ACTION_FIRE_PRIMARY] = True
-                                else:
-                                    self.actions_triggered[ACTION_CONFIRM] = True
+                            controller_type = getattr(profile, "controller_type", "generic")
+                            fire_btn = profile.button_map.get("fire_primary", -1)
+                            confirm_btn = profile.button_map.get("confirm", -1)
+
+                            # Primary fire and menu confirmation are distinct.
+                            # On Xbox, RT is an axis and A is exclusively Roll.
+                            if self.context == InputContext.GAMEPLAY and btn == fire_btn and fire_btn >= 0:
+                                self.actions_triggered[ACTION_FIRE_PRIMARY] = True
+                            elif self.context != InputContext.GAMEPLAY and btn == confirm_btn and confirm_btn >= 0:
+                                self.actions_triggered[ACTION_CONFIRM] = True
+
+                            # Xbox bumpers are immediate Next/Previous actions;
+                            # the PS2-style tap/hold handling below remains for
+                            # generic controllers with paired front buttons.
+                            elif self.context == InputContext.GAMEPLAY and controller_type == "xbox" and btn == profile.button_map.get("weapon_next", -1):
+                                self.actions_triggered[ACTION_WEAPON_NEXT] = True
+                            elif self.context == InputContext.GAMEPLAY and controller_type == "xbox" and btn == profile.button_map.get("weapon_prev", -1):
+                                self.actions_triggered[ACTION_WEAPON_PREV] = True
+                            elif self.context == InputContext.GAMEPLAY and controller_type == "xbox" and btn == profile.button_map.get("cloak", -1):
+                                self.actions_triggered[ACTION_CLOAK] = True
 
                             # 2. CIRCLE: EMP in GAMEPLAY, Cancel in UI
                             elif btn in (profile.button_map.get("emp", 1), profile.button_map.get("cancel", 1)):
@@ -381,7 +453,7 @@ class InputManager:
                 if self.enabled and self.active_joystick:
                     btn = event.button
                     profile = self.mapping_manager.get_profile_for_joystick(self.active_joystick)
-                    if profile:
+                    if profile and getattr(profile, "controller_type", "generic") != "xbox":
                         # Normalize physical button pairs:
                         # Upper front buttons (Buttons 4 & 5) -> FRONT_TOP
                         if btn in (4, 5) or btn == profile.button_map.get("front_top", 5) or btn == profile.button_map.get("weapon_next", 5):
@@ -401,7 +473,7 @@ class InputManager:
         if self.enabled and self.active_joystick:
             js = self.active_joystick
             profile = self.mapping_manager.get_profile_for_joystick(js)
-            if profile:
+            if profile and getattr(profile, "controller_type", "generic") != "xbox":
                 num_buttons = js.get_numbuttons()
                 def _is_pressed(btn_idx):
                     if 0 <= btn_idx < num_buttons:
@@ -473,7 +545,9 @@ class InputManager:
         # Reset state frame buffers
         move_x, move_y = 0.0, 0.0
         aim_angle = None
-        fire_primary = False
+        # Include edge-triggered primary fire so a short Spacebar tap is not
+        # lost between SDL event processing and this hardware polling pass.
+        fire_primary = self.actions_triggered.get(ACTION_FIRE_PRIMARY, False)
         fire_secondary = False
 
         # 1. KEYBOARD & MOUSE POLLING
@@ -493,7 +567,7 @@ class InputManager:
             move_x += kb_move_x
             move_y += kb_move_y
 
-        if m_buttons[0]:
+        if m_buttons[0] or keys[pygame.K_SPACE]:
             fire_primary = True
             self.active_device = DEVICE_KEYBOARD_MOUSE
         if m_buttons[2]:

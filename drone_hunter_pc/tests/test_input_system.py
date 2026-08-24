@@ -29,7 +29,13 @@ from src.input.input_manager import (
     DEVICE_KEYBOARD_MOUSE, DEVICE_GAMEPAD, DEVICE_JOYSTICK,
     PROMPT_MAP_KEYBOARD, PROMPT_MAP_GAMEPAD
 )
+from src.input.input_manager import InputContext
 from src.core.game import Game
+from src.core.game_state import STATE_PLAYING
+from src.core.game_state import STATE_MENU, STATE_HANGAR, STATE_SECTOR_SELECT, STATE_MISSION_BRIEFING
+from src.core.gameplay_context import InputHandlingContext
+from src.core.input_controller import InputController
+from src.core.game_context import GameContext
 from src.entities.player import Player
 
 
@@ -63,6 +69,83 @@ class TestInputSystem(unittest.TestCase):
         self.assertEqual(prompt_roll, "LSHIFT")
         self.assertEqual(prompt_emp, "E")
         self.assertEqual(prompt_ult, "F")
+
+    def test_keyboard_gameplay_shortcuts_trigger_canonical_actions(self):
+        """Documented gameplay shortcuts must reach the shared action layer."""
+        self.input_mgr.set_context(InputContext.GAMEPLAY)
+        events = [
+            pygame.event.Event(pygame.KEYDOWN, {"key": pygame.K_LSHIFT}),
+            pygame.event.Event(pygame.KEYDOWN, {"key": pygame.K_e}),
+            pygame.event.Event(pygame.KEYDOWN, {"key": pygame.K_f}),
+            pygame.event.Event(pygame.KEYDOWN, {"key": pygame.K_TAB}),
+            pygame.event.Event(pygame.KEYDOWN, {"key": pygame.K_c}),
+            pygame.event.Event(pygame.KEYDOWN, {"key": pygame.K_b}),
+            pygame.event.Event(pygame.KEYDOWN, {"key": pygame.K_SPACE}),
+            pygame.event.Event(pygame.MOUSEBUTTONDOWN, {"button": 5}),
+        ]
+        self.input_mgr.process_events(events)
+
+        self.assertTrue(self.input_mgr.actions_triggered[ACTION_ROLL])
+        self.assertTrue(self.input_mgr.actions_triggered[ACTION_EMP])
+        self.assertTrue(self.input_mgr.actions_triggered[ACTION_ULTIMATE])
+        self.assertTrue(self.input_mgr.actions_triggered[ACTION_WEAPON_NEXT])
+        self.assertTrue(self.input_mgr.actions_triggered[ACTION_WEAPON_PREV])
+        self.assertTrue(self.input_mgr.actions_triggered[ACTION_CLOAK])
+        self.assertTrue(self.input_mgr.actions_triggered[ACTION_SPECIAL])
+        self.assertTrue(self.input_mgr.actions_triggered[ACTION_FIRE_PRIMARY])
+
+    def test_number_keys_select_available_weapon_slots(self):
+        """Gameplay number shortcuts select only an available weapon slot."""
+        ctx = GameContext()
+        ctx.state = STATE_PLAYING
+        ctx.player = Player((500, 360))
+        ctx.player.available_weapons = ["pulse", "scatter", "missile"]
+        input_ctx = InputHandlingContext(context=ctx, input_manager=self.input_mgr)
+
+        InputController()._handle_keyboard_menu_navigation(
+            pygame.event.Event(pygame.KEYDOWN, {"key": pygame.K_2}), input_ctx
+        )
+
+        self.assertEqual(ctx.player.active_weapon, "scatter")
+
+    def test_sector_confirm_opens_briefing_and_briefing_confirm_starts(self):
+        """Enter/Space must work as menu confirmation outside the main menu."""
+        ctx = GameContext()
+        ctx.state = STATE_SECTOR_SELECT
+        started = []
+        input_ctx = InputHandlingContext(
+            context=ctx,
+            input_manager=self.input_mgr,
+            start_mission_callback=started.append,
+        )
+        controller = InputController()
+
+        controller._handle_keyboard_menu_navigation(
+            pygame.event.Event(pygame.KEYDOWN, {"key": pygame.K_RETURN}), input_ctx
+        )
+        self.assertEqual(ctx.state, STATE_MISSION_BRIEFING)
+        self.assertEqual(input_ctx.pending_mission_id, "S1_M1")
+
+        controller._handle_keyboard_menu_navigation(
+            pygame.event.Event(pygame.KEYDOWN, {"key": pygame.K_SPACE}), input_ctx
+        )
+        self.assertEqual(started, ["S1_M1"])
+
+    def test_keyboard_menu_navigation_uses_wasd_and_confirm(self):
+        """Keyboard navigation must use the same cursor semantics as a gamepad."""
+        ctx = GameContext()
+        ctx.state = STATE_MENU
+        controller = InputController()
+        input_ctx = InputHandlingContext(context=ctx, input_manager=self.input_mgr)
+        self.input_mgr.set_context(InputContext.MAIN_MENU)
+
+        self.input_mgr.process_events([pygame.event.Event(pygame.KEYDOWN, {"key": pygame.K_s})])
+        controller.update_controller_navigation(0.016, input_ctx)
+        self.assertEqual(controller.menu_cursor, 1)
+
+        self.input_mgr.process_events([pygame.event.Event(pygame.KEYDOWN, {"key": pygame.K_RETURN})])
+        controller.update_controller_navigation(0.016, input_ctx)
+        self.assertEqual(ctx.state, STATE_HANGAR)
 
     def test_controller_input_actions(self):
         """Verify gamepad active device switches action prompts to Xbox labels."""

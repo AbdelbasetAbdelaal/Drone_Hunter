@@ -125,7 +125,7 @@ class Game:
         self.objective_system = ObjectiveSystem()
         self.combat_system = CombatSystem(self.context)
         self.camera = Camera2D(world_w=WORLD_WIDTH, world_h=WORLD_HEIGHT, view_w=SCREEN_WIDTH, view_h=SCREEN_HEIGHT)
-        self.progression = ProgressionSystem(self.context.unlocked_sectors, self.context.unlocked_stages)
+        self.progression = ProgressionSystem(self.context.campaign_state)
         self.achievement_system = AchievementSystem()
         self.achievement_system.register_callback(
             lambda ach_id, ach_data: self.context.achievement_popups.append({
@@ -165,8 +165,7 @@ class Game:
             self.save_controller.load_slot(
                 0, self.context, self.audio_manager, self.input_manager, self.achievement_system
             )
-            self.progression.unlocked_sectors = self.context.unlocked_sectors
-            self.progression.unlocked_stages = self.context.unlocked_stages
+            self.context._sync_from_campaign_state()
         self.reset_game()
         self.context.state = STATE_SAVE_SELECT
 
@@ -482,7 +481,9 @@ class Game:
         canvas.fill(COLOR_BG)
         canvas_m_pos = self.get_canvas_mouse_pos()
         vw, vh = canvas.get_size()
-        active_is_gamepad = self.input_manager.active_device in (DEVICE_GAMEPAD, DEVICE_JOYSTICK)
+        active_is_gamepad = self.input_manager.active_device in (
+            DEVICE_GAMEPAD, DEVICE_JOYSTICK, DEVICE_KEYBOARD_MOUSE
+        )
 
         if ctx.state == STATE_MENU:
             self.background.draw_menu_backdrop(canvas)

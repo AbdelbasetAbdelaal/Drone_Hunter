@@ -64,6 +64,9 @@ class MissionSystem:
 
         ctx.missions["current_sector"] = self.active_mission_data["sector_id"]
         ctx.missions["current_mission"] = self.active_mission_data["mission_number"]
+        ctx.campaign_state.set_current_mission(
+            f"S{self.active_mission_data['sector_id']}_M{self.active_mission_data['mission_number']}"
+        )
         ctx.boss_rating_timer = 0.0
         ctx.latest_boss_rating = None
 
@@ -275,42 +278,34 @@ class MissionSystem:
 
         m_id = self.active_mission_id
         m_data = self.active_mission_data
+        cs = ctx.campaign_state
 
         # Check if first-time completion
-        if m_id not in ctx.missions["completed"]:
-            ctx.missions["completed"].append(m_id)
+        if not cs.is_mission_completed(m_id):
+            cs.complete_mission(m_id)
 
             # Award Mission Scrap
             diff = m_data.get("difficulty", 1)
             reward = MISSION_REWARDS.get(diff, 150)
             ctx.scrap += reward
 
-            # Unlock next mission
+            # Sector completion bonus
             s_id = m_data["sector_id"]
             m_num = m_data["mission_number"]
 
-            if m_num < 5:
-                next_id = f"S{s_id}_M{m_num+1}"
-                if next_id not in ctx.missions["unlocked"]:
-                    ctx.missions["unlocked"].append(next_id)
-            else:
-                if s_id not in ctx.sector_progress["completed"]:
-                    ctx.sector_progress["completed"].append(s_id)
-                    s_bonus = SECTOR_BONUS.get(s_id, 0)
-                    ctx.scrap += s_bonus
+            if m_num == 5:
+                cs.complete_sector(s_id)
+                s_bonus = SECTOR_BONUS.get(s_id, 0)
+                ctx.scrap += s_bonus
 
-                    if s_id < 5:
-                        next_sector = s_id + 1
-                        if next_sector not in ctx.sector_progress["unlocked"]:
-                            ctx.sector_progress["unlocked"].append(next_sector)
-                        next_mission = f"S{next_sector}_M1"
-                        if next_mission not in ctx.missions["unlocked"]:
-                            ctx.missions["unlocked"].append(next_mission)
-                    else:
-                        ctx.campaign_completed = True
+                if s_id < 5:
+                    cs.unlock_sector(s_id + 1)
+                    cs.unlock_mission(f"S{s_id + 1}_M1")
+                else:
+                    cs.mark_campaign_complete()
 
         if ctx.audio_manager:
-            if getattr(ctx, "campaign_completed", False):
+            if cs.campaign_completed:
                 ctx.audio_manager.play_victory()
             else:
                 ctx.audio_manager.play_mission_complete()
@@ -327,9 +322,16 @@ class MissionSystem:
 
     def get_mission_state(self, ctx: GameContext, mission_id: str) -> str:
         """Returns the LOCKED, AVAILABLE, or COMPLETED state for UI."""
-        if mission_id in ctx.missions["completed"]:
+        cs = getattr(ctx, "campaign_state", None)
+        if cs is None:
+            if mission_id in ctx.missions.get("completed", []):
+                return STATE_COMPLETED
+            elif mission_id in ctx.missions.get("unlocked", []):
+                return STATE_AVAILABLE
+            return STATE_LOCKED
+        if cs.is_mission_completed(mission_id):
             return STATE_COMPLETED
-        elif mission_id in ctx.missions["unlocked"]:
+        elif cs.is_mission_unlocked(mission_id):
             return STATE_AVAILABLE
         else:
             return STATE_LOCKED

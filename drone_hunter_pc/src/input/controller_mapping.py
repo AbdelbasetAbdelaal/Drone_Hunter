@@ -115,24 +115,25 @@ CONTEXTUAL_ACTIONS = [
 # DEFAULT BUTTON MAPPINGS PER CONTROLLER TYPE (SINGLE SOURCE OF TRUTH)
 # ------------------------------------------------------------------------------
 DEFAULT_MAPPINGS = {
-    ACTION_FIRE_PRIMARY:   {"xbox": 0, "playstation": 0, "generic": 0, "generic_ps2": 2},
+    # Xbox primary fire is handled by the RT axis; A remains reserved for roll.
+    ACTION_FIRE_PRIMARY:   {"xbox": -1, "playstation": 0, "generic": 0, "generic_ps2": 2},
     ACTION_FIRE_SECONDARY: {"xbox": 1, "playstation": 1, "generic": 1, "generic_ps2": 1},
     ACTION_FRONT_TOP:      {"xbox": 5, "playstation": 2, "generic": 2, "generic_ps2": 5},
     ACTION_FRONT_BOTTOM:   {"xbox": 4, "playstation": 3, "generic": 3, "generic_ps2": 4},
     ACTION_WEAPON_NEXT:    {"xbox": 5, "playstation": 2, "generic": 2, "generic_ps2": 5},
     ACTION_WEAPON_PREV:    {"xbox": 4, "playstation": 3, "generic": 3, "generic_ps2": 4},
-    ACTION_ULTIMATE:       {"xbox": 3, "playstation": 3, "generic": 3, "generic_ps2": 0},
+    ACTION_ULTIMATE:       {"xbox": 3, "playstation": 3, "generic": 3, "generic_ps2": 8},
     ACTION_EMP:            {"xbox": 2, "playstation": 2, "generic": 2, "generic_ps2": 1},
     ACTION_SPECIAL:        {"xbox": 1, "playstation": 4, "generic": 4, "generic_ps2": 4},
-    ACTION_CLOAK:          {"xbox": 1, "playstation": 4, "generic": 4, "generic_ps2": 4},
+    ACTION_CLOAK:          {"xbox": 9, "playstation": 4, "generic": 4, "generic_ps2": 4},
     ACTION_CYCLE_CLASS:    {"xbox": 4, "playstation": 3, "generic": 3, "generic_ps2": 4},
     ACTION_PAUSE:          {"xbox": 7, "playstation": 5, "generic": 5, "generic_ps2": 9},
     ACTION_FULLSCREEN:     {"xbox": 7, "playstation": 5, "generic": 5, "generic_ps2": 9},
     ACTION_CONFIRM:        {"xbox": 0, "playstation": 0, "generic": 0, "generic_ps2": 2},
     ACTION_CANCEL:         {"xbox": 1, "playstation": 1, "generic": 1, "generic_ps2": 1},
     ACTION_ROLL:           {"xbox": 0, "playstation": 0, "generic": 0, "generic_ps2": 3},
-    ACTION_SECTOR_MAP:     {"xbox": 6, "playstation": 8, "generic": 8, "generic_ps2": 8},
-    ACTION_HANGAR_BAY:     {"xbox": 6, "playstation": 8, "generic": 8, "generic_ps2": 8},
+    ACTION_SECTOR_MAP:     {"xbox": 6, "playstation": 8, "generic": 8, "generic_ps2": -1},
+    ACTION_HANGAR_BAY:     {"xbox": 6, "playstation": 8, "generic": 8, "generic_ps2": -1},
     ACTION_CYCLE_SKIN:     {"xbox": 4, "playstation": 4, "generic": 4, "generic_ps2": 4},
 }
 
@@ -141,7 +142,7 @@ DEFAULT_MAPPINGS = {
 # ------------------------------------------------------------------------------
 PROMPT_LABELS = {
     "xbox": {
-        ACTION_FIRE_PRIMARY: "A",
+        ACTION_FIRE_PRIMARY: "RT",
         ACTION_FIRE_SECONDARY: "B",
         ACTION_FRONT_TOP: "RB / LB",
         ACTION_FRONT_BOTTOM: "RT / LT",
@@ -150,7 +151,7 @@ PROMPT_LABELS = {
         ACTION_ULTIMATE: "Y",
         ACTION_EMP: "X",
         ACTION_SPECIAL: "B",
-        ACTION_CLOAK: "LB",
+        ACTION_CLOAK: "R3",
         ACTION_CYCLE_CLASS: "LB (HOLD)",
         ACTION_PAUSE: "START",
         ACTION_FULLSCREEN: "START (HOLD)",
@@ -479,16 +480,59 @@ class ControllerMappingManager:
                 return
             with open(self.mappings_path, "r", encoding="utf-8") as f:
                 data = json.load(f)
+            migrated = False
             for key, profile_data in data.items():
                 try:
-                    self.profiles[key] = ControllerProfile.from_dict(profile_data)
+                    profile = ControllerProfile.from_dict(profile_data)
+                    migrated = self._migrate_legacy_profile(profile) or migrated
+                    self.profiles[key] = profile
                 except Exception:
                     pass
+            if migrated:
+                self.save_mappings()
         except Exception as e:
             logger.warning(f"Failed to load controller mappings: {e}")
 
     def _load_mappings(self):
         self.load_mappings()
+
+    @staticmethod
+    def _migrate_legacy_profile(profile: ControllerProfile) -> bool:
+        """Upgrades only known old default layouts, never custom bindings."""
+        buttons = profile.button_map
+        changed = False
+
+        # Twin USB / PS2 profiles created before README-aligned controls used
+        # Triangle for Overdrive and Select for the sector map.  Detect the
+        # exact old defaults before changing them.
+        if (
+            profile.controller_type == "generic_ps2"
+            and buttons.get(ACTION_ULTIMATE) == 0
+            and buttons.get(ACTION_SECTOR_MAP) == 8
+            and buttons.get(ACTION_HANGAR_BAY) == 8
+        ):
+            buttons[ACTION_ULTIMATE] = 8
+            buttons[ACTION_SECTOR_MAP] = -1
+            buttons[ACTION_HANGAR_BAY] = -1
+            profile.prompt_labels[ACTION_ULTIMATE] = "[SELECT] OVERDRIVE"
+            profile.prompt_labels[ACTION_SECTOR_MAP] = "UNBOUND"
+            profile.prompt_labels[ACTION_HANGAR_BAY] = "UNBOUND"
+            changed = True
+
+        # Old Xbox defaults duplicated A as primary fire and cloak.  RT is
+        # primary fire; A is Roll and R3 is Cloak, matching the controls table.
+        if (
+            profile.controller_type == "xbox"
+            and buttons.get(ACTION_FIRE_PRIMARY) == 0
+            and buttons.get(ACTION_CLOAK) == 1
+        ):
+            buttons[ACTION_FIRE_PRIMARY] = -1
+            buttons[ACTION_CLOAK] = 9
+            profile.prompt_labels[ACTION_FIRE_PRIMARY] = "RT"
+            profile.prompt_labels[ACTION_CLOAK] = "R3"
+            changed = True
+
+        return changed
 
     def reset_to_defaults(self, joystick) -> ControllerProfile:
         key = self._profile_key(joystick)

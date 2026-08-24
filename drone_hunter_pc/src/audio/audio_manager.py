@@ -220,6 +220,10 @@ class AudioManager:
         """Weapon slot switch UI feedback."""
         self._play_cached("ui_click", min_interval_ms=60, channel_id=CHANNEL_UI, volume_scale=0.90)
 
+    def play_shoot(self, weapon_id: str = "pulse"):
+        """Alias for play_weapon."""
+        self.play_weapon(weapon_id)
+
     def play_weapon(self, weapon_id: str):
         """Dispatches realistic weapon audio based on authoritative weapon_id."""
         from src.data.game_data import WEAPON_DEFS
@@ -558,10 +562,6 @@ class AudioManager:
     def play_click(self):
         """UI button click sound."""
         self._play_cached("buy", min_interval_ms=40, channel_id=CHANNEL_UI, volume_scale=0.60)
-
-    def play_weapon_switch(self):
-        """Weapon switch / menu navigation blip."""
-        self._play_cached("buy", min_interval_ms=40, channel_id=CHANNEL_UI, volume_scale=0.50)
 
     def play_buy(self):
         """Upgrade purchase."""

@@ -8,11 +8,36 @@ campaign victory state transitions.
 
 from typing import Tuple
 from src.data.game_data import SECTORS, DRONE_SKIN_UNLOCKS
+from src.core.campaign_state import CampaignState
+
 
 class ProgressionSystem:
-    def __init__(self, unlocked_sectors: list[bool] = None, unlocked_stages: list[bool] = None):
-        self.unlocked_sectors = unlocked_sectors if unlocked_sectors is not None else [True, False, False, False, False]
-        self.unlocked_stages = unlocked_stages if unlocked_stages is not None else [True] + [False] * 14
+    def __init__(self, campaign_state: CampaignState = None, *args):
+        if campaign_state is None and len(args) >= 2:
+            from src.core.game_context import GameContext
+            campaign_state = GameContext().campaign_state
+            if args[0] is not None:
+                campaign_state._unlocked_sectors = [i + 1 for i, v in enumerate(args[0]) if v]
+            if len(args) > 1 and args[1] is not None:
+                for idx, unlocked in enumerate(args[1]):
+                    if unlocked:
+                        sector = idx // 3
+                        stage = (idx % 3) + 1
+                        mission_id = f"S{sector + 1}_M{stage}"
+                        if mission_id not in campaign_state._unlocked_missions:
+                            campaign_state._unlocked_missions.append(mission_id)
+        elif campaign_state is None:
+            from src.core.game_context import GameContext
+            campaign_state = GameContext().campaign_state
+        self.campaign_state = campaign_state
+
+    @property
+    def unlocked_sectors(self) -> list:
+        return self.campaign_state.unlocked_sectors
+
+    @property
+    def unlocked_stages(self) -> list:
+        return self.campaign_state.unlocked_stages
 
     def get_current_stage_target_score(self, sector_idx: int, sub_level: int) -> int:
         """Retrieves target clear score for the active stage."""
@@ -26,13 +51,13 @@ class ProgressionSystem:
 
     def is_stage_unlocked(self, sector_idx: int, sub_level: int) -> bool:
         flat_idx = sector_idx * 3 + (sub_level - 1)
-        if 0 <= flat_idx < len(self.unlocked_stages):
-            return self.unlocked_stages[flat_idx]
+        if 0 <= flat_idx < len(self.campaign_state.unlocked_stages):
+            return self.campaign_state.unlocked_stages[flat_idx]
         return False
 
     def is_sector_unlocked(self, sector_idx: int) -> bool:
-        if 0 <= sector_idx < len(self.unlocked_sectors):
-            return self.unlocked_sectors[sector_idx]
+        if 0 <= sector_idx < len(self.campaign_state.unlocked_sectors):
+            return self.campaign_state.unlocked_sectors[sector_idx]
         return False
 
     def unlock_next_stage(self, current_sector_idx: int, current_sub_level: int) -> Tuple[int, int, bool]:
@@ -51,16 +76,13 @@ class ProgressionSystem:
             # Check Campaign Victory (Completed all 5 sectors)
             if next_sector_idx >= len(SECTORS):
                 is_campaign_victory = True
-                # Clamp sector index to final sector
                 next_sector_idx = len(SECTORS) - 1
             else:
-                if next_sector_idx < len(self.unlocked_sectors):
-                    self.unlocked_sectors[next_sector_idx] = True
+                self.campaign_state.unlock_sector(next_sector_idx + 1)
 
         if not is_campaign_victory:
-            flat_idx = next_sector_idx * 3 + (next_sub_level - 1)
-            if flat_idx < len(self.unlocked_stages):
-                self.unlocked_stages[flat_idx] = True
+            next_mission = f"S{next_sector_idx + 1}_M{next_sub_level}"
+            self.campaign_state.unlock_mission(next_mission)
 
         return next_sector_idx, next_sub_level, is_campaign_victory
 

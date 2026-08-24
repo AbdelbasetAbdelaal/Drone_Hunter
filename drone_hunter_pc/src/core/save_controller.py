@@ -10,6 +10,7 @@ import os
 import logging
 from typing import Optional, Dict, Any
 from src.systems.save_system import SaveSystem
+from src.core.campaign_state import CampaignState
 
 logger = logging.getLogger(__name__)
 
@@ -37,29 +38,42 @@ class SaveController:
 
         saved_data = self.save_system.load()
 
+        # Reconstruct authoritative campaign state from save data
+        campaign_data = saved_data.get("campaign_state")
+        if campaign_data is None:
+            # Backward compatibility: reconstruct from legacy fields
+            legacy_missions = saved_data.get("missions", {
+                "current_sector": 1, "current_mission": 1, "completed": [], "unlocked": ["S1_M1"]
+            })
+            legacy_sector_progress = saved_data.get("sector_progress", {
+                "completed": [], "unlocked": [1]
+            })
+            current_mission = f"S{legacy_missions.get('current_sector', 1)}_M{legacy_missions.get('current_mission', 1)}"
+            campaign_data = {
+                "current_mission": current_mission,
+                "completed_missions": legacy_missions.get("completed", []),
+                "unlocked_missions": legacy_missions.get("unlocked", ["S1_M1"]),
+                "completed_sectors": legacy_sector_progress.get("completed", []),
+                "unlocked_sectors": legacy_sector_progress.get("unlocked", [1]),
+                "bosses_defeated": saved_data.get("bosses_defeated", []),
+                "campaign_completed": saved_data.get("campaign_completed", False),
+                "new_game_plus_count": saved_data.get("new_game_plus_count", 0),
+            }
+        context.campaign_state = CampaignState.deserialize(campaign_data)
+        context._sync_from_campaign_state()
+
         # Progression & Resources
         context.scrap = saved_data.get("scrap", 0)
         context.coins = saved_data.get("coins", 0)
         context.highscore = saved_data.get("highscore", 0)
         context.upgrade_levels = saved_data.get("upgrades", {})
-        context.unlocked_sectors = saved_data.get("sectors", [True, False, False, False, False])
-        context.unlocked_stages = saved_data.get("stages", [True] + [False] * 14)
-        context.bosses_defeated = saved_data.get("bosses_defeated", [])
-        context.campaign_completed = saved_data.get("campaign_completed", False)
         context.show_crt = saved_data.get("show_crt", False)
         context.difficulty_mode = saved_data.get("difficulty_mode", 0)
-        context.missions = saved_data.get("missions", getattr(context, "missions", {
-            "current_sector": 1, "current_mission": 1, "completed": [], "unlocked": ["S1_M1"]
-        }))
-        context.sector_progress = saved_data.get("sector_progress", getattr(context, "sector_progress", {
-            "completed": [], "unlocked": [1]
-        }))
         context.selected_drone = saved_data.get("selected_drone", "striker")
         context.selected_skin = saved_data.get("selected_skin", 0)
         context.selected_skin_override = context.selected_skin
         context.weapon_upgrade_levels = saved_data.get("weapon_upgrades", {})
         context.unlocked_weapons = saved_data.get("unlocked_weapons", ["pulse", "scatter", "missile"])
-        context.new_game_plus_count = saved_data.get("new_game_plus_count", 0)
         context.achievements = saved_data.get("achievements", [])
 
         if achievement_system:
@@ -135,24 +149,14 @@ class SaveController:
             "coins": getattr(context, "coins", 0),
             "highscore": getattr(context, "highscore", 0),
             "upgrades": getattr(context, "upgrade_levels", {}),
-            "sectors": getattr(context, "unlocked_sectors", [True, False, False, False, False]),
-            "stages": getattr(context, "unlocked_stages", [True] + [False] * 14),
-            "bosses_defeated": getattr(context, "bosses_defeated", []),
-            "campaign_completed": getattr(context, "campaign_completed", False),
+            "campaign_state": getattr(context, "campaign_state", CampaignState()).serialize(),
             "show_crt": getattr(context, "show_crt", False),
             "is_fullscreen": is_fullscreen,
             "difficulty_mode": getattr(context, "difficulty_mode", 0),
-            "missions": getattr(context, "missions", {
-                "current_sector": 1, "current_mission": 1, "completed": [], "unlocked": ["S1_M1"]
-            }),
-            "sector_progress": getattr(context, "sector_progress", {
-                "completed": [], "unlocked": [1]
-            }),
             "selected_drone": getattr(context, "selected_drone", selected_drone),
             "selected_skin": getattr(context, "selected_skin", selected_skin),
             "weapon_upgrades": getattr(context, "weapon_upgrade_levels", {}),
             "unlocked_weapons": getattr(context, "unlocked_weapons", ["pulse", "scatter", "missile"]),
-            "new_game_plus_count": getattr(context, "new_game_plus_count", 0),
             "achievements": achievements_list,
             "audio_settings": audio_data,
             "controller_settings": controller_settings,

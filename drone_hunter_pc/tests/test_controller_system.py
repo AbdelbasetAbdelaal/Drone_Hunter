@@ -106,7 +106,7 @@ class TestDefaultMappings(unittest.TestCase):
         profile = mgr.get_or_create_profile(js)
         self.assertTrue(profile.is_xbox_style)
         self.assertFalse(profile.is_ps_style)
-        self.assertEqual(profile.button_map[ACTION_FIRE_PRIMARY], 0)
+        self.assertEqual(profile.button_map[ACTION_FIRE_PRIMARY], -1)
         self.assertEqual(profile.button_map[ACTION_FIRE_SECONDARY], 1)
         self.assertEqual(profile.button_map[ACTION_WEAPON_NEXT], 5)
         self.assertEqual(profile.button_map[ACTION_WEAPON_PREV], 4)
@@ -222,7 +222,7 @@ class TestButtonMappingResolution(unittest.TestCase):
         mgr = ControllerMappingManager()
         js = _make_joystick(name="Xbox Controller")
         profile = mgr.get_or_create_profile(js)
-        self.assertEqual(mgr.get_action_button(js, ACTION_FIRE_PRIMARY), 0)
+        self.assertEqual(mgr.get_action_button(js, ACTION_FIRE_PRIMARY), -1)
         self.assertEqual(mgr.get_action_button(js, ACTION_FIRE_SECONDARY), 1)
 
     def test_is_action_pressed(self):
@@ -234,7 +234,7 @@ class TestButtonMappingResolution(unittest.TestCase):
         js.get_button = lambda idx: btn_states.get(idx, False)
         js.get_numbuttons.return_value = 16
 
-        self.assertTrue(mgr.is_action_pressed(js, ACTION_FIRE_PRIMARY))
+        self.assertFalse(mgr.is_action_pressed(js, ACTION_FIRE_PRIMARY))
         self.assertFalse(mgr.is_action_pressed(js, ACTION_FIRE_SECONDARY))
 
     def test_is_action_pressed_out_of_range(self):
@@ -250,7 +250,7 @@ class TestPromptLabels(unittest.TestCase):
     def test_xbox_prompts(self):
         mgr = ControllerMappingManager()
         js = _make_joystick(name="Xbox Controller")
-        self.assertEqual(mgr.get_prompt_for_action(js, ACTION_FIRE_PRIMARY), "A")
+        self.assertEqual(mgr.get_prompt_for_action(js, ACTION_FIRE_PRIMARY), "RT")
         self.assertEqual(mgr.get_prompt_for_action(js, ACTION_FIRE_SECONDARY), "B")
         self.assertEqual(mgr.get_prompt_for_action(js, ACTION_ULTIMATE), "Y")
         self.assertEqual(mgr.get_prompt_for_action(js, ACTION_EMP), "X")
@@ -331,7 +331,8 @@ class TestBindingWizard(unittest.TestCase):
         profile.set_button(ACTION_FIRE_PRIMARY, 99)
         mgr.save_mappings()
         reset_profile = mgr.reset_to_defaults(js)
-        self.assertEqual(reset_profile.button_map[ACTION_FIRE_PRIMARY], 0)
+        # Xbox primary fire is RT (an axis); A remains dedicated to Roll.
+        self.assertEqual(reset_profile.button_map[ACTION_FIRE_PRIMARY], -1)
 
 
 class TestHotPlugSimulation(unittest.TestCase):
@@ -378,8 +379,8 @@ class TestInputManagerIntegration(unittest.TestCase):
         im.mapping_manager.get_or_create_profile(js)
         self.assertEqual(im.get_prompt_for_action("ROLL"), "A")
 
-    def test_controller_forward_fire_behavior(self):
-        """Verify poll_input produces fire_primary when controller button is mapped."""
+    def test_xbox_primary_fire_uses_trigger_not_a_button(self):
+        """README reserves A for Roll and uses RT for primary fire."""
         im = InputManager()
         im.enabled = True
         js = _make_joystick(name="Xbox Controller", numbuttons=16, numaxes=4)
@@ -425,7 +426,7 @@ class TestInputManagerIntegration(unittest.TestCase):
             }
 
         state = fake_poll()
-        self.assertTrue(state["fire_primary"])
+        self.assertFalse(state["fire_primary"])
 
 
 class TestAllActions(unittest.TestCase):
@@ -468,11 +469,11 @@ class TestTwinUSBGamepad(unittest.TestCase):
         
         self.assertEqual(profile.button_map["fire_primary"], 2) # Cross / X
         self.assertEqual(profile.button_map["emp"], 1)          # Circle / O
-        self.assertEqual(profile.button_map["ultimate"], 0)     # Triangle / △
+        self.assertEqual(profile.button_map["ultimate"], 8)     # Select
         self.assertEqual(profile.button_map["roll"], 3)         # Square / □
         self.assertEqual(profile.button_map["cloak"], 4)        # Left Front
         self.assertEqual(profile.button_map["weapon_next"], 5)  # Right Front
-        self.assertEqual(profile.button_map["sector_map"], 8)   # SELECT
+        self.assertEqual(profile.button_map["sector_map"], -1)  # SELECT is Overdrive
         self.assertEqual(profile.button_map["pause"], 9)        # START
 
     def test_twin_usb_prompts(self):
@@ -480,12 +481,12 @@ class TestTwinUSBGamepad(unittest.TestCase):
         js = _make_joystick(name="Twin USB Gamepad")
         self.assertEqual(mgr.get_prompt_for_action(js, ACTION_FIRE_PRIMARY), "[X] FIRE")
         self.assertEqual(mgr.get_prompt_for_action(js, ACTION_EMP), "[O] EMP")
-        self.assertEqual(mgr.get_prompt_for_action(js, ACTION_ULTIMATE), "[△] OVERDRIVE")
+        self.assertEqual(mgr.get_prompt_for_action(js, ACTION_ULTIMATE), "[SELECT] OVERDRIVE")
         self.assertEqual(mgr.get_prompt_for_action(js, ACTION_ROLL), "[□] ROLL")
         self.assertEqual(mgr.get_prompt_for_action(js, "weapon_next"), "[R FRONT] WEAPON")
         self.assertEqual(mgr.get_prompt_for_action(js, "cloak"), "[L FRONT] CLOAK")
         self.assertEqual(mgr.get_prompt_for_action(js, "pause"), "[START] PAUSE")
-        self.assertEqual(mgr.get_prompt_for_action(js, "sector_map"), "[SELECT] MAP")
+        self.assertEqual(mgr.get_prompt_for_action(js, "sector_map"), "UNBOUND")
 
     def test_twin_usb_axes_dpad(self):
         mgr = ControllerMappingManager()
@@ -667,19 +668,19 @@ class TestEventAuditAndContextResolution(unittest.TestCase):
         self.assertNotIn("EMP", self.im.actions_triggered)
 
     def test_select_gameplay_vs_hangar(self):
-        """Select button (button 8) emits SECTOR_MAP in GAMEPLAY, HANGAR_BAY in Hangar."""
+        """PS2 Select (button 8) activates Overdrive in gameplay, per README."""
         # 1. Gameplay context
         self.im.set_context("GAMEPLAY")
         down_event = pygame.event.Event(pygame.JOYBUTTONDOWN, {"button": 8, "instance_id": 0})
         self.im.process_events([down_event], dt=0.016)
-        self.assertTrue(self.im.actions_triggered.get("SECTOR_MAP"))
-        self.assertNotIn("HANGAR_BAY", self.im.actions_triggered)
+        self.assertTrue(self.im.actions_triggered.get("ULTIMATE"))
+        self.assertNotIn("SECTOR_MAP", self.im.actions_triggered)
 
         # 2. Hangar context
         self.im.set_context("HANGAR")
         self.im.actions_triggered.clear()
         self.im.process_events([down_event], dt=0.016)
-        self.assertTrue(self.im.actions_triggered.get("HANGAR_BAY"))
+        self.assertNotIn("HANGAR_BAY", self.im.actions_triggered)
         self.assertNotIn("SECTOR_MAP", self.im.actions_triggered)
 
     def test_all_ui_contexts_cross_and_circle(self):
@@ -709,4 +710,3 @@ class TestEventAuditAndContextResolution(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
-

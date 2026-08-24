@@ -247,14 +247,21 @@ class BossSystem:
         ctx.add_score(boss_def.reward_score)
         ctx.scrap += boss_def.reward_scrap
 
-        # Record defeated boss in context progression
-        if not hasattr(ctx, "bosses_defeated"):
-            ctx.bosses_defeated = []
-        if boss_def.id not in ctx.bosses_defeated:
-            ctx.bosses_defeated.append(boss_def.id)
+        # Record defeated boss in authoritative campaign state
+        cs = getattr(ctx, "campaign_state", None)
+        if cs is not None:
+            cs.record_boss_defeat(boss_def.id)
+        else:
+            if not hasattr(ctx, "bosses_defeated"):
+                ctx.bosses_defeated = []
+            if boss_def.id not in ctx.bosses_defeated:
+                ctx.bosses_defeated.append(boss_def.id)
 
         if self.is_final_boss:
-            ctx.campaign_completed = True
+            if cs is not None:
+                cs.mark_campaign_complete()
+            else:
+                ctx.campaign_completed = True
 
         logging.info(f"BossSystem: Boss {boss_def.name} defeated! Awarded {boss_def.reward_scrap} Scrap.")
 
