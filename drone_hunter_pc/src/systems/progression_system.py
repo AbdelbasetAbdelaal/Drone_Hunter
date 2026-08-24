@@ -7,7 +7,7 @@ campaign victory state transitions.
 """
 
 from typing import Tuple
-from src.data.game_data import SECTORS, DRONE_SKIN_UNLOCKS
+from src.data.game_data import SECTORS
 from src.core.campaign_state import CampaignState
 
 
@@ -86,18 +86,6 @@ class ProgressionSystem:
 
         return next_sector_idx, next_sub_level, is_campaign_victory
 
-    def check_skin_unlocks(self, ctx) -> list:
-        """Returns list of newly unlocked skin IDs based on total_score."""
-        unlocked = getattr(ctx, "unlocked_skins", [0])
-        total_score = getattr(ctx, "total_score", 0)
-        new_unlocks = []
-        for skin_id, cond in DRONE_SKIN_UNLOCKS.items():
-            if skin_id not in unlocked and total_score >= cond["score"]:
-                unlocked.append(skin_id)
-                new_unlocks.append(skin_id)
-        ctx.unlocked_skins = unlocked
-        return new_unlocks
-
     # -------------------------------------------------------------------------
     # Phase 4 Player Progression
     # -------------------------------------------------------------------------
@@ -145,10 +133,3 @@ class ProgressionSystem:
         mobility_level = ctx.upgrade_levels.get("mobility", 1)
         player.max_speed = 220.0 * (1.0 + ((mobility_level - 1) * 0.05))
 
-        # 5. VISUAL DRONE VARIANT (0: Striker, 1: Phantom, 2: Titan, 3: Velocity, 4: Aegis Quad)
-        if getattr(ctx, "selected_skin_override", None) is not None:
-            player.skin_theme = ctx.selected_skin_override
-        else:
-            avg_level = sum(ctx.upgrade_levels.values()) / max(1, len(ctx.upgrade_levels))
-            overall_tier = getattr(ctx, "drone_tier", int(round(avg_level)))
-            player.skin_theme = max(0, min(4, overall_tier - 1))

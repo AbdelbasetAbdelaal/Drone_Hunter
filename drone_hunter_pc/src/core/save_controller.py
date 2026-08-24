@@ -55,7 +55,6 @@ class SaveController:
                 "unlocked_missions": legacy_missions.get("unlocked", ["S1_M1"]),
                 "completed_sectors": legacy_sector_progress.get("completed", []),
                 "unlocked_sectors": legacy_sector_progress.get("unlocked", [1]),
-                "bosses_defeated": saved_data.get("bosses_defeated", []),
                 "campaign_completed": saved_data.get("campaign_completed", False),
                 "new_game_plus_count": saved_data.get("new_game_plus_count", 0),
             }
@@ -70,8 +69,6 @@ class SaveController:
         context.show_crt = saved_data.get("show_crt", False)
         context.difficulty_mode = saved_data.get("difficulty_mode", 0)
         context.selected_drone = saved_data.get("selected_drone", "striker")
-        context.selected_skin = saved_data.get("selected_skin", 0)
-        context.selected_skin_override = context.selected_skin
         context.weapon_upgrade_levels = saved_data.get("weapon_upgrades", {})
         context.unlocked_weapons = saved_data.get("unlocked_weapons", ["pulse", "scatter", "missile"])
         context.achievements = saved_data.get("achievements", [])
@@ -110,7 +107,7 @@ class SaveController:
 
     def save_current_progress(self, context, audio_manager=None, input_manager=None,
                              achievement_system=None, selected_drone: str = "striker",
-                             selected_skin: int = 0, is_fullscreen: bool = False) -> bool:
+                             is_fullscreen: bool = False) -> bool:
         """Serializes current runtime game state and persists to active slot."""
         audio_data = {}
         if audio_manager:
@@ -154,7 +151,6 @@ class SaveController:
             "is_fullscreen": is_fullscreen,
             "difficulty_mode": getattr(context, "difficulty_mode", 0),
             "selected_drone": getattr(context, "selected_drone", selected_drone),
-            "selected_skin": getattr(context, "selected_skin", selected_skin),
             "weapon_upgrades": getattr(context, "weapon_upgrade_levels", {}),
             "unlocked_weapons": getattr(context, "unlocked_weapons", ["pulse", "scatter", "missile"]),
             "achievements": achievements_list,

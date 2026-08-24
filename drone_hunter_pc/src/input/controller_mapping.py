@@ -35,7 +35,6 @@ ACTION_CANCEL = "cancel"
 ACTION_ROLL = "roll"
 ACTION_SECTOR_MAP = "sector_map"
 ACTION_HANGAR_BAY = "hangar_bay"
-ACTION_CYCLE_SKIN = "cycle_skin"
 
 ACTION_FRONT_TOP = "front_top"
 ACTION_FRONT_BOTTOM = "front_bottom"
@@ -106,7 +105,6 @@ MENU_ACTIONS = [
 CONTEXTUAL_ACTIONS = [
     ACTION_WEAPON_PREV,
     ACTION_CYCLE_CLASS,
-    ACTION_CYCLE_SKIN,
     ACTION_FULLSCREEN,
 ]
 
@@ -134,7 +132,6 @@ DEFAULT_MAPPINGS = {
     ACTION_ROLL:           {"xbox": 0, "playstation": 0, "generic": 0, "generic_ps2": 3},
     ACTION_SECTOR_MAP:     {"xbox": 6, "playstation": 8, "generic": 8, "generic_ps2": -1},
     ACTION_HANGAR_BAY:     {"xbox": 6, "playstation": 8, "generic": 8, "generic_ps2": -1},
-    ACTION_CYCLE_SKIN:     {"xbox": 4, "playstation": 4, "generic": 4, "generic_ps2": 4},
 }
 
 # ------------------------------------------------------------------------------
@@ -160,7 +157,6 @@ PROMPT_LABELS = {
         ACTION_ROLL: "A",
         ACTION_SECTOR_MAP: "BACK",
         ACTION_HANGAR_BAY: "BACK",
-        ACTION_CYCLE_SKIN: "LB",
     },
     "playstation": {
         ACTION_FIRE_PRIMARY: "X",
@@ -181,7 +177,6 @@ PROMPT_LABELS = {
         ACTION_ROLL: "X",
         ACTION_SECTOR_MAP: "SELECT",
         ACTION_HANGAR_BAY: "SELECT",
-        ACTION_CYCLE_SKIN: "SELECT",
     },
     "generic_ps2": {
         ACTION_FIRE_PRIMARY: "[X] FIRE",
@@ -202,7 +197,6 @@ PROMPT_LABELS = {
         ACTION_ROLL: "[□] ROLL",
         ACTION_SECTOR_MAP: "[SELECT] MAP",
         ACTION_HANGAR_BAY: "[SELECT] HANGAR",
-        ACTION_CYCLE_SKIN: "[L FRONT] SKIN",
     },
     "generic": {
         ACTION_FIRE_PRIMARY: "BTN-0",
@@ -223,7 +217,6 @@ PROMPT_LABELS = {
         ACTION_ROLL: "BTN-0",
         ACTION_SECTOR_MAP: "BTN-8",
         ACTION_HANGAR_BAY: "BTN-8",
-        ACTION_CYCLE_SKIN: "BTN-4",
     },
 }
 

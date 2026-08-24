@@ -255,7 +255,6 @@ class TestPhase105CombatOverhaul:
             loaded = save_sys.load()
             assert loaded["scrap"] == 1200
             assert loaded["selected_drone"] == "striker"
-            assert loaded["selected_skin"] == 0
         finally:
             if os.path.exists(temp_path):
                 os.remove(temp_path)

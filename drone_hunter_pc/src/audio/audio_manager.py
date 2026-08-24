@@ -16,12 +16,11 @@ from src.audio.sound_synth import (
     generate_beam_sound, generate_tesla_sound, generate_cluster_sound,
     generate_sniper_sound, generate_emp_sound,
     generate_hit_scout_sound, generate_hit_shooter_sound, generate_hit_heavy_sound,
-    generate_hit_shield_sound, generate_hit_boss_sound, generate_hit_sound,
+    generate_hit_shield_sound, generate_hit_sound,
     generate_death_scout_sound, generate_death_shooter_sound, generate_death_heavy_sound,
     generate_death_shield_sound, generate_death_boss_sound, generate_explosion_sound,
     generate_player_hit_sound, generate_player_death_sound, generate_roll_sound,
     generate_engine_hum_sound, generate_overdrive_sound, generate_cloak_sound,
-    generate_boss_alert_sound, generate_boss_attack_sound, generate_boss_phase_transition_sound,
     generate_ui_click_sound, generate_ui_hover_sound, generate_mission_start_sound,
     generate_mission_complete_sound, generate_game_over_sound, generate_victory_sound,
     generate_powerup_sound, generate_buy_sound, generate_combo_sound
@@ -145,7 +144,6 @@ class AudioManager:
         self._sound_cache["hit_shooter"] = self._load_or_synthesize("hit_shooter", generate_hit_shooter_sound)
         self._sound_cache["hit_heavy"] = self._load_or_synthesize("hit_heavy", generate_hit_heavy_sound)
         self._sound_cache["hit_shield"] = self._load_or_synthesize("hit_shield", generate_hit_shield_sound)
-        self._sound_cache["hit_boss"] = self._load_or_synthesize("hit_boss", generate_hit_boss_sound)
         self._sound_cache["hit"] = self._load_or_synthesize("hit", generate_hit_sound)
 
         # Destructions
@@ -164,13 +162,6 @@ class AudioManager:
         self._sound_cache["overdrive"] = self._load_or_synthesize("overdrive", generate_overdrive_sound)
         self._sound_cache["cloak"] = self._load_or_synthesize("cloak", generate_cloak_sound)
         self._sound_cache["powerup"] = self._load_or_synthesize("powerup", generate_powerup_sound)
-
-        # Boss
-        self._sound_cache["boss_alert"] = self._load_or_synthesize("boss_alert", generate_boss_alert_sound)
-        self._sound_cache["boss_attack"] = self._load_or_synthesize("boss_attack", generate_boss_attack_sound)
-        self._sound_cache["boss_phase_2"] = self._load_or_synthesize("boss_phase_2", lambda: generate_boss_phase_transition_sound(2))
-        self._sound_cache["boss_phase_3"] = self._load_or_synthesize("boss_phase_3", lambda: generate_boss_phase_transition_sound(3))
-        self._sound_cache["boss_phase_4"] = self._load_or_synthesize("boss_phase_4", lambda: generate_boss_phase_transition_sound(4))
 
         # UI
         self._sound_cache["ui_click"] = self._load_or_synthesize("ui_click", generate_ui_click_sound)
@@ -371,8 +362,6 @@ class AudioManager:
             self.play_hit_heavy()
         elif target_type in ("shield", "shield_elite", "shield_drone"):
             self.play_hit_shield()
-        elif target_type == "boss":
-            self.play_hit_boss()
         else:
             self._play_cached("hit", min_interval_ms=30, volume_scale=0.75)
 
@@ -392,10 +381,6 @@ class AudioManager:
         """Shield energy pulse impact audio."""
         self._play_cached("hit_shield", min_interval_ms=35, volume_scale=0.85)
 
-    def play_hit_boss(self):
-        """Boss structural impact audio."""
-        self._play_cached("hit_boss", min_interval_ms=40, channel_id=CHANNEL_BOSS, volume_scale=1.0)
-
     # =========================================================================
     # TARGET-SPECIFIC DESTRUCTION METHODS
     # =========================================================================
@@ -409,8 +394,6 @@ class AudioManager:
             self.play_death_heavy()
         elif target_type in ("shield", "shield_elite", "shield_drone"):
             self.play_death_shield()
-        elif target_type == "boss":
-            self.play_boss_death()
         else:
             self.play_explosion()
 
@@ -507,28 +490,8 @@ class AudioManager:
             except Exception:
                 pass
 
-    # =========================================================================
-    # BOSS AUDIO METHODS
-    # =========================================================================
-    def play_boss_alert(self):
-        """Boss spawn siren / intro alert."""
-        self._play_cached("boss_alert", min_interval_ms=200, channel_id=CHANNEL_BOSS, volume_scale=1.0)
-
-    def play_boss_attack(self):
-        """Boss attack telegraph / fire."""
-        self._play_cached("boss_attack", min_interval_ms=80, channel_id=CHANNEL_BOSS, volume_scale=0.95)
-
-    def play_boss_phase(self, phase: int):
-        """Plays one-shot phase transition energy surge."""
-        key = f"boss_phase_{min(4, max(2, phase))}"
-        self._play_cached(key, min_interval_ms=200, channel_id=CHANNEL_BOSS, volume_scale=1.0)
-
-    def play_boss_death(self):
-        """Boss destruction major sequence."""
-        self._play_cached("death_boss", min_interval_ms=200, channel_id=CHANNEL_BOSS, volume_scale=1.0)
-
     def play_objective_destruction(self):
-        """Objective destruction audio cue (distinct from boss death)."""
+        """Objective destruction audio cue."""
         self._play_cached("death_heavy", min_interval_ms=200, channel_id=CHANNEL_BOSS, volume_scale=1.0)
         self._play_cached("explosion", min_interval_ms=200, channel_id=CHANNEL_BOSS, volume_scale=0.85)
 

@@ -15,8 +15,7 @@ from src.data.settings import (
 )
 from src.data.game_data import (
     TARGET_TYPE_SHIELD_DRONE, TARGET_TYPE_SNIPER, TARGET_TYPE_EMP_DISRUPTER,
-    TARGET_TYPE_SCOUT, TARGET_TYPE_SHOOTER, TARGET_TYPE_HEAVY, TARGET_TYPE_ARMORED,
-    TARGET_TYPE_BOSS
+    TARGET_TYPE_SCOUT, TARGET_TYPE_SHOOTER, TARGET_TYPE_HEAVY, TARGET_TYPE_ARMORED
 )
 from src.core.game_state import STATE_PLAYING, STATE_PAUSED, STATE_LEVEL_CLEAR, STATE_GAME_OVER
 from src.rendering.sprite_manager import get_sprite_manager
@@ -111,7 +110,7 @@ class GameRenderer:
             if not getattr(t, "alive", False):
                 continue
             etype = getattr(t, "enemy_type", "")
-            if etype not in (TARGET_TYPE_HEAVY, TARGET_TYPE_ARMORED, TARGET_TYPE_SHIELD_DRONE, TARGET_TYPE_BOSS):
+            if etype not in (TARGET_TYPE_HEAVY, TARGET_TYPE_ARMORED, TARGET_TYPE_SHIELD_DRONE):
                 continue
             hp = getattr(t, "hp", 0)
             max_hp = getattr(t, "max_hp", 1)

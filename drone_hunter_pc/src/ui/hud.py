@@ -442,77 +442,6 @@ def draw_hud(canvas: pygame.Surface, player, sector_idx: int = 0, level_score: i
 
 
 
-def draw_boss_intro_warning(canvas: pygame.Surface, boss_name: str, timer: float = 2.0):
-    """Renders high-visibility tactical warning banner when a Boss enters arena."""
-    vw, vh = canvas.get_size()
-    
-    # Flashing warning alpha
-    pulse = math.sin(pygame.time.get_ticks() * 0.015)
-    banner_alpha = int(180 + 75 * pulse)
-    
-    banner_w = min(680, vw - 80)
-    banner_h = 100
-    banner_rect = pygame.Rect(vw // 2 - banner_w // 2, vh // 3 - banner_h // 2, banner_w, banner_h)
-    
-    # Dark panel with crimson border
-    pygame.draw.rect(canvas, (15, 5, 10, banner_alpha), banner_rect, border_radius=8)
-    pygame.draw.rect(canvas, COLOR_CRIMSON, banner_rect, 2, border_radius=8)
-    
-    # Text readouts (ASCII-safe)
-    t_warn = font_card.render(">>> WARNING: HOSTILE COMMAND UNIT DETECTED <<<", True, COLOR_CRIMSON)
-    t_name = font_banner.render(f"[ {boss_name.upper()} ]", True, COLOR_GOLD)
-    t_sub = font_card.render("TACTICAL ENGAGEMENT IMMINENT", True, COLOR_WHITE)
-    
-    canvas.blit(t_warn, t_warn.get_rect(center=(vw // 2, banner_rect.top + 22)))
-    canvas.blit(t_name, t_name.get_rect(center=(vw // 2, banner_rect.top + 50)))
-    canvas.blit(t_sub, t_sub.get_rect(center=(vw // 2, banner_rect.top + 78)))
-
-
-def draw_boss_health_bar(canvas: pygame.Surface, boss_target):
-    """Renders Phase 6 Boss Health Bar with phase badge and shield status."""
-    if not boss_target or not getattr(boss_target, "alive", False):
-        return
-    vw, vh = canvas.get_size()
-    max_hp = max(1, getattr(boss_target, "max_hp", 100))
-    hp = max(0, getattr(boss_target, "hp", 0))
-    hp_pct = max(0.0, min(1.0, hp / max_hp))
-    
-    bar_w = min(500, vw - 120)
-    bar_h = 18
-    bx = vw // 2 - bar_w // 2
-    by = 48
-    bar_rect = pygame.Rect(bx, by, bar_w, bar_h)
-    
-    # Boss Name Header
-    boss_name = getattr(boss_target, "boss_name", getattr(boss_target, "enemy_type", "BOSS")).replace("_", " ").upper()
-    phase_str = getattr(boss_target, "current_phase_name", f"PHASE {getattr(boss_target, 'current_phase_number', 1)}")
-    
-    # Outer Background
-    pygame.draw.rect(canvas, (10, 15, 26, 230), (bx - 10, by - 24, bar_w + 20, bar_h + 32), border_radius=6)
-    pygame.draw.rect(canvas, (30, 45, 65), (bx - 10, by - 24, bar_w + 20, bar_h + 32), 1, border_radius=6)
-    
-    # Title & Phase text
-    t_hdr = font_card.render(boss_name, True, COLOR_CRIMSON)
-    t_phase = font_card.render(f"[{phase_str}]", True, COLOR_GOLD)
-    canvas.blit(t_hdr, (bx, by - 21))
-    canvas.blit(t_phase, (bx + bar_w - t_phase.get_width(), by - 21))
-    
-    # Health Fill
-    pygame.draw.rect(canvas, (20, 25, 35), bar_rect, border_radius=4)
-    fill_w = int(round(bar_w * hp_pct))
-    if fill_w > 0:
-        bar_col = COLOR_CRIMSON if hp_pct <= 0.35 else (COLOR_GOLD if hp_pct <= 0.70 else COLOR_EMERALD)
-        pygame.draw.rect(canvas, bar_col, (bx, by, fill_w, bar_h), border_radius=4)
-    pygame.draw.rect(canvas, COLOR_WHITE, bar_rect, 1, border_radius=4)
-    
-    # Numeric Readout & Shield Status
-    hp_text = f"{int(hp)} / {int(max_hp)}"
-    if getattr(boss_target, "is_shielded", False):
-        hp_text += " [SHIELD ACTIVE]"
-    t_hp = font_card.render(hp_text, True, COLOR_WHITE)
-    canvas.blit(t_hp, t_hp.get_rect(center=bar_rect.center))
-
-
 def draw_combo_banner(canvas: pygame.Surface, combo_count: int, combo_timer: float):
     """Renders animated combo streak banner when combo_count > 1."""
     if combo_count <= 1 or combo_timer <= 0:
@@ -548,42 +477,6 @@ def draw_wave_announcement(canvas: pygame.Surface, wave_number: int, announcemen
     rect = surf.get_rect(center=(vw // 2, vh // 3))
     canvas.blit(surf, rect)
 
-
-RATING_COLORS = {
-    "S": (245, 158, 11),
-    "A": (16, 185, 129),
-    "B": (59, 130, 246),
-    "C": (239, 68, 68),
-}
-
-
-def draw_boss_rating(canvas: pygame.Surface, rating_data: dict):
-    """Renders animated boss performance rating popup (S/A/B/C)."""
-    if not rating_data:
-        return
-
-    rating = rating_data.get("rating", "B")
-    boss_name = rating_data.get("boss_name", "BOSS")
-    duration = rating_data.get("duration", 0.0)
-    dmg_taken = rating_data.get("damage_taken", 0)
-    col = RATING_COLORS.get(rating, (255, 255, 255))
-
-    vw, vh = canvas.get_size()
-    cx, cy = vw // 2, vh // 2 - 20
-
-    bg_w, bg_h = 340, 150
-    bg_rect = pygame.Rect(cx - bg_w // 2, cy - bg_h // 2, bg_w, bg_h)
-    pygame.draw.rect(canvas, (8, 12, 24, 220), bg_rect, border_radius=10)
-    pygame.draw.rect(canvas, col, bg_rect, 2, border_radius=10)
-
-    t_rank = font_banner.render(rating, True, col)
-    canvas.blit(t_rank, t_rank.get_rect(center=(cx, cy - 30)))
-
-    t_name = font_card.render(boss_name.upper(), True, COLOR_WHITE)
-    canvas.blit(t_name, t_name.get_rect(center=(cx, cy + 5)))
-
-    t_stats = font_sub.render(f"TIME: {duration:.1f}s  |  DMG: {int(dmg_taken)}", True, (180, 195, 215))
-    canvas.blit(t_stats, t_stats.get_rect(center=(cx, cy + 38)))
 
 
 

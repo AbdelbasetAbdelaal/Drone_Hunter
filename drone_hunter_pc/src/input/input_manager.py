@@ -39,7 +39,6 @@ ACTION_CONFIRM = "CONFIRM"
 ACTION_CANCEL = "CANCEL"
 ACTION_SECTOR_MAP = "SECTOR_MAP"
 ACTION_HANGAR_BAY = "HANGAR_BAY"
-ACTION_CYCLE_SKIN = "CYCLE_SKIN"
 ACTION_FRONT_TOP = "FRONT_TOP"
 ACTION_FRONT_BOTTOM = "FRONT_BOTTOM"
 ACTION_CYCLE_CLASS = "CYCLE_CLASS"
@@ -67,7 +66,6 @@ PROMPT_MAP_KEYBOARD = {
     ACTION_CANCEL: "ESC",
     ACTION_SECTOR_MAP: "M",
     ACTION_HANGAR_BAY: "H",
-    ACTION_CYCLE_SKIN: "C",
     ACTION_FRONT_TOP: "TAB",
     ACTION_FRONT_BOTTOM: "C",
     ACTION_CYCLE_CLASS: "V",
@@ -89,7 +87,6 @@ PROMPT_MAP_GAMEPAD = {
     ACTION_CANCEL: "B",
     ACTION_SECTOR_MAP: "BACK",
     ACTION_HANGAR_BAY: "BACK",
-    ACTION_CYCLE_SKIN: "LB",
     ACTION_FRONT_TOP: "RB",
     ACTION_FRONT_BOTTOM: "LB",
     ACTION_CYCLE_CLASS: "LB (HOLD)",
@@ -144,7 +141,6 @@ _ACTION_UPPER_TO_LOWER = {
     ACTION_CANCEL: "cancel",
     ACTION_SECTOR_MAP: "sector_map",
     ACTION_HANGAR_BAY: "hangar_bay",
-    ACTION_CYCLE_SKIN: "cycle_skin",
 }
 _ACTION_LOWER_TO_UPPER = {v: k for k, v in _ACTION_UPPER_TO_LOWER.items()}
 
@@ -499,8 +495,7 @@ class InputManager:
                     self._front_top_fired = False
 
                 # 2. FRONT_BOTTOM (Lower pair: physical buttons 6 or 7)
-                # GAMEPLAY: Short press -> CLOAK (0 CYCLE_SKIN). Hold -> No accidental class change.
-                # HANGAR/DRONE_SELECT: Short press -> CYCLE_SKIN (0 CLOAK). Hold >= 0.4s -> CYCLE_CLASS.
+                # Short press activates cloak in gameplay; a held press cycles drone class in the hangar.
                 is_fb_pressed = _is_pressed(6) or _is_pressed(7) or _is_pressed(profile.button_map.get("front_bottom", 4)) or _is_pressed(profile.button_map.get("cloak", 4))
                 if is_ft_pressed and profile.button_map.get("front_bottom") in (4, 5):
                     is_fb_pressed = False
@@ -515,8 +510,6 @@ class InputManager:
                     if front_bottom_up and not self._front_bottom_fired and self._front_bottom_hold_time < self.front_hold_threshold:
                         if self.context == InputContext.GAMEPLAY:
                             self.actions_triggered[ACTION_CLOAK] = True
-                        elif self.context in (InputContext.HANGAR, InputContext.DRONE_SELECT):
-                            self.actions_triggered[ACTION_CYCLE_SKIN] = True
                         else:
                             self.actions_triggered[ACTION_FRONT_BOTTOM] = True
                     self._front_bottom_hold_time = 0.0

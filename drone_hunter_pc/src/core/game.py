@@ -42,7 +42,6 @@ from src.systems.spawn_system import Spawner
 from src.systems.encounter_system import EncounterSystem
 from src.systems.combat_director import CombatDirector
 from src.systems.mission_system import MissionSystem
-from src.systems.boss_system import BossSystem
 from src.systems.objective_system import ObjectiveSystem
 from src.systems.combat_system import CombatSystem
 
@@ -57,10 +56,7 @@ from src.input import (
     DEVICE_KEYBOARD_MOUSE, DEVICE_GAMEPAD, DEVICE_JOYSTICK
 )
 
-from src.ui.hud import (
-    draw_hud, draw_boss_health_bar, draw_radar_minimap, draw_combo_banner,
-    draw_wave_announcement, draw_boss_rating, draw_boss_intro_warning
-)
+from src.ui.hud import draw_hud, draw_radar_minimap, draw_combo_banner, draw_wave_announcement
 from src.ui.menus import (
     draw_main_menu, draw_sector_select_ui, draw_pause_settings_ui,
     draw_mission_select_ui, draw_mission_briefing, draw_mission_complete,
@@ -121,7 +117,6 @@ class Game:
         self.encounter_system = EncounterSystem()
         self.combat_director = CombatDirector(self.encounter_system, test_mode=self._test_mode)
         self.mission_system = MissionSystem()
-        self.boss_system = BossSystem()
         self.objective_system = ObjectiveSystem()
         self.combat_system = CombatSystem(self.context)
         self.camera = Camera2D(world_w=WORLD_WIDTH, world_h=WORLD_HEIGHT, view_w=SCREEN_WIDTH, view_h=SCREEN_HEIGHT)
@@ -154,7 +149,6 @@ class Game:
         self.context.combat_director = self.combat_director
         self.context.objective_system = self.objective_system
         self.context.mission_system = self.mission_system
-        self.context.boss_system = self.boss_system
         self.context.achievement_system = self.achievement_system
 
         self.context.state = STATE_SAVE_SELECT
@@ -186,7 +180,6 @@ class Game:
             encounter_system=self.encounter_system,
             combat_director=self.combat_director,
             mission_system=self.mission_system,
-            boss_system=self.boss_system,
             objective_system=self.objective_system,
             combat_system=self.combat_system,
             background=self.background,
@@ -341,7 +334,6 @@ class Game:
             input_manager=self.input_manager,
             achievement_system=self.achievement_system,
             selected_drone=getattr(self.context, "selected_drone", "striker"),
-            selected_skin=getattr(self.context, "selected_skin", 0),
             is_fullscreen=self.is_fullscreen
         )
 
@@ -545,7 +537,6 @@ class Game:
                 player=ctx.player,
                 weapon_upgrades=getattr(ctx, "weapon_upgrade_levels", {}),
                 unlocked_weapons=getattr(ctx, "unlocked_weapons", ["pulse", "scatter", "missile"]),
-                unlocked_skins=getattr(ctx, "unlocked_skins", [0]),
                 total_score=getattr(ctx, "total_score", 0),
                 selected_index=self._menu_cursor if active_is_gamepad else None,
                 input_manager=self.input_manager
@@ -591,21 +582,6 @@ class Game:
             draw_radar_minimap(canvas, ctx.player, ctx.target_group)
             draw_combo_banner(canvas, ctx.combo_count, ctx.combo_timer)
             draw_wave_announcement(canvas, ctx.current_wave, getattr(ctx, "wave_announcement_timer", 0.0))
-
-            for target in ctx.target_group:
-                if getattr(target, "is_boss", False) and getattr(target, "alive", False):
-                    draw_boss_health_bar(canvas, target)
-                    draw_boss_intro_warning(canvas, target)
-                    break
-
-            if getattr(ctx, "boss_defeat_timer", 0.0) > 0.0:
-                overlay = pygame.Surface((vw, vh), pygame.SRCALPHA)
-                overlay.fill((0, 0, 0, 160))
-                canvas.blit(overlay, (0, 0))
-                t_vic = font_banner.render("TARGET DESTROYED", True, (245, 158, 11))
-                canvas.blit(t_vic, (vw // 2 - t_vic.get_width() // 2, vh // 2 - 40))
-                t_sub = font_card.render("TACTICAL DATA RETRIEVED - STANDBY", True, (56, 189, 248))
-                canvas.blit(t_sub, (vw // 2 - t_sub.get_width() // 2, vh // 2 + 30))
 
         elif ctx.state == STATE_PAUSED:
             self.renderer.render_gameplay(

@@ -93,30 +93,18 @@ def run_runtime_smoke():
     game.update(0.016)
     game.render()
 
-    # 5. Test Boss Stage 3 & Completion
-    print("Testing Boss Stage Simulation...")
+    # 5. Test Stage 3 & Completion
+    print("Testing Stage Simulation...")
     ctx.current_sector_idx = 0
     ctx.current_sub_level = 3
     game.reset_game()
     ctx.state = STATE_PLAYING
-    
-    # Spawn boss
+
     ctx.level_score = 7000
     ctx.current_wave = 4
     game.spawner.update(0.016, ctx)
-    assert ctx.wave_manager.boss_spawned
-    bosses = [t for t in ctx.target_group if getattr(t, "is_boss", False)]
-    assert len(bosses) > 0, "Boss must spawn in Stage 3 Wave 4"
-    boss = bosses[0]
-
-    # While boss alive, stage not complete
-    assert not ctx.wave_manager.is_stage_complete(ctx.level_score, targets_group=ctx.target_group)
-
-    # Defeat boss
-    boss.alive = False
-    ctx.target_group.remove(boss)
     assert ctx.wave_manager.is_stage_complete(ctx.level_score, targets_group=ctx.target_group)
-    print("Boss stage completion verified!")
+    print("Stage completion verified!")
 
     # 6. Test Campaign Victory
     print("Testing Campaign Victory transition...")

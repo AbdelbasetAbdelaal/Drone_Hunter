@@ -25,7 +25,6 @@ class TestCampaignStateCreation(unittest.TestCase):
         self.assertEqual(cs.unlocked_missions, ["S1_M1"])
         self.assertEqual(cs.completed_sectors, [])
         self.assertEqual(cs.unlocked_sectors, [1])
-        self.assertEqual(cs.bosses_defeated, [])
         self.assertFalse(cs.campaign_completed)
         self.assertEqual(cs.new_game_plus_count, 0)
 
@@ -100,26 +99,11 @@ class TestCampaignStateUnlocking(unittest.TestCase):
         self.assertIn(3, cs.unlocked_sectors)
 
 
-class TestCampaignStateBoss(unittest.TestCase):
-    def test_record_boss_defeat(self):
-        cs = CampaignState()
-        cs.record_boss_defeat("assembly_warden")
-        self.assertTrue(cs.is_boss_defeated("assembly_warden"))
-        self.assertIn("assembly_warden", cs.bosses_defeated)
-
-    def test_boss_defeat_does_not_duplicate(self):
-        cs = CampaignState()
-        cs.record_boss_defeat("assembly_warden")
-        cs.record_boss_defeat("assembly_warden")
-        self.assertEqual(cs.bosses_defeated.count("assembly_warden"), 1)
-
-
 class TestCampaignStateNGPlus(unittest.TestCase):
     def test_start_new_game_plus(self):
         cs = CampaignState()
         cs.complete_mission("S1_M1")
         cs.complete_mission("S1_M2")
-        cs.record_boss_defeat("assembly_warden")
         cs.mark_campaign_complete()
         cs.set_current_mission("S5_M5")
 
@@ -130,7 +114,6 @@ class TestCampaignStateNGPlus(unittest.TestCase):
         self.assertEqual(cs.completed_sectors, [])
         self.assertEqual(cs.unlocked_sectors, [1])
         self.assertEqual(cs.unlocked_missions, ["S1_M1"])
-        self.assertEqual(cs.bosses_defeated, [])
         self.assertFalse(cs.campaign_completed)
         self.assertEqual(cs.current_mission, "S1_M1")
 
@@ -192,7 +175,6 @@ class TestCampaignStateSerialization(unittest.TestCase):
         cs.complete_mission("S1_M1")
         cs.complete_mission("S1_M2")
         cs.unlock_sector(2)
-        cs.record_boss_defeat("assembly_warden")
         cs.mark_campaign_complete()
         cs._new_game_plus_count = 2
 
@@ -204,7 +186,6 @@ class TestCampaignStateSerialization(unittest.TestCase):
         self.assertEqual(cs2.current_sub_level, 2)
         self.assertEqual(cs2.completed_missions, ["S1_M1", "S1_M2"])
         self.assertEqual(cs2.unlocked_sectors, [1, 2])
-        self.assertEqual(cs2.bosses_defeated, ["assembly_warden"])
         self.assertTrue(cs2.campaign_completed)
         self.assertEqual(cs2.new_game_plus_count, 2)
 

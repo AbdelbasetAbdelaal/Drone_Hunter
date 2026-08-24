@@ -35,10 +35,6 @@ from src.data.game_data import *
 from src.core.game_state import GameState, STATE_PLAYING, STATE_LEVEL_CLEAR, STATE_VICTORY, STATE_GAME_OVER
 from src.core.game_context import GameContext
 from src.entities.player import Player
-from src.entities.enemy import Enemy
-from src.entities.boss import (
-    SkyDreadnoughtBoss, StealthMirageBoss, EMPDisrupterBoss, ColossusTitanMechBoss
-)
 from src.entities.bullet import (
     Bullet, HomingMissile, ContinuousBeam, TeslaArcBeam, ClusterTorpedo
 )
@@ -106,71 +102,6 @@ class TestDroneHunter2D(unittest.TestCase):
             # Verify damage matches WEAPON_DEFS
             self.assertEqual(bullets[0].damage, w_def["damage"])
             self.assertEqual(bullets[0].speed, w_def["speed"])
-
-    def test_boss_stage_completion_requirement(self):
-        """Verify Boss stage requires score met, boss spawned, and boss defeated."""
-        # Standard non-boss stage (Stage 1-1)
-        wm_standard = WaveManager(target_score=1000, is_boss_stage=False)
-        self.assertFalse(wm_standard.is_stage_complete(500))
-        self.assertTrue(wm_standard.is_stage_complete(1000))
-
-        # Boss Stage (Stage 1-3)
-        wm_boss = WaveManager(target_score=3000, is_boss_stage=True)
-        boss = SkyDreadnoughtBoss(1, 0)
-        targets_group = pygame.sprite.Group(boss)
-
-        # Case A: Score met, but Boss not spawned yet
-        self.assertFalse(wm_boss.is_stage_complete(3500, targets_group=targets_group))
-
-        # Case B: Score met, Boss spawned, but Boss is ALIVE
-        wm_boss.boss_spawned = True
-        self.assertFalse(wm_boss.is_stage_complete(3500, targets_group=targets_group), "Stage must NOT complete while Boss is alive!")
-
-        # Case C: Score met, Boss spawned, Boss DEFEATED
-        boss.alive = False
-        targets_group.remove(boss)
-        self.assertTrue(wm_boss.is_stage_complete(3500, targets_group=targets_group), "Stage completes only when Boss is eliminated!")
-
-    def test_emp_disrupter_wave_and_player_jammed(self):
-        """Verify EMP Disrupter Boss expanding shockwave jams player and disables weapons."""
-        p = Player((300, 360))
-        boss = EMPDisrupterBoss(level=1, sector_idx=2)
-        boss.time_accum = 0.0
-        boss.pos = pygame.Vector2(300, 360)
-        boss.is_emp_expanding = True
-        boss.emp_wave_radius = 120.0
-
-        self.assertFalse(p.is_jammed)
-        boss.update(0.016, player_pos=(p.pos.x, p.pos.y), player_obj=p)
-        self.assertTrue(p.is_jammed, "Player must be jammed upon EMP shockwave contact!")
-        self.assertFalse(p.can_shoot(), "Jammed player cannot shoot weapons!")
-        self.assertFalse(p.trigger_emp(), "Jammed player cannot activate EMP!")
-        self.assertFalse(p.trigger_overdrive(), "Jammed player cannot activate Overdrive!")
-
-        # Verify HUD renders jammed banner without error
-        from src.ui.hud import draw_hud
-        test_surf = pygame.Surface((SCREEN_WIDTH, SCREEN_HEIGHT))
-        draw_hud(test_surf, p, sector_idx=2, level_score=1000, total_score=2000, scrap=100, difficulty_name="NORMAL")
-
-        # After jammed duration expires, player recovers
-        p.update(3.5)
-        self.assertFalse(p.is_jammed)
-        self.assertTrue(p.can_shoot())
-
-    def test_colossus_titan_3_phases(self):
-        """Verify Colossus Titan transitions through 3 distinct combat phases."""
-        titan = ColossusTitanMechBoss(level=1, sector_idx=4)
-        self.assertEqual(titan.boss_phase, 1)
-
-        # Drop HP to 55% -> Phase 2
-        titan.hp = int(titan.max_hp * 0.55)
-        titan.update(0.016)
-        self.assertEqual(titan.boss_phase, 2)
-
-        # Drop HP to 20% -> Phase 3 (Overclock Berserk)
-        titan.hp = int(titan.max_hp * 0.20)
-        titan.update(0.016)
-        self.assertEqual(titan.boss_phase, 3)
 
     def test_shield_hit_absorption(self):
         """Verify Shield hit charges absorb incoming hits without damage to health."""

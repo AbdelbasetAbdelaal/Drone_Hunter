@@ -21,7 +21,7 @@ from src.data.game_data import (
     WEAPON_BEAM, WEAPON_PLASMA, WEAPON_RAIL, WEAPON_TESLA,
     WEAPON_CLUSTER, WEAPON_EMP, WEAPON_BARRAGE,
     TARGET_TYPE_SCOUT, TARGET_TYPE_SHOOTER, TARGET_TYPE_HEAVY,
-    TARGET_TYPE_SHIELD_DRONE, TARGET_TYPE_BOSS
+    TARGET_TYPE_SHIELD_DRONE
 )
 from src.rendering.sprite_manager import get_sprite_manager, SpriteManager
 from src.rendering.particles import ParticleManager, ExplosionOverlay
@@ -136,16 +136,6 @@ def test_heavy_enemy_death_spawns_heavy_explosion_and_shockwave():
     assert len(pm.explosion_overlays) >= 1
     assert pm.explosion_overlays[0].asset_id == "explosion_2"
     assert pm.explosion_overlays[0].max_size == 110
-
-
-def test_boss_explosion_spawns_multiple_overlays():
-    """Verify boss destruction creates multiple high-scale explosion overlays."""
-    pm = ParticleManager()
-    pm.spawn_boss_explosion((500, 400))
-    assert len(pm.explosion_overlays) >= 2
-    for o in pm.explosion_overlays:
-        assert o.asset_id == "explosion_2"
-        assert o.max_size >= 180
 
 
 def test_shockwave_spawns_shockwave_overlay():

@@ -33,11 +33,10 @@ class TestUIUXPolishPass:
                 player=p
             )
             assert 'back' in rects
-            assert 'skin' in rects
             assert 'settings' in rects
             assert 'exit' in rects
             assert len(rects['upgrades']) == 4
-            for k in ('back', 'skin', 'settings', 'exit'):
+            for k in ('back', 'settings', 'exit'):
                 r = rects[k]
                 assert r.bottom <= res[1]
                 assert r.top >= 0
@@ -124,7 +123,7 @@ class TestUIUXPolishPass:
             upgrade_levels={'hull': 1, 'energy': 1, 'weapon': 1, 'mobility': 1},
             player=p
         )
-        f_btns = [rects['back'], rects['drone'], rects['skin'], rects['settings'], rects['exit']]
+        f_btns = [rects['back'], rects['drone'], rects['settings'], rects['exit']]
         for i in range(len(f_btns)):
             for j in range(i + 1, len(f_btns)):
                 assert not f_btns[i].colliderect(f_btns[j])
@@ -149,11 +148,11 @@ class TestUIUXPolishPass:
         # Canonical mapping checks
         assert profile.button_map["fire_primary"] == 2  # CROSS
         assert profile.button_map["emp"] == 1           # CIRCLE
-        assert profile.button_map["ultimate"] == 0      # TRIANGLE
+        assert profile.button_map["ultimate"] == 8      # SELECT
         assert profile.button_map["roll"] == 3          # SQUARE
         assert profile.button_map["front_bottom"] == 4  # FRONT BOTTOM (L1)
         assert profile.button_map["front_top"] == 5     # FRONT TOP (R1)
-        assert profile.button_map["sector_map"] == 8    # SELECT
+        assert profile.button_map["sector_map"] == -1   # SELECT is Overdrive
         assert profile.button_map["pause"] == 9         # START
 
     def test_prompt_matches_active_device(self):
@@ -194,7 +193,6 @@ class TestUIUXPolishPass:
         assert len(all_actions) == len(GAMEPLAY_ACTIONS) + len(MENU_ACTIONS) + len(CONTEXTUAL_ACTIONS)
         assert "weapon_prev" in CONTEXTUAL_ACTIONS
         assert "cycle_class" in CONTEXTUAL_ACTIONS
-        assert "cycle_skin" in CONTEXTUAL_ACTIONS
         assert "fullscreen" in CONTEXTUAL_ACTIONS
 
     def test_controller_only_menu_flow(self):

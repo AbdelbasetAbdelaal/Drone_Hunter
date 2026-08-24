@@ -1113,7 +1113,6 @@ def draw_controller_binding_ui(canvas: pygame.Surface, mapping_manager, mouse_po
             "hangar_bay": "Hangar Bay",
             "weapon_prev": "Weapon Previous",
             "cycle_class": "Cycle Drone Class",
-            "cycle_skin": "Cycle Chassis Skin",
             "fullscreen": "Toggle Fullscreen",
         }
         act_name = act_display_names.get(action, action.replace("_", " ").title())
@@ -1129,7 +1128,6 @@ def draw_controller_binding_ui(canvas: pygame.Surface, mapping_manager, mouse_po
             ctx_badges = {
                 "weapon_prev": "FRONT TOP [HOLD]",
                 "cycle_class": "FRONT BTM [HOLD]",
-                "cycle_skin": "FRONT BTM [HANGAR]",
                 "fullscreen": "START [HOLD]",
             }
             btn_text = ctx_badges.get(action, "SHARED INPUT")

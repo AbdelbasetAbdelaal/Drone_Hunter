@@ -10,7 +10,6 @@ Owns:
     - unlocked_missions
     - completed_sectors
     - unlocked_sectors
-    - bosses_defeated
     - campaign_completed
     - new_game_plus_count
 
@@ -31,7 +30,6 @@ class CampaignState:
         self._unlocked_missions: List[str] = ["S1_M1"]
         self._completed_sectors: List[int] = []
         self._unlocked_sectors: List[int] = [1]
-        self._bosses_defeated: List[str] = []
         self._campaign_completed: bool = False
         self._new_game_plus_count: int = 0
 
@@ -57,10 +55,6 @@ class CampaignState:
     @property
     def unlocked_sectors(self) -> List[int]:
         return list(self._unlocked_sectors)
-
-    @property
-    def bosses_defeated(self) -> List[str]:
-        return list(self._bosses_defeated)
 
     @property
     def campaign_completed(self) -> bool:
@@ -118,10 +112,6 @@ class CampaignState:
         if sector_id not in self._unlocked_sectors:
             self._unlocked_sectors.append(sector_id)
 
-    def record_boss_defeat(self, boss_id: str) -> None:
-        if boss_id not in self._bosses_defeated:
-            self._bosses_defeated.append(boss_id)
-
     def mark_campaign_complete(self) -> None:
         self._campaign_completed = True
 
@@ -131,7 +121,6 @@ class CampaignState:
         self._completed_sectors.clear()
         self._unlocked_sectors = [1]
         self._unlocked_missions = ["S1_M1"]
-        self._bosses_defeated.clear()
         self._campaign_completed = False
         self._current_mission = "S1_M1"
 
@@ -149,9 +138,6 @@ class CampaignState:
 
     def is_sector_unlocked(self, sector_id: int) -> bool:
         return sector_id in self._unlocked_sectors
-
-    def is_boss_defeated(self, boss_id: str) -> bool:
-        return boss_id in self._bosses_defeated
 
     def get_next_mission(self, current_mission_id: str) -> Optional[str]:
         try:
@@ -194,7 +180,6 @@ class CampaignState:
             "unlocked_missions": list(self._unlocked_missions),
             "completed_sectors": list(self._completed_sectors),
             "unlocked_sectors": list(self._unlocked_sectors),
-            "bosses_defeated": list(self._bosses_defeated),
             "campaign_completed": self._campaign_completed,
             "new_game_plus_count": self._new_game_plus_count,
         }
@@ -207,7 +192,6 @@ class CampaignState:
         state._unlocked_missions = list(data.get("unlocked_missions", ["S1_M1"]))
         state._completed_sectors = list(data.get("completed_sectors", []))
         state._unlocked_sectors = list(data.get("unlocked_sectors", [1]))
-        state._bosses_defeated = list(data.get("bosses_defeated", []))
         state._campaign_completed = bool(data.get("campaign_completed", False))
         state._new_game_plus_count = int(data.get("new_game_plus_count", 0))
         return state

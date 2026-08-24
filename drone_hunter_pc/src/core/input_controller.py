@@ -28,7 +28,7 @@ from src.input import (
     InputManager, InputContext,
     ACTION_FIRE_PRIMARY, ACTION_FIRE_SECONDARY, ACTION_EMP, ACTION_ULTIMATE,
     ACTION_ROLL, ACTION_WEAPON_NEXT, ACTION_WEAPON_PREV, ACTION_SPECIAL,
-    ACTION_CLOAK, ACTION_CYCLE_CLASS, ACTION_CYCLE_SKIN, ACTION_PAUSE,
+    ACTION_CLOAK, ACTION_CYCLE_CLASS, ACTION_PAUSE,
     ACTION_FULLSCREEN, ACTION_CONFIRM, ACTION_CANCEL, ACTION_SECTOR_MAP,
     ACTION_HANGAR_BAY, DEVICE_KEYBOARD_MOUSE
 )
@@ -267,10 +267,6 @@ class InputController:
                     ctx.player.cycle_drone_class(1)
                     if input_ctx.audio_manager:
                         input_ctx.audio_manager.play_powerup()
-                elif trig.get(ACTION_CYCLE_SKIN):
-                    ctx.player.cycle_skin(1)
-                    if input_ctx.audio_manager:
-                        input_ctx.audio_manager.play_powerup()
 
         return True
 
@@ -421,12 +417,6 @@ class InputController:
                     ctx.player.select_weapon(slot_index)
                     if ctx.player.active_weapon != previous_weapon and am:
                         am.play_weapon_switch()
-            elif event.key == pygame.K_v:
-                if ctx.player:
-                    ctx.player.cycle_visual_skin()
-                    ctx.selected_skin = ctx.player.skin_id
-                    ctx.selected_skin_override = ctx.selected_skin
-                    if input_ctx.save_callback: input_ctx.save_callback()
 
         return True
 
@@ -463,7 +453,6 @@ class InputController:
                             if ctx.player:
                                 ctx.player.apply_drone_class(idx)
                                 ctx.selected_drone_override = ctx.player.drone_class_id
-                                ctx.selected_skin_override = ctx.player.skin_theme
                             if am: am.play_powerup()
                             self.menu_cursor = 0
                             ctx.state = STATE_SECTOR_SELECT
@@ -544,22 +533,6 @@ class InputController:
                     ctx.player.cycle_drone_class()
                     ctx.selected_drone = ctx.player.drone_class
                     if input_ctx.save_callback: input_ctx.save_callback()
-            elif "skin" in cache and cache["skin"].collidepoint(mx, my):
-                if ctx.player:
-                    ctx.player.cycle_visual_skin()
-                    ctx.selected_skin = ctx.player.skin_id
-                    ctx.selected_skin_override = ctx.selected_skin
-                    if input_ctx.save_callback: input_ctx.save_callback()
-            elif "skins" in cache:
-                skins_items = cache["skins"].items() if isinstance(cache["skins"], dict) else enumerate(cache["skins"])
-                for skin_idx, s_rect in skins_items:
-                    if hasattr(s_rect, "collidepoint") and s_rect.collidepoint(mx, my):
-                        if ctx.player:
-                            ctx.player.set_visual_skin(skin_idx)
-                            ctx.selected_skin = skin_idx
-                            ctx.selected_skin_override = skin_idx
-                            if input_ctx.save_callback: input_ctx.save_callback()
-                        return
 
         elif ctx.state == STATE_SETTINGS:
             if "fullscreen" in cache and cache["fullscreen"].collidepoint(mx, my):
@@ -701,7 +674,6 @@ class InputController:
         pause = trig.get(ACTION_PAUSE, False)
         sec_map = trig.get(ACTION_SECTOR_MAP, False)
         hangar_bay = trig.get(ACTION_HANGAR_BAY, False)
-        cycle_skin = trig.get(ACTION_CYCLE_SKIN, False)
         cycle_class = trig.get(ACTION_CYCLE_CLASS, False)
         weapon_next = trig.get(ACTION_WEAPON_NEXT, False)
         weapon_prev = trig.get(ACTION_WEAPON_PREV, False)
@@ -824,7 +796,6 @@ class InputController:
                 if ctx.player:
                     ctx.player.apply_drone_class(self.menu_cursor)
                     ctx.selected_drone_override = ctx.player.drone_class_id
-                    ctx.selected_skin_override = ctx.player.skin_theme
 
             if confirm or pause:
                 if self.menu_cursor < 5:
@@ -832,7 +803,6 @@ class InputController:
                     if ctx.player:
                         ctx.player.apply_drone_class(self.menu_cursor)
                         ctx.selected_drone_override = ctx.player.drone_class_id
-                        ctx.selected_skin_override = ctx.player.skin_theme
                     if am: am.play_powerup()
                     self.menu_cursor = 0
                     ctx.state = STATE_SECTOR_SELECT
@@ -883,10 +853,7 @@ class InputController:
                 ctx.state = STATE_SECTOR_SELECT
 
         elif ctx.state == STATE_HANGAR:
-            if (cycle_skin or trig.get(ACTION_CYCLE_SKIN)) and ctx.player:
-                ctx.player.cycle_skin(1)
-                if am: am.play_powerup()
-            elif (cycle_class or trig.get(ACTION_CYCLE_CLASS)) and ctx.player:
+            if (cycle_class or trig.get(ACTION_CYCLE_CLASS)) and ctx.player:
                 ctx.player.cycle_drone_class(1)
                 if am: am.play_powerup()
             elif d_up:

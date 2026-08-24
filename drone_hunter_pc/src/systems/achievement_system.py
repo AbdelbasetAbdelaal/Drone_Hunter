@@ -14,11 +14,6 @@ class AchievementSystem:
             "description": "Get your first kill",
             "icon": "🎯",
         },
-        "first_boss": {
-            "name": "Boss Slayer",
-            "description": "Defeat your first boss",
-            "icon": "👑",
-        },
         "combo_10": {
             "name": "Combo x10",
             "description": "Reach a 10x combo streak",
@@ -99,9 +94,6 @@ class AchievementSystem:
 
         if "first_kill" not in unlocked and getattr(ctx, "total_kills", 0) >= 1:
             self.unlock("first_kill")
-
-        if "first_boss" not in unlocked and len(getattr(ctx, "campaign_state", None).bosses_defeated if hasattr(ctx, "campaign_state") else []) > 0:
-            self.unlock("first_boss")
 
         if "combo_10" not in unlocked and getattr(ctx, "combo_count", 1) >= 10:
             self.unlock("combo_10")

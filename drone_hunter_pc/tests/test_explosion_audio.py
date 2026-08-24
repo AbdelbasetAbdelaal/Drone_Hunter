@@ -54,14 +54,6 @@ def test_heavy_enemy_explosion_audio():
     am.play_death("heavy")
     am.play_death("shield")
 
-def test_boss_explosion_audio():
-    """Verify Boss destruction maps to death_boss and plays on dedicated BOSS channel."""
-    am = AudioManager(sound_enabled=True)
-    assert "death_boss" in am._sound_cache
-    assert am._sound_cache["death_boss"] is not None
-    
-    am.play_boss_death()
-
 def test_player_destruction_audio():
     """Verify Player destruction maps to player_death (player_destroyed.ogg) on PLAYER channel."""
     am = AudioManager(sound_enabled=True)

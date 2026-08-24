@@ -596,7 +596,10 @@ class SpriteManager:
         self._skin_cache[cache_key] = scaled
         return scaled
 
-    def get_player_state_sprite(self, state: str, skin_idx: int, target_size: tuple[int, int]) -> pygame.Surface:
+    def get_player_state_sprite(self, state: str, skin_idx: int = 0, target_size: tuple[int, int] = (64, 64)) -> pygame.Surface:
+        if isinstance(skin_idx, tuple) and len(skin_idx) == 2:
+            target_size = skin_idx
+            skin_idx = 0
         cache_key = ('player_state', state, skin_idx, target_size)
         if cache_key in self._skin_cache:
             return self._skin_cache[cache_key]

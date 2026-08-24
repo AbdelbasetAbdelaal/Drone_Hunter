@@ -32,7 +32,6 @@ from src.systems.combat_system import CombatSystem
 from src.systems.mission_system import MissionSystem
 from src.systems.combat_director import CombatDirector
 from src.systems.encounter_system import EncounterSystem
-from src.systems.boss_system import BossSystem
 from src.systems.objective_system import ObjectiveSystem
 from src.systems.achievement_system import AchievementSystem
 from src.systems.spawn_system import Spawner
@@ -76,7 +75,6 @@ class TestPhase1Architecture(unittest.TestCase):
         self.assertIsNotNone(game.audio_manager)
         self.assertIsNotNone(game.mission_system)
         self.assertIsNotNone(game.combat_director)
-        self.assertIsNotNone(game.boss_system)
         self.assertIsNotNone(game.objective_system)
         self.assertIsNotNone(game.context)
 
@@ -130,7 +128,6 @@ class TestPhase1Architecture(unittest.TestCase):
         enc = EncounterSystem()
         cd = CombatDirector(enc, test_mode=True)
         ms = MissionSystem()
-        bs = BossSystem()
         objs = ObjectiveSystem()
         cs = CombatSystem(ctx)
         spw = Spawner()
@@ -139,7 +136,7 @@ class TestPhase1Architecture(unittest.TestCase):
         gp_ctx = GameplayContext(
             context=ctx, progression=prog, particle_manager=pm, camera=cam,
             spawner=spw, encounter_system=enc, combat_director=cd,
-            mission_system=ms, boss_system=bs, objective_system=objs,
+            mission_system=ms, objective_system=objs,
             combat_system=cs, achievement_system=ach
         )
 
@@ -225,13 +222,8 @@ class TestPhase1Architecture(unittest.TestCase):
         self.assertIsNotNone(game.context.player)
         self.assertTrue(game.context.player.alive)
 
-        # Player skin & class cycling
-        from src.data.game_data import DRONE_SKINS
+        # Player class cycling
         p = game.context.player
-        initial_skin = p.skin_id
-        next_skin = p.cycle_visual_skin()
-        self.assertEqual(p.skin_id, (initial_skin + 1) % len(DRONE_SKINS))
-
         initial_class = p.drone_class
         next_class = p.cycle_drone_class()
         self.assertNotEqual(p.drone_class, initial_class)

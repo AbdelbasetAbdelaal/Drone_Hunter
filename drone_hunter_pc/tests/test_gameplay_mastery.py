@@ -35,8 +35,6 @@ from src.systems.encounter_system import (
 )
 from src.entities.player import Player
 from src.entities.enemy import Enemy, Scout, Shooter, Heavy
-from src.entities.boss import SectorBoss
-from src.data.boss_data import get_boss_definition, BOSS_ASSEMBLY_WARDEN
 from src.data.game_data import (
     TARGET_TYPE_SCOUT, TARGET_TYPE_SHOOTER, TARGET_TYPE_HEAVY,
     TARGET_TYPE_SHIELD_DRONE, DRONE_CLASS_STRIKER, DRONE_CLASS_INTERCEPTOR,
@@ -227,33 +225,7 @@ class TestPlayerDroneClassIdentities:
 
 
 # =============================================================================
-# 5. BOSS ENCOUNTER PACING & PHASE TRANSITIONS TESTS
-# =============================================================================
-class TestBossPacingAndPhases:
-    def test_boss_phase_transition_on_hp_threshold(self):
-        boss_def = get_boss_definition(BOSS_ASSEMBLY_WARDEN)
-        boss = SectorBoss(boss_def, pos=(1200, 600))
-        assert boss.current_phase_number == 1
-
-        # Deal damage to cross phase 2 threshold (e.g. at 65% HP)
-        threshold_hp = int(boss.max_hp * 0.60)
-        boss.take_damage(boss.hp - threshold_hp)
-
-        assert boss.current_phase_number >= 2
-        assert boss.phase_transitioning is True
-
-    def test_boss_staggered_attack_cooldowns(self):
-        boss_def = get_boss_definition(BOSS_ASSEMBLY_WARDEN)
-        boss = SectorBoss(boss_def, pos=(1200, 600))
-
-        # Check initial staggered cooldowns
-        assert len(boss.attack_cooldowns) > 0
-        for cd in boss.attack_cooldowns.values():
-            assert cd > 0.0
-
-
-# =============================================================================
-# 6. COMBAT MOMENTUM & HIT FEEDBACK TESTS
+# 5. COMBAT MOMENTUM & HIT FEEDBACK TESTS
 # =============================================================================
 class TestCombatMomentumAndFeedback:
     def test_combo_streak_increment_on_score(self):
@@ -274,13 +246,3 @@ class TestCombatMomentumAndFeedback:
         assert ctx.combo_count == 1
         assert ctx.combo_timer == 0.0
 
-    def test_boss_rating_popup_auto_dismissal(self):
-        ctx = GameContext()
-        ctx.boss_rating_timer = 3.5
-        ctx.latest_boss_rating = {"rating": "A", "boss_name": "Assembly Warden"}
-
-        # Advance timer past duration
-        ctx.update_timers(4.0)
-
-        assert ctx.boss_rating_timer == 0.0
-        assert ctx.latest_boss_rating is None

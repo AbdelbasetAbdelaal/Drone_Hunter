@@ -58,7 +58,6 @@ class GameplayController:
             encounter_system=kwargs.get("encounter_system"),
             combat_director=kwargs.get("combat_director"),
             mission_system=kwargs.get("mission_system"),
-            boss_system=kwargs.get("boss_system"),
             objective_system=kwargs.get("objective_system"),
             combat_system=kwargs.get("combat_system"),
             background=kwargs.get("background"),
@@ -73,7 +72,7 @@ class GameplayController:
 
     def start_mission(self, mission_id: Optional[str] = None, gp_ctx_or_context: Optional[Any] = None,
                       gp_ctx: Optional[Any] = None, progression=None, particle_manager=None, camera=None,
-                      encounter_system=None, combat_director=None, boss_system=None,
+                      encounter_system=None, combat_director=None,
                       objective_system=None, mission_system=None, background=None, **kwargs):
         """Prepares and launches a Phase 5/6 tactical mission."""
         target_ctx = gp_ctx if gp_ctx is not None else gp_ctx_or_context
@@ -86,7 +85,7 @@ class GameplayController:
             resolved_ctx = self._resolve_gameplay_context(
                 target_ctx, progression=progression, particle_manager=particle_manager,
                 camera=camera, encounter_system=encounter_system, combat_director=combat_director,
-                boss_system=boss_system, objective_system=objective_system,
+                objective_system=objective_system,
                 mission_system=mission_system, background=background, **kwargs
             )
 
@@ -97,7 +96,6 @@ class GameplayController:
         cam = resolved_ctx.camera
         enc = resolved_ctx.encounter_system
         cd = resolved_ctx.combat_director
-        bs = resolved_ctx.boss_system
         objs = resolved_ctx.objective_system
         bg = resolved_ctx.background
 
@@ -151,16 +149,11 @@ class GameplayController:
         from src.systems.spawn_system import WaveManager
 
         p = Player((WORLD_WIDTH // 2, WORLD_HEIGHT // 2))
-        selected_skin = getattr(ctx, "selected_skin_override", None)
-        if selected_skin is None:
-            selected_skin = getattr(ctx, "selected_skin", 0)
-
         selected_drone = getattr(ctx, "selected_drone_override", None)
         if selected_drone is None:
             selected_drone = getattr(ctx, "selected_drone", "striker")
 
         p.set_drone_class(selected_drone)
-        p.set_visual_skin(selected_skin)
         p.apply_shop_upgrades(ctx.upgrade_levels)
         if prog:
             prog.apply_to_player(ctx, p)
@@ -174,8 +167,7 @@ class GameplayController:
             target_score = prog.get_current_stage_target_score(
                 ctx.current_sector_idx, ctx.current_sub_level
             )
-        is_boss_stage = (ctx.current_sub_level == 3)
-        ctx.wave_manager = WaveManager(target_score, is_boss_stage=is_boss_stage)
+        ctx.wave_manager = WaveManager(target_score)
 
         if cam:
             cam.center_x = float(p.pos.x)
@@ -186,7 +178,7 @@ class GameplayController:
         if cd:
             cd.reset()
         if mission_sys:
-            mission_sys.start_mission(ctx, mission_id, cd, bs, objs)
+            mission_sys.start_mission(ctx, mission_id, cd, objs)
 
     def reset_game(self, gp_ctx_or_context=None, progression=None, particle_manager=None,
                    camera=None, spawner=None, encounter_system=None, combat_director=None,
@@ -233,16 +225,11 @@ class GameplayController:
         from src.systems.spawn_system import WaveManager
 
         ctx.player = Player((WORLD_WIDTH // 2, WORLD_HEIGHT // 2))
-        selected_skin = getattr(ctx, "selected_skin_override", None)
-        if selected_skin is None:
-            selected_skin = getattr(ctx, "selected_skin", 0)
-
         selected_drone = getattr(ctx, "selected_drone_override", None)
         if selected_drone is None:
             selected_drone = getattr(ctx, "selected_drone", "striker")
 
         ctx.player.set_drone_class(selected_drone)
-        ctx.player.set_visual_skin(selected_skin)
         ctx.player.apply_shop_upgrades(ctx.upgrade_levels)
         ctx.player.apply_weapon_upgrades(ctx.weapon_upgrade_levels)
         if prog:
@@ -258,8 +245,7 @@ class GameplayController:
             target_score = prog.get_current_stage_target_score(
                 ctx.current_sector_idx, ctx.current_sub_level
             )
-        is_boss_stage = (ctx.current_sub_level == 3)
-        ctx.wave_manager = WaveManager(target_score, is_boss_stage=is_boss_stage)
+        ctx.wave_manager = WaveManager(target_score)
 
         if spw is not None:
             spw.reset_for_stage(ctx.current_sector_idx * 3 + ctx.current_sub_level, ctx.current_sector_idx)
@@ -494,20 +480,19 @@ class GameplayController:
             combat_sys = args[3] if len(args) > 3 else kwargs.get("combat_system")
             combat_dir = args[4] if len(args) > 4 else kwargs.get("combat_director")
             mission_sys = args[5] if len(args) > 5 else kwargs.get("mission_system")
-            boss_sys = args[6] if len(args) > 6 else kwargs.get("boss_system")
-            obj_sys = args[7] if len(args) > 7 else kwargs.get("objective_system")
-            spawner_sys = args[8] if len(args) > 8 else kwargs.get("spawner")
-            enc_sys = args[9] if len(args) > 9 else kwargs.get("encounter_system")
-            ach_sys = args[10] if len(args) > 10 else kwargs.get("achievement_system")
-            cam_sys = args[11] if len(args) > 11 else kwargs.get("camera")
-            save_cb = args[12] if len(args) > 12 else kwargs.get("save_callback")
-            mouse_func = args[13] if len(args) > 13 else kwargs.get("get_canvas_mouse_pos_func")
+            obj_sys = args[6] if len(args) > 6 else kwargs.get("objective_system")
+            spawner_sys = args[7] if len(args) > 7 else kwargs.get("spawner")
+            enc_sys = args[8] if len(args) > 8 else kwargs.get("encounter_system")
+            ach_sys = args[9] if len(args) > 9 else kwargs.get("achievement_system")
+            cam_sys = args[10] if len(args) > 10 else kwargs.get("camera")
+            save_cb = args[11] if len(args) > 11 else kwargs.get("save_callback")
+            mouse_func = args[12] if len(args) > 12 else kwargs.get("get_canvas_mouse_pos_func")
 
             resolved_ctx = GameplayContext(
                 context=context, input_manager=input_mgr, audio_manager=audio_mgr,
                 particle_manager=particle_mgr, combat_system=combat_sys,
                 combat_director=combat_dir, mission_system=mission_sys,
-                boss_system=boss_sys, objective_system=obj_sys, spawner=spawner_sys,
+                objective_system=obj_sys, spawner=spawner_sys,
                 encounter_system=enc_sys, achievement_system=ach_sys, camera=cam_sys,
                 save_callback=save_cb, get_canvas_mouse_pos_func=mouse_func
             )
@@ -519,7 +504,6 @@ class GameplayController:
         combat_system = resolved_ctx.combat_system
         combat_director = resolved_ctx.combat_director
         mission_system = resolved_ctx.mission_system
-        boss_system = resolved_ctx.boss_system
         objective_system = resolved_ctx.objective_system
         spawner = resolved_ctx.spawner
         encounter_system = resolved_ctx.encounter_system
@@ -602,7 +586,7 @@ class GameplayController:
         # 2. Mission & Director Update
         if mission_system and mission_system.active_mission_id is not None:
             if combat_director: combat_director.update(dt, ctx)
-            mission_done = mission_system.update(dt, ctx, combat_director, boss_system, objective_system)
+            mission_done = mission_system.update(dt, ctx, combat_director, objective_system)
             if mission_done:
                 if mission_system.is_mission_success:
                     ctx.mission_elapsed_time = pygame.time.get_ticks() / 1000.0 - ctx.mission_start_time
@@ -667,19 +651,11 @@ class GameplayController:
         if ctx.hit_stop_timer > 0.0:
             ctx.hit_stop_timer = max(0.0, ctx.hit_stop_timer - dt)
 
-        prev_boss_phase = {}
         for target in list(ctx.target_group):
-            if getattr(target, "is_boss", False):
-                prev_boss_phase[id(target)] = target.current_phase_idx
             p_pos = (ctx.player.pos.x, ctx.player.pos.y) if ctx.player else (200, 360)
             p_vel = (ctx.player.velocity.x, ctx.player.velocity.y) if ctx.player else (0, 0)
             new_e_bullets = target.update(effective_enemy_dt, player_pos=p_pos, player_vel=p_vel, player_obj=ctx.player, target_group=ctx.target_group)
             for eb in new_e_bullets: ctx.enemy_bullet_group.add(eb)
-
-        for target in list(ctx.target_group):
-            if getattr(target, "is_boss", False) and id(target) in prev_boss_phase:
-                if target.current_phase_idx != prev_boss_phase[id(target)] and particle_manager:
-                    particle_manager.spawn_boss_phase_transition(target.rect.center, target.current_phase_idx)
 
         from src.entities.hazard import GravityAnomaly
         from src.entities.bullet import ClusterTorpedo, HomingMissile
@@ -730,13 +706,7 @@ class GameplayController:
             stage_complete = ctx.wave_manager.is_stage_complete(ctx.level_score, targets_group=ctx.target_group) if getattr(ctx, "wave_manager", None) is not None else False
             director_finished = (combat_director and combat_director.state == "complete" and len(living_enemies) == 0 and ctx.level_score >= 1200)
 
-            boss_just_died = getattr(ctx, "boss_defeat_timer", 0.0) > 0.0
-            if boss_just_died:
-                ctx.boss_defeat_timer = max(0.0, ctx.boss_defeat_timer - dt)
-            if getattr(ctx, "boss_rating_timer", 0.0) > 0.0:
-                ctx.boss_rating_timer = max(0.0, ctx.boss_rating_timer - dt)
-
-            if (stage_complete or director_finished) and not boss_just_died:
+            if stage_complete or director_finished:
                 ctx.state = STATE_LEVEL_CLEAR
                 if audio_manager: audio_manager.play_mission_complete()
                 if save_callback: save_callback()

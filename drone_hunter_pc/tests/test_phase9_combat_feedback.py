@@ -27,11 +27,9 @@ pygame.display.set_mode((1, 1))
 
 from src.rendering.particles import ParticleManager, MAX_COMBAT_PARTICLES
 from src.entities.enemy import Enemy, Scout, Shooter, Heavy
-from src.entities.boss import SectorBoss
-from src.data.boss_data import BossDefinition, BossPhaseConfig
 from src.data.game_data import (
     TARGET_TYPE_SCOUT, TARGET_TYPE_SHOOTER, TARGET_TYPE_HEAVY,
-    TARGET_TYPE_SHIELD_DRONE, TARGET_TYPE_BOSS
+    TARGET_TYPE_SHIELD_DRONE
 )
 
 
@@ -73,10 +71,6 @@ class TestEffectsCreatedOnCombatEvents(unittest.TestCase):
         self.pm.spawn_heavy_impact((100, 100))
         self.assertGreater(len(self.pm.particles), 0)
 
-    def test_boss_phase_transition_created(self):
-        self.pm.spawn_boss_phase_transition((100, 100), 1)
-        self.assertGreater(len(self.pm.particles), 0)
-
     def test_player_destruction_created(self):
         self.pm.spawn_player_destruction((100, 100))
         self.assertGreater(len(self.pm.particles), 0)
@@ -98,12 +92,6 @@ class TestEffectsExpireCorrectly(unittest.TestCase):
     def test_muzzle_flash_expires(self):
         self.pm.spawn_muzzle_flash((100, 100), 0.0, "pulse")
         for _ in range(60):
-            self.pm.update(0.016)
-        self.assertEqual(len(self.pm.particles), 0)
-
-    def test_boss_phase_transition_expires(self):
-        self.pm.spawn_boss_phase_transition((100, 100), 1)
-        for _ in range(120):
             self.pm.update(0.016)
         self.assertEqual(len(self.pm.particles), 0)
 
@@ -137,23 +125,6 @@ class TestParticleLimits(unittest.TestCase):
         for _ in range(200):
             pm.spawn_weather("rain")
         self.assertLessEqual(len(pm.weather_particles), 70)
-
-
-class TestBossPhaseTransitionEffect(unittest.TestCase):
-    """Test boss phase transition effect triggers on phase change."""
-
-    def test_phase_transition_effect_triggers_on_change(self):
-        boss = SectorBoss._create_sector_boss = lambda self, si, hp, spd: None
-        pm = ParticleManager()
-        pm.spawn_boss_phase_transition((100, 100), 0)
-        self.assertEqual(len(pm.particles), 18)
-
-    def test_phase_transition_effect_uses_correct_color(self):
-        pm = ParticleManager()
-        pm.spawn_boss_phase_transition((100, 100), 0)
-        colors = [p.color for p in pm.particles.sprites()]
-        expected = (56, 189, 248)
-        self.assertTrue(any(c == expected for c in colors))
 
 
 class TestNoShadowSystem(unittest.TestCase):
@@ -346,14 +317,6 @@ class TestAssetBackedVFX(unittest.TestCase):
         self.assertGreater(len(pm.explosion_overlays), 0)
         self.assertEqual(pm.explosion_overlays[0].max_size, 100)
 
-    def test_boss_explosion_uses_large_scale(self):
-        from src.rendering.particles import ParticleManager
-        pm = ParticleManager()
-        pm.spawn_boss_explosion((100, 100))
-        self.assertEqual(len(pm.explosion_overlays), 2)
-        sizes = [o.max_size for o in pm.explosion_overlays]
-        self.assertTrue(all(s >= 180 for s in sizes))
-
     def test_weapon_assets_remain_mapped(self):
         from src.rendering.sprite_manager import get_sprite_manager
         sm = get_sprite_manager()
@@ -417,14 +380,6 @@ class TestAssetBackedVFX(unittest.TestCase):
         am.play_death_heavy()
         self.assertIsNotNone(am._sound_cache.get("death_heavy"))
 
-    def test_boss_explosion_audio(self):
-        from src.audio.audio_manager import AudioManager
-        am = AudioManager(sound_enabled=True)
-        if not am.mixer_initialized:
-            self.skipTest("Audio mixer not initialized")
-        am.play_boss_death()
-        self.assertIsNotNone(am._sound_cache.get("death_boss"))
-
     def test_player_destruction_audio(self):
         from src.audio.audio_manager import AudioManager
         am = AudioManager(sound_enabled=True)
@@ -441,11 +396,9 @@ class TestAssetBackedVFX(unittest.TestCase):
         am.play_death("scout")
         am.play_death("shooter")
         am.play_death("heavy")
-        am.play_death("boss")
         self.assertIsNotNone(am._sound_cache.get("death_scout"))
         self.assertIsNotNone(am._sound_cache.get("death_shooter"))
         self.assertIsNotNone(am._sound_cache.get("death_heavy"))
-        self.assertIsNotNone(am._sound_cache.get("death_boss"))
 
     def test_explosion_audio_asset_exists(self):
         import os

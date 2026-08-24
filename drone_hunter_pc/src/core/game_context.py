@@ -81,7 +81,6 @@ class GameContext:
         }
         self.weapon_upgrade_levels: Dict[str, int] = {}
         self.unlocked_weapons: List[str] = ["pulse", "scatter", "missile"]
-        self.unlocked_skins: List[int] = [0]
         
         # Authoritative campaign state
         self.campaign_state: CampaignState = CampaignState()
@@ -101,8 +100,6 @@ class GameContext:
         })
         self._sector_progress_dict.set_sync_callback(self._on_sector_progress_sync)
         
-        # Phase 6 Boss & Endgame State
-        self.bosses_defeated: List[str] = self.campaign_state._bosses_defeated
         self.campaign_completed: bool = self.campaign_state._campaign_completed
         
         # Achievement Tracking
@@ -114,11 +111,6 @@ class GameContext:
         self.mission_damage_taken: float = 0.0
         self.mission_start_time: float = 0.0
         self.mission_elapsed_time: float = 0.0
-        self.boss_ratings: dict = {}
-        self.boss_fight_start_time: float = 0.0
-        self.boss_start_health: float = 100.0
-        self.boss_rating_timer: float = 0.0
-        self.latest_boss_rating: dict = None
 
         # New Game+ State
         self.new_game_plus_count: int = self.campaign_state._new_game_plus_count
@@ -154,7 +146,6 @@ class GameContext:
         self.damage_flash_timer: float = 0.0
         self.screen_shake_time: float = 0.0
         self.screen_shake_intensity: float = 0.0
-        self.boss_defeat_timer: float = 0.0
 
         # Spawning Timers
         self.obstacle_timer: float = 0.0
@@ -197,7 +188,6 @@ class GameContext:
         cs = self.campaign_state
         self.current_sector_idx = cs.current_sector_idx
         self.current_sub_level = cs.current_sub_level
-        self.bosses_defeated = cs._bosses_defeated
         self.campaign_completed = cs.campaign_completed
         self.new_game_plus_count = cs.new_game_plus_count
         self._missions_dict = _SyncedDict({
@@ -228,8 +218,6 @@ class GameContext:
             cs.complete_sector(s_id)
         for s_id in sp.get("unlocked", []):
             cs.unlock_sector(s_id)
-        for b_id in self.bosses_defeated:
-            cs.record_boss_defeat(b_id)
         if self.campaign_completed:
             cs.mark_campaign_complete()
         cs._new_game_plus_count = self.new_game_plus_count
@@ -276,14 +264,6 @@ class GameContext:
     @current_sub_level.setter
     def current_sub_level(self, value: int):
         self.campaign_state.set_current_sector_and_stage(self.current_sector_idx, value)
-
-    @property
-    def bosses_defeated(self) -> List[str]:
-        return self.campaign_state._bosses_defeated
-
-    @bosses_defeated.setter
-    def bosses_defeated(self, value: List[str]):
-        self.campaign_state._bosses_defeated = list(value)
 
     @property
     def campaign_completed(self) -> bool:
@@ -469,13 +449,6 @@ class GameContext:
         # Damage Flash
         if self.damage_flash_timer > 0:
             self.damage_flash_timer = max(0.0, self.damage_flash_timer - dt)
-
-        # Boss Performance Rating Popup Timer (cleanly disappears after duration)
-        if getattr(self, "boss_rating_timer", 0.0) > 0.0:
-            self.boss_rating_timer -= dt
-            if self.boss_rating_timer <= 0.0:
-                self.boss_rating_timer = 0.0
-                self.latest_boss_rating = None
 
     def update_ng_plus_multipliers(self):
         self._ng_plus_scrap_mult = 1.0 + 0.10 * self.new_game_plus_count

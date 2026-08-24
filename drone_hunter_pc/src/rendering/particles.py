@@ -25,7 +25,7 @@ from src.data.settings import (
 )
 from src.data.game_data import (
     TARGET_TYPE_SCOUT, TARGET_TYPE_SHOOTER, TARGET_TYPE_HEAVY,
-    TARGET_TYPE_ARMORED, TARGET_TYPE_SHIELD_DRONE, TARGET_TYPE_BOSS
+    TARGET_TYPE_ARMORED, TARGET_TYPE_SHIELD_DRONE
 )
 
 MAX_COMBAT_PARTICLES = 300
@@ -235,10 +235,6 @@ class ParticleManager:
             self.spawn_explosion(pos, count=20, color=color, sprite_name='explosion_1', max_size=88)
         self.spawn_spark(pos, count=14, color=COLOR_WHITE)
 
-    def spawn_boss_explosion(self, pos: tuple[float, float]):
-        self.spawn_explosion(pos, count=45, color=COLOR_GOLD, sprite_name='explosion_2', max_size=210)
-        self.spawn_explosion(pos, count=30, color=COLOR_CRIMSON, sprite_name='explosion_2', max_size=180)
-        self.spawn_spark(pos, count=28, color=COLOR_WHITE)
 
     def spawn_objective_destruction(self, pos: tuple[float, float]):
         """Objective-specific destruction VFX (NOT boss terminology)."""
@@ -417,10 +413,6 @@ class ParticleManager:
             count = 8
             spd_max = 240.0
             col = COLOR_SHIELD
-        elif enemy_type == TARGET_TYPE_BOSS:
-            count = 10
-            spd_max = 260.0
-            col = COLOR_GOLD
         else:
             count = 7
             spd_max = 250.0
@@ -457,22 +449,6 @@ class ParticleManager:
             vel = (math.cos(ang) * spd, math.sin(ang) * spd)
             life = random.uniform(0.15, 0.30)
             self.particles.add(Particle(pos, vel, (120, 100, 80), random.uniform(2.5, 5.0), life))
-        self._enforce_particle_cap()
-
-    def spawn_boss_phase_transition(self, pos: tuple[float, float], phase_idx: int):
-        phase_colors = [
-            (56, 189, 248),
-            (245, 158, 11),
-            (239, 68, 68),
-            (217, 70, 239),
-        ]
-        col = phase_colors[min(phase_idx, len(phase_colors) - 1)]
-        for _ in range(18):
-            ang = random.uniform(0, math.tau)
-            spd = random.uniform(80.0, 260.0)
-            vel = (math.cos(ang) * spd, math.sin(ang) * spd)
-            life = random.uniform(0.25, 0.55)
-            self.particles.add(Particle(pos, vel, col, random.uniform(3.0, 6.0), life))
         self._enforce_particle_cap()
 
     def spawn_player_destruction(self, pos: tuple[float, float]):

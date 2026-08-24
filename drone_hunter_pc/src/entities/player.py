@@ -4,7 +4,7 @@
 ================================================================================
 Player combat drone entity featuring 2D kinematic flight physics, 360-degree
 mouse aiming, dual hardpoint weapon firing, active tactical abilities (Overdrive,
-Cloak, EMP, Roll), unified shield hit absorption, and dynamic skin themes.
+Cloak, EMP, Roll), and unified shield hit absorption.
 """
 
 import math
@@ -23,7 +23,7 @@ from src.data.game_data import (
     CLOAK_DURATION, CLOAK_COOLDOWN_MAX, OVERDRIVE_DURATION, OVERDRIVE_COOLDOWN_MAX,
     WEAPON_PULSE, WEAPON_SCATTER, WEAPON_MISSILE, WEAPON_RAPID, WEAPON_PLASMA,
     WEAPON_RAIL, WEAPON_BARRAGE, WEAPON_BEAM, WEAPON_TESLA, WEAPON_CLUSTER, WEAPON_EMP,
-    WEAPON_DEFS, WEAPON_UPGRADES, DRONE_SKINS, DRONE_CLASSES, DRONE_CLASS_STRIKER
+    WEAPON_DEFS, WEAPON_UPGRADES, DRONE_CLASSES, DRONE_CLASS_STRIKER
 )
 from src.entities.bullet import (
     Bullet, HomingMissile, ContinuousBeam, TeslaArcBeam, ClusterTorpedo,
@@ -134,7 +134,6 @@ class Player(pygame.sprite.Sprite):
         # Weapon Mounts & State
         self._rapid_side = 0
         self._missile_side = 0
-        self.skin_theme = 0
         self.drone_class_id = "striker"
         self.available_weapons = [WEAPON_PULSE, WEAPON_SCATTER, WEAPON_MISSILE]
         self.current_weapon_idx = 0
@@ -153,7 +152,6 @@ class Player(pygame.sprite.Sprite):
         
         # Apply initial drone class profile
         self.drone_class_id = DRONE_CLASS_STRIKER
-        self.skin_theme = 0
         self.set_drone_class(DRONE_CLASS_STRIKER)
 
     def set_drone_class(self, class_id: str):
@@ -183,17 +181,6 @@ class Player(pygame.sprite.Sprite):
         mapping = ["striker", "interceptor", "assault", "arc", "command"]
         idx = max(0, min(len(mapping) - 1, class_idx))
         self.set_drone_class(mapping[idx])
-        self.set_visual_skin(idx)
-
-    def set_visual_skin(self, skin_idx: int):
-        """Sets the visual skin (color palette) for the drone."""
-        from src.data.game_data import DRONE_SKINS
-        self.skin_theme = max(0, min(len(DRONE_SKINS) - 1, skin_idx))
-        self._render_drone_sprite()
-
-    def cycle_visual_skin(self, step: int = 1) -> int:
-        """Cycles aesthetic drone chassis theme."""
-        return self.cycle_skin(step)
 
     @property
     def drone_class(self) -> str:
@@ -202,14 +189,6 @@ class Player(pygame.sprite.Sprite):
     @drone_class.setter
     def drone_class(self, val: str):
         self.set_drone_class(val)
-
-    @property
-    def skin_id(self) -> int:
-        return self.skin_theme
-
-    @skin_id.setter
-    def skin_id(self, val: int):
-        self.set_visual_skin(val)
 
     def get_mount_world_pos(self, mount_name: str = "primary") -> tuple[float, float]:
         """Calculates rotated world coordinates for a local-space weapon mount point."""
@@ -265,7 +244,7 @@ class Player(pygame.sprite.Sprite):
         return False
 
     def trigger_emp_jammed(self, duration: float = 3.0):
-        """Jams player systems upon being hit by EMP Boss attack."""
+        """Jams player systems after an EMP attack."""
         if not self.is_invulnerable:
             self.emp_jammed_timer = max(self.emp_jammed_timer, duration)
 
@@ -338,13 +317,6 @@ class Player(pygame.sprite.Sprite):
         """Triggers weapon overclock fire rate boost."""
         self.overclock_timer = max(self.overclock_timer, duration)
 
-    def cycle_skin(self, step: int = 1) -> int:
-        """Cycles aesthetic drone chassis theme."""
-        from src.data.game_data import DRONE_SKINS
-        next_skin = (self.skin_theme + step) % len(DRONE_SKINS)
-        self.set_visual_skin(next_skin)
-        return self.skin_theme
-
     def cycle_drone_class(self, step: int = 1) -> str:
         """Cycles through available drone combat classes and updates chassis aesthetics."""
         from src.data.game_data import DRONE_CLASSES
@@ -356,11 +328,7 @@ class Player(pygame.sprite.Sprite):
         next_idx = (curr_idx + step) % len(class_ids)
         next_id = class_ids[next_idx]
         self.set_drone_class(next_id)
-        self.set_visual_skin(next_idx)
         return self.drone_class_id
-
-    def set_skin(self, index: int):
-        self.set_visual_skin(index)
 
     def apply_shop_upgrades(self, upgrades: dict):
         """Applies persistent hangar upgrade statistics."""
@@ -739,4 +707,4 @@ class Player(pygame.sprite.Sprite):
         """Pre-renders base sprite for collision or group fallbacks."""
         from src.rendering.sprite_manager import get_sprite_manager
         sm = get_sprite_manager()
-        self.image = sm.get_player_sprite(state="idle", skin_idx=self.skin_theme, target_size=(68, 58))
+        self.image = sm.get_player_sprite(state="idle", target_size=(68, 58))

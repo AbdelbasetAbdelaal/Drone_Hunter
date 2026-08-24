@@ -37,10 +37,6 @@ from src.data.mission_data import (
     SECTORS_PHASE5, get_mission_data, get_missions_for_sector,
     MISSION_REWARDS, SECTOR_BONUS
 )
-from src.data.boss_data import (
-    BOSS_ASSEMBLY_WARDEN, BOSS_CORE_EXECUTOR, BOSS_REACTOR_TITAN,
-    BOSS_DEFENSE_COMMANDER, BOSS_DRONE_OVERLORD
-)
 from src.systems.save_system import SaveSystem
 from src.audio.audio_manager import AudioManager
 
@@ -88,13 +84,6 @@ class TestPhase7Release(unittest.TestCase):
         """Simulate completing all 25 missions sequentially to reach Campaign Victory."""
         ctx = self.game.context
         ms = self.game.mission_system
-        boss_map = {
-            1: BOSS_ASSEMBLY_WARDEN,
-            2: BOSS_CORE_EXECUTOR,
-            3: BOSS_REACTOR_TITAN,
-            4: BOSS_DEFENSE_COMMANDER,
-            5: BOSS_DRONE_OVERLORD
-        }
 
         for sector_id in range(1, 6):
             # Sector must be unlocked
@@ -108,20 +97,12 @@ class TestPhase7Release(unittest.TestCase):
                 self.assertEqual(ctx.state, STATE_PLAYING)
                 self.assertEqual(ms.active_mission_id, m_id)
 
-                if mission_num == 5:
-                    # Boss defeat simulation
-                    b_id = boss_map[sector_id]
-                    if b_id not in ctx.bosses_defeated:
-                        ctx.bosses_defeated.append(b_id)
-
                 # Trigger success
                 ms._trigger_success(ctx)
                 self.assertIn(m_id, ctx.missions["completed"])
 
-        # After defeating Sector 5 Mission 5, campaign should be marked completed
+        # After completing Sector 5 Mission 5, campaign should be marked completed
         self.assertTrue(ctx.campaign_completed)
-        self.assertEqual(len(ctx.bosses_defeated), 5)
-        self.assertIn(BOSS_DRONE_OVERLORD, ctx.bosses_defeated)
 
     # -------------------------------------------------------------------------
     # 4. Hangar Upgrades & Currency Safety
@@ -240,8 +221,6 @@ class TestPhase7Release(unittest.TestCase):
         am.play_roll()
         am.play_cloak()
         am.play_buy()
-        am.play_boss_alert()
-        am.play_boss_death()
 
     # -------------------------------------------------------------------------
     # 9. Save System Hardening & Corruption Recovery
@@ -256,7 +235,6 @@ class TestPhase7Release(unittest.TestCase):
 
             loaded = save_sys.load()
             self.assertEqual(loaded["scrap"], 0)
-            self.assertEqual(loaded["bosses_defeated"], [])
             self.assertFalse(loaded["campaign_completed"])
             self.assertEqual(len(loaded["sectors"]), 5)
         finally:

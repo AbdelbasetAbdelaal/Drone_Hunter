@@ -173,25 +173,7 @@ class TestCombatFeedbackPolish(unittest.TestCase):
         self.assertEqual(ctx.screen_shake_intensity, 0.0)
 
 
-class TestBossPacingPolish(unittest.TestCase):
-    """Test boss phase transitions and attack pacing."""
 
-    def test_boss_phase_transition_triggered(self):
-        ctx = GameContext()
-        ctx.player = Player((400, 400))
-        from src.entities.boss import SkyDreadnoughtBoss
-        boss = SkyDreadnoughtBoss(level=1, sector_idx=0)
-        ctx.target_group.add(boss)
-        combat = CombatSystem(ctx)
-        prev_phase = boss.current_phase_idx
-        boss.hp = boss.max_hp * 0.65
-        boss.take_damage(boss.max_hp * 0.3)
-        combat.update_combat(0.016)
-        if boss.alive and boss.current_phase_idx != prev_phase:
-            self.assertNotEqual(boss.current_phase_idx, prev_phase)
-
-
-from src.data.settings import COLOR_GOLD
 
 
 class TestScorePopupColors(unittest.TestCase):

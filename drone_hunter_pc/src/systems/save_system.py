@@ -70,14 +70,12 @@ class SaveSystem:
                 "completed": [],
                 "unlocked": [1]
             },
-            "bosses_defeated": [],
             "campaign_completed": False,
             "achievements": [],
             "show_crt": False,
             "difficulty_mode": 1,
             "custom_difficulty": CUSTOM_DIFFICULTY_DEFAULTS.copy(),
             "selected_drone": "striker",
-            "selected_skin": 0,
             "audio_settings": {
                 "sound_enabled": True,
                 "sfx_volume": 0.80,
@@ -210,7 +208,6 @@ class SaveSystem:
             missions = data.get("missions", defaults["missions"])
             sector_progress = data.get("sector_progress", defaults["sector_progress"])
 
-            bosses_defeated = list(data.get("bosses_defeated", defaults["bosses_defeated"]))
             campaign_completed = bool(data.get("campaign_completed", defaults["campaign_completed"]))
             achievements = list(data.get("achievements", defaults["achievements"]))
             if not isinstance(achievements, list):
@@ -275,14 +272,12 @@ class SaveSystem:
                 "stages": stages,
                 "missions": missions,
                 "sector_progress": sector_progress,
-                "bosses_defeated": bosses_defeated,
                 "campaign_completed": campaign_completed,
                 "achievements": achievements,
                 "show_crt": show_crt,
                 "difficulty_mode": difficulty_mode,
                 "custom_difficulty": custom_difficulty,
                 "selected_drone": selected_drone,
-                "selected_skin": selected_skin,
                 "audio_settings": audio_settings,
                 "controller_settings": controller_settings,
                 "controller_mappings": controller_mappings
@@ -338,7 +333,6 @@ class SaveSystem:
         defaults = self.get_default_save_data()
         if missions is None: missions = defaults["missions"]
         if sector_progress is None: sector_progress = defaults["sector_progress"]
-        if bosses_defeated is None: bosses_defeated = defaults["bosses_defeated"]
         if weapon_upgrades is None: weapon_upgrades = defaults["weapon_upgrades"]
         if unlocked_weapons is None: unlocked_weapons = defaults["unlocked_weapons"]
         if audio_settings is None: audio_settings = defaults["audio_settings"]
@@ -361,14 +355,12 @@ class SaveSystem:
             "stages": stages,
             "missions": missions,
             "sector_progress": sector_progress,
-            "bosses_defeated": bosses_defeated,
             "campaign_completed": bool(campaign_completed),
             "achievements": list(achievements),
             "show_crt": bool(show_crt),
             "difficulty_mode": int(difficulty_mode) % 5,
             "custom_difficulty": custom_difficulty,
             "selected_drone": str(selected_drone),
-            "selected_skin": int(selected_skin),
             "audio_settings": audio_settings,
             "controller_settings": controller_settings,
             "controller_mappings": controller_mappings

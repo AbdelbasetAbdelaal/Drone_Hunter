@@ -31,10 +31,7 @@ from src.audio.audio_manager import (
 )
 from src.core.game_context import GameContext
 from src.entities.player import Player
-from src.entities.boss import SectorBoss
-from src.data.boss_data import ASSEMBLY_WARDEN_CONFIG
 from src.data.game_data import PLAYER_MAX_HEALTH, HORIZONTAL_SPEED
-from src.systems.boss_system import BossSystem, STATE_ACTIVE
 
 
 class TestPhase10Audio(unittest.TestCase):
@@ -59,10 +56,9 @@ class TestPhase10Audio(unittest.TestCase):
         """Verify all essential sound waveforms are cached at startup."""
         expected_keys = [
             "laser", "scatter", "missile", "beam", "tesla", "cluster", "sniper", "emp",
-            "hit_scout", "hit_shooter", "hit_heavy", "hit_shield", "hit_boss", "hit",
+            "hit_scout", "hit_shooter", "hit_heavy", "hit_shield", "hit",
             "death_scout", "death_shooter", "death_heavy", "death_shield", "death_boss", "explosion",
             "player_hit", "player_death", "roll", "engine_hum", "overdrive", "cloak", "powerup",
-            "boss_alert", "boss_attack", "boss_phase_2", "boss_phase_3", "boss_phase_4",
             "ui_click", "ui_hover", "mission_start", "mission_complete", "game_over", "victory", "buy"
         ]
         for key in expected_keys:
@@ -98,7 +94,7 @@ class TestPhase10Audio(unittest.TestCase):
         impact_methods = [
             self.audio.play_hit_scout, self.audio.play_hit_shooter,
             self.audio.play_hit_heavy, self.audio.play_hit_shield,
-            self.audio.play_hit_boss, self.audio.play_hit
+            self.audio.play_hit
         ]
         for hit_func in impact_methods:
             try:
@@ -111,7 +107,7 @@ class TestPhase10Audio(unittest.TestCase):
         death_methods = [
             self.audio.play_death_scout, self.audio.play_death_shooter,
             self.audio.play_death_heavy, self.audio.play_death_shield,
-            self.audio.play_boss_death, self.audio.play_death
+            self.audio.play_death
         ]
         for death_func in death_methods:
             try:
@@ -141,31 +137,6 @@ class TestPhase10Audio(unittest.TestCase):
             self.audio.stop_engine_sound()
         except Exception as e:
             self.fail(f"Engine audio modulation raised exception: {e}")
-
-    def test_boss_phase_transition_fires_once(self):
-        """Verify Boss Phase Transition audio triggers exactly once per phase transition."""
-        boss = SectorBoss(ASSEMBLY_WARDEN_CONFIG, pos=(500, 400))
-        self.ctx.target_group.add(boss)
-        
-        boss_sys = BossSystem()
-        boss_sys.active_boss = boss
-        boss_sys.active_boss_def = ASSEMBLY_WARDEN_CONFIG
-        boss_sys.state = STATE_ACTIVE
-
-        # Initially Phase 1 -> phase_audio_pending is 0
-        self.assertEqual(getattr(boss, "phase_audio_pending", 0), 0)
-
-        # Transition to Phase 2
-        boss._apply_phase(1)
-        self.assertEqual(boss.phase_audio_pending, 2)
-
-        # BossSystem update consumes the pending audio
-        boss_sys.update(0.016, self.ctx)
-        self.assertEqual(boss.phase_audio_pending, 0)
-
-        # Subsequent frames do NOT re-trigger audio
-        boss_sys.update(0.016, self.ctx)
-        self.assertEqual(boss.phase_audio_pending, 0)
 
     def test_ui_audio_methods(self):
         """Verify all UI audio methods function without error."""

@@ -3,7 +3,7 @@
                     DRONE HUNTER 2D - SPAWN & WAVE MANAGER
 ================================================================================
 Coordinates tactical wave progressions, regular enemy group formations,
-and multi-phase Boss Dreadnought introductions.
+and environmental hazards.
 """
 
 import math
@@ -13,22 +13,16 @@ from src.data.settings import SCREEN_WIDTH, SCREEN_HEIGHT, WORLD_WIDTH, WORLD_HE
 from src.data.game_data import (
     TARGET_TYPE_STANDARD, TARGET_TYPE_FAST, TARGET_TYPE_ARMORED, TARGET_TYPE_SHOOTER,
     TARGET_TYPE_TURRET, TARGET_TYPE_VEHICLE, TARGET_TYPE_CHASER, TARGET_TYPE_SWARM,
-    TARGET_TYPE_SHIELD_DRONE, TARGET_TYPE_SNIPER, TARGET_TYPE_BOSS,
+    TARGET_TYPE_SHIELD_DRONE, TARGET_TYPE_SNIPER,
     TARGET_TYPE_SCOUT, TARGET_TYPE_HEAVY,
-    TARGET_TYPE_STEALTH_MIRAGE, TARGET_TYPE_EMP_DISRUPTER, TARGET_TYPE_TITAN_MECH,
     SECTORS
 )
 from src.entities.enemy import Enemy
-from src.entities.boss import (
-    SkyDreadnoughtBoss, StealthMirageBoss, EMPDisrupterBoss, ColossusTitanMechBoss
-)
 
 class WaveManager:
-    def __init__(self, target_score: int = 5000, is_boss_stage: bool = False):
+    def __init__(self, target_score: int = 5000):
         self.target_score = max(500, target_score)
-        self.is_boss_stage = is_boss_stage
         self.current_wave = 1
-        self.boss_spawned = False
 
     def update_wave(self, current_score: int) -> int:
         ratio = current_score / self.target_score
@@ -36,23 +30,11 @@ class WaveManager:
         elif ratio < 0.60: self.current_wave = 2
         elif ratio < 0.90: self.current_wave = 3
         else: self.current_wave = 4
+
         return self.current_wave
 
     def is_stage_complete(self, current_score: int, targets_group=None) -> bool:
-        score_reached = current_score >= self.target_score
-        if not self.is_boss_stage:
-            return score_reached
-
-        # Boss stages require score met + Boss spawned + Boss eliminated
-        if not score_reached or not self.boss_spawned:
-            return False
-
-        if targets_group is not None:
-            for t in targets_group:
-                if getattr(t, "is_boss", False) and t.alive:
-                    return False
-
-        return True
+        return current_score >= self.target_score
 
 
 class Spawner:
@@ -63,14 +45,12 @@ class Spawner:
         self.next_interval = random.uniform(base_min_interval, base_max_interval)
         self.level = 1
         self.sector_idx = 0
-        self.boss_spawned = False
 
     def reset_for_stage(self, level: int, sector_idx: int):
         self.level = level
         self.sector_idx = sector_idx
         self.timer = 0.0
         self.next_interval = random.uniform(self.base_min_interval, self.base_max_interval)
-        self.boss_spawned = False
 
     def update(self, dt: float, context):
         """Spawns enemies, environmental obstacles, and hazards based on stage progress."""
@@ -79,15 +59,6 @@ class Spawner:
         diff_data = context.difficulty_data
         hp_mult = diff_data.get("hp_mult", 1.0) * getattr(context, "ng_plus_enemy_hp_mult", 1.0)
         spd_mult = diff_data.get("speed_mult", 1.0)
-
-        # Stage 3 Boss Spawn (Wave 4)
-        if context.current_sub_level == 3 and current_wave == 4 and not self.boss_spawned:
-            self.boss_spawned = True
-            if hasattr(context, "wave_manager") and context.wave_manager:
-                context.wave_manager.boss_spawned = True
-            boss = self._create_sector_boss(self.sector_idx, hp_mult, spd_mult)
-            if boss:
-                context.target_group.add(boss)
 
         if self.timer >= self.next_interval:
             self.timer = 0.0
@@ -137,18 +108,6 @@ class Spawner:
                 TARGET_TYPE_SCOUT, TARGET_TYPE_ARMORED, TARGET_TYPE_SHOOTER,
                 TARGET_TYPE_HEAVY, TARGET_TYPE_SHIELD_DRONE, TARGET_TYPE_SNIPER
             ])
-
-    def _create_sector_boss(self, sector_idx: int, hp_mult: float, spd_mult: float):
-        if sector_idx == 0:
-            return SkyDreadnoughtBoss(level=self.level, sector_idx=0, hp_multiplier=hp_mult, speed_multiplier=spd_mult)
-        elif sector_idx == 1:
-            return StealthMirageBoss(level=self.level, sector_idx=1, hp_multiplier=hp_mult, speed_multiplier=spd_mult)
-        elif sector_idx == 2:
-            return EMPDisrupterBoss(level=self.level, sector_idx=2, hp_multiplier=hp_mult, speed_multiplier=spd_mult)
-        elif sector_idx == 3:
-            return SkyDreadnoughtBoss(level=self.level, sector_idx=3, hp_multiplier=hp_mult, speed_multiplier=spd_mult)
-        else: # Sector 4: Final Colossus Titan
-            return ColossusTitanMechBoss(level=self.level, sector_idx=4, hp_multiplier=hp_mult, speed_multiplier=spd_mult)
 
     def _get_edge_spawn(self, formation: str = "random") -> tuple[float, float]:
         """Returns a deterministic edge spawn position based on formation type."""

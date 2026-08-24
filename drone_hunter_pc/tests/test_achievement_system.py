@@ -55,7 +55,7 @@ class TestAchievementSystem(unittest.TestCase):
     def test_achievement_definitions(self):
         """Verify all required achievements are defined."""
         required = [
-            "first_kill", "first_boss", "combo_10", "combo_25",
+            "first_kill", "combo_10", "combo_25",
             "no_damage_mission", "speed_run", "all_sectors_cleared",
             "all_weapons_unlocked", "max_upgrades",
             "first_emp_kill", "first_overdrive_kill", "survivalist",
@@ -90,15 +90,6 @@ class TestAchievementSystem(unittest.TestCase):
         self.ctx.combo_count = 25
         self.ach.check_all(self.ctx)
         self.assertIn("combo_25", self.ach.unlocked)
-
-    def test_first_boss(self):
-        """Verify first_boss unlocks after defeating a boss."""
-        self.ach.check_all(self.ctx)
-        self.assertNotIn("first_boss", self.ach.unlocked)
-
-        self.ctx.bosses_defeated = ["sky_dreadnought"]
-        self.ach.check_all(self.ctx)
-        self.assertIn("first_boss", self.ach.unlocked)
 
     def test_first_emp_kill(self):
         """Verify first_emp_kill unlocks after an EMP kill."""

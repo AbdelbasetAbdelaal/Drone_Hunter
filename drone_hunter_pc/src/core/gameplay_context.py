@@ -24,7 +24,6 @@ class GameplayContext:
     encounter_system: Optional[Any] = None
     combat_director: Optional[Any] = None
     mission_system: Optional[Any] = None
-    boss_system: Optional[Any] = None
     objective_system: Optional[Any] = None
     combat_system: Optional[Any] = None
     background: Optional[Any] = None

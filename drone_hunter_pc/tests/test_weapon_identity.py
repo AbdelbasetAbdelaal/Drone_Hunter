@@ -229,7 +229,6 @@ def test_17_save_system_compatibility():
     save_sys = SaveSystem()
     data = save_sys.load()
     assert "selected_drone" in data
-    assert "selected_skin" in data
     assert data["selected_drone"] in ("striker", "interceptor", "assault", "arc", "command")
 
 

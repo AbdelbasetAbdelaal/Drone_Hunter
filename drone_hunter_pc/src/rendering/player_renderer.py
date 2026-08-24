@@ -13,7 +13,6 @@ import pygame
 from src.data.settings import (
     COLOR_CYAN, COLOR_GOLD, COLOR_WHITE, COLOR_SHIELD, COLOR_NEON_RED, COLOR_CRIMSON
 )
-from src.data.game_data import DRONE_SKINS
 from src.rendering.sprite_manager import get_sprite_manager
 
 class PlayerRenderer:
@@ -34,10 +33,7 @@ class PlayerRenderer:
         screen_x = player.pos.x - ox
         screen_y = player.pos.y - oy
 
-        skin_idx = max(0, min(len(DRONE_SKINS) - 1, player.skin_theme)) if isinstance(player.skin_theme, int) else 0
-        skin = DRONE_SKINS[skin_idx]
-        primary_color = skin.get("primary_color", COLOR_CYAN)
-        glow_color = skin.get("glow_color", (56, 189, 248))
+        glow_color = (56, 189, 248)
 
         current_speed = player.velocity.length()
         speed_ratio = min(1.0, current_speed / max(1.0, getattr(player, "speed", 450.0)))
@@ -137,7 +133,7 @@ class PlayerRenderer:
 
         # 3. Render Pre-Cached Rotated Mechanical Drone Chassis (Primary Visual - Enlarged HD Scale 176x152)
         rotated_drone = self.sprite_manager.get_rotated_player_sprite(
-            state=state, skin_idx=skin_idx, angle_deg=total_rot_deg, target_size=(176, 152)
+            state=state, angle_deg=total_rot_deg, target_size=(176, 152)
         )
         
         # Stealth Cloak Visual Effect: Phantom Translucency + Cyan Phase Distortion
@@ -235,7 +231,7 @@ class PlayerRenderer:
             progress = 1.0 - (player.destruction_timer / 1.4)
             destroy_alpha = int(255 * max(0.0, 1.0 - progress * 1.1))
             destroy_size = int(110 + progress * 95)
-            destroy_sprite = self.sprite_manager.get_player_state_sprite('destroy', skin_idx, (destroy_size, destroy_size))
+            destroy_sprite = self.sprite_manager.get_player_state_sprite('destroy', target_size=(destroy_size, destroy_size))
             destroy_surf = destroy_sprite.copy()
             destroy_surf.set_alpha(destroy_alpha)
             destroy_rect = destroy_surf.get_rect(center=(int(round(screen_x)), int(round(screen_y))))
