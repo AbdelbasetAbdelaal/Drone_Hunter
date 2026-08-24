@@ -92,8 +92,6 @@ class PlayerRenderer:
                                (int(cx_), int(cy_)), 3)
 
         # 3. Directional Ion Exhaust Flames (Crisp, Controlled, Non-Obstructive)
-
-
         if is_accelerating:
             flame_len = 22.0 + (speed_ratio * 28.0) + random.uniform(-2.0, 2.0)
             core_len = flame_len * 0.55
@@ -131,9 +129,18 @@ class PlayerRenderer:
             c_base_r_y = noz_y - (right_y * 3.5)
             pygame.draw.polygon(canvas, COLOR_WHITE, [(c_base_l_x, c_base_l_y), (c_base_r_x, c_base_r_y), (core_tip_x, core_tip_y)])
 
-        # 3. Render Pre-Cached Rotated Mechanical Drone Chassis (Primary Visual - Enlarged HD Scale 176x152)
+        # 4. Render Pre-Cached Rotated Mechanical Drone Chassis (Primary Visual - Enlarged HD Scale 176x152)
+        class_id = getattr(player, "drone_class_id", "striker")
+        class_idx_map = {
+            "striker": 0, "01_striker": 0,
+            "interceptor": 1, "phantom": 1, "02_phantom": 1,
+            "assault": 2, "titan": 2, "03_titan": 2,
+            "arc": 3, "specter": 3, "velocity": 3, "04_velocity": 3,
+            "command": 4, "tempest": 4, "aegis_quad": 4, "05_aegis_quad": 4,
+        }
+        skin_idx = class_idx_map.get(class_id, 0)
         rotated_drone = self.sprite_manager.get_rotated_player_sprite(
-            state=state, angle_deg=total_rot_deg, target_size=(176, 152)
+            state=state, skin_idx=skin_idx, angle_deg=total_rot_deg, target_size=(176, 152)
         )
         
         # Stealth Cloak Visual Effect: Phantom Translucency + Cyan Phase Distortion
@@ -149,7 +156,7 @@ class PlayerRenderer:
         rot_rect = rotated_drone.get_rect(center=(int(round(screen_x)), int(round(screen_y))))
         canvas.blit(rotated_drone, rot_rect)
 
-        # 4. Developer Debug Mount Mode (Optional Visualization)
+        # 5. Developer Debug Mount Mode (Optional Visualization)
         if getattr(player, "debug_mounts", False):
             from src.data.game_data import get_drone_class_by_id, DRONE_MOUNT_PROFILES
             cam_ox, cam_oy = camera_offset if camera_offset else (0, 0)
@@ -175,15 +182,14 @@ class PlayerRenderer:
                 pygame.draw.circle(canvas, m_col, (m_sx, m_sy), 4)
                 pygame.draw.circle(canvas, COLOR_WHITE, (m_sx, m_sy), 2)
 
-
-        # 5. Low Health Warning Sparks (Subtle localized warning)
+        # 6. Low Health Warning Sparks (Subtle localized warning)
         if player.health < player.max_health * 0.30:
             if random.random() < 0.20:
                 sp_x = screen_x + random.randint(-24, 24)
                 sp_y = screen_y + random.randint(-24, 24)
                 pygame.draw.circle(canvas, (250, 204, 21), (int(sp_x), int(sp_y)), random.randint(1, 3))
 
-        # 6. Active Shield Bubble Hit Overlay (Translucent Perimeter Ring)
+        # 7. Active Shield Bubble Hit Overlay (Translucent Perimeter Ring)
         if player.shield_hits > 0:
             shield_r = 86
             shield_surf = self._shield_surf
@@ -194,7 +200,7 @@ class PlayerRenderer:
             pygame.draw.circle(shield_surf, (255, 255, 255, shimmer_alpha // 2), (shield_r + 5, shield_r + 5), shield_r - 4, 1)
             canvas.blit(shield_surf, (int(round(screen_x)) - shield_r - 5, int(round(screen_y)) - shield_r - 5))
 
-        # 7. Overdrive Hyper-Aura (Non-Obstructive Outer Ring)
+        # 8. Overdrive Hyper-Aura (Non-Obstructive Outer Ring)
         if player.overdrive_timer > 0:
             od_r = 96
             od_surf = self._od_surf
@@ -204,29 +210,22 @@ class PlayerRenderer:
             pygame.draw.circle(od_surf, (255, 204, 21, pulse_a), (od_r + 5, od_r + 5), od_r, 3)
             canvas.blit(od_surf, (int(round(screen_x)) - od_r - 5, int(round(screen_y)) - od_r - 5))
 
-        # 8. Small Clean Impact Explosion (Cartoon/Sci-Fi Impact Burst — No Blue Circle & No Full-Body White Flash)
+        # 9. Small Clean Impact Explosion (Cartoon/Sci-Fi Impact Burst)
         if player.damage_flash_timer > 0:
             hit_pct = max(0.0, min(1.0, player.damage_flash_timer / 0.12))
             alpha = int(220 * hit_pct)
-            # Offset impact slightly from exact center so player drone center pixel artwork is preserved
             cx = int(round(screen_x)) + 8
             cy = int(round(screen_y)) - 8
-            
-            # Small bright orange/gold core burst (radius 4-6px)
             core_r = max(2, int(3 + 3 * hit_pct))
             pygame.draw.circle(canvas, (255, 200, 50, alpha), (cx, cy), core_r)
-            
-            # Fiery orange/gold outer energy ring (radius 8-12px)
             outer_r = max(4, int(6 + 6 * hit_pct))
             pygame.draw.circle(canvas, (255, 140, 0, int(alpha * 0.7)), (cx, cy), outer_r, 2)
-            
-            # Tiny impact spark rays (short lines radiating outwards)
             spark_len = int(5 + 6 * hit_pct)
             sparks = [(spark_len, spark_len), (-spark_len, spark_len), (spark_len, -spark_len), (-spark_len, -spark_len)]
             for dx, dy in sparks:
                 pygame.draw.line(canvas, (250, 204, 21, alpha), (cx + dx // 2, cy + dy // 2), (cx + dx, cy + dy), 2)
 
-        # 9. Player Destruction Sequence (High-Fidelity Asset)
+        # 10. Player Destruction Sequence (High-Fidelity Asset)
         if getattr(player, "is_destroyed", False) and player.destruction_timer > 0:
             progress = 1.0 - (player.destruction_timer / 1.4)
             destroy_alpha = int(255 * max(0.0, 1.0 - progress * 1.1))
@@ -238,6 +237,3 @@ class PlayerRenderer:
             canvas.blit(destroy_surf, destroy_rect)
 
     render = draw_player
-
-
-

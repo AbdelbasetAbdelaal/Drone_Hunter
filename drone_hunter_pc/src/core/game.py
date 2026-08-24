@@ -218,8 +218,21 @@ class Game:
             get_next_mission_id_callback=self.get_next_mission_id,
             set_previous_state_callback=self._set_previous_state,
             set_pending_mission_id_callback=self._set_pending_mission_id,
+            delete_save_slot_callback=self.delete_save_slot,
+            reset_progress_callback=self.reset_all_progress,
             quit_callback=self._on_quit,
         )
+
+    def delete_save_slot(self, slot_index: int) -> bool:
+        """Deletes specified save slot file."""
+        return self.save_system.delete_save_slot(slot_index) if self.save_system else False
+
+    def reset_all_progress(self) -> bool:
+        """Deletes all save slot files and resets progress."""
+        if self.save_system:
+            for i in range(3):
+                self.save_system.delete_save_slot(i)
+        return True
 
     def _on_resize_window(self, w: int, h: int):
         self.win_w, self.win_h = w, h
@@ -474,7 +487,7 @@ class Game:
         canvas_m_pos = self.get_canvas_mouse_pos()
         vw, vh = canvas.get_size()
         active_is_gamepad = self.input_manager.active_device in (
-            DEVICE_GAMEPAD, DEVICE_JOYSTICK, DEVICE_KEYBOARD_MOUSE
+            DEVICE_GAMEPAD, DEVICE_JOYSTICK
         )
 
         if ctx.state == STATE_MENU:
@@ -502,7 +515,7 @@ class Game:
         elif ctx.state == STATE_CUSTOM_DIFFICULTY:
             self.ui_rects_cache = draw_custom_difficulty_ui(
                 canvas, ctx.custom_difficulty_settings, mouse_pos=canvas_m_pos,
-                dragging_index=self.custom_difficulty_dragging,
+                dragging=self.custom_difficulty_dragging,
                 input_manager=self.input_manager,
                 selected_index=self._menu_cursor if active_is_gamepad else None
             )

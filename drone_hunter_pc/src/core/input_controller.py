@@ -500,12 +500,20 @@ class InputController:
 
         elif ctx.state == STATE_SAVE_SELECT:
             for i in range(3):
-                key = f"slot_{i}"
-                if key in cache and cache[key].collidepoint(mx, my):
-                    if input_ctx.select_save_slot_callback: input_ctx.select_save_slot_callback(i)
-                    ctx.state = STATE_MENU
+                del_key = f"del_{i}"
+                if del_key in cache and cache[del_key] and cache[del_key].collidepoint(mx, my):
+                    if input_ctx.delete_save_slot_callback:
+                        input_ctx.delete_save_slot_callback(i)
+                    if am: am.play_click()
                     return
-            if "back" in cache and cache["back"].collidepoint(mx, my):
+                slot_key = f"slot_{i}"
+                if slot_key in cache and cache[slot_key] and cache[slot_key].collidepoint(mx, my):
+                    if input_ctx.select_save_slot_callback:
+                        input_ctx.select_save_slot_callback(i + 1)
+                    ctx.state = STATE_MENU
+                    if am: am.play_powerup()
+                    return
+            if "back" in cache and cache["back"] and cache["back"].collidepoint(mx, my):
                 if input_ctx.quit_callback: input_ctx.quit_callback()
 
         elif ctx.state == STATE_SECTOR_SELECT:
@@ -553,83 +561,148 @@ class InputController:
                 if am: am.play_click()
 
         elif ctx.state == STATE_HANGAR:
-            if "back" in cache and cache["back"].collidepoint(mx, my):
+            if "back" in cache and cache["back"] and cache["back"].collidepoint(mx, my):
                 ctx.state = input_ctx.previous_state if input_ctx.previous_state != STATE_HANGAR else STATE_SECTOR_SELECT
-            elif "settings" in cache and cache["settings"].collidepoint(mx, my):
+                if am: am.play_click()
+            elif "settings" in cache and cache["settings"] and cache["settings"].collidepoint(mx, my):
                 self._set_previous_state(input_ctx, STATE_HANGAR)
                 ctx.state = STATE_SETTINGS
-            elif "exit" in cache and cache["exit"].collidepoint(mx, my):
+                if am: am.play_click()
+            elif "exit" in cache and cache["exit"] and cache["exit"].collidepoint(mx, my):
                 ctx.state = STATE_MENU
-            elif "upgrades" in cache:
+                if am: am.play_click()
+            elif "upgrades" in cache and isinstance(cache["upgrades"], dict):
                 for u_id, u_rect in cache["upgrades"].items():
-                    if u_rect.collidepoint(mx, my):
+                    if u_rect and u_rect.collidepoint(mx, my):
                         if input_ctx.buy_upgrade_callback: input_ctx.buy_upgrade_callback(u_id)
                         return
-            if "drone" in cache and cache["drone"].collidepoint(mx, my):
+            if ("drone" in cache and cache["drone"] and cache["drone"].collidepoint(mx, my)) or \
+               ("chassis" in cache and cache["chassis"] and cache["chassis"].collidepoint(mx, my)) or \
+               ("chassis_card" in cache and cache["chassis_card"] and cache["chassis_card"].collidepoint(mx, my)) or \
+               ("preview_box" in cache and cache["preview_box"] and cache["preview_box"].collidepoint(mx, my)):
                 if ctx.player:
                     ctx.player.cycle_drone_class()
                     ctx.selected_drone = ctx.player.drone_class
                     if input_ctx.save_callback: input_ctx.save_callback()
+                    if am: am.play_powerup()
 
         elif ctx.state == STATE_SETTINGS:
-            if "fullscreen" in cache and cache["fullscreen"].collidepoint(mx, my):
+            if "fullscreen" in cache and cache["fullscreen"] and cache["fullscreen"].collidepoint(mx, my):
                 if input_ctx.toggle_fullscreen_callback: input_ctx.toggle_fullscreen_callback()
-            elif "crt" in cache and cache["crt"].collidepoint(mx, my):
+            elif "crt" in cache and cache["crt"] and cache["crt"].collidepoint(mx, my):
                 ctx.show_crt = not ctx.show_crt
                 if input_ctx.save_callback: input_ctx.save_callback()
-            elif "sfx" in cache and cache["sfx"].collidepoint(mx, my):
+                if am: am.play_click()
+            elif "sfx" in cache and cache["sfx"] and cache["sfx"].collidepoint(mx, my):
                 if am:
                     am.set_sound_enabled(not am.sound_enabled)
                 if input_ctx.save_callback: input_ctx.save_callback()
-            elif "diff" in cache and cache["diff"].collidepoint(mx, my):
+            elif "diff" in cache and cache["diff"] and cache["diff"].collidepoint(mx, my):
                 ctx.difficulty_mode = (ctx.difficulty_mode + 1) % 5
                 if input_ctx.save_callback: input_ctx.save_callback()
-            elif "controller" in cache and cache["controller"].collidepoint(mx, my):
+                if am: am.play_click()
+            elif "controller" in cache and cache["controller"] and cache["controller"].collidepoint(mx, my):
+                ctx.state = STATE_CUSTOM_DIFFICULTY
+                if am: am.play_click()
+            elif "config" in cache and cache["config"] and cache["config"].collidepoint(mx, my):
+                ctx.state = STATE_CONTROLLER_BINDING
+                if am: am.play_click()
+            elif "test" in cache and cache["test"] and cache["test"].collidepoint(mx, my):
                 ctx.state = STATE_CONTROLLER_TEST
-            elif "back" in cache and cache["back"].collidepoint(mx, my):
+                if am: am.play_click()
+            elif "reset" in cache and cache["reset"] and cache["reset"].collidepoint(mx, my):
+                if input_ctx.reset_progress_callback:
+                    input_ctx.reset_progress_callback()
+                if am: am.play_click()
+            elif "back" in cache and cache["back"] and cache["back"].collidepoint(mx, my):
                 ctx.state = input_ctx.previous_state if input_ctx.previous_state != STATE_SETTINGS else STATE_SECTOR_SELECT
+                if am: am.play_click()
 
         elif ctx.state == STATE_PAUSED:
-            if "resume" in cache and cache["resume"].collidepoint(mx, my):
+            if "resume" in cache and cache["resume"] and cache["resume"].collidepoint(mx, my):
                 ctx.state = STATE_PLAYING
-            elif "settings" in cache and cache["settings"].collidepoint(mx, my):
+                if am: am.play_click()
+            elif "diff" in cache and cache["diff"] and cache["diff"].collidepoint(mx, my):
+                ctx.difficulty_mode = (ctx.difficulty_mode + 1) % 5
+                if input_ctx.save_callback: input_ctx.save_callback()
+                if am: am.play_click()
+            elif "crt" in cache and cache["crt"] and cache["crt"].collidepoint(mx, my):
+                ctx.show_crt = not ctx.show_crt
+                if input_ctx.save_callback: input_ctx.save_callback()
+                if am: am.play_click()
+            elif "sfx" in cache and cache["sfx"] and cache["sfx"].collidepoint(mx, my):
+                if am:
+                    am.set_sound_enabled(not am.sound_enabled)
+                if input_ctx.save_callback: input_ctx.save_callback()
+            elif "hangar" in cache and cache["hangar"] and cache["hangar"].collidepoint(mx, my):
+                self._set_previous_state(input_ctx, STATE_PAUSED)
+                ctx.state = STATE_HANGAR
+                if am: am.play_click()
+            elif "map" in cache and cache["map"] and cache["map"].collidepoint(mx, my):
+                self._set_previous_state(input_ctx, STATE_PAUSED)
+                ctx.state = STATE_SECTOR_SELECT
+                if am: am.play_click()
+            elif "settings" in cache and cache["settings"] and cache["settings"].collidepoint(mx, my):
                 self._set_previous_state(input_ctx, STATE_PAUSED)
                 ctx.state = STATE_SETTINGS
-            elif "restart" in cache and cache["restart"].collidepoint(mx, my):
+                if am: am.play_click()
+            elif "restart" in cache and cache["restart"] and cache["restart"].collidepoint(mx, my):
                 if input_ctx.start_mission_callback: input_ctx.start_mission_callback(input_ctx.pending_mission_id)
-            elif "menu" in cache and cache["menu"].collidepoint(mx, my):
+            elif ("exit" in cache and cache["exit"] and cache["exit"].collidepoint(mx, my)) or \
+                 ("menu" in cache and cache["menu"] and cache["menu"].collidepoint(mx, my)) or \
+                 ("quit" in cache and cache["quit"] and cache["quit"].collidepoint(mx, my)):
                 ctx.state = STATE_MENU
+                if am: am.play_click()
 
         elif ctx.state in (STATE_MISSION_COMPLETE, STATE_LEVEL_CLEAR, STATE_VICTORY):
-            if "next" in cache and cache["next"].collidepoint(mx, my):
+            if "next" in cache and cache["next"] and cache["next"].collidepoint(mx, my):
                 next_m = input_ctx.get_next_mission_id_callback() if input_ctx.get_next_mission_id_callback else None
                 if next_m:
                     self._set_pending_mission(input_ctx, next_m)
                     if input_ctx.start_mission_callback: input_ctx.start_mission_callback(next_m)
                 else:
                     ctx.state = STATE_SECTOR_SELECT
-            elif "hangar" in cache and cache["hangar"].collidepoint(mx, my):
+            elif "hangar" in cache and cache["hangar"] and cache["hangar"].collidepoint(mx, my):
                 ctx.state = STATE_HANGAR
-            elif "menu" in cache and cache["menu"].collidepoint(mx, my):
+                if am: am.play_click()
+            elif ("menu" in cache and cache["menu"] and cache["menu"].collidepoint(mx, my)) or \
+                 ("back" in cache and cache["back"] and cache["back"].collidepoint(mx, my)):
                 ctx.state = STATE_SECTOR_SELECT
+                if am: am.play_click()
 
         elif ctx.state in (STATE_MISSION_FAILED, STATE_GAME_OVER):
-            if "retry" in cache and cache["retry"].collidepoint(mx, my):
+            if "retry" in cache and cache["retry"] and cache["retry"].collidepoint(mx, my):
                 if input_ctx.start_mission_callback: input_ctx.start_mission_callback(input_ctx.pending_mission_id)
-            elif "hangar" in cache and cache["hangar"].collidepoint(mx, my):
+            elif "hangar" in cache and cache["hangar"] and cache["hangar"].collidepoint(mx, my):
                 ctx.state = STATE_HANGAR
-            elif "menu" in cache and cache["menu"].collidepoint(mx, my):
+                if am: am.play_click()
+            elif ("menu" in cache and cache["menu"] and cache["menu"].collidepoint(mx, my)) or \
+                 ("back" in cache and cache["back"] and cache["back"].collidepoint(mx, my)):
                 ctx.state = STATE_SECTOR_SELECT
+                if am: am.play_click()
+
+        elif ctx.state == STATE_CUSTOM_DIFFICULTY:
+            if "back" in cache and cache["back"] and cache["back"].collidepoint(mx, my):
+                ctx.state = STATE_SETTINGS
+                if am: am.play_click()
+            elif "reset" in cache and cache["reset"] and cache["reset"].collidepoint(mx, my):
+                from src.data.game_data import DEFAULT_CUSTOM_DIFFICULTY
+                ctx.custom_difficulty_settings = dict(DEFAULT_CUSTOM_DIFFICULTY)
+                if input_ctx.save_callback: input_ctx.save_callback()
+                if am: am.play_click()
 
         elif ctx.state == STATE_CONTROLLER_TEST:
-            if "back" in cache and cache["back"].collidepoint(mx, my):
+            if "back" in cache and cache["back"] and cache["back"].collidepoint(mx, my):
                 ctx.state = STATE_SETTINGS
-            elif "bind" in cache and cache["bind"].collidepoint(mx, my):
+                if am: am.play_click()
+            elif "bind" in cache and cache["bind"] and cache["bind"].collidepoint(mx, my):
                 ctx.state = STATE_CONTROLLER_BINDING
+                if am: am.play_click()
 
         elif ctx.state == STATE_CONTROLLER_BINDING:
-            if "back" in cache and cache["back"].collidepoint(mx, my):
+            if "back" in cache and cache["back"] and cache["back"].collidepoint(mx, my):
                 ctx.state = STATE_SETTINGS
+                if am: am.play_click()
 
     def _update_slider_drag(self, mx: int, input_ctx: InputHandlingContext):
         """Updates custom difficulty slider values when dragging."""

@@ -707,4 +707,12 @@ class Player(pygame.sprite.Sprite):
         """Pre-renders base sprite for collision or group fallbacks."""
         from src.rendering.sprite_manager import get_sprite_manager
         sm = get_sprite_manager()
-        self.image = sm.get_player_sprite(state="idle", target_size=(68, 58))
+        class_idx_map = {
+            "striker": 0, "01_striker": 0,
+            "interceptor": 1, "phantom": 1, "02_phantom": 1,
+            "assault": 2, "titan": 2, "03_titan": 2,
+            "arc": 3, "specter": 3, "velocity": 3, "04_velocity": 3,
+            "command": 4, "tempest": 4, "aegis_quad": 4, "05_aegis_quad": 4,
+        }
+        skin_idx = class_idx_map.get(getattr(self, "drone_class_id", "striker"), 0)
+        self.image = sm.get_player_sprite(state="idle", skin_idx=skin_idx, target_size=(68, 58))

@@ -174,7 +174,15 @@ def draw_hangar_shop_ui(
     try:
         from src.rendering.sprite_manager import get_sprite_manager
         sm = get_sprite_manager()
-        drone_surf = sm.get_player_sprite(target_size=(114, 100))
+        class_idx_map = {
+            "striker": 0, "01_striker": 0,
+            "interceptor": 1, "phantom": 1, "02_phantom": 1,
+            "assault": 2, "titan": 2, "03_titan": 2,
+            "arc": 3, "specter": 3, "velocity": 3, "04_velocity": 3,
+            "command": 4, "tempest": 4, "aegis_quad": 4, "05_aegis_quad": 4,
+        }
+        skin_idx = class_idx_map.get(class_id, 0)
+        drone_surf = sm.get_player_sprite(skin_idx=skin_idx, target_size=(114, 100))
         canvas.blit(drone_surf, drone_surf.get_rect(center=(p_cx, p_cy)))
     except Exception:
         pygame.draw.circle(canvas, COLOR_CYAN, (p_cx, p_cy), 28)
@@ -284,11 +292,11 @@ def draw_hangar_shop_ui(
     return {
         "back": r_back,
         "drone": r_drone,
+        "chassis": r_drone,
+        "chassis_card": chassis_rect,
+        "preview_box": preview_rect,
         "settings": r_settings,
         "exit": r_exit,
         "upgrades": item_rects,
         "weapon_slots": weapon_slot_rects,
     }
-
-
-

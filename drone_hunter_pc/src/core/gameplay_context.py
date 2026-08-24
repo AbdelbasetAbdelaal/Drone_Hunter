@@ -70,6 +70,8 @@ class InputHandlingContext:
     get_next_mission_id_callback: Optional[Callable[[], Optional[str]]] = None
     set_previous_state_callback: Optional[Callable[[str], Any]] = None
     set_pending_mission_id_callback: Optional[Callable[[str], Any]] = None
+    delete_save_slot_callback: Optional[Callable[[int], Any]] = None
+    reset_progress_callback: Optional[Callable[[], Any]] = None
     quit_callback: Optional[Callable[[], Any]] = None
 
     def __post_init__(self):
