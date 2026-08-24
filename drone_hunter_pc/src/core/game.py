@@ -2112,7 +2112,9 @@ class Game:
         elif ctx.state == STATE_CONTROLLER_BINDING:
             from src.ui.menus import draw_controller_binding_ui
             self.ui_rects_cache = draw_controller_binding_ui(
-                canvas, self.input_manager.mapping_manager, mouse_pos=canvas_m_pos
+                canvas, self.input_manager.mapping_manager, mouse_pos=canvas_m_pos,
+                binding_action=getattr(self, "_binding_action", None),
+                waiting=bool(getattr(self, "_binding_action", None))
             )
 
         elif ctx.state == STATE_CONTROLLER_TEST:

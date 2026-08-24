@@ -915,57 +915,100 @@ def get_button_label(base_label: str, action: str, input_manager=None) -> str:
 
 
 def draw_controller_binding_ui(canvas: pygame.Surface, mapping_manager, mouse_pos: tuple[int, int] = None, binding_action: str = None, waiting: bool = False) -> dict:
-    """Interactive controller button binding wizard."""
+    """Interactive controller button binding wizard with 2-column grid and clear button telemetry."""
     canvas.fill((8, 12, 22))
     vw, vh = canvas.get_size()
     mx, my = _get_safe_mouse_pos(mouse_pos)
 
-    panel_w, panel_h = 640, 520
-    panel_rect = pygame.Rect(vw // 2 - panel_w // 2, vh // 2 - panel_h // 2, panel_w, panel_h)
+    panel_w = min(880, vw - 40)
+    panel_h = min(560, vh - 40)
+    panel_rect = pygame.Rect((vw - panel_w) // 2, (vh - panel_h) // 2, panel_w, panel_h)
     pygame.draw.rect(canvas, (14, 22, 38), panel_rect, border_radius=10)
     pygame.draw.rect(canvas, COLOR_GOLD, panel_rect, 2, border_radius=10)
 
+    # Header Title
     t_hdr = font_header.render("CONTROLLER BINDING WIZARD", True, COLOR_GOLD)
-    canvas.blit(t_hdr, t_hdr.get_rect(center=(vw // 2, panel_rect.top + 36)))
+    canvas.blit(t_hdr, t_hdr.get_rect(center=(vw // 2, panel_rect.top + 28)))
 
-    js = None
+    # Active Device Name & Type
+    profile = None
     if mapping_manager.profiles:
-        js = next(iter(mapping_manager.profiles.values()), None)
-    if js:
-        name_surf = font_card.render(f"Active: {js.device_name}", True, COLOR_TEXT_DIM)
-        canvas.blit(name_surf, (panel_rect.left + 30, panel_rect.top + 72))
+        profile = next(iter(mapping_manager.profiles.values()), None)
+
+    dev_name = profile.device_name if profile else "Generic Controller"
+    dev_type = profile.controller_type.upper() if profile else "GENERIC"
+    name_surf = font_sub.render(f"ACTIVE DEVICE: {dev_name}  [{dev_type}]", True, COLOR_CYAN)
+    canvas.blit(name_surf, (panel_rect.left + 24, panel_rect.top + 56))
 
     actions = mapping_manager.get_all_actions()
     action_rows = []
-    row_y = panel_rect.top + 110
-    row_h = 34
-    for action in actions:
-        row_rect = pygame.Rect(panel_rect.left + 30, row_y, panel_w - 60, row_h)
-        action_rows.append((action, row_rect))
-        row_y += row_h + 4
 
-    # Highlight binding action
+    # 2-Column Balanced Grid
+    col_w = (panel_w - 64) // 2
+    row_h = 34
+    row_spacing = 5
+    start_y = panel_rect.top + 84
+
+    half = (len(actions) + 1) // 2
+    for i, action in enumerate(actions):
+        col_idx = 0 if i < half else 1
+        row_idx = i if i < half else i - half
+        rx = panel_rect.left + 24 + col_idx * (col_w + 16)
+        ry = start_y + row_idx * (row_h + row_spacing)
+        row_rect = pygame.Rect(rx, ry, col_w, row_h)
+        action_rows.append((action, row_rect))
+
+    # Render Action Cards
     for action, row_rect in action_rows:
         is_selected = (action == binding_action)
-        bg_c = (30, 40, 60) if is_selected else (18, 24, 36)
-        border_c = COLOR_GOLD if is_selected else (40, 55, 75)
+        is_hovered = row_rect.collidepoint(mx, my)
+
+        bg_c = (35, 48, 75) if is_selected else ((24, 34, 52) if is_hovered else (16, 22, 34))
+        border_c = COLOR_GOLD if is_selected else (COLOR_CYAN if is_hovered else (45, 60, 85))
         pygame.draw.rect(canvas, bg_c, row_rect, border_radius=4)
-        pygame.draw.rect(canvas, border_c, row_rect, 2 if is_selected else 1, border_radius=4)
-        label = font_card.render(action.replace("_", " ").title(), True, COLOR_WHITE if is_selected else COLOR_TEXT_DIM)
-        canvas.blit(label, (row_rect.left + 12, row_rect.top + 8))
+        pygame.draw.rect(canvas, border_c, row_rect, 2 if (is_selected or is_hovered) else 1, border_radius=4)
 
+        # Action display name
+        act_name = action.replace("_", " ").title()
+        label_col = COLOR_WHITE if (is_selected or is_hovered) else COLOR_TEXT_DIM
+        label = font_card.render(act_name, True, label_col)
+        canvas.blit(label, (row_rect.left + 10, row_rect.top + 6))
+
+        # Current bound button badge
+        if profile and action in profile.button_map:
+            btn_idx = profile.button_map[action]
+            btn_text = f"BTN {btn_idx}" if btn_idx >= 0 else "NONE"
+            prompt_key = profile.button_prompts.get(action, "")
+            if prompt_key and prompt_key != btn_text:
+                btn_text += f" [{prompt_key}]"
+        else:
+            btn_text = "NONE"
+
+        if is_selected and waiting:
+            btn_text = "PRESS BUTTON..."
+            btn_col = COLOR_CYAN
+        else:
+            btn_col = COLOR_GOLD if is_hovered else (148, 163, 184)
+
+        badge_surf = font_sub.render(btn_text, True, btn_col)
+        badge_rect = badge_surf.get_rect(right=row_rect.right - 10, centery=row_rect.centery)
+        canvas.blit(badge_surf, badge_rect)
+
+    # Status / Hint Notice Bar
+    hint_y = panel_rect.bottom - 68
     if waiting and binding_action:
-        wait_txt = font_banner.render(f"Press button for: {binding_action.replace('_', ' ').upper()}", True, COLOR_CYAN)
-        canvas.blit(wait_txt, wait_txt.get_rect(center=(vw // 2, panel_rect.bottom - 80)))
+        pulse_a = int(200 + 55 * math.sin(pygame.time.get_ticks() * 0.015)) if pygame.get_init() else 255
+        wait_txt = font_banner.render(f"⚡ PRESS CONTROLLER BUTTON FOR: [{binding_action.replace('_', ' ').upper()}] ⚡", True, (*COLOR_CYAN[:3], pulse_a))
+        canvas.blit(wait_txt, wait_txt.get_rect(center=(vw // 2, hint_y)))
     else:
-        hint = font_card.render("Click an action row to rebind. Press ESC to exit.", True, COLOR_TEXT_DIM)
-        canvas.blit(hint, hint.get_rect(center=(vw // 2, panel_rect.bottom - 80)))
+        hint = font_sub.render("Click an action row to rebind • Press [ESC] or [O] to exit", True, COLOR_TEXT_DIM)
+        canvas.blit(hint, hint.get_rect(center=(vw // 2, hint_y)))
 
-    btn_w, btn_h = 180, 40
-    bx = vw // 2 - btn_w // 2
-    by = panel_rect.bottom - 40
-    r_back = pygame.Rect(bx - 100, by, btn_w, btn_h)
-    r_reset = pygame.Rect(bx + 100, by, btn_w, btn_h)
+    # Navigation Buttons (Cleanly aligned at panel bottom)
+    btn_w, btn_h = 170, 36
+    by = panel_rect.bottom - 44
+    r_back = pygame.Rect(vw // 2 - btn_w - 12, by, btn_w, btn_h)
+    r_reset = pygame.Rect(vw // 2 + 12, by, btn_w, btn_h)
     draw_button(canvas, r_back, "[ESC] BACK", (mx, my), base_color=COLOR_CRIMSON)
     draw_button(canvas, r_reset, "RESET DEFAULTS", (mx, my), base_color=COLOR_GOLD, text_color=COLOR_GOLD)
 
