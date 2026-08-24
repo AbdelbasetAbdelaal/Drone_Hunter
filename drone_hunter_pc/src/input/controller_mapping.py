@@ -264,6 +264,10 @@ class ControllerProfile:
                 return action
         return None
 
+    def is_action_button(self, button_index: int, action: str) -> bool:
+        """Returns True if the raw physical button index corresponds to the given action."""
+        return self.button_map.get(action) == button_index
+
     def set_axis(self, action: str, axis_index: int, direction: int = 1):
         self.axis_map[action] = (axis_index, direction)
 

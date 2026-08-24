@@ -520,7 +520,13 @@ class InputController:
             if input_ctx.audio_manager: input_ctx.audio_manager.play_buy()
             return True
 
-        if profile.is_action_button(btn, ACTION_FULLSCREEN):
+        is_fullscreen = False
+        if hasattr(profile, "is_action_button"):
+            is_fullscreen = profile.is_action_button(btn, ACTION_FULLSCREEN)
+        elif hasattr(profile, "button_map") and isinstance(profile.button_map, dict):
+            is_fullscreen = (profile.button_map.get(ACTION_FULLSCREEN) == btn)
+
+        if is_fullscreen:
             if input_ctx.toggle_fullscreen_callback:
                 input_ctx.toggle_fullscreen_callback()
             return True
