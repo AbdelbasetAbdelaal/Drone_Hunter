@@ -384,10 +384,19 @@ class InputManager:
 
             elif event.type == pygame.MOUSEBUTTONDOWN:
                 self.active_device = DEVICE_KEYBOARD_MOUSE
-                if self.context == InputContext.GAMEPLAY and event.button == 5:
-                    # Keep the documented wheel-down shortcut for cycling to
-                    # the previous weapon slot.
-                    self.actions_triggered[ACTION_WEAPON_PREV] = True
+                if self.context == InputContext.GAMEPLAY:
+                    if event.button == 4:
+                        self.actions_triggered[ACTION_WEAPON_NEXT] = True
+                    elif event.button == 5:
+                        self.actions_triggered[ACTION_WEAPON_PREV] = True
+
+            elif event.type == pygame.MOUSEWHEEL:
+                self.active_device = DEVICE_KEYBOARD_MOUSE
+                if self.context == InputContext.GAMEPLAY:
+                    if event.y > 0:
+                        self.actions_triggered[ACTION_WEAPON_NEXT] = True
+                    elif event.y < 0:
+                        self.actions_triggered[ACTION_WEAPON_PREV] = True
 
             # Controller Button Down
             elif event.type == pygame.JOYBUTTONDOWN:
@@ -568,11 +577,11 @@ class InputManager:
             self.active_device = DEVICE_KEYBOARD_MOUSE
 
         # Mouse Aim Angle - use world coordinates if available for correct 360-degree aiming
-        if self.active_device == DEVICE_KEYBOARD_MOUSE and world_mouse_pos:
+        if world_mouse_pos:
             dx = world_mouse_pos[0] - player_pos[0]
             dy = world_mouse_pos[1] - player_pos[1]
             aim_angle = math.atan2(dy, dx)
-        elif self.active_device == DEVICE_KEYBOARD_MOUSE and canvas_m_pos:
+        elif canvas_m_pos:
             dx = canvas_m_pos[0] - player_pos[0]
             dy = canvas_m_pos[1] - player_pos[1]
             aim_angle = math.atan2(dy, dx)
@@ -585,6 +594,7 @@ class InputManager:
                 num_axes = js.get_numaxes()
 
                 # Left Stick (Movement) - Axes 0 & 1
+                sx, sy = 0.0, 0.0
                 if num_axes >= 2:
                     raw_lx = js.get_axis(0)
                     raw_ly = js.get_axis(1)
@@ -625,9 +635,9 @@ class InputManager:
                 if rmag > 0.0:
                     self.active_device = DEVICE_GAMEPAD
                     aim_angle = math.atan2(ry, rx)
-                elif self.active_device == DEVICE_GAMEPAD and (abs(move_x) > 0.1 or abs(move_y) > 0.1):
+                elif self.active_device == DEVICE_GAMEPAD and (abs(sx) > 0.1 or abs(sy) > 0.1):
                     # Face direction of flight on 2-axis / D-pad controllers
-                    aim_angle = math.atan2(move_y, move_x)
+                    aim_angle = math.atan2(sy, sx)
 
                 # Triggers (RT / LT) - Usually Axes 4 & 5 or 2 & 5
                 if self.context == InputContext.GAMEPLAY:
