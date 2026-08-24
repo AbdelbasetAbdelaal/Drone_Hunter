@@ -86,6 +86,8 @@ class ObjectiveSystem:
         self._was_radar_alert: bool = False
         self._last_alive_radar_count: int = 0
         self._objective_pos: Tuple[float, float] = (WORLD_WIDTH - 280.0, WORLD_HEIGHT // 2)
+        self._threat_budget_max: int = 1
+        self._stagger_timer: float = 0.0
 
     def reset(self):
         """Cleans up all active objective structures and state."""
@@ -120,6 +122,20 @@ class ObjectiveSystem:
         self._was_radar_alert = False
         self._last_alive_radar_count = 0
         self._objective_pos = (WORLD_WIDTH - 280.0, WORLD_HEIGHT // 2)
+        self._threat_budget_max = 1
+        self._stagger_timer = 0.0
+
+    @property
+    def threat_budget_max(self) -> int:
+        """Maximum number of concurrent high-damage threats allowed to attack."""
+        return self._threat_budget_max
+
+    @property
+    def active_heavy_threats_count(self) -> int:
+        """Returns the current number of active high-damage attacks (AA telegraphing + Aircraft strafing)."""
+        aa_heavy = sum(1 for aa in self.aa_platforms if aa.alive and getattr(aa, "is_telegraphing", False))
+        ac_heavy = sum(1 for ac in self.combat_aircraft if ac.alive and getattr(ac, "ai_state", "") == "strafe")
+        return aa_heavy + ac_heavy
 
     @property
     def is_radar_alert_active(self) -> bool:
@@ -416,18 +432,32 @@ class ObjectiveSystem:
         # Freeze combat briefly during destruction sequence (pause AA, aircraft, reinforcements)
         combat_frozen = self.is_completed
 
+        # Stagger attack timing between AA platforms and Combat Aircraft
+        if self._stagger_timer > 0.0:
+            self._stagger_timer -= dt
+
         # 3. Update AA Platforms & Collect hostile bullets (skip during combat window or freeze)
+        aa_telegraphing = False
         for aa in list(self.aa_platforms):
             if aa.alive:
                 new_bullets = aa.update(dt, player_pos=p_pos, player_obj=p_obj, ctx=ctx)
+                if getattr(aa, "is_telegraphing", False):
+                    aa_telegraphing = True
+                if len(new_bullets) > 0:
+                    # AA just fired a volley -> set a short stagger opening (0.4s)
+                    self._stagger_timer = 0.4
                 if combat_frozen or self._combat_window_active:
                     new_bullets.clear()
                 for b in new_bullets:
                     ctx.enemy_bullet_group.add(b)
 
-        # 4. Update Combat Aircraft (skip during combat window or freeze)
+        # 4. Update Combat Aircraft (staggered if AA is actively telegraphing/firing)
         for ac in list(self.combat_aircraft):
             if ac.alive:
+                if (aa_telegraphing or self._stagger_timer > 0.0) and getattr(ac, "ai_state", "") == "strafe":
+                    ac.ai_state = "reposition"
+                    ac.state_timer = 0.0
+
                 new_bullets = ac.update(dt, player_pos=p_pos, player_obj=p_obj,
                                          target_group=getattr(ctx, "target_group", None))
                 if combat_frozen or self._combat_window_active:

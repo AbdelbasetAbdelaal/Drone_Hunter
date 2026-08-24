@@ -454,6 +454,16 @@ class CombatAircraft(Enemy):
                 self.ai_state = "approach"
                 self.state_timer = 0.0
 
+        # Flocking separation from peer aircraft (avoid stacking)
+        if target_group:
+            for other in target_group:
+                if other is not self and getattr(other, "enemy_type", "") == "aircraft" and getattr(other, "alive", True):
+                    sep_vec = self.pos - other.pos
+                    sep_dist = sep_vec.length()
+                    if 0.0 < sep_dist < 130.0:
+                        push_force = (sep_vec / sep_dist) * (130.0 - sep_dist) * 2.0
+                        self.pos += push_force * dt
+
         # Arena bounds clamping
         self.pos.x = max(60.0, min(float(WORLD_WIDTH - 60.0), self.pos.x))
         self.pos.y = max(60.0, min(float(WORLD_HEIGHT - 60.0), self.pos.y))

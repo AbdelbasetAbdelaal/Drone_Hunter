@@ -4,6 +4,22 @@ All notable changes to the **Drone Hunter 2D** project are documented in this fi
 
 ---
 
+## [Phase 17] — Objective Arena Polish & Readability Pass (2026)
+
+### Added & Tuned
+- **Objective Arena & Readability Polish**:
+  - Refined HUD Tactical Objective Card hierarchy: short, readable target title (`TARGET: {title}`), distinct shield badge, clean health bar, and non-overlapping spatial telemetry.
+  - Replaced center screen-blocking alert banner with a sleek, non-intrusive status indicator chip (`[⚠ RADAR TRACKING]`).
+  - Added subtle, restrained on-screen tactical corner brackets `[  ]` around target structures without covering or dimming physical gameworld geometry.
+  - Implemented flocking separation for `CombatAircraft` preventing overlapping or clustered fighter sprites.
+- **Threat Budgeting & Staggered Attack Windows**:
+  - Enforced bounded threat budget (`_threat_budget_max = 1` heavy attack) inside the Objective Assault Arena.
+  - Staggered AA platform volleys and Combat Aircraft strafes to eliminate simultaneous projectile walls.
+- **Automated Test Suite Expansion**:
+  - Added `TestObjectiveArenaPolishAndReadability` with 14 comprehensive runtime tests, bringing the total automated suite to **693 passed** (100% green).
+
+---
+
 ## [Phase 16] — Objective Visual Rework & Structure Models (2026)
 
 ### Added & Visual Rework

@@ -1306,5 +1306,155 @@ class TestRealGameworldStructureModels:
         assert len(pm.particles) > 0
 
 
+# =============================================================================
+# 12. OBJECTIVE ARENA POLISH & READABILITY RUNTIME TESTS (SECTION 24)
+# =============================================================================
+class TestObjectiveArenaPolishAndReadability:
+    """Explicit runtime tests validating the Objective Assault Arena polish pass."""
+
+    def test_objective_arena_phase(self):
+        """Verify objective progression tracks approach -> detected -> defense -> assault -> critical -> destroyed."""
+        ctx = GameContext()
+        ctx.player = Player((200, 360))
+        obj_sys = ObjectiveSystem()
+        obj_sys.start_objective_for_mission({
+            "id": "S2_M1",
+            "objective_type": OBJECTIVE_TYPE_RADAR_COMMAND,
+            "defense_level": 2,
+        }, ctx)
+
+        # Initial approach
+        obj_sys.update(0.1, ctx)
+        assert obj_sys.current_phase == PHASE_APPROACH
+
+        # Player moves into radar detection range
+        assert len(obj_sys.radar_nodes) > 0
+        r_pos = obj_sys.radar_nodes[0].pos
+        ctx.player.pos.x = r_pos.x
+        ctx.player.pos.y = r_pos.y
+        obj_sys.update(0.1, ctx)
+        obj_sys.update(0.1, ctx)
+        assert obj_sys.current_phase in (PHASE_DETECTED, PHASE_DEFENSE, PHASE_OBJECTIVE_ASSAULT)
+
+    def test_threat_budget(self):
+        """Verify threat budget limits concurrent heavy attacks."""
+        obj_sys = ObjectiveSystem()
+        assert obj_sys.threat_budget_max >= 1
+        assert obj_sys.active_heavy_threats_count == 0
+
+    def test_staggered_attack_windows(self):
+        """Verify aircraft does not strafe simultaneously while AA is telegraphing."""
+        ctx = GameContext()
+        ctx.player = Player((200, 360))
+        obj_sys = ObjectiveSystem()
+        obj_sys.start_objective_for_mission({
+            "id": "S3_M4_ALT",
+            "objective_type": OBJECTIVE_TYPE_POWER_REACTOR,
+            "defense_level": 3,
+        }, ctx)
+
+        # Move player near AA so AA stays in range
+        if len(obj_sys.aa_platforms) > 0:
+            aa = obj_sys.aa_platforms[0]
+            ctx.player.pos.x = aa.pos.x + 200.0
+            ctx.player.pos.y = aa.pos.y
+            aa.is_telegraphing = True
+
+        # Force aircraft into strafe
+        if len(obj_sys.combat_aircraft) > 0:
+            obj_sys.combat_aircraft[0].ai_state = "strafe"
+            obj_sys.update(0.016, ctx)
+            # Must be repositioned/staggered
+            assert obj_sys.combat_aircraft[0].ai_state == "reposition"
+
+    def test_damage_grace_window(self):
+        """Verify player damage grace window prevents multi-hit frame death."""
+        p = Player((200, 360))
+        p.take_damage(20.0)
+        assert p.damage_grace_timer > 0.0
+        assert p.is_invulnerable
+
+        hp_after_hit = p.health
+        # Second hit inside grace window is absorbed without damage
+        p.take_damage(20.0)
+        assert p.health == hp_after_hit
+
+    def test_aircraft_attack_cycle(self):
+        """Verify aircraft completes approach -> strafe -> reposition -> approach cycle."""
+        ac = CombatAircraft(pos=(600, 360), aircraft_type=AIRCRAFT_INTERCEPTOR)
+        assert ac.ai_state == "approach"
+        ac.update(0.5, player_pos=(500, 360))
+        assert ac.ai_state in ("approach", "strafe")
+        ac.ai_state = "strafe"
+        ac.state_timer = 1.5
+        ac.update(0.1, player_pos=(300, 360))
+        assert ac.ai_state == "reposition"
+        ac.state_timer = 2.0
+        ac.update(0.1, player_pos=(300, 360))
+        assert ac.ai_state == "approach"
+
+    def test_aa_attack_telegraph(self):
+        """Verify AA platform displays charging flare before firing projectile."""
+        aa = AAPlatform((600, 360), aa_type=AA_TYPE_HEAVY)
+        aa.fire_timer = 0.0
+        aa.update(0.016, player_pos=(300, 360))
+        assert aa.is_telegraphing
+        assert aa.telegraph_timer > 0.0
+
+    def test_objective_critical(self):
+        """Verify objective enters CRITICAL phase when HP drops below 25%."""
+        ctx = GameContext()
+        ctx.player = Player((200, 360))
+        obj_sys = ObjectiveSystem()
+        obj_sys.start_objective_for_mission({
+            "id": "S1_M1_ALT",
+            "objective_type": OBJECTIVE_TYPE_RADAR_COMMAND,
+            "defense_level": 1,
+        }, ctx)
+
+        obj_sys.active_objective.hp = int(obj_sys.active_objective.max_hp * 0.20)
+        obj_sys.update(0.1, ctx)
+        assert obj_sys.current_phase == PHASE_OBJECTIVE_CRITICAL
+
+    def test_objective_destroyed_once(self):
+        """Verify objective destruction executes cleanly exactly once."""
+        ctx = GameContext()
+        ctx.player = Player((200, 360))
+        obj_sys = ObjectiveSystem()
+        obj_sys.start_objective_for_mission({
+            "id": "S1_M1_ALT",
+            "objective_type": OBJECTIVE_TYPE_RADAR_COMMAND,
+            "defense_level": 1,
+        }, ctx)
+
+        obj_sys.active_objective.hp = 0
+        obj_sys.active_objective.alive = False
+        obj_sys.update(0.1, ctx)
+        assert obj_sys.is_completed
+        assert obj_sys.current_phase == PHASE_OBJECTIVE_DESTROYED
+
+    def test_mission_success_once(self):
+        """Verify ObjectiveSystem returns victory True only after destruction sequence completes."""
+        ctx = GameContext()
+        ctx.player = Player((200, 360))
+        obj_sys = ObjectiveSystem()
+        obj_sys.start_objective_for_mission({
+            "id": "S1_M1_ALT",
+            "objective_type": OBJECTIVE_TYPE_RADAR_COMMAND,
+            "defense_level": 1,
+        }, ctx)
+
+        obj_sys.active_objective.hp = 0
+        obj_sys.active_objective.alive = False
+        # Sequence in progress
+        done_1 = obj_sys.update(0.1, ctx)
+        assert not done_1
+
+        # Complete countdown
+        done_2 = obj_sys.update(2.5, ctx)
+        assert done_2
+
+
+
 
 

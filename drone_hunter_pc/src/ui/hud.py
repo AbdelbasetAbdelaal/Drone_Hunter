@@ -158,62 +158,67 @@ def draw_hud(canvas: pygame.Surface, player, sector_idx: int = 0, level_score: i
         canvas.blit(lbl_combo, (combo_rect.left + 8, combo_rect.top + 5))
 
     # =========================================================================
-    # 2.5 GROUND OBJECTIVE ASSAULT TELEMETRY & RADAR ALERTS  (PRIORITY 1–3)
+    # 2.5 GROUND OBJECTIVE ASSAULT TELEMETRY & RADAR ALERTS (REFINED HIERARCHY)
     # =========================================================================
     if objective_system and getattr(objective_system, "is_active", False) and objective_system.active_objective:
         obj = objective_system.active_objective
         if obj.alive:
-            # Top-Center Tactical Objective Card (PRIORITY 1)
-            top_w = 420
-            top_h = 56
+            # Top-Center Tactical Objective Card (Clean, Uncluttered, Priority 1)
+            top_w = 400
+            top_h = 48
             top_x = (vw - top_w) // 2
             top_y = margin_y
             top_rect = pygame.Rect(top_x, top_y, top_w, top_h)
 
-            pygame.draw.rect(canvas, (15, 23, 42, 235), top_rect, border_radius=6)
+            pygame.draw.rect(canvas, (15, 23, 42, 230), top_rect, border_radius=6)
             card_border = COLOR_SHIELD if obj.is_shielded else (COLOR_NEON_RED if objective_system.current_phase == PHASE_OBJECTIVE_CRITICAL else COLOR_GOLD)
             pygame.draw.rect(canvas, card_border, top_rect, 1, border_radius=6)
 
-            # Objective Name & Distance & Phase
+            # Row 1: Objective Title (Short & Clear) & Shield State Badge
             p_pos = (player.pos.x, player.pos.y) if player else (0, 0)
             dist_m = int(math.hypot(obj.pos.x - p_pos[0], obj.pos.y - p_pos[1]))
-            phase_name = getattr(objective_system, "phase_display_name", "ACTIVE")
-            t_obj_title = font_card.render(f"TARGET: {obj.title}  [{dist_m}m]  [{phase_name}]", True, COLOR_WHITE)
-            canvas.blit(t_obj_title, (top_x + 12, top_y + 5))
+            t_obj_title = font_card.render(f"TARGET: {obj.title}", True, COLOR_WHITE)
+            canvas.blit(t_obj_title, (top_x + 12, top_y + 4))
 
-            # Shield Badge (SHIELDED / EXPOSED)
             if obj.is_shielded:
                 gens_alive = objective_system.active_shield_generators_count
                 gens_total = getattr(objective_system, "total_shield_generators_count", gens_alive)
                 sh_txt = f"SHIELDED ({gens_alive}/{gens_total} GENS)"
                 sh_lbl = font_sub.render(sh_txt, True, COLOR_SHIELD)
             else:
-                sh_lbl = font_sub.render("EXPOSED - VULNERABLE", True, COLOR_NEON_RED)
-            canvas.blit(sh_lbl, (top_x + top_w - sh_lbl.get_width() - 12, top_y + 6))
+                sh_lbl = font_sub.render("EXPOSED", True, COLOR_NEON_RED)
+            canvas.blit(sh_lbl, (top_x + top_w - sh_lbl.get_width() - 12, top_y + 5))
 
-            # Objective Health Bar (wider, below name)
+            # Row 2: Objective Health Bar
             hp_w = top_w - 24
-            hp_h = 10
+            hp_h = 7
             hp_x = top_x + 12
-            hp_y = top_y + 28
-            pygame.draw.rect(canvas, (30, 41, 59), (hp_x, hp_y, hp_w, hp_h), border_radius=3)
+            hp_y = top_y + 24
+            pygame.draw.rect(canvas, (30, 41, 59), (hp_x, hp_y, hp_w, hp_h), border_radius=2)
             fill_w = max(0, int(hp_w * obj.hp_percent))
             bar_col = COLOR_SHIELD if obj.is_shielded else (COLOR_NEON_RED if obj.hp_percent < 0.3 else COLOR_GOLD)
             if fill_w > 0:
-                pygame.draw.rect(canvas, bar_col, (hp_x, hp_y, fill_w, hp_h), border_radius=3)
-            # Shield overlay on health bar
+                pygame.draw.rect(canvas, bar_col, (hp_x, hp_y, fill_w, hp_h), border_radius=2)
             if obj.is_shielded:
-                pygame.draw.rect(canvas, (*COLOR_SHIELD, 120), (hp_x, hp_y, hp_w, hp_h), 2, border_radius=3)
-            pygame.draw.rect(canvas, (51, 65, 85), (hp_x, hp_y, hp_w, hp_h), 1, border_radius=3)
+                pygame.draw.rect(canvas, (*COLOR_SHIELD, 120), (hp_x, hp_y, hp_w, hp_h), 1, border_radius=2)
+            pygame.draw.rect(canvas, (51, 65, 85), (hp_x, hp_y, hp_w, hp_h), 1, border_radius=2)
 
-            # Direction Navigation Arrow Indicator (compact, on card)
+            # Row 3: Sub-chips (Distance, Tactical Phase, Radar Status)
+            phase_name = getattr(objective_system, "phase_display_name", "ACTIVE")
+            info_txt = f"[{dist_m}m]  [{phase_name}]"
+            if getattr(objective_system, "is_radar_alert_active", False):
+                info_txt += "  [⚠ RADAR TRACKING]"
+            t_info = font_sub.render(info_txt, True, (148, 163, 184))
+            canvas.blit(t_info, (top_x + 12, top_y + 33))
+
+            # Direction Navigation Arrow on Card
             if player:
                 dx = obj.pos.x - player.pos.x
                 dy = obj.pos.y - player.pos.y
                 nav_angle = math.atan2(dy, dx)
-                nav_center_x = top_x - 22
+                nav_center_x = top_x - 16
                 nav_center_y = top_y + top_h // 2
-                arrow_len = 12
+                arrow_len = 10
                 ax = nav_center_x + math.cos(nav_angle) * arrow_len
                 ay = nav_center_y + math.sin(nav_angle) * arrow_len
                 lx = nav_center_x + math.cos(nav_angle + 2.5) * (arrow_len * 0.6)
@@ -222,41 +227,30 @@ def draw_hud(canvas: pygame.Surface, player, sector_idx: int = 0, level_score: i
                 ry = nav_center_y + math.sin(nav_angle - 2.5) * (arrow_len * 0.6)
                 pygame.draw.polygon(canvas, card_border, [(ax, ay), (lx, ly), (rx, ry)])
 
-            # --- Screen-Edge Direction Marker (PRIORITY 1) ---
-            # If objective is off-screen, draw a directional arrow on the screen edge
+            # --- Target Spatial Feedback (Off-Screen Arrow vs On-Screen Subtle Brackets) ---
             if player and objective_system.active_objective:
                 ox, oy = camera_offset
                 obj_sx = int(round(obj.pos.x - ox))
                 obj_sy = int(round(obj.pos.y - oy))
-                # Check if objective is on screen
                 margin_edge = 60
                 on_screen = (margin_edge <= obj_sx <= vw - margin_edge and
                              margin_edge <= obj_sy <= vh - margin_edge)
                 if not on_screen:
-                    # Arrow on screen edge pointing toward objective
+                    # Off-screen directional arrow at screen edge
                     dx = obj.pos.x - player.pos.x
                     dy = obj.pos.y - player.pos.y
                     nav_angle = math.atan2(dy, dx)
-                    # Clamp arrow to screen edge
                     edge_x = vw // 2
                     edge_y = vh // 2
-                    # Find intersection with screen border
                     if abs(dx) > abs(dy):
-                        if dx > 0:
-                            edge_x = vw - margin_edge
-                        else:
-                            edge_x = margin_edge
+                        edge_x = vw - margin_edge if dx > 0 else margin_edge
                         edge_y = int(vh // 2 + (dy / max(abs(dx), 0.001)) * (vw // 2 - margin_edge))
                         edge_y = max(margin_edge, min(vh - margin_edge, edge_y))
                     else:
-                        if dy > 0:
-                            edge_y = vh - margin_edge
-                        else:
-                            edge_y = margin_edge
+                        edge_y = vh - margin_edge if dy > 0 else margin_edge
                         edge_x = int(vw // 2 + (dx / max(abs(dy), 0.001)) * (vh // 2 - margin_edge))
                         edge_x = max(margin_edge, min(vw - margin_edge, edge_x))
-                    # Draw arrow
-                    arrow_len = 18
+                    arrow_len = 16
                     ax = edge_x + math.cos(nav_angle) * arrow_len
                     ay = edge_y + math.sin(nav_angle) * arrow_len
                     lx = edge_x + math.cos(nav_angle + 2.3) * (arrow_len * 0.6)
@@ -264,24 +258,30 @@ def draw_hud(canvas: pygame.Surface, player, sector_idx: int = 0, level_score: i
                     rx = edge_x + math.cos(nav_angle - 2.3) * (arrow_len * 0.6)
                     ry = edge_y + math.sin(nav_angle - 2.3) * (arrow_len * 0.6)
                     pygame.draw.polygon(canvas, COLOR_NEON_RED, [(ax, ay), (lx, ly), (rx, ry)])
-                    pygame.draw.line(canvas, COLOR_NEON_RED, (edge_x, edge_y), (ax, ay), 2)
-                # If on-screen, the in-world beacon (drawn on the sprite) is sufficient
+                else:
+                    # On-screen subtle target corner brackets (NO giant circle, NO covering structure)
+                    bw = obj.radius + 12
+                    bh = obj.radius + 12
+                    b_col = (*COLOR_GOLD[:3], 140) if not obj.is_shielded else (*COLOR_SHIELD[:3], 140)
+                    # 4 Small corner brackets (8px length)
+                    arm = 8
+                    # Top-Left
+                    pygame.draw.line(canvas, b_col, (obj_sx - bw, obj_sy - bh), (obj_sx - bw + arm, obj_sy - bh), 1)
+                    pygame.draw.line(canvas, b_col, (obj_sx - bw, obj_sy - bh), (obj_sx - bw, obj_sy - bh + arm), 1)
+                    # Top-Right
+                    pygame.draw.line(canvas, b_col, (obj_sx + bw, obj_sy - bh), (obj_sx + bw - arm, obj_sy - bh), 1)
+                    pygame.draw.line(canvas, b_col, (obj_sx + bw, obj_sy - bh), (obj_sx + bw, obj_sy - bh + arm), 1)
+                    # Bottom-Left
+                    pygame.draw.line(canvas, b_col, (obj_sx - bw, obj_sy + bh), (obj_sx - bw + arm, obj_sy + bh), 1)
+                    pygame.draw.line(canvas, b_col, (obj_sx - bw, obj_sy + bh), (obj_sx - bw, obj_sy + bh - arm), 1)
+                    # Bottom-Right
+                    pygame.draw.line(canvas, b_col, (obj_sx + bw, obj_sy + bh), (obj_sx + bw - arm, obj_sy + bh), 1)
+                    pygame.draw.line(canvas, b_col, (obj_sx + bw, obj_sy + bh), (obj_sx + bw, obj_sy + bh - arm), 1)
 
-        # Radar Alert Warning Banner (PRIORITY 3)
-        if getattr(objective_system, "is_radar_alert_active", False):
-            pulse_a = int(180 + 75 * math.sin(pygame.time.get_ticks() * 0.012))
-            alert_lbl = font_card.render("⚠ RADAR ALERT: DEFENSE NETWORK ACTIVE ⚠", True, (239, 68, 68, pulse_a))
-            alert_w = alert_lbl.get_width() + 20
-            alert_h = 24
-            alert_rect = pygame.Rect((vw - alert_w) // 2, margin_y + 58, alert_w, alert_h)
-            pygame.draw.rect(canvas, (185, 28, 28, 45), alert_rect, border_radius=4)
-            pygame.draw.rect(canvas, COLOR_NEON_RED, alert_rect, 1, border_radius=4)
-            canvas.blit(alert_lbl, (alert_rect.left + 10, alert_rect.top + 4))
-
-        # Combat Window indicator
+        # Combat Window Tactical Indicator
         if getattr(objective_system, "is_combat_window_active", False):
-            cw_lbl = font_sub.render("COMBAT WINDOW - REDUCED PRESSURE", True, COLOR_EMERALD)
-            canvas.blit(cw_lbl, (vw // 2 - cw_lbl.get_width() // 2, vh - margin_y - 40))
+            cw_lbl = font_sub.render("TACTICAL OPENING - REDUCED ENEMY PRESSURE", True, COLOR_EMERALD)
+            canvas.blit(cw_lbl, (vw // 2 - cw_lbl.get_width() // 2, vh - margin_y - 36))
 
     # Objective Tracker
     elif objective_text:
