@@ -1297,5 +1297,14 @@ class TestRealGameworldStructureModels:
         assert radar.rect.centerx == 950
         assert radar.rect.centery == 450
 
+    def test_objective_destruction_vfx(self):
+        """Verify spawn_objective_destruction runs and spawns explosion, shockwave, and spark particles."""
+        from src.rendering.particles import ParticleManager
+        pm = ParticleManager()
+        pm.spawn_objective_destruction((1200, 600))
+        assert len(pm.explosion_overlays) > 0
+        assert len(pm.particles) > 0
+
+
 
 
