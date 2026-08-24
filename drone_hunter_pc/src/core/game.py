@@ -2095,18 +2095,26 @@ class Game:
             self.ui_rects_cache = draw_main_menu(canvas, mouse_pos=canvas_m_pos, selected_index=self._menu_cursor if self.input_manager.active_device == DEVICE_GAMEPAD else None)
 
         elif ctx.state == STATE_SAVE_SELECT:
-            self.ui_rects_cache = draw_save_slot_select_ui(canvas, self.save_system, mouse_pos=canvas_m_pos, selected_index=self._menu_cursor if self.input_manager.active_device == DEVICE_GAMEPAD else None)
+            self.ui_rects_cache = draw_save_slot_select_ui(
+                canvas, self.save_system, mouse_pos=canvas_m_pos,
+                input_manager=self.input_manager,
+                selected_index=self._menu_cursor if self.input_manager.active_device in (DEVICE_GAMEPAD, DEVICE_JOYSTICK) else None
+            )
 
         elif ctx.state == STATE_SETTINGS:
             self.ui_rects_cache = draw_settings_menu_ui(
                 canvas, ctx.difficulty_mode, ctx.show_crt,
                 self.audio_manager.sound_enabled, mouse_pos=canvas_m_pos,
-                input_manager=self.input_manager
+                input_manager=self.input_manager,
+                selected_index=self._menu_cursor if self.input_manager.active_device in (DEVICE_GAMEPAD, DEVICE_JOYSTICK) else None
             )
 
         elif ctx.state == STATE_CUSTOM_DIFFICULTY:
             self.ui_rects_cache = draw_custom_difficulty_ui(
-                canvas, ctx.custom_difficulty_settings, mouse_pos=canvas_m_pos, dragging=self.custom_difficulty_dragging
+                canvas, ctx.custom_difficulty_settings, mouse_pos=canvas_m_pos,
+                dragging=self.custom_difficulty_dragging,
+                input_manager=self.input_manager,
+                selected_index=self._menu_cursor if self.input_manager.active_device in (DEVICE_GAMEPAD, DEVICE_JOYSTICK) else None
             )
 
         elif ctx.state == STATE_CONTROLLER_BINDING:

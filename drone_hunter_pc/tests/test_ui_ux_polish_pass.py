@@ -124,7 +124,102 @@ class TestUIUXPolishPass:
             upgrade_levels={'hull': 1, 'energy': 1, 'weapon': 1, 'mobility': 1},
             player=p
         )
-        f_btns = [rects['back'], rects['skin'], rects['settings'], rects['exit']]
+        f_btns = [rects['back'], rects['drone'], rects['skin'], rects['settings'], rects['exit']]
         for i in range(len(f_btns)):
             for j in range(i + 1, len(f_btns)):
                 assert not f_btns[i].colliderect(f_btns[j])
+
+    def test_hardware_test_matches_binding_wizard(self):
+        """Verify Hardware Test and Binding Wizard read the same canonical normalized controller profile."""
+        from unittest.mock import MagicMock
+        from src.input.controller_mapping import DEFAULT_MAPPINGS
+
+        mgr = ControllerMappingManager()
+        js = MagicMock()
+        js.get_name.return_value = "Twin USB Gamepad"
+        js.get_guid.return_value = "twin_usb_guid_123"
+        js.get_instance_id.return_value = 0
+        js.get_numbuttons.return_value = 16
+        js.get_numhats.return_value = 0
+        js.get_numaxes.return_value = 2
+
+        profile = mgr.get_or_create_profile(js)
+        assert profile.controller_type == "generic_ps2"
+
+        # Canonical mapping checks
+        assert profile.button_map["fire_primary"] == 2  # CROSS
+        assert profile.button_map["emp"] == 1           # CIRCLE
+        assert profile.button_map["ultimate"] == 0      # TRIANGLE
+        assert profile.button_map["roll"] == 3          # SQUARE
+        assert profile.button_map["front_bottom"] == 4  # FRONT BOTTOM (L1)
+        assert profile.button_map["front_top"] == 5     # FRONT TOP (R1)
+        assert profile.button_map["sector_map"] == 8    # SELECT
+        assert profile.button_map["pause"] == 9         # START
+
+    def test_prompt_matches_active_device(self):
+        """Verify prompts adapt strictly to active device (controller vs keyboard)."""
+        im = InputManager()
+        from unittest.mock import MagicMock
+
+        # Keyboard / Mouse active
+        im.active_device = DEVICE_KEYBOARD_MOUSE
+        assert im.get_prompt_for_action("FIRE_PRIMARY") == "LMB"
+        assert im.get_prompt_for_action("CONFIRM") == "ENTER"
+        assert im.get_prompt_for_action("CANCEL") == "ESC"
+
+        # Gamepad active with generic_ps2
+        js = MagicMock()
+        js.get_name.return_value = "Twin USB Gamepad"
+        js.get_guid.return_value = "twin_guid_456"
+        js.get_instance_id.return_value = 0
+        js.get_numbuttons.return_value = 16
+        js.get_numhats.return_value = 0
+        js.get_numaxes.return_value = 2
+
+        im.active_device = DEVICE_GAMEPAD
+        im.active_joystick_id = 0
+        im.connected_joysticks[0] = js
+
+        assert "[X]" in im.get_prompt_for_action("FIRE_PRIMARY")
+        assert "[O]" in im.get_prompt_for_action("EMP")
+        assert "[△]" in im.get_prompt_for_action("ULTIMATE")
+        assert "[START]" in im.get_prompt_for_action("PAUSE")
+
+    def test_contextual_actions_do_not_duplicate(self):
+        """Verify contextual actions are distinct and categorized properly in binding wizard."""
+        from src.input.controller_mapping import GAMEPLAY_ACTIONS, MENU_ACTIONS, CONTEXTUAL_ACTIONS
+        
+        # Verify no overlap between categories
+        all_actions = set(GAMEPLAY_ACTIONS) | set(MENU_ACTIONS) | set(CONTEXTUAL_ACTIONS)
+        assert len(all_actions) == len(GAMEPLAY_ACTIONS) + len(MENU_ACTIONS) + len(CONTEXTUAL_ACTIONS)
+        assert "weapon_prev" in CONTEXTUAL_ACTIONS
+        assert "cycle_class" in CONTEXTUAL_ACTIONS
+        assert "cycle_skin" in CONTEXTUAL_ACTIONS
+        assert "fullscreen" in CONTEXTUAL_ACTIONS
+
+    def test_controller_only_menu_flow(self):
+        """Verify controller navigation states and focus indicators across all screens."""
+        canvas = pygame.Surface((1280, 720))
+        from src.ui.menus import draw_save_slot_select_ui, draw_custom_difficulty_ui
+        from unittest.mock import MagicMock
+
+        im = InputManager()
+        im.active_device = DEVICE_GAMEPAD
+
+        save_sys = MagicMock()
+        save_sys.get_save_slot_list.return_value = [
+            {"exists": True, "sector": 1, "difficulty_mode": 1, "scrap": 100, "highscore": 5000, "play_time": 120, "last_played": "Now"},
+            {"exists": False},
+            {"exists": False}
+        ]
+
+        # Save slot selection with controller
+        slot_rects = draw_save_slot_select_ui(canvas, save_sys, input_manager=im, selected_index=0)
+        assert "slot_0" in slot_rects
+        assert "back" in slot_rects
+
+        # Custom difficulty with controller
+        diff_rects = draw_custom_difficulty_ui(canvas, {}, input_manager=im, selected_index=0)
+        assert "hp_mult" in diff_rects
+        assert "save" in diff_rects
+        assert "back" in diff_rects

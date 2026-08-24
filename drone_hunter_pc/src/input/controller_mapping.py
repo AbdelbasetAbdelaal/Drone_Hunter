@@ -44,7 +44,75 @@ ACTION_CYCLE_CLASS = "cycle_class"
 DPAD_ACTIONS = (ACTION_MOVE_UP, ACTION_MOVE_DOWN, ACTION_MOVE_LEFT, ACTION_MOVE_RIGHT)
 
 # ------------------------------------------------------------------------------
-# DEFAULT BUTTON MAPPINGS PER CONTROLLER TYPE
+# CANONICAL PHYSICAL BUTTON NAMES
+# ------------------------------------------------------------------------------
+PHYSICAL_BUTTON_NAMES_PS = {
+    0: "TRIANGLE",
+    1: "CIRCLE",
+    2: "CROSS",
+    3: "SQUARE",
+    4: "FRONT BOTTOM (L1)",
+    5: "FRONT TOP (R1)",
+    6: "L2 TRIGGER",
+    7: "R2 TRIGGER",
+    8: "SELECT",
+    9: "START",
+    10: "L3",
+    11: "R3",
+}
+
+PHYSICAL_BUTTON_NAMES_XBOX = {
+    0: "A",
+    1: "B",
+    2: "X",
+    3: "Y",
+    4: "LB",
+    5: "RB",
+    6: "BACK",
+    7: "START",
+    8: "LS",
+    9: "RS",
+}
+
+def get_physical_button_name(btn_idx: int, controller_type: str = "generic_ps2") -> str:
+    """Returns canonical physical button name for a raw button index."""
+    if btn_idx < 0:
+        return "NONE"
+    if controller_type == "xbox":
+        return PHYSICAL_BUTTON_NAMES_XBOX.get(btn_idx, f"BTN {btn_idx}")
+    return PHYSICAL_BUTTON_NAMES_PS.get(btn_idx, f"BTN {btn_idx}")
+
+
+# ------------------------------------------------------------------------------
+# CATEGORIZED ACTIONS
+# ------------------------------------------------------------------------------
+GAMEPLAY_ACTIONS = [
+    ACTION_FIRE_PRIMARY,
+    ACTION_EMP,
+    ACTION_ULTIMATE,
+    ACTION_ROLL,
+    ACTION_WEAPON_NEXT,
+    ACTION_CLOAK,
+]
+
+MENU_ACTIONS = [
+    ACTION_CONFIRM,
+    ACTION_CANCEL,
+    ACTION_PAUSE,
+    ACTION_SECTOR_MAP,
+    ACTION_HANGAR_BAY,
+]
+
+CONTEXTUAL_ACTIONS = [
+    ACTION_WEAPON_PREV,
+    ACTION_CYCLE_CLASS,
+    ACTION_CYCLE_SKIN,
+    ACTION_FULLSCREEN,
+]
+
+
+# ------------------------------------------------------------------------------
+# DEFAULT BUTTON MAPPINGS PER CONTROLLER TYPE (SINGLE SOURCE OF TRUTH)
 # ------------------------------------------------------------------------------
 DEFAULT_MAPPINGS = {
     ACTION_FIRE_PRIMARY:   {"xbox": 0, "playstation": 0, "generic": 0, "generic_ps2": 2},

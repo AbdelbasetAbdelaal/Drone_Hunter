@@ -479,10 +479,10 @@ def draw_settings_menu_ui(canvas: pygame.Surface, difficulty_mode: int, show_crt
 
     buttons_def = [
         # (key, text, base_col, text_col, category_header)
-        ("fullscreen", "DISPLAY: FULLSCREEN TOGGLE [F11]", COLOR_CYAN, COLOR_WHITE, "DISPLAY & VISUALS"),
-        ("crt", f"CRT SCANLINES: {'ENABLED' if show_crt else 'DISABLED'} [F2]", COLOR_CYAN, COLOR_CYAN, None),
-        ("sfx", f"AUDIO SFX: {'ENABLED' if sound_enabled else 'MUTED'}", COLOR_GOLD, COLOR_GOLD, "AUDIO & SOUND"),
-        ("diff", f"COMBAT DIFFICULTY: {diff_name}", diff_col, diff_col, "GAMEPLAY & BALANCE"),
+        ("fullscreen", "DISPLAY: FULLSCREEN TOGGLE [F11]" if not is_controller else "DISPLAY: FULLSCREEN TOGGLE  [X]", COLOR_CYAN, COLOR_WHITE, "DISPLAY & VISUALS"),
+        ("crt", f"CRT SCANLINES: {'ENABLED' if show_crt else 'DISABLED'} [F2]" if not is_controller else f"CRT SCANLINES: {'ENABLED' if show_crt else 'DISABLED'}  [X]", COLOR_CYAN, COLOR_CYAN, None),
+        ("sfx", f"AUDIO SFX: {'ENABLED' if sound_enabled else 'MUTED'}" if not is_controller else f"AUDIO SFX: {'ENABLED' if sound_enabled else 'MUTED'}  [X]", COLOR_GOLD, COLOR_GOLD, "AUDIO & SOUND"),
+        ("diff", f"COMBAT DIFFICULTY: {diff_name}" if not is_controller else f"COMBAT DIFFICULTY: {diff_name}  [D-PAD ◀ / ▶]", diff_col, diff_col, "GAMEPLAY & BALANCE"),
         ("controller", "CONTROLLER SETTINGS (DEADZONE / SENSITIVITY)", COLOR_CYAN, COLOR_WHITE, "HARDWARE & INPUT"),
         ("config", "CONFIGURE BUTTON MAPPINGS", COLOR_GOLD, COLOR_GOLD, None),
         ("test", "TEST CONTROLLER HARDWARE", COLOR_EMERALD, COLOR_EMERALD, None),
@@ -824,16 +824,21 @@ def draw_game_over_ui(canvas: pygame.Surface, sector_idx: int = 0, sub_level: in
     return buttons
 
 
-def draw_save_slot_select_ui(canvas: pygame.Surface, save_system, mouse_pos: tuple[int, int] = None, selected_index: int = None) -> dict:
-    """Renders save slot selection screen with 3 slots + legacy save detection."""
+def draw_save_slot_select_ui(canvas: pygame.Surface, save_system, mouse_pos: tuple[int, int] = None, input_manager=None, selected_index: int = None) -> dict:
+    """Renders save slot selection screen with 3 slots + legacy save detection and controller support."""
     canvas.fill((6, 10, 18))
     vw, vh = canvas.get_size()
     mx, my = _get_safe_mouse_pos(mouse_pos)
 
+    is_controller = False
+    if input_manager and getattr(input_manager, "active_device", "") in ("gamepad", "joystick"):
+        is_controller = True
+
     title = font_title.render("SELECT SAVE SLOT", True, COLOR_CYAN)
     canvas.blit(title, title.get_rect(center=(vw // 2, 60)))
 
-    sub = font_banner.render("CHOOSE A SLOT OR START A NEW GAME", True, COLOR_TEXT_DIM)
+    sub_text = "CHOOSE A SLOT TO LOAD OR START A NEW GAME  •  [X] SELECT  [O] BACK" if is_controller else "CHOOSE A SLOT OR START A NEW GAME"
+    sub = font_banner.render(sub_text, True, COLOR_TEXT_DIM)
     canvas.blit(sub, sub.get_rect(center=(vw // 2, 105)))
 
     slots = save_system.get_save_slot_list()
@@ -848,15 +853,19 @@ def draw_save_slot_select_ui(canvas: pygame.Surface, save_system, mouse_pos: tup
         card_rect = pygame.Rect(cx, cy, card_w, card_h)
 
         is_hover = card_rect.collidepoint(mx, my) or (selected_index == i)
-        bg_c = (22, 36, 58) if is_hover else (14, 22, 38)
-        border_c = COLOR_WHITE if is_hover else COLOR_CYAN
-        border_w = 2 if is_hover else 1
+        bg_c = (26, 44, 70) if is_hover else (14, 22, 38)
+        border_c = COLOR_WHITE if is_hover else (COLOR_GOLD if slot_meta["exists"] else COLOR_CYAN)
+        border_w = 3 if is_hover else 1
 
         pygame.draw.rect(canvas, bg_c, card_rect, border_radius=8)
         pygame.draw.rect(canvas, border_c, card_rect, border_w, border_radius=8)
 
         slot_label = font_header.render(f"SLOT {i + 1}", True, COLOR_CYAN if not slot_meta["exists"] else COLOR_GOLD)
         canvas.blit(slot_label, (cx + 20, cy + 14))
+
+        if is_hover and is_controller:
+            prompt_chip = font_sub.render("[X] LOAD" if slot_meta["exists"] else "[X] NEW GAME", True, COLOR_EMERALD)
+            canvas.blit(prompt_chip, (cx + 120, cy + 18))
 
         if slot_meta["exists"]:
             diff_name = DIFFICULTY_NAMES[slot_meta["difficulty_mode"]] if slot_meta["difficulty_mode"] < len(DIFFICULTY_NAMES) else "UNKNOWN"
@@ -874,47 +883,54 @@ def draw_save_slot_select_ui(canvas: pygame.Surface, save_system, mouse_pos: tup
                 canvas.blit(info_surf, (cx + 20, line_y))
                 line_y += 26
 
-            del_btn_w, del_btn_h = 100, 32
+            del_btn_w, del_btn_h = 110, 32
             del_btn = pygame.Rect(cx + card_w - del_btn_w - 20, cy + card_h - del_btn_h - 12, del_btn_w, del_btn_h)
             del_hover = del_btn.collidepoint(mx, my)
             pygame.draw.rect(canvas, (60, 20, 25) if del_hover else (35, 15, 20), del_btn, border_radius=5)
             pygame.draw.rect(canvas, COLOR_CRIMSON, del_btn, 2 if del_hover else 1, border_radius=5)
-            del_txt = font_sub.render("DELETE", True, COLOR_CRIMSON if del_hover else (180, 80, 90))
+            del_txt_str = "[SEL] DELETE" if is_controller else "DELETE"
+            del_txt = font_sub.render(del_txt_str, True, COLOR_CRIMSON if del_hover else (180, 80, 90))
             canvas.blit(del_txt, del_txt.get_rect(center=del_btn.center))
             slot_rects[f"del_{i}"] = del_btn
         else:
-            empty_txt = font_card.render("EMPTY SLOT", True, (80, 95, 115))
+            empty_txt = font_card.render("EMPTY SLOT — SELECT TO START CAMPAIGN", True, (100, 120, 145) if is_hover else (80, 95, 115))
             canvas.blit(empty_txt, (cx + 20, cy + 55))
 
         slot_rects[f"slot_{i}"] = card_rect
 
-    btn_w, btn_h = 200, 40
+    btn_w, btn_h = 220, 40
     bx = vw // 2 - btn_w // 2
     by = start_y + 3 * (card_h + gap) + 10
 
     r_back = pygame.Rect(bx, by, btn_w, btn_h)
-    draw_button(canvas, r_back, "[ESC] BACK", (mx, my), base_color=COLOR_CRIMSON, text_color=COLOR_CRIMSON, is_selected=(selected_index == 3))
+    lbl_b = "[O] BACK" if is_controller else "[ESC] BACK"
+    draw_button(canvas, r_back, lbl_b, (mx, my), base_color=COLOR_CRIMSON, text_color=COLOR_CRIMSON, is_selected=(selected_index == 3))
     slot_rects["back"] = r_back
 
     return slot_rects
 
 
-def draw_custom_difficulty_ui(canvas: pygame.Surface, custom_settings: dict, mouse_pos: tuple[int, int] = None, dragging: int = -1, selected_index: int = None) -> dict:
-    """Renders custom difficulty configuration with sliders for all multipliers."""
+def draw_custom_difficulty_ui(canvas: pygame.Surface, custom_settings: dict, mouse_pos: tuple[int, int] = None, dragging: int = -1, input_manager=None, selected_index: int = None) -> dict:
+    """Renders custom difficulty configuration with sliders for all multipliers and clear controller hints."""
     canvas.fill((8, 12, 22))
     vw, vh = canvas.get_size()
     mx, my = _get_safe_mouse_pos(mouse_pos)
 
-    panel_w, panel_h = 620, 520
+    is_controller = False
+    if input_manager and getattr(input_manager, "active_device", "") in ("gamepad", "joystick"):
+        is_controller = True
+
+    panel_w, panel_h = 640, 530
     panel_rect = pygame.Rect(vw // 2 - panel_w // 2, vh // 2 - panel_h // 2, panel_w, panel_h)
     pygame.draw.rect(canvas, (14, 22, 38), panel_rect, border_radius=10)
     pygame.draw.rect(canvas, COLOR_CYAN, panel_rect, 2, border_radius=10)
 
     t_hdr = font_header.render("CUSTOM DIFFICULTY", True, COLOR_CYAN)
-    canvas.blit(t_hdr, t_hdr.get_rect(center=(vw // 2, panel_rect.top + 36)))
+    canvas.blit(t_hdr, t_hdr.get_rect(center=(vw // 2, panel_rect.top + 34)))
 
-    sub = font_card.render("Adjust multipliers below (0.5x - 3.0x)", True, COLOR_TEXT_DIM)
-    canvas.blit(sub, sub.get_rect(center=(vw // 2, panel_rect.top + 68)))
+    sub_txt = "Adjust multipliers below • [D-PAD ◀ / ▶] To Adjust Value" if is_controller else "Adjust multipliers below (0.5x - 3.0x)"
+    sub = font_card.render(sub_txt, True, COLOR_TEXT_DIM)
+    canvas.blit(sub, sub.get_rect(center=(vw // 2, panel_rect.top + 64)))
 
     sliders = {
         "hp_mult": {"label": "HP Multiplier", "min": 0.5, "max": 3.0, "step": 0.05},
@@ -925,21 +941,26 @@ def draw_custom_difficulty_ui(canvas: pygame.Surface, custom_settings: dict, mou
     }
 
     slider_rects = {}
-    by = panel_rect.top + 100
+    by = panel_rect.top + 94
     slider_h = 14
     track_h = 8
     handle_w = 18
     handle_h = 22
 
-    for key, cfg in sliders.items():
+    for s_idx, (key, cfg) in enumerate(sliders.items()):
         val = float(custom_settings.get(key, CUSTOM_DIFFICULTY_DEFAULTS.get(key, 1.0)))
         val = max(cfg["min"], min(cfg["max"], val))
 
-        label_surf = font_card.render(cfg["label"], True, COLOR_WHITE)
+        is_focused = (selected_index == s_idx)
+        lbl_col = COLOR_CYAN if is_focused else COLOR_WHITE
+        label_surf = font_card.render(cfg["label"], True, lbl_col)
         canvas.blit(label_surf, (panel_rect.left + 40, by))
 
-        val_surf = font_card.render(f"{val:.2f}x", True, COLOR_GOLD)
-        canvas.blit(val_surf, (panel_rect.right - 90, by))
+        val_str = f"{val:.2f}x"
+        if is_focused and is_controller:
+            val_str += "  [◀ / ▶]"
+        val_surf = font_card.render(val_str, True, COLOR_GOLD if is_focused else (245, 158, 11))
+        canvas.blit(val_surf, (panel_rect.right - 140, by))
 
         track_rect = pygame.Rect(panel_rect.left + 40, by + 28, panel_w - 160, track_h)
         pygame.draw.rect(canvas, (30, 42, 62), track_rect, border_radius=4)
@@ -947,11 +968,11 @@ def draw_custom_difficulty_ui(canvas: pygame.Surface, custom_settings: dict, mou
         ratio = (val - cfg["min"]) / (cfg["max"] - cfg["min"])
         fill_w = int(track_rect.width * ratio)
         fill_rect = pygame.Rect(track_rect.left, track_rect.top, fill_w, track_rect.height)
-        pygame.draw.rect(canvas, COLOR_CYAN, fill_rect, border_radius=4)
+        pygame.draw.rect(canvas, COLOR_EMERALD if is_focused else COLOR_CYAN, fill_rect, border_radius=4)
 
         handle_x = track_rect.left + fill_w - handle_w // 2
         handle_rect = pygame.Rect(handle_x, track_rect.top - (handle_h - track_h) // 2, handle_w, handle_h)
-        handle_col = COLOR_WHITE if dragging == key else COLOR_CYAN
+        handle_col = COLOR_WHITE if (dragging == key or is_focused) else COLOR_CYAN
         pygame.draw.rect(canvas, handle_col, handle_rect, border_radius=3)
 
         slider_rects[key] = {
@@ -963,23 +984,23 @@ def draw_custom_difficulty_ui(canvas: pygame.Surface, custom_settings: dict, mou
             "step": cfg["step"]
         }
 
-        by += 70
+        by += 68
 
-    btn_w, btn_h = 200, 42
+    btn_w, btn_h = 180, 40
     bx = vw // 2 - btn_w // 2
-    by = panel_rect.bottom - 60
+    by = panel_rect.bottom - 54
 
-    r_back = pygame.Rect(bx - 110, by, btn_w, btn_h)
-    r_reset = pygame.Rect(bx, by, btn_w, btn_h)
-    r_save = pygame.Rect(bx + 110, by, btn_w, btn_h)
+    r_back = pygame.Rect(bx - 120, by, btn_w, btn_h)
+    r_reset = pygame.Rect(bx + 120, by, btn_w, btn_h)
 
-    draw_button(canvas, r_back, "[ESC] BACK", (mx, my), base_color=COLOR_CRIMSON)
-    draw_button(canvas, r_reset, "RESET DEFAULTS", (mx, my), base_color=COLOR_GOLD, text_color=COLOR_GOLD)
-    draw_button(canvas, r_save, "[ENTER] SAVE", (mx, my), base_color=COLOR_EMERALD, text_color=COLOR_EMERALD)
+    lbl_back = "[O] CANCEL" if is_controller else "[ESC] BACK"
+    lbl_save = "[X] SAVE & EXIT" if is_controller else "[ENTER] SAVE"
+    draw_button(canvas, r_back, lbl_back, (mx, my), base_color=COLOR_CRIMSON, is_selected=(selected_index == 5))
+    draw_button(canvas, r_reset, lbl_save, (mx, my), base_color=COLOR_EMERALD, text_color=COLOR_EMERALD, is_selected=(selected_index == 6))
 
     slider_rects["back"] = r_back
+    slider_rects["save"] = r_reset
     slider_rects["reset"] = r_reset
-    slider_rects["save"] = r_save
 
     return slider_rects
 
@@ -994,119 +1015,171 @@ def get_button_label(base_label: str, action: str, input_manager=None) -> str:
 
 
 def draw_controller_binding_ui(canvas: pygame.Surface, mapping_manager, mouse_pos: tuple[int, int] = None, binding_action: str = None, waiting: bool = False) -> dict:
-    """Interactive controller button binding wizard with 2-column grid and clear button telemetry."""
+    """Categorized controller button binding wizard with clear grouping, shared control telemetry, and zero overflow."""
     canvas.fill((8, 12, 22))
     vw, vh = canvas.get_size()
     mx, my = _get_safe_mouse_pos(mouse_pos)
 
-    panel_w = min(880, vw - 40)
-    panel_h = min(560, vh - 40)
+    from src.input.controller_mapping import (
+        get_physical_button_name, GAMEPLAY_ACTIONS, MENU_ACTIONS, CONTEXTUAL_ACTIONS
+    )
+
+    panel_w = min(920, vw - 40)
+    panel_h = min(620, vh - 40)
     panel_rect = pygame.Rect((vw - panel_w) // 2, (vh - panel_h) // 2, panel_w, panel_h)
     pygame.draw.rect(canvas, (14, 22, 38), panel_rect, border_radius=10)
     pygame.draw.rect(canvas, COLOR_GOLD, panel_rect, 2, border_radius=10)
 
-    # Header Title
+    # 1. Header Title
     t_hdr = font_header.render("CONTROLLER BINDING WIZARD", True, COLOR_GOLD)
-    canvas.blit(t_hdr, t_hdr.get_rect(center=(vw // 2, panel_rect.top + 28)))
+    canvas.blit(t_hdr, t_hdr.get_rect(center=(vw // 2, panel_rect.top + 24)))
 
     # Active Device Name & Type
     profile = None
     if mapping_manager.profiles:
         profile = next(iter(mapping_manager.profiles.values()), None)
 
-    dev_name = profile.device_name if profile else "Generic Controller"
+    dev_name = profile.device_name if profile else "Generic USB Gamepad"
     dev_type = profile.controller_type.upper() if profile else "GENERIC"
-    name_surf = font_sub.render(f"ACTIVE DEVICE: {dev_name}  [{dev_type}]", True, COLOR_CYAN)
-    canvas.blit(name_surf, (panel_rect.left + 24, panel_rect.top + 56))
+    name_surf = font_sub.render(f"ACTIVE HARDWARE: {dev_name}  [{dev_type}]", True, COLOR_CYAN)
+    canvas.blit(name_surf, (panel_rect.left + 24, panel_rect.top + 50))
 
-    actions = mapping_manager.get_all_actions()
+    # 2. Categorized 2-Column Balanced Layout
+    col_w = (panel_w - 64) // 2
+    row_h = 32
+    row_gap = 4
+    start_y = panel_rect.top + 78
     action_rows = []
 
-    # 2-Column Balanced Grid
-    col_w = (panel_w - 64) // 2
-    row_h = 34
-    row_spacing = 5
-    start_y = panel_rect.top + 84
+    # COLUMN 1: GAMEPLAY ACTIONS
+    c1_x = panel_rect.left + 24
+    lbl_c1 = font_card.render("GAMEPLAY ACTIONS", True, COLOR_CYAN)
+    canvas.blit(lbl_c1, (c1_x + 4, start_y))
 
-    half = (len(actions) + 1) // 2
-    for i, action in enumerate(actions):
-        col_idx = 0 if i < half else 1
-        row_idx = i if i < half else i - half
-        rx = panel_rect.left + 24 + col_idx * (col_w + 16)
-        ry = start_y + row_idx * (row_h + row_spacing)
-        row_rect = pygame.Rect(rx, ry, col_w, row_h)
-        action_rows.append((action, row_rect))
+    cur_y1 = start_y + 22
+    for action in GAMEPLAY_ACTIONS:
+        r_rect = pygame.Rect(c1_x, cur_y1, col_w, row_h)
+        action_rows.append((action, r_rect, False))
+        cur_y1 += row_h + row_gap
 
-    # Render Action Cards
-    for action, row_rect in action_rows:
+    # COLUMN 2 TOP: MENU ACTIONS
+    c2_x = panel_rect.left + 24 + col_w + 16
+    lbl_c2_menu = font_card.render("MENU & SYSTEM ACTIONS", True, COLOR_GOLD)
+    canvas.blit(lbl_c2_menu, (c2_x + 4, start_y))
+
+    cur_y2 = start_y + 22
+    for action in MENU_ACTIONS:
+        r_rect = pygame.Rect(c2_x, cur_y2, col_w, row_h)
+        action_rows.append((action, r_rect, False))
+        cur_y2 += row_h + row_gap
+
+    # COLUMN 2 BOTTOM: CONTEXTUAL & SHARED CONTROLS
+    cur_y2 += 8
+    lbl_c2_ctx = font_card.render("CONTEXTUAL & SHARED CONTROLS", True, (168, 85, 247))
+    canvas.blit(lbl_c2_ctx, (c2_x + 4, cur_y2))
+
+    cur_y2 += 22
+    for action in CONTEXTUAL_ACTIONS:
+        r_rect = pygame.Rect(c2_x, cur_y2, col_w, row_h)
+        action_rows.append((action, r_rect, True))
+        cur_y2 += row_h + row_gap
+
+    # 3. Render Action Cards
+    for action, row_rect, is_contextual in action_rows:
         is_selected = (action == binding_action)
         is_hovered = row_rect.collidepoint(mx, my)
 
-        bg_c = (35, 48, 75) if is_selected else ((24, 34, 52) if is_hovered else (16, 22, 34))
-        border_c = COLOR_GOLD if is_selected else (COLOR_CYAN if is_hovered else (45, 60, 85))
+        bg_c = (35, 52, 80) if is_selected else ((24, 36, 56) if is_hovered else (16, 24, 38))
+        border_c = COLOR_GOLD if is_selected else (COLOR_CYAN if is_hovered else (45, 62, 88))
         pygame.draw.rect(canvas, bg_c, row_rect, border_radius=4)
         pygame.draw.rect(canvas, border_c, row_rect, 2 if (is_selected or is_hovered) else 1, border_radius=4)
 
-        # Action display name
-        act_name = action.replace("_", " ").title()
-        label_col = COLOR_WHITE if (is_selected or is_hovered) else COLOR_TEXT_DIM
-        label = font_card.render(act_name, True, label_col)
-        canvas.blit(label, (row_rect.left + 10, row_rect.top + 6))
+        # Action Display Name
+        act_display_names = {
+            "fire_primary": "Primary Fire",
+            "emp": "EMP Attack",
+            "ultimate": "Overdrive / Ultimate",
+            "roll": "Barrel Roll",
+            "weapon_next": "Weapon Next",
+            "cloak": "Tactical Cloak",
+            "confirm": "Menu Confirm",
+            "cancel": "Menu Cancel / Back",
+            "pause": "Pause Menu",
+            "sector_map": "Sector Map",
+            "hangar_bay": "Hangar Bay",
+            "weapon_prev": "Weapon Previous",
+            "cycle_class": "Cycle Drone Class",
+            "cycle_skin": "Cycle Chassis Skin",
+            "fullscreen": "Toggle Fullscreen",
+        }
+        act_name = act_display_names.get(action, action.replace("_", " ").title())
+        label_col = COLOR_WHITE if (is_selected or is_hovered) else (190, 205, 225)
+        label = font_sub.render(act_name, True, label_col)
+        canvas.blit(label, (row_rect.left + 10, row_rect.top + 7))
 
-        # Current bound button badge
-        if profile and action in getattr(profile, "button_map", {}):
-            btn_idx = profile.button_map[action]
-            btn_text = f"BTN {btn_idx}" if btn_idx >= 0 else "NONE"
-            prompts = getattr(profile, "button_prompts", {})
-            prompt_key = prompts.get(action, "")
-            if prompt_key and prompt_key != btn_text:
-                btn_text += f" [{prompt_key}]"
-        else:
-            btn_text = "NONE"
-
+        # Current Bound Badge
         if is_selected and waiting:
             btn_text = "PRESS BUTTON..."
             btn_col = COLOR_CYAN
+        elif is_contextual:
+            ctx_badges = {
+                "weapon_prev": "FRONT TOP [HOLD]",
+                "cycle_class": "FRONT BTM [HOLD]",
+                "cycle_skin": "FRONT BTM [HANGAR]",
+                "fullscreen": "START [HOLD]",
+            }
+            btn_text = ctx_badges.get(action, "SHARED INPUT")
+            btn_col = (192, 132, 252) # Soft Purple
+        elif profile and action in getattr(profile, "button_map", {}):
+            btn_idx = profile.button_map[action]
+            p_name = get_physical_button_name(btn_idx, profile.controller_type if profile else "generic_ps2")
+            btn_text = f"{p_name} / BTN {btn_idx}" if btn_idx >= 0 else "NONE"
+            btn_col = COLOR_GOLD if is_hovered else COLOR_CYAN
         else:
-            btn_col = COLOR_GOLD if is_hovered else (148, 163, 184)
+            btn_text = "NONE"
+            btn_col = COLOR_TEXT_DIM
 
         badge_surf = font_sub.render(btn_text, True, btn_col)
         badge_rect = badge_surf.get_rect(right=row_rect.right - 10, centery=row_rect.centery)
         canvas.blit(badge_surf, badge_rect)
 
-    # Status / Hint Notice Bar
-    hint_y = panel_rect.bottom - 68
+    # 4. Status / Hint Notice Bar
+    hint_y = panel_rect.bottom - 66
     if waiting and binding_action:
         pulse_a = int(200 + 55 * math.sin(pygame.time.get_ticks() * 0.015)) if pygame.get_init() else 255
         wait_txt = font_banner.render(f"⚡ PRESS CONTROLLER BUTTON FOR: [{binding_action.replace('_', ' ').upper()}] ⚡", True, (*COLOR_CYAN[:3], pulse_a))
         canvas.blit(wait_txt, wait_txt.get_rect(center=(vw // 2, hint_y)))
     else:
-        hint = font_sub.render("Click an action row to rebind • Press [ESC] or [O] to exit", True, COLOR_TEXT_DIM)
+        hint = font_sub.render("Click an action row to rebind • Contextual actions share physical buttons via Hold/Context", True, COLOR_TEXT_DIM)
         canvas.blit(hint, hint.get_rect(center=(vw // 2, hint_y)))
 
-    # Navigation Buttons (Cleanly aligned at panel bottom)
-    btn_w, btn_h = 170, 36
+    # 5. Navigation Buttons
+    btn_w, btn_h = 180, 36
     by = panel_rect.bottom - 44
     r_back = pygame.Rect(vw // 2 - btn_w - 12, by, btn_w, btn_h)
     r_reset = pygame.Rect(vw // 2 + 12, by, btn_w, btn_h)
-    draw_button(canvas, r_back, "[ESC] BACK", (mx, my), base_color=COLOR_CRIMSON)
+    draw_button(canvas, r_back, "[ESC / O] BACK", (mx, my), base_color=COLOR_CRIMSON)
     draw_button(canvas, r_reset, "RESET DEFAULTS", (mx, my), base_color=COLOR_GOLD, text_color=COLOR_GOLD)
 
     result = {
         "back": r_back,
         "reset": r_reset,
-        "action_rows": {a: r for a, r in action_rows}
+        "action_rows": {a: r for a, r, _ in action_rows}
     }
     return result
 
 
 def draw_controller_test_ui(canvas: pygame.Surface, joystick, mapping_manager, mouse_pos: tuple[int, int] = None) -> dict:
-    """Real-time controller test screen featuring a central interactive controller diagram, logical telemetry, and diagnostics."""
+    """Real-time controller test screen displaying canonical bindings synchronized with Gameplay & Binding Wizard."""
     canvas.fill((8, 12, 22))
     vw, vh = canvas.get_size()
     mx, my = _get_safe_mouse_pos(mouse_pos)
 
+    from src.input.controller_mapping import get_physical_button_name
+
     profile = mapping_manager.get_profile_for_joystick(joystick) if joystick else None
+    if not profile and mapping_manager.profiles:
+        profile = next(iter(mapping_manager.profiles.values()), None)
 
     # 1. Header
     header_rect = pygame.Rect(32, 16, vw - 64, 46)
@@ -1130,7 +1203,7 @@ def draw_controller_test_ui(canvas: pygame.Surface, joystick, mapping_manager, m
     s_info = font_sub.render(info_str, True, COLOR_TEXT_DIM)
     canvas.blit(s_info, (36, 70))
 
-    # Helper function to check if a mapped action or raw button is pressed
+    # Helper function to check button states
     def is_action_pressed(action_key: str) -> bool:
         if not profile or not joystick:
             return False
@@ -1155,7 +1228,7 @@ def draw_controller_test_ui(canvas: pygame.Surface, joystick, mapping_manager, m
     # 2. Layout Dimensions (2 Main Panels: Diagram Left, Logical Telemetry Right)
     panel_y = 96
     panel_h = vh - panel_y - 100
-    left_w = min(520, (vw - 84) // 2)
+    left_w = min(500, (vw - 84) // 2)
     right_w = (vw - 64) - left_w - 20
     diag_x = 32
     tele_x = diag_x + left_w + 20
@@ -1170,11 +1243,10 @@ def draw_controller_test_ui(canvas: pygame.Surface, joystick, mapping_manager, m
     diag_title = font_card.render("INTERACTIVE HARDWARE LAYOUT", True, COLOR_CYAN)
     canvas.blit(diag_title, (diag_x + 16, panel_y + 12))
 
-    # Center of visual controller schematic
     cx = diag_x + left_w // 2
     cy = panel_y + panel_h // 2 + 10
 
-    # Controller chassis background outline
+    # Controller chassis silhouette
     chassis_pts = [
         (cx - 190, cy - 60), (cx - 120, cy - 85), (cx + 120, cy - 85), (cx + 190, cy - 60),
         (cx + 210, cy + 50), (cx + 160, cy + 95), (cx + 80, cy + 60), (cx - 80, cy + 60),
@@ -1183,9 +1255,11 @@ def draw_controller_test_ui(canvas: pygame.Surface, joystick, mapping_manager, m
     pygame.draw.polygon(canvas, (20, 28, 44), chassis_pts)
     pygame.draw.polygon(canvas, (45, 65, 95), chassis_pts, 2)
 
-    # 1. Shoulder Buttons [L1 / L2] & [R1 / R2]
-    l1_pressed = is_action_pressed("cloak") or is_raw_pressed(4) or is_raw_pressed(6)
-    r1_pressed = is_action_pressed("weapon_next") or is_raw_pressed(5) or is_raw_pressed(7)
+    # 1. Shoulder Buttons [L1] (FRONT BOTTOM) & [R1] (FRONT TOP)
+    l1_idx = profile.button_map.get("front_bottom", 4) if profile else 4
+    r1_idx = profile.button_map.get("front_top", 5) if profile else 5
+    l1_pressed = is_raw_pressed(l1_idx) or is_action_pressed("cloak")
+    r1_pressed = is_raw_pressed(r1_idx) or is_action_pressed("weapon_next")
     l1_col = COLOR_EMERALD if l1_pressed else (50, 70, 95)
     r1_col = COLOR_EMERALD if r1_pressed else (50, 70, 95)
 
@@ -1196,12 +1270,12 @@ def draw_controller_test_ui(canvas: pygame.Surface, joystick, mapping_manager, m
     pygame.draw.rect(canvas, (30, 60, 45) if r1_pressed else (24, 34, 50), r1_rect, border_radius=5)
     pygame.draw.rect(canvas, r1_col, r1_rect, 2 if r1_pressed else 1, border_radius=5)
 
-    lbl_l1 = font_sub.render("L1 / L2", True, l1_col)
-    lbl_r1 = font_sub.render("R1 / R2", True, r1_col)
+    lbl_l1 = font_sub.render(f"L1 [B{l1_idx}]", True, l1_col)
+    lbl_r1 = font_sub.render(f"R1 [B{r1_idx}]", True, r1_col)
     canvas.blit(lbl_l1, lbl_l1.get_rect(center=l1_rect.center))
     canvas.blit(lbl_r1, lbl_r1.get_rect(center=r1_rect.center))
 
-    # 2. D-PAD Cross (Left side of controller)
+    # 2. D-PAD Cross
     dpad_cx, dpad_cy = cx - 110, cy - 10
     d_arm = 24
     d_thickness = 18
@@ -1212,7 +1286,6 @@ def draw_controller_test_ui(canvas: pygame.Surface, joystick, mapping_manager, m
         "left": (pygame.Rect(dpad_cx - d_arm - 8, dpad_cy - d_thickness // 2, d_arm, d_thickness), dpad["left"], "◀"),
         "right": (pygame.Rect(dpad_cx + 8, dpad_cy - d_thickness // 2, d_arm, d_thickness), dpad["right"], "▶"),
     }
-    # Center hub
     pygame.draw.circle(canvas, (30, 42, 60), (dpad_cx, dpad_cy), 10)
 
     for d_dir, (dr, d_active, glyph) in dpad_rects.items():
@@ -1224,38 +1297,45 @@ def draw_controller_test_ui(canvas: pygame.Surface, joystick, mapping_manager, m
         canvas.blit(g_s, g_s.get_rect(center=dr.center))
 
     # 3. Center SELECT & START Buttons
-    sel_pressed = is_action_pressed("sector_map") or is_raw_pressed(8)
-    sta_pressed = is_action_pressed("pause") or is_raw_pressed(9)
+    sel_idx = profile.button_map.get("sector_map", 8) if profile else 8
+    sta_idx = profile.button_map.get("pause", 9) if profile else 9
+    sel_pressed = is_raw_pressed(sel_idx) or is_action_pressed("sector_map")
+    sta_pressed = is_raw_pressed(sta_idx) or is_action_pressed("pause")
     sel_col = COLOR_EMERALD if sel_pressed else (55, 75, 100)
     sta_col = COLOR_EMERALD if sta_pressed else (55, 75, 100)
 
-    sel_rect = pygame.Rect(cx - 50, cy - 20, 42, 18)
-    sta_rect = pygame.Rect(cx + 8, cy - 20, 42, 18)
+    sel_rect = pygame.Rect(cx - 52, cy - 20, 46, 18)
+    sta_rect = pygame.Rect(cx + 6, cy - 20, 46, 18)
     pygame.draw.rect(canvas, (30, 60, 45) if sel_pressed else (22, 32, 48), sel_rect, border_radius=4)
     pygame.draw.rect(canvas, sel_col, sel_rect, 2 if sel_pressed else 1, border_radius=4)
     pygame.draw.rect(canvas, (30, 60, 45) if sta_pressed else (22, 32, 48), sta_rect, border_radius=4)
     pygame.draw.rect(canvas, sta_col, sta_rect, 2 if sta_pressed else 1, border_radius=4)
 
-    s_sel = font_sub.render("SEL", True, sel_col)
-    s_sta = font_sub.render("STA", True, sta_col)
+    s_sel = font_sub.render("SELECT", True, sel_col)
+    s_sta = font_sub.render("START", True, sta_col)
     canvas.blit(s_sel, s_sel.get_rect(center=sel_rect.center))
     canvas.blit(s_sta, s_sta.get_rect(center=sta_rect.center))
 
-    # 4. Face Buttons Cluster: TRIANGLE (Top), SQUARE (Left), CIRCLE (Right), CROSS (Bottom)
+    # 4. Face Buttons Cluster
     face_cx, face_cy = cx + 110, cy - 10
     face_radius = 16
     offset = 32
 
-    tri_pressed = is_action_pressed("ultimate") or is_raw_pressed(3)
-    squ_pressed = is_action_pressed("roll") or is_raw_pressed(0)
-    cir_pressed = is_action_pressed("emp") or is_raw_pressed(1)
-    cro_pressed = is_action_pressed("fire_primary") or is_raw_pressed(2)
+    tri_idx = profile.button_map.get("ultimate", 0) if profile else 0
+    cro_idx = profile.button_map.get("fire_primary", 2) if profile else 2
+    cir_idx = profile.button_map.get("emp", 1) if profile else 1
+    squ_idx = profile.button_map.get("roll", 3) if profile else 3
+
+    tri_pressed = is_raw_pressed(tri_idx) or is_action_pressed("ultimate")
+    cro_pressed = is_raw_pressed(cro_idx) or is_action_pressed("fire_primary")
+    cir_pressed = is_raw_pressed(cir_idx) or is_action_pressed("emp")
+    squ_pressed = is_raw_pressed(squ_idx) or is_action_pressed("roll")
 
     face_buttons = [
-        ("▲", (face_cx, face_cy - offset), tri_pressed, COLOR_EMERALD, "TRIANGLE"),
-        ("■", (face_cx - offset, face_cy), squ_pressed, (244, 114, 182), "SQUARE"),
-        ("●", (face_cx + offset, face_cy), cir_pressed, COLOR_CRIMSON, "CIRCLE"),
-        ("✕", (face_cx, face_cy + offset), cro_pressed, COLOR_CYAN, "CROSS"),
+        ("▲", (face_cx, face_cy - offset), tri_pressed, COLOR_EMERALD, f"TRIANGLE [B{tri_idx}]"),
+        ("■", (face_cx - offset, face_cy), squ_pressed, (244, 114, 182), f"SQUARE [B{squ_idx}]"),
+        ("●", (face_cx + offset, face_cy), cir_pressed, COLOR_CRIMSON, f"CIRCLE [B{cir_idx}]"),
+        ("✕", (face_cx, face_cy + offset), cro_pressed, COLOR_CYAN, f"CROSS [B{cro_idx}]"),
     ]
 
     for glyph, (bx, by), pressed, col, b_name in face_buttons:
@@ -1267,36 +1347,37 @@ def draw_controller_test_ui(canvas: pygame.Surface, joystick, mapping_manager, m
         canvas.blit(lbl, lbl.get_rect(center=(bx, by)))
 
     # =========================================================================
-    # RIGHT PANEL: LOGICAL ACTION TELEMETRY & AXES
+    # RIGHT PANEL: LOGICAL ACTION TELEMETRY & AXES (100% Matched to Profile)
     # =========================================================================
     tele_rect = pygame.Rect(tele_x, panel_y, right_w, panel_h)
     pygame.draw.rect(canvas, (14, 20, 32), tele_rect, border_radius=8)
     pygame.draw.rect(canvas, (35, 52, 78), tele_rect, 1, border_radius=8)
 
-    tele_title = font_card.render("LOGICAL ACTIONS & TELEMETRY", True, COLOR_CYAN)
+    tele_title = font_card.render("CANONICAL ACTIONS & TELEMETRY", True, COLOR_CYAN)
     canvas.blit(tele_title, (tele_x + 16, panel_y + 12))
 
-    btn_defs = [
-        ("CROSS", "fire_primary", "PRIMARY FIRE"),
-        ("CIRCLE", "emp", "EMP / CANCEL"),
-        ("TRIANGLE", "ultimate", "OVERDRIVE"),
-        ("SQUARE", "roll", "BARREL ROLL"),
-        ("L1 / L2", "cloak", "CLOAK / SKIN"),
-        ("R1 / R2", "weapon_next", "CYCLE WEAPON"),
-        ("SELECT", "sector_map", "MAP / HANGAR"),
-        ("START", "pause", "PAUSE MENU"),
+    tele_items = [
+        ("fire_primary", "PRIMARY FIRE (CONFIRM)"),
+        ("emp", "EMP ATTACK (CANCEL / BACK)"),
+        ("ultimate", "OVERDRIVE / ULTIMATE"),
+        ("roll", "BARREL ROLL"),
+        ("weapon_next", "WEAPON NEXT (TAP) / PREV (HOLD)"),
+        ("cloak", "CLOAK (TAP) / DRONE CLASS (HOLD)"),
+        ("sector_map", "SECTOR MAP / HANGAR BAY"),
+        ("pause", "PAUSE MENU / FULLSCREEN (HOLD)"),
     ]
 
     card_y = panel_y + 38
     card_h = 34
     card_gap = 5
 
-    for i, (btn_name, action_key, desc) in enumerate(btn_defs):
+    for i, (action_key, desc) in enumerate(tele_items):
         cy_row = card_y + i * (card_h + card_gap)
         row_r = pygame.Rect(tele_x + 14, cy_row, right_w - 28, card_h)
 
         raw_idx = profile.button_map.get(action_key, -1) if profile else -1
-        is_active = is_action_pressed(action_key) or is_raw_pressed(raw_idx)
+        btn_pname = get_physical_button_name(raw_idx, profile.controller_type if profile else "generic_ps2")
+        is_active = is_raw_pressed(raw_idx) or is_action_pressed(action_key)
 
         bg_col = (28, 48, 38) if is_active else (18, 24, 38)
         border_col = COLOR_EMERALD if is_active else (40, 55, 78)
@@ -1306,17 +1387,17 @@ def draw_controller_test_ui(canvas: pygame.Surface, joystick, mapping_manager, m
         pygame.draw.rect(canvas, bg_col, row_r, border_radius=5)
         pygame.draw.rect(canvas, border_col, row_r, 2 if is_active else 1, border_radius=5)
 
-        lbl = font_sub.render(f"{btn_name} [Btn {raw_idx}]", True, COLOR_WHITE if is_active else COLOR_CYAN)
+        lbl = font_sub.render(f"{btn_pname} [BTN {raw_idx}]", True, COLOR_WHITE if is_active else COLOR_CYAN)
         canvas.blit(lbl, (row_r.left + 10, row_r.top + 7))
 
         lbl_desc = font_sub.render(f"→ {desc}", True, (170, 185, 205))
-        canvas.blit(lbl_desc, (row_r.left + 140, row_r.top + 7))
+        canvas.blit(lbl_desc, (row_r.left + 160, row_r.top + 7))
 
         s_stat = font_sub.render(status_text, True, status_color)
         canvas.blit(s_stat, (row_r.right - s_stat.get_width() - 10, row_r.top + 7))
 
     # =========================================================================
-    # BOTTOM DIAGNOSTICS: RAW BUTTON INDICES
+    # BOTTOM DIAGNOSTICS: RAW DETECTED BUTTON INDICES
     # =========================================================================
     raw_y = vh - 96
     lbl_raw = font_sub.render("RAW DETECTED BUTTON INDICES:", True, (148, 163, 184))
