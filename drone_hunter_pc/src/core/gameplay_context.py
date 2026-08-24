@@ -50,6 +50,9 @@ class InputHandlingContext:
     context: GameContext
     input_manager: Any
     audio_manager: Optional[Any] = None
+    combat_system: Optional[Any] = None
+    particle_manager: Optional[Any] = None
+    mission_system: Optional[Any] = None
     ui_rects_cache: Dict[str, Any] = field(default_factory=dict)
     win_w: int = SCREEN_WIDTH
     win_h: int = SCREEN_HEIGHT
@@ -59,6 +62,8 @@ class InputHandlingContext:
     # Narrow callbacks
     save_callback: Optional[Callable[[], Any]] = None
     start_mission_callback: Optional[Callable[[str], Any]] = None
+    start_next_stage_callback: Optional[Callable[[], Any]] = None
+    start_new_game_plus_callback: Optional[Callable[[], Any]] = None
     select_save_slot_callback: Optional[Callable[[int], Any]] = None
     buy_upgrade_callback: Optional[Callable[[str], Any]] = None
     toggle_fullscreen_callback: Optional[Callable[[], Any]] = None

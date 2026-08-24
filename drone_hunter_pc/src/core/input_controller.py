@@ -25,7 +25,12 @@ from src.core.game_state import (
 )
 from src.core.gameplay_context import InputHandlingContext
 from src.input import (
-    InputManager, InputContext, ACTION_FULLSCREEN
+    InputManager, InputContext,
+    ACTION_FIRE_PRIMARY, ACTION_FIRE_SECONDARY, ACTION_EMP, ACTION_ULTIMATE,
+    ACTION_ROLL, ACTION_WEAPON_NEXT, ACTION_WEAPON_PREV, ACTION_SPECIAL,
+    ACTION_CLOAK, ACTION_CYCLE_CLASS, ACTION_CYCLE_SKIN, ACTION_PAUSE,
+    ACTION_FULLSCREEN, ACTION_CONFIRM, ACTION_CANCEL, ACTION_SECTOR_MAP,
+    ACTION_HANGAR_BAY
 )
 from src.data.mission_data import get_missions_for_sector
 
@@ -195,6 +200,63 @@ class InputController:
                     if input_ctx.quit_callback:
                         input_ctx.quit_callback()
                     return False
+
+        # Process discrete controller action triggers
+        if im is not None:
+            trig = getattr(im, "actions_triggered", {})
+
+            # Fullscreen trigger
+            if trig.get(ACTION_FULLSCREEN):
+                if input_ctx.toggle_fullscreen_callback:
+                    input_ctx.toggle_fullscreen_callback()
+
+            # Gameplay actions
+            if ctx.state == STATE_PLAYING and ctx.player:
+                if trig.get(ACTION_PAUSE):
+                    ctx.state = STATE_PAUSED
+                elif trig.get(ACTION_SECTOR_MAP):
+                    self._set_previous_state(input_ctx, STATE_PLAYING)
+                    ctx.state = STATE_SECTOR_SELECT
+                elif trig.get(ACTION_ROLL):
+                    if ctx.player.trigger_roll(dir_x=1.0):
+                        if input_ctx.audio_manager:
+                            input_ctx.audio_manager.play_roll()
+                        if input_ctx.particle_manager:
+                            input_ctx.particle_manager.spawn_barrel_roll_rings(ctx.player.pos, radius=40, color=(34, 211, 238))
+                        im.trigger_rumble(0.2, 0.4, 100)
+                elif trig.get(ACTION_EMP) and input_ctx.combat_system:
+                    input_ctx.combat_system.execute_emp_blast()
+                    im.trigger_rumble(0.6, 0.8, 200)
+                elif trig.get(ACTION_ULTIMATE):
+                    if ctx.player.trigger_overdrive():
+                        if input_ctx.audio_manager:
+                            input_ctx.audio_manager.play_overdrive()
+                        ctx.trigger_shake(14.0, 0.5)
+                        if input_ctx.particle_manager:
+                            input_ctx.particle_manager.spawn_shockwave(ctx.player.pos, max_r=550, color=(250, 204, 21))
+                        im.trigger_rumble(0.8, 1.0, 300)
+                elif trig.get(ACTION_WEAPON_NEXT):
+                    ctx.player.cycle_weapon(1)
+                    if input_ctx.audio_manager:
+                        input_ctx.audio_manager.play_weapon_switch()
+                elif trig.get(ACTION_WEAPON_PREV):
+                    ctx.player.cycle_weapon(-1)
+                    if input_ctx.audio_manager:
+                        input_ctx.audio_manager.play_weapon_switch()
+                elif trig.get(ACTION_CLOAK) or trig.get(ACTION_SPECIAL):
+                    if ctx.player.trigger_cloak():
+                        if input_ctx.audio_manager:
+                            input_ctx.audio_manager.play_cloak()
+                        if input_ctx.particle_manager:
+                            input_ctx.particle_manager.spawn_spark(ctx.player.pos, count=15, color=(147, 51, 234))
+                elif trig.get(ACTION_CYCLE_CLASS):
+                    ctx.player.cycle_drone_class(1)
+                    if input_ctx.audio_manager:
+                        input_ctx.audio_manager.play_powerup()
+                elif trig.get(ACTION_CYCLE_SKIN):
+                    ctx.player.cycle_skin(1)
+                    if input_ctx.audio_manager:
+                        input_ctx.audio_manager.play_powerup()
 
         return True
 
@@ -544,40 +606,372 @@ class InputController:
         if not im:
             return
         js = im.active_joystick
-        if not js or not im.mapping_manager:
+        if not js or not im.mapping_manager or not getattr(im, "enabled", True):
             return
 
-        profile = im.mapping_manager.get_or_create_profile(js)
+        trig = getattr(im, "actions_triggered", {})
+
+        confirm = trig.get(ACTION_CONFIRM, False)
+        cancel = trig.get(ACTION_CANCEL, False)
+        pause = trig.get(ACTION_PAUSE, False)
+        sec_map = trig.get(ACTION_SECTOR_MAP, False)
+        hangar_bay = trig.get(ACTION_HANGAR_BAY, False)
+        cycle_skin = trig.get(ACTION_CYCLE_SKIN, False)
+        cycle_class = trig.get(ACTION_CYCLE_CLASS, False)
+        weapon_next = trig.get(ACTION_WEAPON_NEXT, False)
+        weapon_prev = trig.get(ACTION_WEAPON_PREV, False)
+
         dpad = im.mapping_manager.get_dpad_input(js)
+        d_up = False
+        d_down = False
+        d_left = False
+        d_right = False
 
-        # D-Pad repeat timer
-        up_pressed = dpad.get("up", False)
-        down_pressed = dpad.get("down", False)
-        left_pressed = dpad.get("left", False)
-        right_pressed = dpad.get("right", False)
-
-        any_dir = up_pressed or down_pressed or left_pressed or right_pressed
-        if not any_dir:
+        any_dir = dpad.get("up", False) or dpad.get("down", False) or dpad.get("left", False) or dpad.get("right", False)
+        if any_dir:
+            if not any(self.dpad_last_state.values()):
+                d_up = dpad.get("up", False)
+                d_down = dpad.get("down", False)
+                d_left = dpad.get("left", False)
+                d_right = dpad.get("right", False)
+                self.dpad_repeat_timer = 0.35
+            else:
+                self.dpad_repeat_timer -= dt
+                if self.dpad_repeat_timer <= 0.0:
+                    d_up = dpad.get("up", False)
+                    d_down = dpad.get("down", False)
+                    d_left = dpad.get("left", False)
+                    d_right = dpad.get("right", False)
+                    self.dpad_repeat_timer = 0.18
+        else:
             self.dpad_repeat_timer = 0.0
-            self.dpad_last_state = {"up": False, "down": False, "left": False, "right": False}
-            return
 
-        self.dpad_repeat_timer -= dt
-        triggered_dir = None
-        if not self.dpad_last_state.get("up") and up_pressed: triggered_dir = "up"
-        elif not self.dpad_last_state.get("down") and down_pressed: triggered_dir = "down"
-        elif not self.dpad_last_state.get("left") and left_pressed: triggered_dir = "left"
-        elif not self.dpad_last_state.get("right") and right_pressed: triggered_dir = "right"
-        elif self.dpad_repeat_timer <= 0.0:
-            if up_pressed: triggered_dir = "up"
-            elif down_pressed: triggered_dir = "down"
-            elif left_pressed: triggered_dir = "left"
-            elif right_pressed: triggered_dir = "right"
-            self.dpad_repeat_timer = 0.22
+        self.dpad_last_state = {"up": dpad.get("up", False), "down": dpad.get("down", False), "left": dpad.get("left", False), "right": dpad.get("right", False)}
 
-        self.dpad_last_state = {"up": up_pressed, "down": down_pressed, "left": left_pressed, "right": right_pressed}
+        # STATE-SPECIFIC NAVIGATION
+        am = input_ctx.audio_manager
 
-        if triggered_dir:
-            if triggered_dir == "up": self.menu_cursor = max(0, self.menu_cursor - 1)
-            elif triggered_dir == "down": self.menu_cursor += 1
-            if input_ctx.audio_manager: input_ctx.audio_manager.play_click()
+        if ctx.state == STATE_SAVE_SELECT:
+            if d_up:
+                self.menu_cursor = (self.menu_cursor - 1) % 4
+                if am: am.play_weapon_switch()
+            elif d_down:
+                self.menu_cursor = (self.menu_cursor + 1) % 4
+                if am: am.play_weapon_switch()
+
+            if confirm or pause:
+                if self.menu_cursor < 3:
+                    slot_num = self.menu_cursor + 1
+                    if input_ctx.select_save_slot_callback:
+                        input_ctx.select_save_slot_callback(slot_num)
+                    ctx.state = STATE_MENU
+                    self.menu_cursor = 0
+                    if am: am.play_powerup()
+                else:
+                    if input_ctx.quit_callback:
+                        input_ctx.quit_callback()
+            elif cancel:
+                if input_ctx.quit_callback:
+                    input_ctx.quit_callback()
+
+        elif ctx.state == STATE_MENU:
+            if d_up:
+                self.menu_cursor = (self.menu_cursor - 1) % 4
+                if am: am.play_weapon_switch()
+            elif d_down:
+                self.menu_cursor = (self.menu_cursor + 1) % 4
+                if am: am.play_weapon_switch()
+
+            if confirm:
+                if self.menu_cursor == 0:
+                    ctx.state = STATE_DRONE_SELECT
+                    if am: am.play_powerup()
+                elif self.menu_cursor == 1:
+                    self._set_previous_state(input_ctx, STATE_MENU)
+                    ctx.state = STATE_HANGAR
+                elif self.menu_cursor == 2:
+                    self._set_previous_state(input_ctx, STATE_MENU)
+                    ctx.state = STATE_SETTINGS
+                elif self.menu_cursor == 3:
+                    if input_ctx.quit_callback:
+                        input_ctx.quit_callback()
+            elif cancel:
+                if input_ctx.quit_callback:
+                    input_ctx.quit_callback()
+            elif hangar_bay:
+                self._set_previous_state(input_ctx, STATE_MENU)
+                ctx.state = STATE_HANGAR
+
+        elif ctx.state == STATE_DRONE_SELECT:
+            drone_keys = ["striker", "phantom", "titan", "specter", "tempest"]
+            if d_left or weapon_prev:
+                if self.menu_cursor == 5:
+                    self.menu_cursor = 0
+                else:
+                    self.menu_cursor = (self.menu_cursor - 1) % 5
+                if am: am.play_weapon_switch()
+            elif d_right or weapon_next:
+                if self.menu_cursor == 5:
+                    self.menu_cursor = 0
+                else:
+                    self.menu_cursor = (self.menu_cursor + 1) % 5
+                if am: am.play_weapon_switch()
+            elif d_down:
+                if self.menu_cursor < 5:
+                    self.menu_cursor = 5
+                    if am: am.play_weapon_switch()
+            elif d_up:
+                if self.menu_cursor == 5:
+                    self.menu_cursor = 0
+                    if am: am.play_weapon_switch()
+
+            if self.menu_cursor < 5:
+                ctx.selected_drone = drone_keys[self.menu_cursor]
+                if ctx.player:
+                    ctx.player.apply_drone_class(self.menu_cursor)
+                    ctx.selected_drone_override = ctx.player.drone_class_id
+                    ctx.selected_skin_override = ctx.player.skin_theme
+
+            if confirm or pause:
+                if self.menu_cursor < 5:
+                    ctx.selected_drone = drone_keys[self.menu_cursor]
+                    if ctx.player:
+                        ctx.player.apply_drone_class(self.menu_cursor)
+                        ctx.selected_drone_override = ctx.player.drone_class_id
+                        ctx.selected_skin_override = ctx.player.skin_theme
+                    if am: am.play_powerup()
+                    self.menu_cursor = 0
+                    ctx.state = STATE_SECTOR_SELECT
+                else:
+                    ctx.state = STATE_MENU
+            elif cancel:
+                ctx.state = STATE_MENU
+
+        elif ctx.state == STATE_SECTOR_SELECT:
+            cur_sec = ctx.missions.get("current_sector", 1)
+            sec_missions = get_missions_for_sector(cur_sec)
+
+            if d_left:
+                ctx.missions["current_sector"] = max(1, cur_sec - 1)
+                if am: am.play_weapon_switch()
+            elif d_right:
+                ctx.missions["current_sector"] = min(5, cur_sec + 1)
+                if am: am.play_weapon_switch()
+
+            if confirm:
+                target_m = None
+                ms = input_ctx.mission_system
+                for m in sec_missions:
+                    if ms and hasattr(ms, "get_mission_state"):
+                        if ms.get_mission_state(ctx, m["id"]) != "locked":
+                            target_m = m["id"]
+                            break
+                    elif m["id"] in ctx.missions.get("unlocked", []):
+                        target_m = m["id"]
+                        break
+                if not target_m and sec_missions:
+                    target_m = sec_missions[0]["id"]
+                if target_m:
+                    self._set_pending_mission(input_ctx, target_m)
+                    ctx.state = STATE_MISSION_BRIEFING
+                    if am: am.play_powerup()
+            elif cancel:
+                ctx.state = STATE_MENU
+            elif hangar_bay:
+                self._set_previous_state(input_ctx, STATE_SECTOR_SELECT)
+                ctx.state = STATE_HANGAR
+
+        elif ctx.state == STATE_MISSION_BRIEFING:
+            if confirm or pause:
+                if input_ctx.start_mission_callback:
+                    input_ctx.start_mission_callback(input_ctx.pending_mission_id)
+            elif cancel or sec_map:
+                ctx.state = STATE_SECTOR_SELECT
+
+        elif ctx.state == STATE_HANGAR:
+            if (cycle_skin or trig.get(ACTION_CYCLE_SKIN)) and ctx.player:
+                ctx.player.cycle_skin(1)
+                if am: am.play_powerup()
+            elif (cycle_class or trig.get(ACTION_CYCLE_CLASS)) and ctx.player:
+                ctx.player.cycle_drone_class(1)
+                if am: am.play_powerup()
+            elif d_up:
+                if self.menu_cursor in (0, 1):
+                    self.menu_cursor = self.menu_cursor + 4
+                elif self.menu_cursor in (2, 3):
+                    self.menu_cursor -= 2
+                else:
+                    self.menu_cursor = 2 if self.menu_cursor in (4, 5) else 3
+                if am: am.play_weapon_switch()
+            elif d_down:
+                if self.menu_cursor in (0, 1):
+                    self.menu_cursor += 2
+                elif self.menu_cursor in (2, 3):
+                    self.menu_cursor = 4 if self.menu_cursor == 2 else 5
+                else:
+                    self.menu_cursor = 0 if self.menu_cursor in (4, 5) else 1
+                if am: am.play_weapon_switch()
+            elif d_left:
+                if self.menu_cursor in (0, 1):
+                    self.menu_cursor = 1 if self.menu_cursor == 0 else 0
+                elif self.menu_cursor in (2, 3):
+                    self.menu_cursor = 3 if self.menu_cursor == 2 else 2
+                else:
+                    self.menu_cursor = max(4, self.menu_cursor - 1)
+                if am: am.play_weapon_switch()
+            elif d_right:
+                if self.menu_cursor in (0, 1):
+                    self.menu_cursor = 1 if self.menu_cursor == 0 else 0
+                elif self.menu_cursor in (2, 3):
+                    self.menu_cursor = 3 if self.menu_cursor == 2 else 2
+                else:
+                    self.menu_cursor = min(7, self.menu_cursor + 1)
+                if am: am.play_weapon_switch()
+            elif confirm:
+                if self.menu_cursor < 4:
+                    categories = ["hull", "energy", "weapon", "mobility"]
+                    cat = categories[self.menu_cursor]
+                    if input_ctx.buy_upgrade_callback:
+                        input_ctx.buy_upgrade_callback(cat)
+                elif self.menu_cursor == 4:
+                    ctx.state = input_ctx.previous_state if input_ctx.previous_state != STATE_HANGAR else STATE_SECTOR_SELECT
+                elif self.menu_cursor == 5 and ctx.player:
+                    ctx.player.cycle_drone_class(1)
+                    if am: am.play_powerup()
+                elif self.menu_cursor == 6:
+                    self._set_previous_state(input_ctx, STATE_HANGAR)
+                    ctx.state = STATE_SETTINGS
+                elif self.menu_cursor == 7:
+                    if input_ctx.quit_callback:
+                        input_ctx.quit_callback()
+            elif cancel or pause or hangar_bay:
+                ctx.state = input_ctx.previous_state if input_ctx.previous_state != STATE_HANGAR else STATE_SECTOR_SELECT
+
+        elif ctx.state == STATE_SETTINGS:
+            if d_up:
+                self.menu_cursor = (self.menu_cursor - 1) % 9
+                if am: am.play_weapon_switch()
+            elif d_down:
+                self.menu_cursor = (self.menu_cursor + 1) % 9
+                if am: am.play_weapon_switch()
+            elif d_left:
+                if self.menu_cursor == 3:
+                    ctx.difficulty_mode = (ctx.difficulty_mode - 1) % 5
+                    if input_ctx.save_callback: input_ctx.save_callback()
+            elif d_right:
+                if self.menu_cursor == 3:
+                    ctx.difficulty_mode = (ctx.difficulty_mode + 1) % 5
+                    if input_ctx.save_callback: input_ctx.save_callback()
+
+            if confirm:
+                if self.menu_cursor == 0:
+                    if input_ctx.toggle_fullscreen_callback:
+                        input_ctx.toggle_fullscreen_callback()
+                elif self.menu_cursor == 1:
+                    ctx.show_crt = not ctx.show_crt
+                    if input_ctx.save_callback: input_ctx.save_callback()
+                elif self.menu_cursor == 2:
+                    if am:
+                        am.set_sound_enabled(not am.sound_enabled)
+                    if input_ctx.save_callback: input_ctx.save_callback()
+                elif self.menu_cursor == 3:
+                    ctx.difficulty_mode = (ctx.difficulty_mode + 1) % 5
+                    if input_ctx.save_callback: input_ctx.save_callback()
+                elif self.menu_cursor == 4:
+                    ctx.state = STATE_CUSTOM_DIFFICULTY
+                elif self.menu_cursor == 5:
+                    ctx.state = STATE_CONTROLLER_BINDING
+                elif self.menu_cursor == 6:
+                    ctx.state = STATE_CONTROLLER_TEST
+                elif self.menu_cursor == 7:
+                    # Reset
+                    pass
+                elif self.menu_cursor == 8:
+                    ctx.state = input_ctx.previous_state if input_ctx.previous_state != STATE_SETTINGS else STATE_SECTOR_SELECT
+            elif cancel or pause:
+                ctx.state = input_ctx.previous_state if input_ctx.previous_state != STATE_SETTINGS else STATE_SECTOR_SELECT
+
+        elif ctx.state == STATE_PAUSED:
+            if d_up:
+                self.menu_cursor = (self.menu_cursor - 1) % 5
+                if am: am.play_weapon_switch()
+            elif d_down:
+                self.menu_cursor = (self.menu_cursor + 1) % 5
+                if am: am.play_weapon_switch()
+
+            if confirm or pause:
+                if self.menu_cursor == 0:
+                    ctx.state = STATE_PLAYING
+                elif self.menu_cursor == 1:
+                    self._set_previous_state(input_ctx, STATE_PAUSED)
+                    ctx.state = STATE_SETTINGS
+                elif self.menu_cursor == 2:
+                    if input_ctx.start_mission_callback:
+                        input_ctx.start_mission_callback(input_ctx.pending_mission_id)
+                elif self.menu_cursor == 3:
+                    self._set_previous_state(input_ctx, STATE_PLAYING)
+                    ctx.state = STATE_SECTOR_SELECT
+                elif self.menu_cursor == 4:
+                    ctx.state = STATE_MENU
+            elif cancel:
+                ctx.state = STATE_PLAYING
+
+        elif ctx.state in (STATE_MISSION_COMPLETE, STATE_LEVEL_CLEAR, STATE_VICTORY):
+            if d_up:
+                self.menu_cursor = (self.menu_cursor - 1) % 3
+                if am: am.play_weapon_switch()
+            elif d_down:
+                self.menu_cursor = (self.menu_cursor + 1) % 3
+                if am: am.play_weapon_switch()
+
+            if confirm:
+                if self.menu_cursor == 0:
+                    if ctx.state == STATE_VICTORY and input_ctx.start_new_game_plus_callback:
+                        input_ctx.start_new_game_plus_callback()
+                    elif ctx.state == STATE_LEVEL_CLEAR and input_ctx.start_next_stage_callback:
+                        input_ctx.start_next_stage_callback()
+                    else:
+                        next_m = input_ctx.get_next_mission_id_callback() if input_ctx.get_next_mission_id_callback else None
+                        if next_m:
+                            self._set_pending_mission(input_ctx, next_m)
+                            if input_ctx.start_mission_callback:
+                                input_ctx.start_mission_callback(next_m)
+                        else:
+                            ctx.state = STATE_VICTORY
+                elif self.menu_cursor == 1:
+                    self._set_previous_state(input_ctx, ctx.state)
+                    ctx.state = STATE_HANGAR
+                elif self.menu_cursor == 2:
+                    ctx.state = STATE_SECTOR_SELECT
+            elif cancel:
+                ctx.state = STATE_SECTOR_SELECT
+            elif hangar_bay:
+                self._set_previous_state(input_ctx, ctx.state)
+                ctx.state = STATE_HANGAR
+
+        elif ctx.state in (STATE_MISSION_FAILED, STATE_GAME_OVER):
+            if d_up:
+                self.menu_cursor = (self.menu_cursor - 1) % 3
+                if am: am.play_weapon_switch()
+            elif d_down:
+                self.menu_cursor = (self.menu_cursor + 1) % 3
+                if am: am.play_weapon_switch()
+
+            if confirm:
+                if self.menu_cursor == 0:
+                    if input_ctx.start_mission_callback:
+                        input_ctx.start_mission_callback(input_ctx.pending_mission_id)
+                elif self.menu_cursor == 1:
+                    self._set_previous_state(input_ctx, ctx.state)
+                    ctx.state = STATE_HANGAR
+                elif self.menu_cursor == 2:
+                    ctx.state = STATE_SECTOR_SELECT
+            elif cancel:
+                ctx.state = STATE_SECTOR_SELECT
+            elif hangar_bay:
+                self._set_previous_state(input_ctx, ctx.state)
+                ctx.state = STATE_HANGAR
+
+        elif ctx.state in (STATE_CONTROLLER_TEST, STATE_CONTROLLER_BINDING):
+            if cancel or pause:
+                ctx.state = STATE_SETTINGS

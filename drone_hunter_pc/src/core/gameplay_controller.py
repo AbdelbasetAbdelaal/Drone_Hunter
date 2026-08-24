@@ -595,10 +595,8 @@ class GameplayController:
                         audio_manager.play_shoot(active_weapon_name)
 
                 if audio_manager:
-                    if ctx.player.is_accelerating:
-                        audio_manager.start_engine_sound()
-                    else:
-                        audio_manager.stop_engine_sound()
+                    speed_ratio = ctx.player.velocity.length() / max(1.0, getattr(ctx.player, "max_speed", 300.0))
+                    audio_manager.update_engine_sound(speed_ratio, ctx.player.is_accelerating)
 
                     if getattr(ctx.player, "active_beam", None) and ctx.player.active_beam.alive():
                         audio_manager.start_beam_sound()

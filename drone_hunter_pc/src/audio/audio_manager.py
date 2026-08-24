@@ -491,6 +491,10 @@ class AudioManager:
         except Exception:
             pass
 
+    def start_engine_sound(self):
+        """Starts looping engine audio."""
+        self.update_engine_sound(speed_ratio=1.0, is_accelerating=True)
+
     def stop_engine_sound(self):
         """Stops the looping engine channel cleanly."""
         if self._engine_channel:
