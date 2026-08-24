@@ -150,6 +150,17 @@ class TestPhase1Architecture(unittest.TestCase):
         self.assertIsNotNone(game.context.player)
         self.assertTrue(game.context.player.alive)
 
+        # Player skin & class cycling
+        from src.data.game_data import DRONE_SKINS
+        p = game.context.player
+        initial_skin = p.skin_id
+        next_skin = p.cycle_visual_skin()
+        self.assertEqual(p.skin_id, (initial_skin + 1) % len(DRONE_SKINS))
+
+        initial_class = p.drone_class
+        next_class = p.cycle_drone_class()
+        self.assertNotEqual(p.drone_class, initial_class)
+
         # Update tick
         game.update(0.016)
         self.assertGreater(game.context.player.pos.x, 0)

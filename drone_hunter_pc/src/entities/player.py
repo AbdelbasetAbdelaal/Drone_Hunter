@@ -135,7 +135,7 @@ class Player(pygame.sprite.Sprite):
         self._rapid_side = 0
         self._missile_side = 0
         self.skin_theme = 0
-        self.drone_class = "striker"
+        self.drone_class_id = "striker"
         self.available_weapons = [WEAPON_PULSE, WEAPON_SCATTER, WEAPON_MISSILE]
         self.current_weapon_idx = 0
         self.active_weapon = WEAPON_PULSE
@@ -190,6 +190,26 @@ class Player(pygame.sprite.Sprite):
         from src.data.game_data import DRONE_SKINS
         self.skin_theme = max(0, min(len(DRONE_SKINS) - 1, skin_idx))
         self._render_drone_sprite()
+
+    def cycle_visual_skin(self, step: int = 1) -> int:
+        """Cycles aesthetic drone chassis theme."""
+        return self.cycle_skin(step)
+
+    @property
+    def drone_class(self) -> str:
+        return self.drone_class_id
+
+    @drone_class.setter
+    def drone_class(self, val: str):
+        self.set_drone_class(val)
+
+    @property
+    def skin_id(self) -> int:
+        return self.skin_theme
+
+    @skin_id.setter
+    def skin_id(self, val: int):
+        self.set_visual_skin(val)
 
     def get_mount_world_pos(self, mount_name: str = "primary") -> tuple[float, float]:
         """Calculates rotated world coordinates for a local-space weapon mount point."""
