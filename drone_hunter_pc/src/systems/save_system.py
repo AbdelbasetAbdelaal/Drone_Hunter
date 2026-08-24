@@ -37,6 +37,12 @@ class SaveSystem:
 
         self.temp_path = self.save_path + ".tmp"
 
+    def set_slot(self, slot_index: int):
+        """Switches the active save slot and updates file paths."""
+        self.slot_index = slot_index
+        self.save_path = os.path.join(self.base_dir, f"save_slot_{slot_index + 1}.json")
+        self.temp_path = self.save_path + ".tmp"
+
     def get_default_save_data(self) -> dict:
         return {
             "scrap": 0,
@@ -289,7 +295,7 @@ class SaveSystem:
             logging.error(f"Unexpected error loading save data: {e}. Using safe defaults.")
             return defaults
 
-    def save(self, scrap: int, coins: int, highscore: int, upgrades: dict, sectors: list,
+    def save(self, scrap: Any = 0, coins: int = 0, highscore: int = 0, upgrades: dict = None, sectors: list = None,
              show_crt: bool = False, stages: list = None, difficulty_mode: int = 1,
              missions: dict = None, sector_progress: dict = None,
              bosses_defeated: list = None, campaign_completed: bool = False,
@@ -300,6 +306,32 @@ class SaveSystem:
              achievements: list = None, controller_settings: dict = None,
              controller_mappings: dict = None) -> bool:
         """Atomically saves game data using a temporary write & replace pattern."""
+        if isinstance(scrap, dict):
+            d = scrap
+            scrap = d.get("scrap", 0)
+            coins = d.get("coins", 0)
+            highscore = d.get("highscore", 0)
+            upgrades = d.get("upgrades", {})
+            sectors = d.get("sectors", [True, False, False, False, False])
+            show_crt = d.get("show_crt", False)
+            stages = d.get("stages", [True] + [False] * 14)
+            difficulty_mode = d.get("difficulty_mode", 1)
+            missions = d.get("missions", None)
+            sector_progress = d.get("sector_progress", None)
+            bosses_defeated = d.get("bosses_defeated", None)
+            campaign_completed = d.get("campaign_completed", False)
+            selected_drone = d.get("selected_drone", "striker")
+            selected_skin = d.get("selected_skin", 0)
+            weapon_upgrades = d.get("weapon_upgrades", None)
+            unlocked_weapons = d.get("unlocked_weapons", None)
+            audio_settings = d.get("audio_settings", None)
+            custom_difficulty = d.get("custom_difficulty", None)
+            play_time = d.get("play_time", 0)
+            last_played = d.get("last_played", None)
+            achievements = d.get("achievements", None)
+            controller_settings = d.get("controller_settings", None)
+            controller_mappings = d.get("controller_mappings", None)
+
         if stages is None:
             stages = [True] + [False] * 14
 

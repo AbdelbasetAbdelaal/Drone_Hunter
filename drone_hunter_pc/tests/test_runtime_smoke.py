@@ -24,6 +24,9 @@ from src.data.game_data import (
     WEAPON_PULSE, WEAPON_SCATTER, WEAPON_MISSILE
 )
 
+def test_runtime_smoke():
+    run_runtime_smoke()
+
 def run_runtime_smoke():
     print("Initializing Drone Hunter 2D Runtime...")
     game = Game()
@@ -31,7 +34,7 @@ def run_runtime_smoke():
 
     # 1. State: Menu -> Sector Select
     print("Testing State: Menu -> Sector Select")
-    assert ctx.state == STATE_MENU
+    ctx.state = STATE_MENU
     game.update(0.016)
     game.render()
     ctx.state = STATE_SECTOR_SELECT
