@@ -524,4 +524,4 @@ def get_sector_data(sector_id: int) -> dict:
     return None
 
 def get_missions_for_sector(sector_id: int) -> list:
-    return [m for m in MISSIONS if m["sector_id"] == sector_id]
+    return [m for m in MISSIONS if m["sector_id"] == sector_id and not m["id"].endswith("_ALT")]
