@@ -17,7 +17,24 @@ func _ready() -> void:
 	var player: CharacterBody2D = arena.get_node_or_null("Player") as CharacterBody2D
 	assert(player != null, "Player node must exist inside TrainingArena")
 	assert(player.get_script() == PlayerScript, "Player script must match player.gd")
-	print("[PASS] Arena and Player instantiated in active runtime SceneTree.")
+
+	# 1b. Verify TrainingArena Real Background & Environment Hierarchy
+	var bg_node: Node2D = arena.get_node_or_null("Background")
+	assert(bg_node != null, "TrainingArena must have Background layer node")
+	var sector_bg: Sprite2D = bg_node.get_node_or_null("SectorBackground")
+	assert(sector_bg != null and sector_bg.texture != null, "Background must have real SectorBackground texture")
+
+	var env_node: Node2D = arena.get_node_or_null("Environment")
+	assert(env_node != null, "TrainingArena must have Environment layer node")
+	assert(env_node.get_child_count() >= 4, "Environment layer must contain real industrial decorative assets")
+
+	var boundaries: StaticBody2D = arena.get_node_or_null("ArenaBoundaries")
+	assert(boundaries != null, "TrainingArena must have ArenaBoundaries StaticBody2D")
+	assert(boundaries.get_node_or_null("WallTop") != null, "ArenaBoundaries must have WallTop")
+	assert(boundaries.get_node_or_null("WallBottom") != null, "ArenaBoundaries must have WallBottom")
+	assert(boundaries.get_node_or_null("WallLeft") != null, "ArenaBoundaries must have WallLeft")
+	assert(boundaries.get_node_or_null("WallRight") != null, "ArenaBoundaries must have WallRight")
+	print("[PASS] Arena environment hierarchy (SectorBackground, Environment props, ArenaBoundaries) verified.")
 
 	# 2. Verify Component Hierarchy & Visual Scaling
 	var sprite: Sprite2D = player.get_node_or_null("Sprite2D")
