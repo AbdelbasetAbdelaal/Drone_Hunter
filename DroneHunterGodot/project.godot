@@ -10,7 +10,7 @@ config/name="Drone Hunter 2D"
 config/description="Fast-paced 2D sci-fi tactical arcade space shooter"
 config/version="1.0.0"
 run/main_scene="res://scenes/main/Main.tscn"
-config/features=PackedStringArray("4.3", "Forward Plus")
+config/features=PackedStringArray("4.3", "GL Compatibility")
 config/icon="res://assets/player/player_idle.png"
 
 [autoload]
@@ -149,6 +149,7 @@ weapon_slot_6={
 
 [rendering]
 
-renderer/rendering_method="forward_plus"
+renderer/rendering_method="gl_compatibility"
+renderer/rendering_method.mobile="gl_compatibility"
 textures/canvas_textures/default_texture_filter=1
 environment/defaults/default_clear_color=Color(0.027451, 0.035294, 0.054902, 1)
