@@ -1,0 +1,396 @@
+[gd_scene load_steps=3 format=3]
+
+[ext_resource type="Script" path="res://scripts/ui/hangar_menu.gd" id="1_script"]
+[ext_resource type="Texture2D" path="res://assets/player/player_idle.png" id="2_texture"]
+
+[node name="Hangar" type="Control"]
+layout_mode = 3
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+script = ExtResource("1_script")
+
+[node name="Background" type="ColorRect" parent="."]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+color = Color(0.04, 0.06, 0.1, 1)
+
+[node name="Header" type="Panel" parent="."]
+layout_mode = 1
+anchors_preset = 10
+anchor_right = 1.0
+offset_left = 30.0
+offset_top = 20.0
+offset_right = -30.0
+offset_bottom = 70.0
+grow_horizontal = 2
+
+[node name="Title" type="Label" parent="Header"]
+layout_mode = 1
+anchors_preset = 4
+anchor_top = 0.5
+anchor_bottom = 0.5
+offset_left = 20.0
+offset_top = -14.0
+offset_right = 350.0
+offset_bottom = 14.0
+grow_vertical = 2
+theme_override_colors/font_color = Color(0.3, 0.8, 1, 1)
+theme_override_font_sizes/font_size = 20
+text = "DRONE HANGAR & UPGRADE BAY"
+vertical_alignment = 1
+
+[node name="ScrapLabel" type="Label" parent="Header"]
+layout_mode = 1
+anchors_preset = 6
+anchor_left = 1.0
+anchor_top = 0.5
+anchor_right = 1.0
+anchor_bottom = 0.5
+offset_left = -220.0
+offset_top = -14.0
+offset_right = -20.0
+offset_bottom = 14.0
+grow_horizontal = 0
+grow_vertical = 2
+theme_override_colors/font_color = Color(1, 0.85, 0.2, 1)
+theme_override_font_sizes/font_size = 18
+text = "SCRAP: 500 🔩"
+horizontal_alignment = 2
+vertical_alignment = 1
+
+[node name="Content" type="HBoxContainer" parent="."]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+offset_left = 30.0
+offset_top = 85.0
+offset_right = -30.0
+offset_bottom = -75.0
+grow_horizontal = 2
+grow_vertical = 2
+theme_override_constants/separation = 24
+
+[node name="LeftCol" type="VBoxContainer" parent="Content"]
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_constants/separation = 12
+
+[node name="SectionTitle" type="Label" parent="Content/LeftCol"]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.3, 0.8, 1, 1)
+theme_override_font_sizes/font_size = 16
+text = "SYSTEM UPGRADES"
+
+[node name="Upgrades" type="VBoxContainer" parent="Content/LeftCol"]
+layout_mode = 2
+size_flags_vertical = 3
+theme_override_constants/separation = 10
+
+[node name="HullCard" type="Panel" parent="Content/LeftCol/Upgrades"]
+custom_minimum_size = Vector2(0, 70)
+layout_mode = 2
+
+[node name="Name" type="Label" parent="Content/LeftCol/Upgrades/HullCard"]
+layout_mode = 0
+offset_left = 16.0
+offset_top = 12.0
+offset_right = 200.0
+offset_bottom = 35.0
+text = "HULL INTEGRITY"
+
+[node name="LevelLbl" type="Label" parent="Content/LeftCol/Upgrades/HullCard"]
+layout_mode = 0
+offset_left = 16.0
+offset_top = 38.0
+offset_right = 200.0
+offset_bottom = 60.0
+theme_override_colors/font_color = Color(0.2, 0.9, 0.4, 1)
+theme_override_font_sizes/font_size = 13
+text = "LEVEL 1 / 5 (+25 HP)"
+
+[node name="BuyBtn" type="Button" parent="Content/LeftCol/Upgrades/HullCard"]
+layout_mode = 1
+anchors_preset = 6
+anchor_left = 1.0
+anchor_top = 0.5
+anchor_right = 1.0
+anchor_bottom = 0.5
+offset_left = -110.0
+offset_top = -18.0
+offset_right = -16.0
+offset_bottom = 18.0
+grow_horizontal = 0
+grow_vertical = 2
+text = "150 🔩"
+
+[node name="EnergyCard" type="Panel" parent="Content/LeftCol/Upgrades"]
+custom_minimum_size = Vector2(0, 70)
+layout_mode = 2
+
+[node name="Name" type="Label" parent="Content/LeftCol/Upgrades/EnergyCard"]
+layout_mode = 0
+offset_left = 16.0
+offset_top = 12.0
+offset_right = 200.0
+offset_bottom = 35.0
+text = "ENERGY CORE"
+
+[node name="LevelLbl" type="Label" parent="Content/LeftCol/Upgrades/EnergyCard"]
+layout_mode = 0
+offset_left = 16.0
+offset_top = 38.0
+offset_right = 200.0
+offset_bottom = 60.0
+theme_override_colors/font_color = Color(0.2, 0.6, 1, 1)
+theme_override_font_sizes/font_size = 13
+text = "LEVEL 1 / 5 (+15 NRG)"
+
+[node name="BuyBtn" type="Button" parent="Content/LeftCol/Upgrades/EnergyCard"]
+layout_mode = 1
+anchors_preset = 6
+anchor_left = 1.0
+anchor_top = 0.5
+anchor_right = 1.0
+anchor_bottom = 0.5
+offset_left = -110.0
+offset_top = -18.0
+offset_right = -16.0
+offset_bottom = 18.0
+grow_horizontal = 0
+grow_vertical = 2
+text = "150 🔩"
+
+[node name="WeaponCard" type="Panel" parent="Content/LeftCol/Upgrades"]
+custom_minimum_size = Vector2(0, 70)
+layout_mode = 2
+
+[node name="Name" type="Label" parent="Content/LeftCol/Upgrades/WeaponCard"]
+layout_mode = 0
+offset_left = 16.0
+offset_top = 12.0
+offset_right = 200.0
+offset_bottom = 35.0
+text = "WEAPON EFFECTIVENESS"
+
+[node name="LevelLbl" type="Label" parent="Content/LeftCol/Upgrades/WeaponCard"]
+layout_mode = 0
+offset_left = 16.0
+offset_top = 38.0
+offset_right = 200.0
+offset_bottom = 60.0
+theme_override_colors/font_color = Color(1, 0.85, 0.2, 1)
+theme_override_font_sizes/font_size = 13
+text = "LEVEL 1 / 5 (+5% DMG)"
+
+[node name="BuyBtn" type="Button" parent="Content/LeftCol/Upgrades/WeaponCard"]
+layout_mode = 1
+anchors_preset = 6
+anchor_left = 1.0
+anchor_top = 0.5
+anchor_right = 1.0
+anchor_bottom = 0.5
+offset_left = -110.0
+offset_top = -18.0
+offset_right = -16.0
+offset_bottom = 18.0
+grow_horizontal = 0
+grow_vertical = 2
+text = "150 🔩"
+
+[node name="MobilityCard" type="Panel" parent="Content/LeftCol/Upgrades"]
+custom_minimum_size = Vector2(0, 70)
+layout_mode = 2
+
+[node name="Name" type="Label" parent="Content/LeftCol/Upgrades/MobilityCard"]
+layout_mode = 0
+offset_left = 16.0
+offset_top = 12.0
+offset_right = 200.0
+offset_bottom = 35.0
+text = "THRUSTER MOBILITY"
+
+[node name="LevelLbl" type="Label" parent="Content/LeftCol/Upgrades/MobilityCard"]
+layout_mode = 0
+offset_left = 16.0
+offset_top = 38.0
+offset_right = 200.0
+offset_bottom = 60.0
+theme_override_colors/font_color = Color(1, 1, 1, 1)
+theme_override_font_sizes/font_size = 13
+text = "LEVEL 1 / 5 (+5% SPD)"
+
+[node name="BuyBtn" type="Button" parent="Content/LeftCol/Upgrades/MobilityCard"]
+layout_mode = 1
+anchors_preset = 6
+anchor_left = 1.0
+anchor_top = 0.5
+anchor_right = 1.0
+anchor_bottom = 0.5
+offset_left = -110.0
+offset_top = -18.0
+offset_right = -16.0
+offset_bottom = 18.0
+grow_horizontal = 0
+grow_vertical = 2
+text = "150 🔩"
+
+[node name="RightCol" type="VBoxContainer" parent="Content"]
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_constants/separation = 12
+
+[node name="SectionTitle" type="Label" parent="Content/RightCol"]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.3, 0.8, 1, 1)
+theme_override_font_sizes/font_size = 16
+text = "CHASSIS & LOADOUT BAY"
+
+[node name="DroneSelector" type="HBoxContainer" parent="Content/RightCol"]
+layout_mode = 2
+theme_override_constants/separation = 8
+
+[node name="Striker" type="Button" parent="Content/RightCol/DroneSelector"]
+layout_mode = 2
+size_flags_horizontal = 3
+text = "STRIKER"
+
+[node name="Interceptor" type="Button" parent="Content/RightCol/DroneSelector"]
+layout_mode = 2
+size_flags_horizontal = 3
+text = "INTERCEPTOR"
+
+[node name="Assault" type="Button" parent="Content/RightCol/DroneSelector"]
+layout_mode = 2
+size_flags_horizontal = 3
+text = "ASSAULT"
+
+[node name="Arc" type="Button" parent="Content/RightCol/DroneSelector"]
+layout_mode = 2
+size_flags_horizontal = 3
+text = "ARC"
+
+[node name="Command" type="Button" parent="Content/RightCol/DroneSelector"]
+layout_mode = 2
+size_flags_horizontal = 3
+text = "COMMAND"
+
+[node name="DronePanel" type="Panel" parent="Content/RightCol"]
+layout_mode = 2
+size_flags_vertical = 3
+
+[node name="DroneName" type="Label" parent="Content/RightCol/DronePanel"]
+layout_mode = 0
+offset_left = 20.0
+offset_top = 16.0
+offset_right = 300.0
+offset_bottom = 44.0
+theme_override_colors/font_color = Color(0.4, 0.8, 1, 1)
+theme_override_font_sizes/font_size = 18
+text = "STRIKER"
+
+[node name="DroneRole" type="Label" parent="Content/RightCol/DronePanel"]
+layout_mode = 0
+offset_left = 20.0
+offset_top = 46.0
+offset_right = 500.0
+offset_bottom = 69.0
+theme_override_colors/font_color = Color(0.7, 0.7, 0.7, 1)
+theme_override_font_sizes/font_size = 12
+text = "BALANCED / ACCURATE / VERSATILE"
+
+[node name="DroneDesc" type="Label" parent="Content/RightCol/DronePanel"]
+layout_mode = 0
+offset_left = 20.0
+offset_top = 74.0
+offset_right = 550.0
+offset_bottom = 120.0
+theme_override_font_sizes/font_size = 12
+text = "Balanced combat chassis with precision forward weapons and versatile performance."
+autowrap_mode = 2
+
+[node name="PreviewContainer" type="Control" parent="Content/RightCol/DronePanel"]
+layout_mode = 1
+anchors_preset = 8
+anchor_left = 0.5
+anchor_top = 0.5
+anchor_right = 0.5
+anchor_bottom = 0.5
+offset_left = -20.0
+offset_top = 10.0
+offset_right = 20.0
+offset_bottom = 50.0
+grow_horizontal = 2
+grow_vertical = 2
+
+[node name="DroneSprite" type="Sprite2D" parent="Content/RightCol/DronePanel/PreviewContainer"]
+scale = Vector2(0.55, 0.55)
+texture = ExtResource("2_texture")
+
+[node name="StatsLabel" type="Label" parent="Content/RightCol/DronePanel"]
+layout_mode = 1
+anchors_preset = 12
+anchor_top = 1.0
+anchor_right = 1.0
+anchor_bottom = 1.0
+offset_left = 20.0
+offset_top = -65.0
+offset_right = -20.0
+offset_bottom = -40.0
+grow_horizontal = 2
+grow_vertical = 0
+theme_override_colors/font_color = Color(0.2, 0.9, 0.4, 1)
+theme_override_font_sizes/font_size = 13
+text = "HULL: 100  |  SHIELD: 60  |  SPEED: 520  |  ARMOR: 0%"
+
+[node name="WeaponsLabel" type="Label" parent="Content/RightCol/DronePanel"]
+layout_mode = 1
+anchors_preset = 12
+anchor_top = 1.0
+anchor_right = 1.0
+anchor_bottom = 1.0
+offset_left = 20.0
+offset_top = -35.0
+offset_right = -20.0
+offset_bottom = -12.0
+grow_horizontal = 2
+grow_vertical = 0
+theme_override_colors/font_color = Color(1, 0.8, 0.2, 1)
+theme_override_font_sizes/font_size = 13
+text = "LOADOUT: • PULSE • SCATTER • MISSILE"
+
+[node name="Footer" type="HBoxContainer" parent="."]
+layout_mode = 1
+anchors_preset = 12
+anchor_top = 1.0
+anchor_right = 1.0
+anchor_bottom = 1.0
+offset_left = 30.0
+offset_top = -60.0
+offset_right = -30.0
+offset_bottom = -16.0
+grow_horizontal = 2
+grow_vertical = 0
+theme_override_constants/separation = 20
+
+[node name="BackBtn" type="Button" parent="Footer"]
+custom_minimum_size = Vector2(200, 0)
+layout_mode = 2
+text = "← BACK TO MENU"
+
+[node name="Spacer" type="Control" parent="Footer"]
+layout_mode = 2
+size_flags_horizontal = 3
+
+[node name="LaunchBtn" type="Button" parent="Footer"]
+custom_minimum_size = Vector2(240, 0)
+layout_mode = 2
+theme_override_colors/font_color = Color(0.2, 0.9, 0.4, 1)
+text = "DEPLOY DRONE →"
