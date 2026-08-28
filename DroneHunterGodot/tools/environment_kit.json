@@ -1,0 +1,230 @@
+[
+  {
+    "path": "res://assets/environment_kit/terrain/cyber_floor_01.png",
+    "category": "terrain",
+    "source_asset": "res://assets/environment/cyber_factory/floor/floor_01.png",
+    "status": "READY"
+  },
+  {
+    "path": "res://assets/environment_kit/terrain/cyber_floor_02.png",
+    "category": "terrain",
+    "source_asset": "res://assets/environment/cyber_factory/floor/floor_02.png",
+    "status": "READY"
+  },
+  {
+    "path": "res://assets/environment_kit/terrain/cyber_floor_03.png",
+    "category": "terrain",
+    "source_asset": "res://assets/environment/cyber_factory/floor/floor_03.png",
+    "status": "READY"
+  },
+  {
+    "path": "res://assets/environment_kit/terrain/cyber_floor_04.png",
+    "category": "terrain",
+    "source_asset": "res://assets/environment/cyber_factory/floor/floor_04.png",
+    "status": "READY"
+  },
+  {
+    "path": "res://assets/environment_kit/terrain/cyber_floor_05.png",
+    "category": "terrain",
+    "source_asset": "res://assets/environment/cyber_factory/floor/floor_05.png",
+    "status": "READY"
+  },
+  {
+    "path": "res://assets/environment_kit/terrain/floor_grate.png",
+    "category": "terrain",
+    "source_asset": "res://assets/environment/cyber_factory/floor/floor_grate.png",
+    "status": "READY"
+  },
+  {
+    "path": "res://assets/environment_kit/terrain/floor_maintenance.png",
+    "category": "terrain",
+    "source_asset": "res://assets/environment/cyber_factory/floor/floor_maintenance.png",
+    "status": "READY"
+  },
+  {
+    "path": "res://assets/environment_kit/terrain/floor_panel.png",
+    "category": "terrain",
+    "source_asset": "res://assets/environment/cyber_factory/floor/floor_panel.png",
+    "status": "READY"
+  },
+  {
+    "path": "res://assets/environment_kit/industrial/generator_01.png",
+    "category": "industrial",
+    "source_asset": "res://assets/environment/cyber_factory/machinery/generator_01.png",
+    "status": "READY"
+  },
+  {
+    "path": "res://assets/environment_kit/industrial/turbine_01.png",
+    "category": "industrial",
+    "source_asset": "res://assets/environment/cyber_factory/machinery/turbine_01.png",
+    "status": "READY"
+  },
+  {
+    "path": "res://assets/environment_kit/industrial/reactor_01.png",
+    "category": "industrial",
+    "source_asset": "res://assets/environment/cyber_factory/reactors/reactor_01.png",
+    "status": "READY"
+  },
+  {
+    "path": "res://assets/environment_kit/industrial/critical_power_reactor.png",
+    "category": "industrial",
+    "source_asset": "res://assets/environment/structures/critical_power_reactor.png",
+    "status": "READY"
+  },
+  {
+    "path": "res://assets/environment_kit/industrial/pipe_straight.png",
+    "category": "industrial",
+    "source_asset": "res://assets/environment/cyber_factory/pipes/pipe_straight.png",
+    "status": "READY"
+  },
+  {
+    "path": "res://assets/environment_kit/industrial/pipe_corner.png",
+    "category": "industrial",
+    "source_asset": "res://assets/environment/cyber_factory/pipes/pipe_corner.png",
+    "status": "READY"
+  },
+  {
+    "path": "res://assets/environment_kit/towers/radar_command_tower.png",
+    "category": "towers",
+    "source_asset": "res://assets/environment/structures/radar_command_tower.png",
+    "status": "READY"
+  },
+  {
+    "path": "res://assets/environment_kit/towers/aa_platform.png",
+    "category": "towers",
+    "source_asset": "res://assets/environment/structures/aa_platform.png",
+    "status": "READY"
+  },
+  {
+    "path": "res://assets/environment_kit/radar/radar_dish.png",
+    "category": "radar",
+    "source_asset": "res://assets/environment/structures/radar_dish.png",
+    "status": "READY"
+  },
+  {
+    "path": "res://assets/environment_kit/radar/shield_generator.png",
+    "category": "radar",
+    "source_asset": "res://assets/environment/structures/shield_generator.png",
+    "status": "READY"
+  },
+  {
+    "path": "res://assets/environment_kit/vehicles/missile_launcher_platform.png",
+    "category": "vehicles",
+    "source_asset": "res://assets/environment/structures/missile_launcher.png",
+    "status": "READY"
+  },
+  {
+    "path": "res://assets/environment_kit/containers/crate_01.png",
+    "category": "containers",
+    "source_asset": "res://assets/environment/cyber_factory/props/crate_01.png",
+    "status": "READY"
+  },
+  {
+    "path": "res://assets/environment_kit/props/hazard_stripe_01.png",
+    "category": "props",
+    "source_asset": "res://assets/environment/cyber_factory/hazards/hazard_stripe_01.png",
+    "status": "READY"
+  },
+  {
+    "path": "res://assets/environment_kit/props/energy_barrier_blue.png",
+    "category": "props",
+    "source_asset": "res://assets/environment/cyber_factory/barriers/energy_barrier_blue.png",
+    "status": "READY"
+  },
+  {
+    "path": "res://assets/environment_kit/props/wall_01.png",
+    "category": "props",
+    "source_asset": "res://assets/environment/cyber_factory/structures/wall_01.png",
+    "status": "READY"
+  },
+  {
+    "path": "res://assets/environment_kit/terrain/desert_ground_base.png",
+    "category": "terrain",
+    "source_asset": "res://assets/backgrounds/sectors/sector_1_ref.png",
+    "status": "READY"
+  },
+  {
+    "path": "res://assets/environment_kit/terrain/desert_plateau_terrain.png",
+    "category": "terrain",
+    "source_asset": "res://assets/backgrounds/sectors/sector_1_ref.png",
+    "status": "READY"
+  },
+  {
+    "path": "res://assets/environment_kit/cliffs/canyon_ridge_formation.png",
+    "category": "cliffs",
+    "source_asset": "res://assets/backgrounds/sectors/sector_1_ref.png",
+    "status": "READY"
+  },
+  {
+    "path": "res://assets/environment_kit/cliffs/canyon_cliff_outcrop.png",
+    "category": "cliffs",
+    "source_asset": "res://assets/backgrounds/sectors/sector_2_ref.png",
+    "status": "READY"
+  },
+  {
+    "path": "res://assets/environment_kit/vegetation/palm_oasis_grove.png",
+    "category": "vegetation",
+    "source_asset": "res://assets/backgrounds/sectors/sector_2_ref.png",
+    "status": "READY"
+  },
+  {
+    "path": "res://assets/environment_kit/containers/cargo_container_outpost.png",
+    "category": "containers",
+    "source_asset": "res://assets/backgrounds/sectors/sector_2_ref.png",
+    "status": "READY"
+  },
+  {
+    "path": "res://assets/environment_kit/bridges/tactical_bridge_overpass.png",
+    "category": "bridges",
+    "source_asset": "res://assets/backgrounds/sectors/sector_2_ref.png",
+    "status": "READY"
+  },
+  {
+    "path": "res://assets/environment_kit/vehicles/armored_recon_truck.png",
+    "category": "vehicles",
+    "source_asset": "res://assets/backgrounds/sectors/sector_2_ref.png",
+    "status": "READY"
+  },
+  {
+    "path": "res://assets/environment_kit/roads/canyon_approach_road.png",
+    "category": "roads",
+    "source_asset": "res://assets/backgrounds/sectors/sector_2_ref.png",
+    "status": "READY"
+  },
+  {
+    "path": "res://assets/environment_kit/water/canyon_river_waterway.png",
+    "category": "water",
+    "source_asset": "res://assets/backgrounds/sectors/sector_2_ref.png",
+    "status": "READY"
+  },
+  {
+    "path": "res://assets/environment_kit/buildings/radar_facility_complex.png",
+    "category": "buildings",
+    "source_asset": "res://assets/backgrounds/sectors/sector_2_ref.png",
+    "status": "READY"
+  },
+  {
+    "path": "res://assets/environment_kit/towers/comm_mast_tower.png",
+    "category": "towers",
+    "source_asset": "res://assets/backgrounds/sectors/sector_2_ref.png",
+    "status": "READY"
+  },
+  {
+    "path": "res://assets/environment_kit/radar/radar_outpost_dish.png",
+    "category": "radar",
+    "source_asset": "res://assets/backgrounds/sectors/sector_2_ref.png",
+    "status": "READY"
+  },
+  {
+    "path": "res://assets/environment_kit/water/desert_river_valley.png",
+    "category": "water",
+    "source_asset": "res://assets/backgrounds/sectors/sector_2_ref.png",
+    "status": "READY"
+  },
+  {
+    "path": "res://assets/environment_kit/rocks/canyon_rock_spires.png",
+    "category": "rocks",
+    "source_asset": "res://assets/backgrounds/sectors/sector_2_ref.png",
+    "status": "READY"
+  }
+]
