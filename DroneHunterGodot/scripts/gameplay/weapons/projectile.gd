@@ -8,6 +8,7 @@ extends Area2D
 
 var _traveled_distance: float = 0.0
 var _source: Node2D = null
+var _has_hit: bool = false
 
 func setup(p_speed: float, p_damage: float, p_damage_type: int, p_source: Node2D, p_asset_path: String = "") -> void:
 	speed = p_speed
@@ -36,6 +37,8 @@ func _ready() -> void:
 	area_entered.connect(_on_area_entered)
 
 func _physics_process(delta: float) -> void:
+	if _has_hit:
+		return
 	var move_amount: float = speed * delta
 	global_position += Vector2.RIGHT.rotated(global_rotation) * move_amount
 	_traveled_distance += move_amount
@@ -50,10 +53,13 @@ func _on_area_entered(area: Area2D) -> void:
 	_handle_hit(area)
 
 func _handle_hit(target: Node2D) -> void:
-	# Avoid hitting self source
+	if _has_hit:
+		return
 	if target == _source:
 		return
 		
+	_has_hit = true
+	
 	# Find damage receiver
 	var receiver: DamageReceiver = null
 	if target.has_node("DamageReceiver"):
@@ -63,6 +69,6 @@ func _handle_hit(target: Node2D) -> void:
 		var hit = Hit.new(damage, damage_type, _source, global_position)
 		receiver.take_damage(hit)
 	elif target.has_method("take_damage"):
-		target.take_damage(damage) # Fallback for old tests
+		target.take_damage(damage)
 	
-	queue_free()
+	call_deferred("queue_free")

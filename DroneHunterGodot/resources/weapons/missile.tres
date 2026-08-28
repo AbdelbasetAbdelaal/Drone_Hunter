@@ -1,0 +1,18 @@
+[gd_resource type="Resource" script_class="WeaponDefinition" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://resources/weapons/weapon_definition.gd" id="1_script"]
+
+[resource]
+script = ExtResource("1_script")
+weapon_id = "missile"
+display_name = "Heavy Missile"
+slot = 3
+cooldown = 2.5
+energy_cost = 0.0
+damage = 65.0
+speed = 260.0
+projectiles_per_shot = 1
+spread_deg = 0.0
+projectile_asset = "projectiles/missile.png"
+behavior_type = "guided_homing"
+description = "Guided ordnance tracking targets with massive thermal payload."

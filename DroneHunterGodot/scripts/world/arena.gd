@@ -39,4 +39,3 @@ func _configure_mission_environment() -> void:
 			# Update combat director parameters
 			if enemies_director:
 				enemies_director.max_waves = mission_def.total_waves
-				enemies_director.is_boss_mission = mission_def.is_boss_mission

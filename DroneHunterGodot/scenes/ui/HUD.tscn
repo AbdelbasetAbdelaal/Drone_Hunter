@@ -107,43 +107,6 @@ theme_override_font_sizes/font_size = 14
 text = "SCRAP: 500 🔩"
 horizontal_alignment = 2
 
-[node name="BottomCenter" type="Control" parent="Root"]
-layout_mode = 1
-anchors_preset = 7
-anchor_left = 0.5
-anchor_top = 1.0
-anchor_right = 0.5
-anchor_bottom = 1.0
-offset_left = -250.0
-offset_top = -60.0
-offset_right = 250.0
-offset_bottom = -20.0
-grow_horizontal = 2
-grow_vertical = 0
-mouse_filter = 2
-
-[node name="BossContainer" type="VBoxContainer" parent="Root/BottomCenter"]
-layout_mode = 1
-anchors_preset = 15
-anchor_right = 1.0
-anchor_bottom = 1.0
-grow_horizontal = 2
-grow_vertical = 2
-mouse_filter = 2
-
-[node name="BossName" type="Label" parent="Root/BottomCenter/BossContainer"]
-layout_mode = 2
-theme_override_colors/font_color = Color(1, 0.3, 0.2, 1)
-theme_override_font_sizes/font_size = 13
-text = "⚠ TITAN CARRIER DREADNOUGHT ⚠"
-horizontal_alignment = 1
-
-[node name="BossBar" type="ProgressBar" parent="Root/BottomCenter/BossContainer"]
-custom_minimum_size = Vector2(0, 18)
-layout_mode = 2
-mouse_filter = 2
-value = 100.0
-
 [node name="VictoryModal" type="Panel" parent="Root"]
 visible = false
 layout_mode = 1

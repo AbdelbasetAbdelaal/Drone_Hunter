@@ -1,0 +1,18 @@
+[gd_resource type="Resource" script_class="WeaponDefinition" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://resources/weapons/weapon_definition.gd" id="1_script"]
+
+[resource]
+script = ExtResource("1_script")
+weapon_id = "barrage"
+display_name = "Missile Barrage"
+slot = 3
+cooldown = 2.2
+energy_cost = 0.0
+damage = 38.0
+speed = 620.0
+projectiles_per_shot = 4
+spread_deg = 28.0
+projectile_asset = "weapons/barrage/projectile.png"
+behavior_type = "salvo_homing"
+description = "Four-missile salvo launched simultaneously from wing pods."

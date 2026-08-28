@@ -7,7 +7,7 @@ signal mission_completed(score: int, scrap: int)
 signal mission_failed()
 
 @export var max_waves: int = 4
-@export var is_boss_mission: bool = true
+@export var is_boss_mission: bool = false
 @export var spawn_parent: Node2D
 
 var current_wave: int = 0
@@ -19,7 +19,6 @@ var scout_scene: PackedScene = preload("res://scenes/enemies/EnemyScout.tscn")
 var shooter_scene: PackedScene = preload("res://scenes/enemies/EnemyShooter.tscn")
 var heavy_scene: PackedScene = preload("res://scenes/enemies/EnemyHeavy.tscn")
 var shield_scene: PackedScene = preload("res://scenes/enemies/EnemyShieldElite.tscn")
-var boss_scene: PackedScene = preload("res://scenes/entities/BossTitan.tscn")
 
 func _ready() -> void:
 	add_to_group("combat_director")
@@ -41,11 +40,7 @@ func start_next_wave() -> void:
 		
 	wave_started.emit(current_wave, max_waves)
 	print("Combat Director: Starting Wave ", current_wave, " / ", max_waves)
-	
-	if current_wave == max_waves and is_boss_mission:
-		_spawn_boss_wave()
-	else:
-		_spawn_standard_wave(current_wave)
+	_spawn_standard_wave(current_wave)
 
 func _spawn_standard_wave(wave_num: int) -> void:
 	var player = get_tree().get_first_node_in_group("player") as Node2D
@@ -64,15 +59,6 @@ func _spawn_standard_wave(wave_num: int) -> void:
 		_spawn_enemy(heavy_scene, base_pos + _random_spawn_offset())
 	for i in range(num_shields):
 		_spawn_enemy(shield_scene, base_pos + _random_spawn_offset())
-
-func _spawn_boss_wave() -> void:
-	var player = get_tree().get_first_node_in_group("player") as Node2D
-	var base_pos = player.global_position if player else Vector2(1920, 1080)
-	
-	_spawn_enemy(boss_scene, base_pos + Vector2(700, 0))
-	_spawn_enemy(scout_scene, base_pos + Vector2(600, -300))
-	_spawn_enemy(scout_scene, base_pos + Vector2(600, 300))
-	_spawn_enemy(shield_scene, base_pos + Vector2(850, 0))
 
 func trigger_reinforcement_wave(from_pos: Vector2) -> void:
 	print("Combat Director: Reinforcements called!")

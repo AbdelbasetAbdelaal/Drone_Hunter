@@ -13,33 +13,37 @@ func _ready() -> void:
 	_init_weapons()
 
 func _init_weapons() -> void:
-	# Define all 11 weapons based on Phase 2 requirements and game_data.py
+	# Load authoritative WeaponDefinition Resources
+	var weapon_ids = [
+		"pulse", "scatter", "missile", "rapid", "plasma",
+		"rail", "barrage", "beam", "tesla", "cluster", "emp"
+	]
 	
-	_add_weapon("pulse", "Pulse Laser", 1, 0.18, 25, 950, 1, 0.0, "projectiles/bullet_pulse.png", PulseBehavior)
-	_add_weapon("rapid", "Rapid Autocannon", 2, 0.08, 8, 1100, 1, 3.0, "projectiles/bullet_pulse.png", RapidBehavior)
-	_add_weapon("scatter", "Spread Cannon", 2, 0.75, 10, 600, 5, 22.0, "projectiles/bullet_scatter.png", ScatterBehavior)
-	_add_weapon("missile", "Heavy Missile", 3, 2.5, 65, 320, 1, 0.0, "weapons/missile/projectile.png", MissileBehavior)
-	_add_weapon("barrage", "Missile Barrage", 3, 2.2, 38, 650, 4, 28.0, "weapons/barrage/projectile.png", BarrageBehavior)
-	_add_weapon("plasma", "Heavy Plasma Cannon", 2, 0.85, 90, 500, 1, 0.0, "weapons/plasma/projectile.png", PlasmaBehavior)
-	_add_weapon("rail", "Precision Railgun", 1, 1.10, 115, 1800, 1, 0.0, "weapons/rail/projectile.png", RailgunBehavior)
-	_add_weapon("beam", "Plasma Cutting Beam", 2, 0.08, 26, 1500, 1, 0.0, "weapons/beam/projectile.png", BeamBehavior)
-	_add_weapon("tesla", "Tesla Arc", 2, 0.40, 44, 1100, 1, 0.0, "weapons/tesla/projectile.png", TeslaBehavior)
-	_add_weapon("cluster", "Cluster Torpedo", 4, 2.0, 85, 550, 1, 0.0, "weapons/cluster/projectile.png", ClusterBehavior)
-	_add_weapon("emp", "EMP Shockwave Pulse", 1, 0.50, 30, 1200, 1, 0.0, "weapons/emp/projectile.png", EMPBehavior)
-
-func _add_weapon(id: String, display_name: String, slot: int, cooldown: float, damage: float, speed: float, count: int, spread: float, asset: String, behavior_class) -> void:
-	var def: WeaponDefinition = WeaponDefinition.new()
-	def.weapon_id = id
-	def.display_name = display_name
-	def.slot = slot
-	def.cooldown = cooldown
-	def.damage = damage
-	def.speed = speed
-	def.projectiles_per_shot = count
-	def.spread_deg = spread
-	def.projectile_asset = asset
-	weapons.append(def)
-	behaviors.append(behavior_class.new(def, self))
+	var behavior_map = {
+		"pulse": PulseBehavior,
+		"scatter": ScatterBehavior,
+		"missile": MissileBehavior,
+		"rapid": RapidBehavior,
+		"plasma": PlasmaBehavior,
+		"rail": RailgunBehavior,
+		"barrage": BarrageBehavior,
+		"beam": BeamBehavior,
+		"tesla": TeslaBehavior,
+		"cluster": ClusterBehavior,
+		"emp": EMPBehavior
+	}
+	
+	weapons.clear()
+	behaviors.clear()
+	
+	for w_id in weapon_ids:
+		var path = "res://resources/weapons/" + w_id + ".tres"
+		if ResourceLoader.exists(path):
+			var def = load(path) as WeaponDefinition
+			if def:
+				weapons.append(def)
+				var b_class = behavior_map.get(w_id, PulseBehavior)
+				behaviors.append(b_class.new(def, self))
 
 func _physics_process(delta: float) -> void:
 	if _cooldown_timer > 0.0:
@@ -73,7 +77,7 @@ func can_fire_primary() -> bool:
 	return _cooldown_timer <= 0.0
 
 func try_fire_primary() -> bool:
-	if not can_fire_primary() or behaviors.size() == 0:
+	if not can_fire_primary() or behaviors.size() == 0 or active_weapon_index >= behaviors.size():
 		return false
 	
 	var active_def = weapons[active_weapon_index]

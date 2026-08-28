@@ -114,8 +114,8 @@ func _handle_combat(_delta: float) -> void:
 	if is_firing and weapon_controller != null:
 		weapon_controller.try_fire_primary()
 
-func _on_health_changed(current: float, max_val: float) -> void:
-	health_changed.emit(current, max_val)
+func _on_health_changed(_old_val: float, new_val: float, max_val: float) -> void:
+	health_changed.emit(new_val, max_val)
 
 func _on_death() -> void:
 	player_died.emit()

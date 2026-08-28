@@ -1,0 +1,18 @@
+[gd_resource type="Resource" script_class="WeaponDefinition" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://resources/weapons/weapon_definition.gd" id="1_script"]
+
+[resource]
+script = ExtResource("1_script")
+weapon_id = "tesla"
+display_name = "Tesla Arc"
+slot = 2
+cooldown = 0.4
+energy_cost = 0.0
+damage = 44.0
+speed = 1100.0
+projectiles_per_shot = 1
+spread_deg = 0.0
+projectile_asset = "weapons/tesla/projectile.png"
+behavior_type = "chaining_lightning"
+description = "High-voltage electrical discharge jumping between targets."

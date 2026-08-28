@@ -12,9 +12,6 @@ extends CanvasLayer
 @onready var score_label: Label = $Root/TopRight/ScoreLabel
 @onready var scrap_label: Label = $Root/TopRight/ScrapLabel
 
-@onready var boss_container: VBoxContainer = $Root/BottomCenter/BossContainer
-@onready var boss_bar: ProgressBar = $Root/BottomCenter/BossContainer/BossBar
-
 # Overlays
 @onready var victory_modal: Panel = $Root/VictoryModal
 @onready var victory_score_lbl: Label = $Root/VictoryModal/VBox/ScoreLbl
@@ -32,7 +29,6 @@ extends CanvasLayer
 var is_paused: bool = false
 
 func _ready() -> void:
-	boss_container.visible = false
 	victory_modal.visible = false
 	defeat_modal.visible = false
 	pause_modal.visible = false
@@ -97,17 +93,6 @@ func _process(_delta: float) -> void:
 	var gm = get_tree().get_first_node_in_group("game_manager")
 	if gm:
 		scrap_label.text = "SCRAP: " + str(gm.scrap) + " 🔩"
-		
-	# Check for boss
-	var boss = get_tree().get_first_node_in_group("boss") as CharacterBody2D
-	if boss and is_instance_valid(boss):
-		boss_container.visible = true
-		var b_health = boss.get_node_or_null("Health") as Health
-		if b_health:
-			boss_bar.max_value = b_health.max_hp
-			boss_bar.value = b_health.current_hp
-	else:
-		boss_container.visible = false
 
 func _on_health_changed(cur: float, max_val: float) -> void:
 	hull_bar.max_value = max_val

@@ -1,0 +1,18 @@
+[gd_resource type="Resource" script_class="WeaponDefinition" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://resources/weapons/weapon_definition.gd" id="1_script"]
+
+[resource]
+script = ExtResource("1_script")
+weapon_id = "pulse"
+display_name = "Pulse Laser"
+slot = 1
+cooldown = 0.18
+energy_cost = 0.0
+damage = 12.0
+speed = 650.0
+projectiles_per_shot = 1
+spread_deg = 0.0
+projectile_asset = "projectiles/bullet_pulse.png"
+behavior_type = "linear_bolt"
+description = "Accurate high-velocity coherent energy bolt."
