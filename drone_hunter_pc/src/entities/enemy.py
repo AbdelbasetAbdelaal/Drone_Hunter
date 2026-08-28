@@ -2,10 +2,11 @@
 ================================================================================
                     DRONE HUNTER 2D - 2D ENEMY TARGET SPRITES
 ================================================================================
-Defines hostile drone archetypes with specialized tactical AI:
-- Scout: High-speed strafing and predictive telegraph diving melee interceptor (Phase 2A)
-- Shooter: Positional pressure drone with range keeping, deliberate aim, telegraph, and single-shot firing (Phase 2B)
-- Swarm, Chaser, Fast, Armored, Shield Drone, Sniper, Turret, Vehicle
+Defines hostile drone archetypes with modular AI architecture:
+- Scout: High-speed strafing and predictive telegraph diving melee interceptor
+- Shooter: Positional pressure drone with range keeping, deliberate aim, and telegraph firing
+- Heavy: Armored brawler drone with sustained forward space pressure
+- Swarm, Chaser, Fast, Armored, Shield Drone, Sniper, Turret, Vehicle, Standard
 """
 
 import math
@@ -32,10 +33,12 @@ from src.data.game_data import (
     HEAVY_CONTACT_COOLDOWN, HEAVY_ARMOR, HEAVY_PRESSURE_DISTANCE, HEAVY_TELEGRAPH_TIME
 )
 from src.entities.bullet import EnemyBullet, EnemySniperBeam
+from src.entities.ai import BaseEnemyAI, EnemyAIContext, create_enemy_ai
 
 
 class Enemy(pygame.sprite.Sprite):
-    """Base and specialized 2D Hostile Target."""
+    """Base and specialized 2D Hostile Target orchestrating stats, state, and modular AI."""
+
     def __init__(self, enemy_type: str = TARGET_TYPE_STANDARD, pos: tuple[float, float] = None,
                  speed_multiplier: float = 1.0, hp_multiplier: float = 1.0, sector_idx: int = 0,
                  level: int = 1, **kwargs):
@@ -46,17 +49,8 @@ class Enemy(pygame.sprite.Sprite):
         sec_mult = 1.0 + sector_idx * 0.25
         speed_bonus = sector_idx * 15.0
 
-        self.ai_state = "approach"
-        self.state_timer = 0.0
-        self.dive_dir = pygame.Vector2(0, 0)
-        self.dive_target = pygame.Vector2(0, 0)
-        self.strafe_dir = random.choice([-1.0, 1.0])
-        self.recover_dir = pygame.Vector2(0, 0)
         self.contact_cooldown_timer = 0.0
         self.heading_angle = 180.0
-        self.fire_timer = 0.0
-        self.reposition_dir = pygame.Vector2(0, 0)
-        self.aim_target = pygame.Vector2(0, 0)
         self.armor = 0.0
 
         if enemy_type == TARGET_TYPE_SCOUT:
@@ -66,7 +60,7 @@ class Enemy(pygame.sprite.Sprite):
             base_speed = (SCOUT_SPEED + speed_bonus) * speed_multiplier
             self.dive_speed = (SCOUT_DIVE_SPEED + speed_bonus) * speed_multiplier
             self.contact_damage = SCOUT_CONTACT_DAMAGE
-            self.color_outer = (244, 63, 94) # Neon Rose / Amber-Crimson
+            self.color_outer = (244, 63, 94)  # Neon Rose / Amber-Crimson
             self.color_inner = COLOR_GOLD
 
         elif enemy_type == TARGET_TYPE_SHOOTER:
@@ -78,7 +72,7 @@ class Enemy(pygame.sprite.Sprite):
             self.projectile_speed = SHOOTER_PROJECTILE_SPEED
             self.projectile_damage = SHOOTER_PROJECTILE_DAMAGE
             self.contact_damage = 0.0
-            self.color_outer = (239, 68, 68) # Industrial Crimson
+            self.color_outer = (239, 68, 68)  # Industrial Crimson
             self.color_inner = COLOR_GOLD
 
         elif enemy_type in (TARGET_TYPE_HEAVY, TARGET_TYPE_ARMORED):
@@ -89,8 +83,8 @@ class Enemy(pygame.sprite.Sprite):
             self.dive_speed = base_speed
             self.contact_damage = HEAVY_CONTACT_DAMAGE
             self.armor = HEAVY_ARMOR
-            self.color_outer = (100, 116, 139) # Armored Titanium / Slate
-            self.color_inner = (245, 158, 11)  # Amber Warning Core
+            self.color_outer = (100, 116, 139)  # Armored Titanium / Slate
+            self.color_inner = (245, 158, 11)   # Amber Warning Core
 
         elif enemy_type == TARGET_TYPE_FAST:
             base_hp = int(18 * sec_mult * hp_multiplier)
@@ -162,7 +156,7 @@ class Enemy(pygame.sprite.Sprite):
             self.color_outer = (168, 85, 247)
             self.color_inner = COLOR_WHITE
 
-        else: # Standard
+        else:  # Standard
             base_hp = int(25 * sec_mult * hp_multiplier)
             self.points = 100
             size = 36
@@ -194,11 +188,9 @@ class Enemy(pygame.sprite.Sprite):
         self.anim_timer = random.uniform(0.0, 5.0)
         self.anim_frame = 0
         self.hover_offset = pygame.Vector2(0.0, 0.0)
-        self.is_diving = False
-        self.shield_angle = 0.0
-        self.shoot_timer = random.uniform(0.8, 2.2)
-        self.sniper_aim_timer = random.uniform(1.5, 3.0)
-        self.is_aiming = False
+
+        # Specialized AI Controller
+        self.ai = create_enemy_ai(self.enemy_type, self)
 
         surf_size = 90 if enemy_type == TARGET_TYPE_SCOUT else (
             96 if enemy_type == TARGET_TYPE_SHOOTER else (
@@ -223,6 +215,135 @@ class Enemy(pygame.sprite.Sprite):
         self._heading_threshold = 2.5
         self._render_sprite()
 
+    # -------------------------------------------------------------------------
+    # AI State Delegation Properties
+    # -------------------------------------------------------------------------
+    @property
+    def ai_state(self) -> str:
+        return getattr(self.ai, "ai_state", "approach")
+
+    @ai_state.setter
+    def ai_state(self, val: str):
+        if hasattr(self, "ai"):
+            self.ai.ai_state = val
+
+    @property
+    def state_timer(self) -> float:
+        return getattr(self.ai, "state_timer", 0.0)
+
+    @state_timer.setter
+    def state_timer(self, val: float):
+        if hasattr(self, "ai"):
+            self.ai.state_timer = float(val)
+
+    @property
+    def dive_dir(self) -> pygame.Vector2:
+        return getattr(self.ai, "dive_dir", pygame.Vector2(0, 0))
+
+    @dive_dir.setter
+    def dive_dir(self, val: pygame.Vector2):
+        if hasattr(self, "ai"):
+            self.ai.dive_dir = pygame.Vector2(val)
+
+    @property
+    def dive_target(self) -> pygame.Vector2:
+        return getattr(self.ai, "dive_target", pygame.Vector2(0, 0))
+
+    @dive_target.setter
+    def dive_target(self, val: pygame.Vector2):
+        if hasattr(self, "ai"):
+            self.ai.dive_target = pygame.Vector2(val)
+
+    @property
+    def strafe_dir(self) -> float:
+        return getattr(self.ai, "strafe_dir", 1.0)
+
+    @strafe_dir.setter
+    def strafe_dir(self, val: float):
+        if hasattr(self, "ai"):
+            self.ai.strafe_dir = float(val)
+
+    @property
+    def recover_dir(self) -> pygame.Vector2:
+        return getattr(self.ai, "recover_dir", pygame.Vector2(0, 0))
+
+    @recover_dir.setter
+    def recover_dir(self, val: pygame.Vector2):
+        if hasattr(self, "ai"):
+            self.ai.recover_dir = pygame.Vector2(val)
+
+    @property
+    def fire_timer(self) -> float:
+        return getattr(self.ai, "fire_timer", 0.0)
+
+    @fire_timer.setter
+    def fire_timer(self, val: float):
+        if hasattr(self, "ai"):
+            self.ai.fire_timer = float(val)
+
+    @property
+    def reposition_dir(self) -> pygame.Vector2:
+        return getattr(self.ai, "reposition_dir", pygame.Vector2(0, 0))
+
+    @reposition_dir.setter
+    def reposition_dir(self, val: pygame.Vector2):
+        if hasattr(self, "ai"):
+            self.ai.reposition_dir = pygame.Vector2(val)
+
+    @property
+    def aim_target(self) -> pygame.Vector2:
+        return getattr(self.ai, "aim_target", pygame.Vector2(0, 0))
+
+    @aim_target.setter
+    def aim_target(self, val: pygame.Vector2):
+        if hasattr(self, "ai"):
+            self.ai.aim_target = pygame.Vector2(val)
+
+    @property
+    def is_aiming(self) -> bool:
+        return getattr(self.ai, "is_aiming", False)
+
+    @is_aiming.setter
+    def is_aiming(self, val: bool):
+        if hasattr(self, "ai"):
+            self.ai.is_aiming = bool(val)
+
+    @property
+    def is_diving(self) -> bool:
+        return getattr(self.ai, "is_diving", False)
+
+    @is_diving.setter
+    def is_diving(self, val: bool):
+        if hasattr(self, "ai"):
+            self.ai.is_diving = bool(val)
+
+    @property
+    def shield_angle(self) -> float:
+        return getattr(self.ai, "shield_angle", 0.0)
+
+    @shield_angle.setter
+    def shield_angle(self, val: float):
+        if hasattr(self, "ai"):
+            self.ai.shield_angle = float(val)
+
+    @property
+    def shoot_timer(self) -> float:
+        return getattr(self.ai, "shoot_timer", 0.0)
+
+    @shoot_timer.setter
+    def shoot_timer(self, val: float):
+        if hasattr(self, "ai"):
+            self.ai.shoot_timer = float(val)
+
+    @property
+    def sniper_aim_timer(self) -> float:
+        return getattr(self.ai, "sniper_aim_timer", 0.0)
+
+    @sniper_aim_timer.setter
+    def sniper_aim_timer(self, val: float):
+        if hasattr(self, "ai"):
+            self.ai.sniper_aim_timer = float(val)
+
     @property
     def score_value(self) -> int:
         return getattr(self, "points", 100)
@@ -239,6 +360,9 @@ class Enemy(pygame.sprite.Sprite):
     def color(self, val: tuple[int, int, int]):
         self.color_outer = val
 
+    # -------------------------------------------------------------------------
+    # Combat & Damage Resolution
+    # -------------------------------------------------------------------------
     def take_damage(self, amount: int, source: str = "bullet", **kwargs) -> bool:
         """Applies armor-mitigated damage and returns True if entity dies."""
         effective_damage = amount
@@ -253,13 +377,15 @@ class Enemy(pygame.sprite.Sprite):
             return True
         return False
 
+    # -------------------------------------------------------------------------
+    # Update Cycle & Boundary Clamping
+    # -------------------------------------------------------------------------
     def update(self, dt: float, player_pos: tuple[float, float] = (200, 360),
                player_vel: tuple[float, float] = (0, 0), player_obj=None, target_group=None) -> list:
-        """Executes tactical movement, state machine, and returns spawned hostile bullets."""
+        """Executes tactical movement, updates AI, and returns spawned hostile bullets."""
         if not self.alive:
             return []
 
-        new_bullets = []
         if self.hit_flash_timer > 0:
             self.hit_flash_timer -= dt
         if self.contact_cooldown_timer > 0:
@@ -268,289 +394,25 @@ class Enemy(pygame.sprite.Sprite):
         if self.emp_jammed_timer > 0:
             self.emp_jammed_timer -= dt
             self._render_sprite()
-            return new_bullets
+            return []
 
         self.time_accum += dt
-
-        bullet_speed = 320.0 + self.sector_idx * 30.0
-        pred_aim_x = player_pos[0] + player_vel[0] * 0.35
-        pred_aim_y = player_pos[1] + player_vel[1] * 0.35
-        pred_aim = (pred_aim_x, pred_aim_y)
-
-        # ----------------------------------------------------------------------
-        # SCOUT TACTICAL AI (Phase 2A Baseline)
-        # ----------------------------------------------------------------------
-        if self.enemy_type == TARGET_TYPE_SCOUT:
-            self.state_timer += dt
-            to_player = pygame.Vector2(player_pos[0] - self.pos.x, player_pos[1] - self.pos.y)
-            dist = to_player.length()
-            norm_to_player = to_player / dist if dist > 0.001 else pygame.Vector2(1, 0)
-
-            if self.ai_state == "approach":
-                move_dir = norm_to_player
-                self.pos += move_dir * self.speed * dt
-                self.heading_angle = math.degrees(math.atan2(move_dir.y, move_dir.x))
-                if dist <= 360.0 or self.state_timer >= 2.4:
-                    self.ai_state = "strafe"
-                    self.state_timer = 0.0
-                    self.strafe_dir = random.choice([-1.0, 1.0])
-
-            elif self.ai_state == "strafe":
-                lateral = pygame.Vector2(-norm_to_player.y, norm_to_player.x) * self.strafe_dir
-                radial_bias = 0.30 if dist > 300.0 else (-0.25 if dist < 200.0 else 0.0)
-                move_vec = (lateral + norm_to_player * radial_bias)
-                if move_vec.length() > 0.001:
-                    move_vec = move_vec.normalize()
-                self.pos += move_vec * self.speed * dt
-                self.heading_angle = math.degrees(math.atan2(move_vec.y, move_vec.x))
-
-                if self.state_timer >= SCOUT_STRAFE_DURATION:
-                    self.ai_state = "telegraph"
-                    self.state_timer = 0.0
-                    self.dive_target = pygame.Vector2(pred_aim_x, pred_aim_y)
-                    dive_vec = self.dive_target - self.pos
-                    self.dive_dir = dive_vec.normalize() if dive_vec.length() > 0.001 else norm_to_player
-
-            elif self.ai_state == "telegraph":
-                self.pos += self.dive_dir * (self.speed * 0.12) * dt
-                self.heading_angle = math.degrees(math.atan2(self.dive_dir.y, self.dive_dir.x))
-                if self.state_timer >= SCOUT_TELEGRAPH_TIME:
-                    self.ai_state = "dive"
-                    self.state_timer = 0.0
-
-            elif self.ai_state == "dive":
-                self.pos += self.dive_dir * self.dive_speed * dt
-                self.heading_angle = math.degrees(math.atan2(self.dive_dir.y, self.dive_dir.x))
-                if self.state_timer >= SCOUT_DIVE_DURATION:
-                    self.ai_state = "recover"
-                    self.state_timer = 0.0
-                    away_vec = self.pos - pygame.Vector2(player_pos[0], player_pos[1])
-                    self.recover_dir = away_vec.normalize() if away_vec.length() > 0.001 else -self.dive_dir
-
-            elif self.ai_state == "recover":
-                self.pos += self.recover_dir * (self.speed * 0.85) * dt
-                self.heading_angle = math.degrees(math.atan2(self.recover_dir.y, self.recover_dir.x))
-                if self.state_timer >= SCOUT_RECOVER_TIME:
-                    self.ai_state = "strafe"
-                    self.state_timer = 0.0
-                    self.strafe_dir = random.choice([-1.0, 1.0])
-
-        # ----------------------------------------------------------------------
-        # SHOOTER TACTICAL AI (Phase 2B Positioning Pressure)
-        # ----------------------------------------------------------------------
-        elif self.enemy_type == TARGET_TYPE_SHOOTER:
-            self.state_timer += dt
-            self.fire_timer += dt
-            to_player = pygame.Vector2(player_pos[0] - self.pos.x, player_pos[1] - self.pos.y)
-            dist = to_player.length()
-            norm_to_player = to_player / dist if dist > 0.001 else pygame.Vector2(1, 0)
-
-            if self.ai_state == "approach":
-                # Approach until inside preferred combat distance (~420-520px)
-                move_dir = norm_to_player
-                self.pos += move_dir * self.speed * dt
-                self.heading_angle = math.degrees(math.atan2(move_dir.y, move_dir.x))
-                if dist <= SHOOTER_PREFERRED_DISTANCE + 50.0:
-                    self.ai_state = "position"
-                    self.state_timer = 0.0
-
-            elif self.ai_state == "position":
-                # Maintain preferred distance band (300-550px)
-                if dist > 550.0:
-                    move_dir = norm_to_player
-                elif dist < 300.0:
-                    move_dir = -norm_to_player
-                else:
-                    # Gentle lateral orbit within tolerance band
-                    lateral = pygame.Vector2(-norm_to_player.y, norm_to_player.x) * self.strafe_dir
-                    move_dir = lateral
-
-                if move_dir.length_squared() > 0.001:
-                    move_dir = move_dir.normalize()
-                self.pos += move_dir * (self.speed * 0.75) * dt
-                self.heading_angle = math.degrees(math.atan2(to_player.y, to_player.x))
-
-                # When fire cooldown has elapsed, transition to AIM
-                if self.fire_timer >= SHOOTER_FIRE_COOLDOWN:
-                    self.ai_state = "aim"
-                    self.state_timer = 0.0
-
-            elif self.ai_state == "aim":
-                # Calculate limited predictive target aim vector (0.25s lead)
-                pred_x = player_pos[0] + player_vel[0] * 0.25
-                pred_y = player_pos[1] + player_vel[1] * 0.25
-                self.aim_target = pygame.Vector2(pred_x, pred_y)
-                aim_vec = self.aim_target - self.pos
-                if aim_vec.length() > 0.001:
-                    self.heading_angle = math.degrees(math.atan2(aim_vec.y, aim_vec.x))
-                self.ai_state = "telegraph"
-                self.state_timer = 0.0
-
-            elif self.ai_state == "telegraph":
-                # Steady hover with subtle world-space charging glow
-                aim_vec = self.aim_target - self.pos
-                if aim_vec.length() > 0.001:
-                    self.heading_angle = math.degrees(math.atan2(aim_vec.y, aim_vec.x))
-                if self.state_timer >= SHOOTER_TELEGRAPH_TIME:
-                    ang_rad = math.radians(self.heading_angle)
-                    fwd_x = math.cos(ang_rad)
-                    fwd_y = math.sin(ang_rad)
-                    muz_x = self.pos.x + fwd_x * 34.0
-                    muz_y = self.pos.y + fwd_y * 34.0
-                    bullet = EnemyBullet(
-                        (muz_x, muz_y), (self.aim_target.x, self.aim_target.y),
-                        speed=self.projectile_speed, damage=self.projectile_damage,
-                        weapon_id="enemy_laser"
-                    )
-                    new_bullets.append(bullet)
-                    self.fire_timer = 0.0
-                    self.ai_state = "reposition"
-                    self.state_timer = 0.0
-
-                    # Pick a tactical reposition direction
-                    if dist < 350.0:
-                        self.reposition_dir = -norm_to_player
-                    else:
-                        self.strafe_dir = -self.strafe_dir # flip orbit direction
-                        lateral = pygame.Vector2(-norm_to_player.y, norm_to_player.x) * self.strafe_dir
-                        self.reposition_dir = lateral.normalize()
-
-            elif self.ai_state == "fire":
-                # Fire exactly ONE deliberate hostile projectile from muzzle
-                ang_rad = math.radians(self.heading_angle)
-                fwd_x = math.cos(ang_rad)
-                fwd_y = math.sin(ang_rad)
-                muz_x = self.pos.x + fwd_x * 34.0
-                muz_y = self.pos.y + fwd_y * 34.0
-                bullet = EnemyBullet(
-                    (muz_x, muz_y), (self.aim_target.x, self.aim_target.y),
-                    speed=self.projectile_speed, damage=self.projectile_damage,
-                    weapon_id="enemy_laser"
-                )
-                new_bullets.append(bullet)
-                self.fire_timer = 0.0
-                self.ai_state = "reposition"
-                self.state_timer = 0.0
-
-                # Pick a tactical reposition direction
-                if dist < 350.0:
-                    self.reposition_dir = -norm_to_player
-                else:
-                    self.strafe_dir = -self.strafe_dir # flip orbit direction
-                    lateral = pygame.Vector2(-norm_to_player.y, norm_to_player.x) * self.strafe_dir
-                    self.reposition_dir = lateral.normalize()
-
-            elif self.ai_state == "reposition":
-                # Evasive repositioning
-                self.pos += self.reposition_dir * self.speed * dt
-                self.heading_angle = math.degrees(math.atan2(to_player.y, to_player.x))
-                if self.state_timer >= SHOOTER_REPOSITION_TIME:
-                    self.ai_state = "position"
-                    self.state_timer = 0.0
-
-        # ----------------------------------------------------------------------
-        # HEAVY TACTICAL AI (Phase 2C Target Prioritization Pressure)
-        # ----------------------------------------------------------------------
-        elif self.enemy_type in (TARGET_TYPE_HEAVY, TARGET_TYPE_ARMORED):
-            self.state_timer += dt
-            to_player = pygame.Vector2(player_pos[0] - self.pos.x, player_pos[1] - self.pos.y)
-            dist = to_player.length()
-            norm_to_player = to_player / dist if dist > 0.001 else pygame.Vector2(1, 0)
-
-            if self.ai_state == "approach":
-                # Advance steadily and predictably toward player with heavy momentum
-                move_dir = norm_to_player
-                self.pos += move_dir * self.speed * dt
-                self.heading_angle = math.degrees(math.atan2(move_dir.y, move_dir.x))
-                if dist <= HEAVY_PRESSURE_DISTANCE:
-                    self.ai_state = "pressure"
-                    self.state_timer = 0.0
-
-            elif self.ai_state == "pressure":
-                # Maintain relentless forward space pressure toward player
-                move_dir = norm_to_player
-                self.pos += move_dir * (self.speed * 1.15) * dt
-                self.heading_angle = math.degrees(math.atan2(move_dir.y, move_dir.x))
-
-                # After sustained pressure window or if player flees far
-                if self.state_timer >= 2.5 or dist > HEAVY_PRESSURE_DISTANCE + 120.0:
-                    self.ai_state = "recover"
-                    self.state_timer = 0.0
-                    lateral = pygame.Vector2(-norm_to_player.y, norm_to_player.x) * self.strafe_dir
-                    self.recover_dir = (norm_to_player * 0.4 + lateral * 0.6).normalize()
-
-            elif self.ai_state == "recover":
-                # Brief stabilization / hydraulic vent venting period before re-engaging
-                self.pos += self.recover_dir * (self.speed * 0.65) * dt
-                self.heading_angle = math.degrees(math.atan2(to_player.y, to_player.x))
-
-                if self.state_timer >= 0.85:
-                    self.ai_state = "approach"
-                    self.state_timer = 0.0
-                    self.strafe_dir = random.choice([-1.0, 1.0])
-
-        # ----------------------------------------------------------------------
-        # OTHER LEGACY TARGET TYPES
-        # ----------------------------------------------------------------------
-        elif self.enemy_type == TARGET_TYPE_SWARM:
-            self.pos.x -= self.speed * dt
-            self.pos.y = self.base_y + math.sin(self.time_accum * 6.0) * 45.0
-            if self.pos.x < SCREEN_WIDTH * 0.65 and not self.is_diving:
-                if abs(self.pos.y - player_pos[1]) < 120.0:
-                    self.is_diving = True
-            if self.is_diving:
-                dy = player_pos[1] - self.pos.y
-                self.pos.y += (1.0 if dy > 0 else -1.0) * self.speed * 0.8 * dt
-
-        elif self.enemy_type == TARGET_TYPE_CHASER:
-            self.pos.x -= self.speed * 0.85 * dt
-            dy = player_pos[1] - self.pos.y
-            self.pos.y += math.copysign(min(abs(dy), self.speed * 0.75 * dt), dy)
-
-        elif self.enemy_type == TARGET_TYPE_FAST:
-            self.pos.x -= self.speed * dt
-            self.pos.y = self.base_y + math.sin(self.time_accum * 4.5) * 35.0
-
-        elif self.enemy_type == TARGET_TYPE_SHIELD_DRONE:
-            self.pos.x -= self.speed * dt
-            self.pos.y = self.base_y + math.cos(self.time_accum * 2.0) * 30.0
-            self.shield_angle = (self.shield_angle + 4.0 * dt) % 6.28318
-
-        elif self.enemy_type == TARGET_TYPE_SNIPER:
-            self.pos.x -= self.speed * dt
-            self.sniper_aim_timer -= dt
-            self.is_aiming = self.sniper_aim_timer <= 0.8
-            if self.sniper_aim_timer <= 0.0:
-                self.sniper_aim_timer = random.uniform(2.2, 3.2)
-                self.is_aiming = False
-                cx, cy = self.rect.center
-                new_bullets.append(EnemySniperBeam((cx - 20, cy), pred_aim, speed=bullet_speed + 800))
-            if self.is_aiming:
-                self.sniper_aim_target = pygame.Vector2(pred_aim)
-
-        else: # Standard, Turret, Vehicle
-            self.pos.x -= self.speed * dt
-            self.pos.y = self.base_y + math.sin(self.time_accum * 2.5) * 22.0
-
-        # Natural organic flight animation: hovering bob & thruster oscillation
         self.anim_timer += dt
-        self.time_accum += dt
-        hover_amp = 3.5 if self.enemy_type == TARGET_TYPE_SCOUT else (2.0 if self.enemy_type == TARGET_TYPE_SHOOTER else 1.2)
-        hover_freq = 4.5 if self.enemy_type == TARGET_TYPE_SCOUT else 3.0
+
+        context = EnemyAIContext(
+            player_pos=player_pos,
+            player_vel=player_vel,
+            player_obj=player_obj,
+            target_group=target_group,
+            sector_idx=self.sector_idx
+        )
+
+        new_bullets = self.ai.update(dt, self, context)
+
         # Arena boundary clamping so enemies never escape or drift outside the battlefield
         self.pos.x = max(60.0, min(float(WORLD_WIDTH - 60.0), self.pos.x))
         self.pos.y = max(60.0, min(float(WORLD_HEIGHT - 60.0), self.pos.y))
         self.rect.center = (round(self.pos.x + self.hover_offset.x), round(self.pos.y + self.hover_offset.y))
-
-        # --- Shooting Behaviors for Turrets ---
-        if self.enemy_type == TARGET_TYPE_TURRET:
-            self.shoot_timer -= dt
-            if self.shoot_timer <= 0:
-                cx, cy = self.rect.center
-                self.shoot_timer = max(0.7, random.uniform(1.3, 1.9) - self.sector_idx * 0.15)
-                new_bullets.append(EnemyBullet((cx, cy), pred_aim, speed=bullet_speed + 70, angle_offset_deg=-12.0))
-                new_bullets.append(EnemyBullet((cx, cy), pred_aim, speed=bullet_speed + 90, angle_offset_deg=0.0))
-                new_bullets.append(EnemyBullet((cx, cy), pred_aim, speed=bullet_speed + 70, angle_offset_deg=12.0))
 
         # PERF: Determine if sprite needs rebuild
         current_hit = self.hit_flash_timer > 0
@@ -572,6 +434,9 @@ class Enemy(pygame.sprite.Sprite):
 
         return new_bullets
 
+    # -------------------------------------------------------------------------
+    # Sprite Rendering
+    # -------------------------------------------------------------------------
     def _render_sprite(self):
         s = 90 if self.enemy_type == TARGET_TYPE_SCOUT else (
             96 if self.enemy_type == TARGET_TYPE_SHOOTER else (
@@ -648,7 +513,7 @@ class Enemy(pygame.sprite.Sprite):
                 flash_copy.blit(flash_surf, (0, 0), special_flags=pygame.BLEND_RGBA_ADD)
                 self.image = flash_copy
             else:
-                self.image = surf  # reuse same _base_surf — preserves identity between redraws
+                self.image = surf
 
             self._cached_angle = self.heading_angle
             self._sprite_dirty = False
@@ -677,16 +542,13 @@ class Enemy(pygame.sprite.Sprite):
             right_x = -fwd_y
             right_y = fwd_x
 
-            # 1. Main Forward Heavy Cannon Barrel (Hardware visible at gameplay scale)
+            # 1. Main Forward Heavy Cannon Barrel
             c_base_x = center[0] + fwd_x * 8
             c_base_y = center[1] + fwd_y * 8
             c_tip_x = center[0] + fwd_x * 34
             c_tip_y = center[1] + fwd_y * 34
-            # Dark heavy casing
             pygame.draw.line(surf, (30, 41, 59), (int(c_base_x), int(c_base_y)), (int(c_tip_x), int(c_tip_y)), 7)
-            # Titanium shroud highlight
             pygame.draw.line(surf, (71, 85, 105), (int(c_base_x), int(c_base_y)), (int(c_tip_x - fwd_x * 4), int(c_tip_y - fwd_y * 4)), 4)
-            # Searing energy conduit channel along barrel
             pygame.draw.line(surf, (245, 158, 11), (int(c_base_x), int(c_base_y)), (int(c_tip_x - fwd_x * 2), int(c_tip_y - fwd_y * 2)), 2)
 
             # 2. Side Stabilizer Pylons
@@ -704,12 +566,10 @@ class Enemy(pygame.sprite.Sprite):
             if self.ai_state == "telegraph":
                 charge_alpha = int(180 + 75 * math.sin(self.state_timer * 28.0))
                 charge_r = max(5, int(14 * (self.state_timer / SHOOTER_TELEGRAPH_TIME)))
-                # Searing charging flare
                 pygame.draw.circle(surf, (239, 68, 68, max(0, min(255, charge_alpha))), (int(muz_x), int(muz_y)), charge_r + 4)
                 pygame.draw.circle(surf, (245, 158, 11, 230), (int(muz_x), int(muz_y)), charge_r + 1)
                 pygame.draw.circle(surf, (255, 255, 255, 255), (int(muz_x), int(muz_y)), max(2, charge_r - 2))
             else:
-                # Persistent ready glow dot at muzzle
                 emitter_alpha = int(90 + 50 * math.sin(self.time_accum * 6.0))
                 pygame.draw.circle(surf, (245, 158, 11, max(0, min(255, emitter_alpha))), (int(muz_x), int(muz_y)), 4)
                 pygame.draw.circle(surf, (255, 255, 255, 200), (int(muz_x), int(muz_y)), 2)
@@ -756,12 +616,9 @@ class Enemy(pygame.sprite.Sprite):
                 h_base_y = center[1] + fwd_y * 6 + right_y * side
                 h_tip_x = center[0] + fwd_x * 40 + right_x * side
                 h_tip_y = center[1] + fwd_y * 40 + right_y * side
-                # Heavy gun barrel
                 pygame.draw.line(surf, (30, 41, 59), (int(h_base_x), int(h_base_y)), (int(h_tip_x), int(h_tip_y)), 6)
                 pygame.draw.line(surf, (71, 85, 105), (int(h_base_x), int(h_base_y)), (int(h_tip_x - fwd_x * 3), int(h_tip_y - fwd_y * 3)), 3)
-                # Searing heat-vent conduit
                 pygame.draw.line(surf, (245, 120, 20), (int(h_base_x), int(h_base_y)), (int(h_tip_x - fwd_x * 5), int(h_tip_y - fwd_y * 5)), 2)
-                # Muzzle brake
                 pygame.draw.circle(surf, (15, 23, 42), (int(h_tip_x), int(h_tip_y)), 3)
                 if self.ai_state == "pressure":
                     pygame.draw.circle(surf, (245, 158, 11, 220), (int(h_tip_x), int(h_tip_y)), 5)
@@ -775,13 +632,10 @@ class Enemy(pygame.sprite.Sprite):
                 plume_len = 16 + int(10 * abs(math.sin(self.time_accum * 7.5 + side)))
                 tip_x = ex - fwd_x * plume_len
                 tip_y = ey - fwd_y * plume_len
-                # Outer orange plume
                 pygame.draw.line(surf, (245, 120, 20, max(0, min(255, eng_intensity))), (int(ex), int(ey)), (int(tip_x), int(tip_y)), 4)
-                # Inner hot yellow core
                 pygame.draw.line(surf, (255, 210, 40, max(0, min(255, eng_intensity))), (int(ex), int(ey)), (int(ex - fwd_x * plume_len * 0.4), int(ey - fwd_y * plume_len * 0.4)), 2)
 
             if self.ai_state == "pressure":
-                # Pressure mode: strong orange threat ring
                 glow_alpha = int(150 + 90 * math.sin(self.state_timer * 20.0))
                 pygame.draw.circle(surf, (245, 100, 11, max(0, min(255, glow_alpha))), center, s // 2 - 4, 3)
 
@@ -807,15 +661,12 @@ class Enemy(pygame.sprite.Sprite):
             surf.blit(rotated_shield, rot_rect)
 
             # ── SHIELD ELITE IDENTITY VFX: Dual rotating energy arcs + inner pulse ──
-            # Primary rotating arc (electric blue)
             arc_rect = pygame.Rect(8, 8, s - 16, s - 16)
             arc_alpha = int(200 + 55 * math.sin(self.time_accum * 5.0))
             pygame.draw.arc(surf, (56, 189, 248, max(0, min(255, arc_alpha))), arc_rect,
                             self.shield_angle, self.shield_angle + 1.9, 3)
-            # Counter-rotating secondary arc (white)
             pygame.draw.arc(surf, (180, 230, 255, 130), arc_rect,
                             self.shield_angle + math.pi, self.shield_angle + math.pi + 1.2, 2)
-            # Inner energy pulse dot at shield emitter center
             pulse_r = int(4 + 2 * math.sin(self.time_accum * 8.0))
             pygame.draw.circle(surf, (56, 189, 248, 220), center, pulse_r)
             pygame.draw.circle(surf, (255, 255, 255, 160), center, max(1, pulse_r - 2))
@@ -845,14 +696,14 @@ class Enemy(pygame.sprite.Sprite):
             else:
                 pygame.draw.circle(surf, self.color_inner, center, 4)
 
-        else: # Standard
+        else:  # Standard
             pygame.draw.circle(surf, self.color_outer, center, s // 2 - 2)
             pygame.draw.circle(surf, self.color_inner, center, s // 4)
 
         if self.enemy_type == TARGET_TYPE_SCOUT:
-            pass  # handled above with identity-preserving logic
+            pass
         elif self.enemy_type in (TARGET_TYPE_SHOOTER, TARGET_TYPE_HEAVY, TARGET_TYPE_ARMORED, TARGET_TYPE_SHIELD_DRONE):
-            pass  # handled above with identity-preserving logic
+            pass
         else:
             if self.hit_flash_timer > 0:
                 mask = pygame.mask.from_surface(surf)
@@ -870,8 +721,6 @@ class Enemy(pygame.sprite.Sprite):
                 self._sprite_dirty = False
 
         self.rect = self.image.get_rect(center=self.rect.center)
-
-
 
 
 class Scout(Enemy):
