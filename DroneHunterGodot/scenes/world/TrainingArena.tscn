@@ -3,7 +3,7 @@
 [ext_resource type="Texture2D" path="res://assets/backgrounds/sectors/sector_2_ref.png" id="1_base"]
 [ext_resource type="PackedScene" path="res://scenes/player/Player.tscn" id="2_player"]
 [ext_resource type="PackedScene" path="res://scenes/ui/HUD.tscn" id="3_hud"]
-
+[ext_resource type="Script" path="res://scripts/gameplay/systems/combat_director.gd" id="4_director"]
 [sub_resource type="RectangleShape2D" id="RectangleShape2D_top"]
 size = Vector2(4400, 64)
 
@@ -60,3 +60,8 @@ shape = SubResource("RectangleShape2D_right")
 position = Vector2(1920, 1080)
 
 [node name="HUD" parent="." instance=ExtResource("3_hud")]
+
+[node name="Enemies" type="Node2D" parent="." node_paths=PackedStringArray("spawn_parent")]
+script = ExtResource("4_director")
+spawn_parent = NodePath(".")
+
