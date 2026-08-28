@@ -72,7 +72,22 @@ func _handle_energy(delta: float) -> void:
 		energy_changed.emit(current_energy, max_energy)
 
 func _handle_movement(delta: float) -> void:
+	# Primary InputMap vector
 	var input_vector := Input.get_vector("move_left", "move_right", "move_up", "move_down")
+	
+	# Full physical & virtual fallback (covers all keyboard layouts including Arabic/AZERTY)
+	if input_vector.length_squared() == 0.0:
+		var x: float = 0.0
+		var y: float = 0.0
+		if Input.is_physical_key_pressed(KEY_A) or Input.is_physical_key_pressed(KEY_LEFT) or Input.is_key_pressed(KEY_A) or Input.is_key_pressed(KEY_LEFT):
+			x -= 1.0
+		if Input.is_physical_key_pressed(KEY_D) or Input.is_physical_key_pressed(KEY_RIGHT) or Input.is_key_pressed(KEY_D) or Input.is_key_pressed(KEY_RIGHT):
+			x += 1.0
+		if Input.is_physical_key_pressed(KEY_W) or Input.is_physical_key_pressed(KEY_UP) or Input.is_key_pressed(KEY_W) or Input.is_key_pressed(KEY_UP):
+			y -= 1.0
+		if Input.is_physical_key_pressed(KEY_S) or Input.is_physical_key_pressed(KEY_DOWN) or Input.is_key_pressed(KEY_S) or Input.is_key_pressed(KEY_DOWN):
+			y += 1.0
+		input_vector = Vector2(x, y).normalized()
 	
 	if input_vector.length_squared() > 0.0:
 		velocity += input_vector * acceleration * delta
@@ -90,7 +105,13 @@ func _handle_aim() -> void:
 	look_at(mouse_world_pos)
 
 func _handle_combat(_delta: float) -> void:
-	if Input.is_action_pressed("fire_primary") and weapon_controller != null:
+	var is_firing = (
+		Input.is_action_pressed("fire_primary") or
+		Input.is_mouse_button_pressed(MOUSE_BUTTON_LEFT) or
+		Input.is_physical_key_pressed(KEY_SPACE) or
+		Input.is_key_pressed(KEY_SPACE)
+	)
+	if is_firing and weapon_controller != null:
 		weapon_controller.try_fire_primary()
 
 func _on_health_changed(current: float, max_val: float) -> void:

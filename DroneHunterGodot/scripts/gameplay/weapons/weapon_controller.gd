@@ -48,17 +48,17 @@ func _physics_process(delta: float) -> void:
 	_handle_input()
 
 func _handle_input() -> void:
-	if Input.is_action_just_pressed("next_weapon"):
+	if Input.is_action_just_pressed("next_weapon") or Input.is_physical_key_pressed(KEY_TAB):
 		cycle_weapon(1)
-	elif Input.is_action_just_pressed("previous_weapon"):
+	elif Input.is_action_just_pressed("previous_weapon") or Input.is_physical_key_pressed(KEY_Q):
 		cycle_weapon(-1)
 		
-	# Weapon slots 1-6
-	for i in range(1, 7):
-		if Input.is_action_just_pressed("weapon_slot_" + str(i)):
-			# Map to the first weapon that matches this slot for now
+	# Direct physical number keys 1-6
+	var keys = [KEY_1, KEY_2, KEY_3, KEY_4, KEY_5, KEY_6]
+	for i in range(keys.size()):
+		if Input.is_physical_key_pressed(keys[i]) or Input.is_key_pressed(keys[i]) or Input.is_action_just_pressed("weapon_slot_" + str(i + 1)):
 			for w_idx in range(weapons.size()):
-				if weapons[w_idx].slot == i:
+				if weapons[w_idx].slot == (i + 1):
 					active_weapon_index = w_idx
 					break
 

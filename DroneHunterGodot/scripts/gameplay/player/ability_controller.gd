@@ -29,13 +29,34 @@ func _physics_process(delta: float) -> void:
 				player.get_node("Sprite2D").modulate = Color.WHITE
 
 func handle_input() -> void:
-	if Input.is_action_just_pressed("roll") and _roll_cooldown <= 0.0:
+	var roll_pressed = (
+		Input.is_action_just_pressed("roll") or
+		Input.is_physical_key_pressed(KEY_SHIFT) or
+		Input.is_key_pressed(KEY_SHIFT)
+	)
+	var emp_pressed = (
+		Input.is_action_just_pressed("emp") or
+		Input.is_physical_key_pressed(KEY_E) or
+		Input.is_key_pressed(KEY_E)
+	)
+	var cloak_pressed = (
+		Input.is_action_just_pressed("cloak") or
+		Input.is_physical_key_pressed(KEY_C) or
+		Input.is_key_pressed(KEY_C)
+	)
+	var overdrive_pressed = (
+		Input.is_action_just_pressed("ultimate") or
+		Input.is_physical_key_pressed(KEY_F) or
+		Input.is_key_pressed(KEY_F)
+	)
+
+	if roll_pressed and _roll_cooldown <= 0.0:
 		_start_roll()
-	elif Input.is_action_just_pressed("emp") and _emp_cooldown <= 0.0:
+	elif emp_pressed and _emp_cooldown <= 0.0:
 		_start_emp()
-	elif Input.is_action_just_pressed("cloak") and _cloak_cooldown <= 0.0:
+	elif cloak_pressed and _cloak_cooldown <= 0.0:
 		_start_cloak()
-	elif Input.is_action_just_pressed("ultimate") and _overdrive_cooldown <= 0.0:
+	elif overdrive_pressed and _overdrive_cooldown <= 0.0:
 		_start_overdrive()
 
 func _start_roll() -> void:
@@ -44,7 +65,6 @@ func _start_roll() -> void:
 	_roll_cooldown = 1.2
 	if player and player.has_node("Sprite2D"):
 		player.get_node("Sprite2D").modulate = Color(0.5, 0.5, 1.0)
-	# Push velocity logic could be added here or in Player
 
 func _start_emp() -> void:
 	_emp_cooldown = 14.0
