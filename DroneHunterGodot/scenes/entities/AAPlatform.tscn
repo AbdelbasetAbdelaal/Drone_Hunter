@@ -1,0 +1,30 @@
+[gd_scene load_steps=6 format=3]
+
+[ext_resource type="Script" path="res://scripts/gameplay/entities/aa_platform.gd" id="1_script"]
+[ext_resource type="Texture2D" path="res://assets/environment/structures/aa_platform.png" id="2_texture"]
+[ext_resource type="Script" path="res://scripts/gameplay/combat/health.gd" id="3_health"]
+[ext_resource type="Script" path="res://scripts/gameplay/combat/damage_receiver.gd" id="4_damage"]
+
+[sub_resource type="CircleShape2D" id="CircleShape2D_aa"]
+radius = 34.0
+
+[node name="AAPlatform" type="CharacterBody2D"]
+collision_layer = 2
+collision_mask = 7
+script = ExtResource("1_script")
+
+[node name="Sprite2D" type="Sprite2D" parent="."]
+scale = Vector2(0.5, 0.5)
+texture = ExtResource("2_texture")
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="."]
+shape = SubResource("CircleShape2D_aa")
+
+[node name="Health" type="Node" parent="."]
+script = ExtResource("3_health")
+max_hp = 160.0
+base_armor = 0.2
+
+[node name="DamageReceiver" type="Node" parent="." node_paths=PackedStringArray("health")]
+script = ExtResource("4_damage")
+health = NodePath("../Health")

@@ -1,0 +1,33 @@
+[gd_scene load_steps=6 format=3]
+
+[ext_resource type="Script" path="res://scripts/gameplay/enemies/boss_titan.gd" id="1_script"]
+[ext_resource type="Texture2D" path="res://assets/enemies/heavy/heavy_idle.png" id="2_texture"]
+[ext_resource type="Script" path="res://scripts/gameplay/combat/health.gd" id="3_health"]
+[ext_resource type="Script" path="res://scripts/gameplay/combat/damage_receiver.gd" id="4_damage"]
+
+[sub_resource type="CircleShape2D" id="CircleShape2D_titan"]
+radius = 65.0
+
+[node name="BossTitan" type="CharacterBody2D"]
+collision_layer = 2
+collision_mask = 7
+script = ExtResource("1_script")
+max_health = 800.0
+base_armor = 0.25
+base_speed = 85.0
+
+[node name="Sprite2D" type="Sprite2D" parent="."]
+scale = Vector2(0.9, 0.9)
+texture = ExtResource("2_texture")
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="."]
+shape = SubResource("CircleShape2D_titan")
+
+[node name="Health" type="Node" parent="."]
+script = ExtResource("3_health")
+max_hp = 800.0
+base_armor = 0.25
+
+[node name="DamageReceiver" type="Node" parent="." node_paths=PackedStringArray("health")]
+script = ExtResource("4_damage")
+health = NodePath("../Health")
