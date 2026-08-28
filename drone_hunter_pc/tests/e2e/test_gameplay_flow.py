@@ -33,35 +33,36 @@ class TestGameplayFlow(unittest.TestCase):
         ctx = self.ctx
 
         # 1. Main Menu
-        ctx.state = STATE_MENU
+        game.state_manager.change_state(STATE_MENU)
         game.update(0.016)
         game.render()
+        self.assertEqual(ctx.state, STATE_MENU)
 
         # 2. Save Select
-        ctx.state = STATE_SAVE_SELECT
+        game.state_manager.change_state(STATE_SAVE_SELECT)
         game.update(0.016)
         game.render()
-        game.select_save_slot(1)
-        ctx.upgrade_levels = {}  # Ensure fresh upgrade levels for deterministic test
+        game.select_save_slot(0)
+        ctx.upgrade_levels = {}
         ctx.scrap = 5000
 
         # 3. Drone Select
-        ctx.state = STATE_DRONE_SELECT
+        game.state_manager.change_state(STATE_DRONE_SELECT)
         game.update(0.016)
         game.render()
-        game.set_selected_drone("interceptor")
+        ctx.selected_drone = "interceptor"
         self.assertEqual(ctx.selected_drone, "interceptor")
 
         # 4. Sector / Mission Select & Briefing -> Start S1_M1
-        ctx.state = STATE_SECTOR_SELECT
+        game.state_manager.change_state(STATE_SECTOR_SELECT)
         game.update(0.016)
         game.render()
 
-        ctx.state = STATE_MISSION_BRIEFING
+        game.state_manager.change_state(STATE_MISSION_BRIEFING)
         game.update(0.016)
         game.render()
 
-        game.start_mission("S1_M1")
+        game.start_phase5_mission("S1_M1")
         self.assertEqual(ctx.state, STATE_PLAYING)
         self.assertEqual(ctx.campaign_state.current_mission, "S1_M1")
 
@@ -93,12 +94,21 @@ class TestGameplayFlow(unittest.TestCase):
         game.update(0.016)
         game.render()
 
-        # 6. Mission Complete & Hangar Transition
-        ctx.scrap += 1200
-        ctx.campaign_state.record_mission_completed("S1_M1")
-        ctx.state = STATE_HANGAR
+        # 6. Mission Complete through gameplay logic
+        # Satisfy combat director & clear living enemies
+        game.combat_director.state = "complete"
+        ctx.target_group.empty()
+
+        # Update triggers mission completion flow in MissionSystem & GameplayController
+        game.update(0.016)
+        self.assertEqual(ctx.state, STATE_MISSION_COMPLETE)
+        self.assertIn("S1_M1", ctx.campaign_state.completed_missions)
+
+        # 7. Transition to Hangar
+        game.state_manager.change_state(STATE_HANGAR)
         game.update(0.016)
         game.render()
+        self.assertEqual(ctx.state, STATE_HANGAR)
 
         # Buy upgrades in Hangar
         initial_battery = ctx.upgrade_levels.get("battery", 0)
@@ -111,13 +121,13 @@ class TestGameplayFlow(unittest.TestCase):
         game = self.game
         ctx = self.ctx
 
-        game.start_mission("S1_M1")
+        game.start_phase5_mission("S1_M1")
         self.assertEqual(ctx.state, STATE_PLAYING)
 
         initial_p_pos = pygame.Vector2(ctx.player.pos)
 
         # Pause game
-        ctx.state = STATE_PAUSED
+        game.state_manager.change_state(STATE_PAUSED)
         game.update(0.1)  # 100ms in paused state
         game.render()
 
@@ -125,7 +135,7 @@ class TestGameplayFlow(unittest.TestCase):
         self.assertEqual(ctx.player.pos, initial_p_pos)
 
         # Resume game
-        ctx.state = STATE_PLAYING
+        game.state_manager.change_state(STATE_PLAYING)
         game.update(0.016)
         game.render()
         self.assertEqual(ctx.state, STATE_PLAYING)

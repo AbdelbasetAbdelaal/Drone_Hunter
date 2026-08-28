@@ -20,7 +20,7 @@ class TestDroneClassesFlow(unittest.TestCase):
         pygame.init()
 
     def setUp(self):
-        self.game = Game()
+        self.game = Game(test_mode=True)
         self.ctx = self.game.context
 
     def test_all_five_drone_platforms_lifecycle(self):
@@ -35,11 +35,11 @@ class TestDroneClassesFlow(unittest.TestCase):
 
         for d_class in drone_classes:
             # 1. Select drone
-            self.game.set_selected_drone(d_class)
+            self.ctx.selected_drone = d_class
             self.assertEqual(self.ctx.selected_drone, d_class)
 
             # 2. Launch Mission
-            self.game.start_mission("S1_M1")
+            self.game.start_phase5_mission("S1_M1")
             player = self.ctx.player
             self.assertIsNotNone(player)
             self.assertTrue(player.alive)

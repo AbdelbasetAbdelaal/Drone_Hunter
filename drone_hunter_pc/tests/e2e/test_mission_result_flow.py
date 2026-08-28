@@ -21,43 +21,49 @@ class TestMissionResultFlow(unittest.TestCase):
         pygame.init()
 
     def setUp(self):
-        self.game = Game()
+        self.game = Game(test_mode=True)
         self.ctx = self.game.context
 
     def test_mission_success_and_reward_flow(self):
-        """Verify successful mission flow registers completion, scrap, and next mission unlock."""
-        self.game.start_mission("S1_M1")
+        """Verify successful mission flow registers completion, scrap, and next mission unlock via game update loop."""
+        self.game.start_phase5_mission("S1_M1")
         initial_scrap = self.ctx.scrap
 
-        # Simulate completion
-        self.ctx.scrap += 800
-        self.ctx.campaign_state.record_mission_completed("S1_M1")
-        self.ctx.state = STATE_MISSION_COMPLETE
+        # Satisfy mission objective via gameplay condition (director complete and targets cleared)
+        self.game.combat_director.state = "complete"
+        self.ctx.target_group.empty()
 
+        # Update gameplay loop to process mission completion
         self.game.update(0.016)
         self.game.render()
 
+        self.assertEqual(self.ctx.state, STATE_MISSION_COMPLETE)
         self.assertIn("S1_M1", self.ctx.campaign_state.completed_missions)
         self.assertIn("S1_M2", self.ctx.campaign_state.unlocked_missions)
         self.assertGreater(self.ctx.scrap, initial_scrap)
 
     def test_mission_failure_and_retry_flow(self):
-        """Verify player destruction triggers mission failure and allows clean retry."""
-        self.game.start_mission("S1_M1")
+        """Verify player destruction triggers mission failure via game update loop and allows clean retry."""
+        self.game.start_phase5_mission("S1_M1")
         player = self.ctx.player
 
-        # Destroy player
+        # Destroy player (applies fatal damage)
         player.take_damage(9999)
+        player.destruction_timer = 0.0
         self.assertFalse(player.alive)
+        self.assertTrue(player.is_destroyed)
 
-        self.ctx.state = STATE_MISSION_FAILED
+        # Update gameplay loop to process player death transition
         self.game.update(0.016)
         self.game.render()
 
-        # Retry mission
-        self.game.start_mission("S1_M1")
+        self.assertEqual(self.ctx.state, STATE_MISSION_FAILED)
+
+        # Retry mission via public start_phase5_mission
+        self.game.start_phase5_mission("S1_M1")
         self.assertEqual(self.ctx.state, STATE_PLAYING)
         self.assertTrue(self.ctx.player.alive)
+        self.assertFalse(self.ctx.player.is_destroyed)
 
     def test_removed_systems_absence(self):
         """Verify that Boss and Skin selection systems are absent from active player runtime."""

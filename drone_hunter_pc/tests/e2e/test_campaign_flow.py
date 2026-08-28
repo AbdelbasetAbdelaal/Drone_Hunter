@@ -7,7 +7,7 @@ sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..',
 
 from src.core.game import Game
 from src.core.campaign_state import CampaignState
-from src.core.game_state import STATE_VICTORY, STATE_PLAYING
+from src.core.game_state import STATE_VICTORY, STATE_PLAYING, STATE_MISSION_COMPLETE
 
 
 class TestCampaignFlow(unittest.TestCase):
@@ -18,9 +18,31 @@ class TestCampaignFlow(unittest.TestCase):
         pygame.init()
 
     def setUp(self):
-        self.game = Game()
+        self.game = Game(test_mode=True)
         self.ctx = self.game.context
         self.ctx.campaign_state = CampaignState()
+
+    def test_gameplay_driven_mission_progression(self):
+        """Verify real gameplay loop drives mission completion and unlocks next mission."""
+        self.game.start_phase5_mission("S1_M1")
+        self.assertEqual(self.ctx.state, STATE_PLAYING)
+        self.assertEqual(self.ctx.campaign_state.current_mission, "S1_M1")
+
+        # Fulfill combat objective
+        self.game.combat_director.state = "complete"
+        self.ctx.target_group.empty()
+
+        # Update gameplay loop
+        self.game.update(0.016)
+
+        self.assertEqual(self.ctx.state, STATE_MISSION_COMPLETE)
+        self.assertIn("S1_M1", self.ctx.campaign_state.completed_missions)
+        self.assertIn("S1_M2", self.ctx.campaign_state.unlocked_missions)
+
+        # Launch newly unlocked S1_M2
+        self.game.start_phase5_mission("S1_M2")
+        self.assertEqual(self.ctx.state, STATE_PLAYING)
+        self.assertEqual(self.ctx.campaign_state.current_mission, "S1_M2")
 
     def test_linear_sector1_progression(self):
         """Verify S1_M1 -> S1_M2 -> S1_M3 -> S1_M4 -> S1_M5 -> S2_M1 progression."""

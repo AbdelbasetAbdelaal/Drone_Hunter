@@ -61,7 +61,7 @@ def run_runtime_smoke():
 
     # 3. State: Hangar -> Playing
     print("Testing State: Launch Playing Simulation (120 frames)")
-    game.start_mission("S1_M1")
+    game.start_phase5_mission("S1_M1")
     assert ctx.state == STATE_PLAYING
     assert ctx.campaign_state.current_mission == "S1_M1"
 
@@ -103,7 +103,7 @@ def run_runtime_smoke():
     ctx.campaign_state.record_mission_completed("S1_M1")
     assert "S1_M1" in ctx.campaign_state.completed_missions
     assert "S1_M2" in ctx.campaign_state.unlocked_missions
-    game.start_mission("S1_M2")
+    game.start_phase5_mission("S1_M2")
     assert ctx.campaign_state.current_mission == "S1_M2"
     game.update(0.016)
     game.render()
