@@ -100,9 +100,14 @@ func _on_enemy_defeated() -> void:
 	
 	if enemies_remaining == 0:
 		wave_cleared.emit(current_wave)
+		if not is_inside_tree() or get_tree() == null:
+			return
 		# Delay 2.5s before next wave
-		await get_tree().create_timer(2.5).timeout
-		start_next_wave()
+		var timer = get_tree().create_timer(2.5)
+		if timer:
+			await timer.timeout
+			if is_inside_tree():
+				start_next_wave()
 
 func _on_player_died() -> void:
 	mission_failed.emit()

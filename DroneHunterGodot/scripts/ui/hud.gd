@@ -99,12 +99,13 @@ func _process(_delta: float) -> void:
 		scrap_label.text = "SCRAP: " + str(gm.scrap) + " 🔩"
 		
 	# Check for boss
-	var boss = get_tree().get_first_node_in_group("boss") as BossTitan
+	var boss = get_tree().get_first_node_in_group("boss") as CharacterBody2D
 	if boss and is_instance_valid(boss):
 		boss_container.visible = true
-		if boss.health:
-			boss_bar.max_value = boss.health.max_hp
-			boss_bar.value = boss.health.current_hp
+		var b_health = boss.get_node_or_null("Health") as Health
+		if b_health:
+			boss_bar.max_value = b_health.max_hp
+			boss_bar.value = b_health.current_hp
 	else:
 		boss_container.visible = false
 

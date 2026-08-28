@@ -53,24 +53,28 @@ func _spawn_drops() -> void:
 	if not root:
 		return
 		
-	# Always drop Scrap
-	var scrap = powerup_scene.instantiate() as Powerup
-	root.add_child(scrap)
-	scrap.global_position = global_position + Vector2(randf_range(-15, 15), randf_range(-15, 15))
-	scrap.setup(Powerup.PowerupType.SCRAP, int(score_value / 3))
+	# Always drop Scrap (type 4)
+	var scrap = powerup_scene.instantiate() as Node2D
+	if scrap:
+		root.add_child(scrap)
+		scrap.global_position = global_position + Vector2(randf_range(-15, 15), randf_range(-15, 15))
+		if scrap.has_method("setup"):
+			scrap.setup(4, int(score_value / 3))
 	
 	# Chance for tactical powerup (25%)
 	if randf() < 0.25:
-		var extra = powerup_scene.instantiate() as Powerup
-		root.add_child(extra)
-		extra.global_position = global_position + Vector2(randf_range(-20, 20), randf_range(-20, 20))
-		var types = [Powerup.PowerupType.BATTERY, Powerup.PowerupType.SHIELD, Powerup.PowerupType.OVERCLOCK, Powerup.PowerupType.WINGMAN]
-		var chosen = types[randi() % types.size()]
-		extra.setup(chosen)
+		var extra = powerup_scene.instantiate() as Node2D
+		if extra:
+			root.add_child(extra)
+			extra.global_position = global_position + Vector2(randf_range(-20, 20), randf_range(-20, 20))
+			var types = [0, 1, 2, 5] # BATTERY, SHIELD, OVERCLOCK, WINGMAN
+			var chosen = types[randi() % types.size()]
+			if extra.has_method("setup"):
+				extra.setup(chosen)
 
 func _physics_process(delta: float) -> void:
 	_process_ai(delta)
 
-func _process_ai(delta: float) -> void:
+func _process_ai(_delta: float) -> void:
 	# Virtual method to be overridden by AI controllers
 	pass

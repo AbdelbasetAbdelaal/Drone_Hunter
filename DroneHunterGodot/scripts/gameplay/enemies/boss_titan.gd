@@ -133,13 +133,19 @@ func _spawn_loot() -> void:
 	var p_scene = load("res://scenes/entities/Powerup.tscn")
 	if p_scene:
 		var root = get_tree().current_scene if get_tree() and get_tree().current_scene else get_parent()
+		if not root:
+			return
 		for i in range(10):
-			var scrap = p_scene.instantiate() as Powerup
-			root.add_child(scrap)
-			scrap.global_position = global_position + Vector2(randf_range(-60, 60), randf_range(-60, 60))
-			scrap.setup(Powerup.PowerupType.SCRAP, 50)
-		for t in [Powerup.PowerupType.BATTERY, Powerup.PowerupType.SHIELD, Powerup.PowerupType.OVERCLOCK]:
-			var powerup = p_scene.instantiate() as Powerup
-			root.add_child(powerup)
-			powerup.global_position = global_position + Vector2(randf_range(-40, 40), randf_range(-40, 40))
-			powerup.setup(t)
+			var scrap = p_scene.instantiate() as Node2D
+			if scrap:
+				root.add_child(scrap)
+				scrap.global_position = global_position + Vector2(randf_range(-60, 60), randf_range(-60, 60))
+				if scrap.has_method("setup"):
+					scrap.setup(4, 50) # 4 = SCRAP
+		for t in [0, 1, 2]: # 0 = BATTERY, 1 = SHIELD, 2 = OVERCLOCK
+			var powerup = p_scene.instantiate() as Node2D
+			if powerup:
+				root.add_child(powerup)
+				powerup.global_position = global_position + Vector2(randf_range(-40, 40), randf_range(-40, 40))
+				if powerup.has_method("setup"):
+					powerup.setup(t)

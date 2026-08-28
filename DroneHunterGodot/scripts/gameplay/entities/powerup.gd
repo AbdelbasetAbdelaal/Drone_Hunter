@@ -2,16 +2,16 @@ class_name Powerup
 extends Area2D
 
 enum PowerupType {
-	BATTERY,
-	SHIELD,
-	OVERCLOCK,
-	SLOWMO,
-	SCRAP,
-	WINGMAN,
-	WEAPON
+	BATTERY = 0,
+	SHIELD = 1,
+	OVERCLOCK = 2,
+	SLOWMO = 3,
+	SCRAP = 4,
+	WINGMAN = 5,
+	WEAPON = 6
 }
 
-@export var powerup_type: PowerupType = PowerupType.BATTERY
+@export var powerup_type: int = PowerupType.BATTERY
 @export var scrap_amount: int = 50
 
 var _time_accum: float = 0.0
@@ -27,7 +27,7 @@ func _ready() -> void:
 	body_entered.connect(_on_body_entered)
 	_setup_visuals()
 
-func setup(type: PowerupType, amount: int = 50) -> void:
+func setup(type: int, amount: int = 50) -> void:
 	powerup_type = type
 	scrap_amount = amount
 	_setup_visuals()
@@ -74,6 +74,8 @@ func _physics_process(delta: float) -> void:
 	position.y += sin(_time_accum * 4.0) * 12.0 * delta
 	
 	# Magnetic pull to player
+	if not is_inside_tree():
+		return
 	var player = get_tree().get_first_node_in_group("player") as Node2D
 	if player and is_instance_valid(player):
 		var dist = global_position.distance_to(player.global_position)
@@ -89,7 +91,7 @@ func _on_body_entered(body: Node2D) -> void:
 func _apply_to_player(player: Node2D) -> void:
 	var health = player.get_node_or_null("Health") as Health
 	var ability = player.get_node_or_null("AbilityController")
-	var weapons = player.get_node_or_null("WeaponController") as WeaponController
+	var weapons = player.get_node_or_null("WeaponController")
 	
 	match powerup_type:
 		PowerupType.BATTERY:
@@ -109,9 +111,9 @@ func _apply_to_player(player: Node2D) -> void:
 			var arena = get_tree().current_scene
 			var wingman_scene = load("res://scenes/entities/Wingman.tscn")
 			if arena and wingman_scene:
-				var wm = wingman_scene.instantiate() as Wingman
+				var wm = wingman_scene.instantiate() as Node2D
 				arena.add_child(wm)
 				wm.global_position = player.global_position + Vector2(-50, -40)
 		PowerupType.WEAPON:
-			if weapons:
+			if weapons and weapons.has_method("cycle_weapon"):
 				weapons.cycle_weapon(1)
