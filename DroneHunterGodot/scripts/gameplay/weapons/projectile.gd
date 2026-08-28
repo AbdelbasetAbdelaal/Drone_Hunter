@@ -32,4 +32,6 @@ func _handle_hit(target: Node2D) -> void:
 	
 	if target.has_method("take_damage"):
 		target.take_damage(damage)
-		queue_free()
+	
+	# Cleanly remove projectile upon hitting either an enemy or arena boundary/environment body
+	queue_free()

@@ -18,8 +18,6 @@ func try_fire_primary() -> bool:
 	if not can_fire_primary():
 		return false
 	
-	_cooldown_timer = 1.0 / max(0.1, fire_rate)
-	
 	if primary_projectile_scene == null:
 		return false
 	
@@ -40,4 +38,7 @@ func try_fire_primary() -> bool:
 	# Apply global transform after entering tree
 	bullet.global_position = spawn_pos
 	bullet.global_rotation = spawn_rot
+	
+	# Only start cooldown after successful projectile creation and insertion
+	_cooldown_timer = 1.0 / max(0.1, fire_rate)
 	return true

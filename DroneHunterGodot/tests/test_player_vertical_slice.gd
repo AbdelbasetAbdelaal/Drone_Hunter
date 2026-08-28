@@ -6,7 +6,7 @@ const WeaponControllerScript = preload("res://scripts/gameplay/weapons/weapon_co
 const EnemyScoutScript = preload("res://scripts/gameplay/enemies/enemy_scout.gd")
 
 func _ready() -> void:
-	print("=== RUNNING GODOT 4.3 PHASE 1 COMBAT CORE TEST ===")
+	print("=== RUNNING GODOT 4.3 PHASE 1 FINAL FIX COMBAT TEST ===")
 
 	# 1. Load and Instantiate TrainingArena with Player & Enemies
 	var arena_scene: PackedScene = load("res://scenes/world/TrainingArena.tscn")
@@ -82,32 +82,58 @@ func _ready() -> void:
 	assert(player.rotation > 0.0, "Aiming downward must produce positive clockwise rotation")
 	print("[PASS] Real mouse aim transformations verified in 2D world coordinates.")
 
-	# 6. Real Combat Core Test: Hit, Damage & Kill Scout Enemy
+	# 6. Verify Real Scout Movement Towards Player
 	var scout = enemies_node.get_child(0) as CharacterBody2D
 	assert(scout != null, "Target Scout enemy must exist")
-	assert(is_equal_approx(float(scout.get("current_hp")), 30.0), "Scout initial HP must be 30.0 (from Pygame SCOUT_HP)")
+	assert(is_equal_approx(float(scout.get("max_hp")), 30.0), "Scout max HP must be 30.0 (from Pygame SCOUT_HP)")
+	assert(is_equal_approx(float(scout.get("move_speed")), 210.0), "Scout move_speed must be 210.0 (from Pygame SCOUT_SPEED)")
 	
-	# Position player directly facing scout at close range
+	player.global_position = Vector2(960.0, 540.0)
+	player.velocity = Vector2.ZERO
+	scout.global_position = Vector2(1400.0, 540.0)
+	var initial_scout_dist = scout.global_position.distance_to(player.global_position)
+	
+	# Simulate physics frames to observe Scout movement toward Player
+	for i in range(20):
+		await get_tree().physics_frame
+	
+	var current_scout_dist = scout.global_position.distance_to(player.global_position)
+	assert(current_scout_dist < initial_scout_dist, "Scout must actively move toward Player position using move_speed 210.0")
+	print("[PASS] Scout active movement toward Player verified.")
+
+	# 7. Real Projectile Firing, Travel, Collision, Damage & Scout Death Test
 	scout.global_position = Vector2(1200.0, 540.0)
 	player.global_position = Vector2(1000.0, 540.0)
 	player.aim_target_override = scout.global_position
 	
-	# Fire shot 1: 25 damage -> Scout HP: 30 - 25 = 5 HP
+	var bullets_count_before = _count_projectiles_in_tree()
+	
+	# Fire shot 1: fire_primary -> WeaponController -> BulletPulse instantiated
 	Input.action_press("fire_primary")
 	await get_tree().physics_frame
 	await get_tree().physics_frame
 	Input.action_release("fire_primary")
 	
-	# Wait for projectile travel and collision
+	var bullets_count_after = _count_projectiles_in_tree()
+	assert(bullets_count_after > bullets_count_before, "Primary fire must instantiate BulletPulse into the tree")
+	
+	var projectile = _get_first_projectile_in_tree()
+	assert(projectile != null, "Spawned BulletPulse projectile must exist in scene tree")
+	var initial_bullet_x = projectile.global_position.x
+	
+	# Verify projectile moves forward along aim vector
+	await get_tree().physics_frame
+	await get_tree().physics_frame
+	assert(projectile.global_position.x > initial_bullet_x, "Projectile must visibly travel forward toward target")
+	
+	# Wait for projectile to reach Scout and deal damage
 	for i in range(15):
 		await get_tree().physics_frame
 	
-	assert(scout.get("current_hp") < 30.0, "Scout must take damage upon bullet impact")
-	assert(is_equal_approx(float(scout.get("current_hp")), 5.0), "Scout HP must be 5.0 after taking 25 Pulse damage")
-	print("[PASS] Scout hit and damage verified (HP 30 -> 5).")
+	assert(is_equal_approx(float(scout.get("current_hp")), 5.0), "Scout HP must be 5.0 after taking 25 Pulse damage (30 -> 5)")
+	print("[PASS] Complete projectile pipeline verified: fire_primary -> WeaponController -> BulletPulse -> travel -> hit -> 25 damage.")
 
-	# Fire shot 2: 25 damage -> Scout HP: 5 - 25 <= 0 -> Scout dies
-	# Wait for weapon cooldown (1.0 / 7.5 = 0.133s ~ 10 frames)
+	# Fire shot 2: second hit kills Scout
 	for i in range(12):
 		await get_tree().physics_frame
 		
@@ -119,12 +145,36 @@ func _ready() -> void:
 	for i in range(15):
 		await get_tree().physics_frame
 		
-	assert(not is_instance_valid(scout) or scout.is_queued_for_deletion() or float(scout.get("current_hp")) <= 0.0, "Scout must be dead and removed after 2nd Pulse hit")
+	assert(not is_instance_valid(scout) or scout.is_queued_for_deletion() or float(scout.get("current_hp")) <= 0.0, "Scout must be dead and cleanly removed after 2nd Pulse hit")
 	print("[PASS] Scout death and clean queue_free() removal verified.")
 
-	# 7. Real Arena Boundary Clamping & Collision Tests
+	# 8. Projectile + Environment Collision Test
+	# Aim directly at Left Arena Boundary Wall (X = 0) and verify projectile frees on collision
+	player.global_position = Vector2(100.0, 540.0)
+	player.aim_target_override = Vector2(0.0, 540.0)
+	
+	for i in range(12):
+		await get_tree().physics_frame
+		
+	Input.action_press("fire_primary")
+	await get_tree().physics_frame
+	await get_tree().physics_frame
+	Input.action_release("fire_primary")
+	
+	var wall_bullet = _get_first_projectile_in_tree()
+	assert(wall_bullet != null, "Wall test projectile must be instantiated")
+	
+	# Step physics frames to allow bullet to hit wall
+	for i in range(25):
+		await get_tree().physics_frame
+		
+	assert(not is_instance_valid(wall_bullet) or wall_bullet.is_queued_for_deletion(), "Projectile must queue_free() upon colliding with arena boundary wall")
+	print("[PASS] Projectile collision with arena boundary wall verified (queue_free on static body).")
+
+	# 9. Real Arena Boundary Clamping & Collision Tests
 	player.global_position = Vector2(960.0, 540.0)
 	player.velocity = Vector2.ZERO
+	player.aim_target_override = Vector2.INF
 	Input.action_press("move_left")
 	for i in range(90):
 		await get_tree().physics_frame
@@ -132,5 +182,24 @@ func _ready() -> void:
 	assert(player.global_position.x >= 20.0, "Player must not escape left arena boundary")
 	print("[PASS] Real arena boundary collision verified.")
 
-	print("\n*** ALL PHASE 1 COMBAT CORE TESTS PASSED SUCCESSFULLY! ***")
+	print("\n*** ALL PHASE 1 FINAL FIX TESTS PASSED SUCCESSFULLY! ***")
 	get_tree().quit(0)
+
+func _count_projectiles_in_tree() -> int:
+	var count = 0
+	for node in get_tree().root.get_children():
+		if node.get_script() == ProjectileScript:
+			count += 1
+		for child in node.get_children():
+			if child.get_script() == ProjectileScript:
+				count += 1
+	return count
+
+func _get_first_projectile_in_tree() -> Area2D:
+	for node in get_tree().root.get_children():
+		if node.get_script() == ProjectileScript:
+			return node as Area2D
+		for child in node.get_children():
+			if child.get_script() == ProjectileScript:
+				return child as Area2D
+	return null

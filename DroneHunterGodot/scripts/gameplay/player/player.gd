@@ -14,7 +14,7 @@ var aim_target_override: Vector2 = Vector2.INF
 @onready var weapon_controller: Node2D = $WeaponController
 
 func _ready() -> void:
-	pass
+	add_to_group("player")
 
 func _physics_process(delta: float) -> void:
 	_handle_movement(delta)
