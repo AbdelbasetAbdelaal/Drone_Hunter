@@ -86,6 +86,22 @@ class TestPhase3SingleAuthoritativeCampaignState(unittest.TestCase):
         ctx.new_game_plus_count = 2
         self.assertEqual(ctx.campaign_state.new_game_plus_count, 2)
 
+    def test_no_15_stage_legacy_representation(self):
+        """Proves GameContext and ProgressionSystem do not contain 15-stage runtime structures."""
+        ctx = GameContext()
+        prog = ProgressionSystem(ctx.campaign_state)
+
+        # GameContext must not expose 15-entry unlocked_stages
+        self.assertFalse(hasattr(ctx, "unlocked_stages"), "GameContext must not have unlocked_stages")
+        self.assertFalse(hasattr(ctx, "missions"), "GameContext must not have duplicate missions dict")
+        self.assertFalse(hasattr(ctx, "sector_progress"), "GameContext must not have duplicate sector_progress dict")
+        self.assertFalse(hasattr(ctx, "coins"), "GameContext must not have coins currency")
+
+        # ProgressionSystem must not expose 15-stage unlocked_stages
+        self.assertFalse(hasattr(prog, "unlocked_stages"), "ProgressionSystem must not have unlocked_stages")
+        # ProgressionSystem unlocked_missions must reflect 25-mission model
+        self.assertEqual(prog.unlocked_missions, ["S1_M1"])
+
     def test_mission_system_uses_campaign_state(self):
         ctx = GameContext()
         ms = MissionSystem()

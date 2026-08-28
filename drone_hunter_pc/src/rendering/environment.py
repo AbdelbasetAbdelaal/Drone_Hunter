@@ -479,7 +479,7 @@ class SectorEnvironmentManager:
     def get_sector_surface(self, sector_idx: int, stage_idx: int = 1) -> pygame.Surface:
         """Retrieves cached 2400x1400 high-resolution world background surface."""
         sec_num = (sector_idx % 5) + 1  # 1-indexed: 1..5
-        stg_num = max(1, (stage_idx - 1) % 3 + 1) # stage variations 1..3
+        stg_num = max(1, min(5, stage_idx)) # stage / mission 1..5
         cache_key = (sec_num, stg_num)
 
         if cache_key in self._surfaces_cache:

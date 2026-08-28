@@ -687,8 +687,10 @@ SECTORS = [
         "base_target_score": 5000,
         "stages": [
             {"num": 1, "name": "Coastal Recon", "score": 1500, "hazard": "sea_mines"},
-            {"num": 2, "name": "Reef Skirmish", "score": 3200, "hazard": "debris"},
-            {"num": 3, "name": "Dreadnought Intercept", "score": 5500, "hazard": "boss_dreadnought"}
+            {"num": 2, "name": "Reef Skirmish", "score": 2500, "hazard": "debris"},
+            {"num": 3, "name": "Archipelago Outpost", "score": 3800, "hazard": "sea_mines"},
+            {"num": 4, "name": "Naval Base Infiltration", "score": 4800, "hazard": "laser_grid"},
+            {"num": 5, "name": "Dreadnought Intercept", "score": 6000, "hazard": "boss_dreadnought"}
         ]
     },
     {
@@ -700,8 +702,10 @@ SECTORS = [
         "base_target_score": 7500,
         "stages": [
             {"num": 1, "name": "Canyon Approach", "score": 2200, "hazard": "laser_grid"},
-            {"num": 2, "name": "Mining Trench", "score": 4500, "hazard": "debris"},
-            {"num": 3, "name": "Colossus Titan Showdown", "score": 7500, "hazard": "boss_titan"}
+            {"num": 2, "name": "Mining Trench", "score": 3500, "hazard": "debris"},
+            {"num": 3, "name": "Refinery Perimeter", "score": 5000, "hazard": "sandstorm"},
+            {"num": 4, "name": "Excavation Pit", "score": 6500, "hazard": "laser_grid"},
+            {"num": 5, "name": "Colossus Titan Showdown", "score": 8500, "hazard": "boss_titan"}
         ]
     },
     {
@@ -713,8 +717,10 @@ SECTORS = [
         "base_target_score": 10000,
         "stages": [
             {"num": 1, "name": "River Run", "score": 3000, "hazard": "gravity_well"},
-            {"num": 2, "name": "Waterfall Ruins", "score": 6200, "hazard": "debris"},
-            {"num": 3, "name": "EMP Disrupter Bastion", "score": 10000, "hazard": "boss_emp"}
+            {"num": 2, "name": "Canopy Patrol", "score": 4800, "hazard": "debris"},
+            {"num": 3, "name": "Waterfall Ruins", "score": 6500, "hazard": "gravity_well"},
+            {"num": 4, "name": "Ancient Complex", "score": 8500, "hazard": "debris"},
+            {"num": 5, "name": "EMP Disrupter Bastion", "score": 11000, "hazard": "boss_emp"}
         ]
     },
     {
@@ -726,8 +732,10 @@ SECTORS = [
         "base_target_score": 13000,
         "stages": [
             {"num": 1, "name": "Rooftop Recon", "score": 4000, "hazard": "none"},
-            {"num": 2, "name": "Neon Skyline", "score": 8000, "hazard": "storm_winds"},
-            {"num": 3, "name": "Megastructure Clash", "score": 13000, "hazard": "boss_dreadnought"}
+            {"num": 2, "name": "Neon Skyline", "score": 6500, "hazard": "storm_winds"},
+            {"num": 3, "name": "Highway Transit", "score": 9000, "hazard": "laser_grid"},
+            {"num": 4, "name": "Spire Assault", "score": 11500, "hazard": "storm_winds"},
+            {"num": 5, "name": "Megastructure Clash", "score": 14500, "hazard": "boss_dreadnought"}
         ]
     },
     {
@@ -739,8 +747,10 @@ SECTORS = [
         "base_target_score": 17000,
         "stages": [
             {"num": 1, "name": "Assembly Perimeter", "score": 5000, "hazard": "laser_grid"},
-            {"num": 2, "name": "Reactor Trench", "score": 10500, "hazard": "debris"},
-            {"num": 3, "name": "Stealth Mirage Core", "score": 17000, "hazard": "boss_stealth"}
+            {"num": 2, "name": "Conveyor Network", "score": 8000, "hazard": "debris"},
+            {"num": 3, "name": "Reactor Trench", "score": 11500, "hazard": "laser_grid"},
+            {"num": 4, "name": "Control Central", "score": 14500, "hazard": "sparks"},
+            {"num": 5, "name": "Stealth Mirage Core", "score": 18000, "hazard": "boss_stealth"}
         ]
     }
 ]
