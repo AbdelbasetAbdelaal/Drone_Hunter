@@ -16,6 +16,7 @@ signal upgrade_purchased(category: String, new_level: int)
 
 var state_manager: GameStateManager
 var campaign_state: CampaignState
+var save_manager: SaveManager
 
 var selected_drone_id: String = "striker"
 var scrap: int = 500
@@ -35,16 +36,21 @@ func _ready() -> void:
 	add_to_group("game_manager")
 	state_manager = GameStateManager.new()
 	campaign_state = CampaignState.new()
+	save_manager = SaveManager.new()
+	
+	load_game()
 	state_manager.state_changed.connect(_on_state_changed)
 
 func add_scrap(amount: int) -> void:
 	scrap += max(0, amount)
 	scrap_changed.emit(scrap)
+	save_game()
 
 func select_drone(drone_id: String) -> void:
 	if drone_id in unlocked_drones:
 		selected_drone_id = drone_id
 		drone_selected.emit(drone_id)
+		save_game()
 
 func get_upgrade_cost(category: String) -> int:
 	var lvl = upgrade_levels.get(category, 1)
@@ -61,6 +67,7 @@ func purchase_upgrade(category: String) -> bool:
 		upgrade_levels[category] = lvl + 1
 		scrap_changed.emit(scrap)
 		upgrade_purchased.emit(category, lvl + 1)
+		save_game()
 		return true
 	return false
 
@@ -86,6 +93,35 @@ func apply_upgrades_to_player(player: Player) -> void:
 	var mobility_lvl = upgrade_levels.get("mobility", 1)
 	var base_speed = player.drone_class.max_speed if player.drone_class else 520.0
 	player.max_speed = base_speed * (1.0 + ((mobility_lvl - 1) * 0.05))
+
+func save_game() -> void:
+	if not save_manager:
+		return
+	var payload = {
+		"scrap": scrap,
+		"selected_drone_id": selected_drone_id,
+		"upgrade_levels": upgrade_levels.duplicate(),
+		"unlocked_drones": unlocked_drones.duplicate(),
+		"campaign": campaign_state.to_dict() if campaign_state else {}
+	}
+	save_manager.save_slot(1, payload)
+
+func load_game() -> void:
+	if not save_manager or not save_manager.has_save(1):
+		return
+	var data = save_manager.load_slot(1)
+	if data.is_empty():
+		return
+	scrap = int(data.get("scrap", 500))
+	selected_drone_id = str(data.get("selected_drone_id", "striker"))
+	
+	var saved_upgrades = data.get("upgrade_levels", {})
+	if saved_upgrades is Dictionary:
+		for k in saved_upgrades.keys():
+			upgrade_levels[k] = int(saved_upgrades[k])
+			
+	if campaign_state and data.has("campaign"):
+		campaign_state.from_dict(data.get("campaign", {}))
 
 func _on_state_changed(old_state: GameStateManager.State, new_state: GameStateManager.State) -> void:
 	print("[GAME_MANAGER] State changed: ", state_manager.state_to_string(old_state), " -> ", state_manager.state_to_string(new_state))
