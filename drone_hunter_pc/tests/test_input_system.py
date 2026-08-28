@@ -267,5 +267,59 @@ class TestInputSystem(unittest.TestCase):
         fake_js.rumble.assert_called_with(0.2, 0.3, 150)
 
 
+    def test_sector_select_mouse_interaction(self):
+        """Verify mouse clicking on sector cards switches the active sector."""
+        from src.ui.menus import draw_mission_select_ui
+        ctx = GameContext()
+        ctx.state = STATE_SECTOR_SELECT
+        # Unlock sector 2
+        ctx.campaign_state.unlock_sector(2)
+        
+        canvas = pygame.Surface((1280, 720))
+        cache = draw_mission_select_ui(canvas, ctx, 500, (0, 0))
+        
+        controller = InputController()
+        input_ctx = InputHandlingContext(
+            context=ctx,
+            ui_rects_cache=cache,
+            input_manager=self.input_mgr
+        )
+        
+        # Click on Sector 2 card
+        s2_rect = cache["sectors"][2]
+        click_pos = s2_rect.center
+        controller._handle_mouse_click(click_pos[0], click_pos[1], input_ctx)
+        
+        self.assertEqual(ctx.campaign_state.current_sector_idx, 1)
+
+    def test_sector_select_completed_mission_clickable(self):
+        """Verify completed missions are interactive and clickable with the mouse."""
+        from src.ui.menus import draw_mission_select_ui
+        ctx = GameContext()
+        ctx.state = STATE_SECTOR_SELECT
+        # Complete S1_M1
+        ctx.campaign_state.complete_mission("S1_M1")
+        
+        canvas = pygame.Surface((1280, 720))
+        cache = draw_mission_select_ui(canvas, ctx, 500, (0, 0))
+        
+        # S1_M1 must be present in interactive mission rects
+        self.assertIn("S1_M1", cache["missions"])
+        
+        controller = InputController()
+        input_ctx = InputHandlingContext(
+            context=ctx,
+            ui_rects_cache=cache,
+            input_manager=self.input_mgr
+        )
+        
+        # Click on completed S1_M1 mission card
+        m1_rect = cache["missions"]["S1_M1"]
+        controller._handle_mouse_click(m1_rect.centerx, m1_rect.centery, input_ctx)
+        
+        self.assertEqual(ctx.state, STATE_MISSION_BRIEFING)
+        self.assertEqual(input_ctx.pending_mission_id, "S1_M1")
+
+
 if __name__ == "__main__":
     unittest.main()

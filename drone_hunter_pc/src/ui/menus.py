@@ -153,7 +153,7 @@ def draw_mission_select_ui(canvas: pygame.Surface, ctx, scrap: int, mouse_pos: t
         is_selected = (s_id == current_selected_sector)
         
         s_rect = pygame.Rect(44, sy, left_w - 28, card_h)
-        hov = s_rect.collidepoint(mx, my) and is_unlocked
+        hov = s_rect.collidepoint(mx, my) and (is_unlocked or is_completed)
         
         # Background & border styling
         if is_selected:
@@ -165,15 +165,15 @@ def draw_mission_select_ui(canvas: pygame.Surface, ctx, scrap: int, mouse_pos: t
             border_c = COLOR_WHITE
             border_w = 2
         else:
-            bg_c = (15, 23, 38) if is_unlocked else (12, 16, 24)
-            border_c = (40, 55, 80) if is_unlocked else (25, 32, 45)
+            bg_c = (15, 23, 38) if (is_unlocked or is_completed) else (12, 16, 24)
+            border_c = (40, 55, 80) if (is_unlocked or is_completed) else (25, 32, 45)
             border_w = 1
 
         pygame.draw.rect(canvas, bg_c, s_rect, border_radius=6)
         pygame.draw.rect(canvas, border_c, s_rect, border_w, border_radius=6)
         
         # Line 1: Sector Number & Full Name
-        t_col = COLOR_WHITE if is_unlocked else (80, 95, 115)
+        t_col = COLOR_WHITE if (is_unlocked or is_completed) else (80, 95, 115)
         prefix = "> " if is_selected else "  "
         title_text = f"{prefix}SECTOR {s_id}: {sec['name'].upper()}"
         s_title_surf = font_button.render(title_text, True, COLOR_CYAN if is_selected else t_col)
@@ -193,7 +193,7 @@ def draw_mission_select_ui(canvas: pygame.Surface, ctx, scrap: int, mouse_pos: t
         badge_surf = font_sub.render(status_text, True, status_col)
         canvas.blit(badge_surf, (68, sy + 36))
             
-        if is_unlocked:
+        if is_unlocked or is_completed:
             interactive_rects["sectors"][s_id] = s_rect
             
         sy += card_h + 8
@@ -223,7 +223,7 @@ def draw_mission_select_ui(canvas: pygame.Surface, ctx, scrap: int, mouse_pos: t
         is_completed = ctx.campaign_state.is_mission_completed(m_id)
         
         m_rect = pygame.Rect(right_x + 20, my_y, right_w - 40, m_card_h)
-        hov = m_rect.collidepoint(mx, my) and is_unlocked
+        hov = m_rect.collidepoint(mx, my) and (is_unlocked or is_completed)
         
         if is_completed:
             bg_c = (18, 38, 30) if hov else (12, 26, 20)
@@ -239,19 +239,20 @@ def draw_mission_select_ui(canvas: pygame.Surface, ctx, scrap: int, mouse_pos: t
         pygame.draw.rect(canvas, border_c, m_rect, 2 if hov else 1, border_radius=6)
         
         # Mission Name & Number
-        t_col = COLOR_WHITE if is_unlocked else (80, 95, 115)
+        t_col = COLOR_WHITE if (is_unlocked or is_completed) else (80, 95, 115)
         m_num = f"[{m['mission_number']:02d}] "
         m_name_surf = font_button.render(f"{m_num}{m['name']}", True, t_col)
         canvas.blit(m_name_surf, (m_rect.left + 16, my_y + 10))
 
         # Objective & Diff summary on line 2
         obj_txt = m['objective'].replace('_', ' ').title()
-        info_surf = font_sub.render(f"Type: {obj_txt}  |  Diff: {m.get('difficulty', 1)}/5", True, COLOR_TEXT_DIM if is_unlocked else (60, 75, 90))
+        info_surf = font_sub.render(f"Type: {obj_txt}  |  Diff: {m.get('difficulty', 1)}/5", True, COLOR_TEXT_DIM if (is_unlocked or is_completed) else (60, 75, 90))
         canvas.blit(info_surf, (m_rect.left + 16, my_y + 34))
         
         # Status Label on Right
         if is_completed:
             st = font_button.render("[COMPLETED]", True, COLOR_EMERALD)
+            interactive_rects["missions"][m_id] = m_rect
         elif is_unlocked:
             st = font_button.render("[AVAILABLE]", True, COLOR_CYAN)
             interactive_rects["missions"][m_id] = m_rect

@@ -522,32 +522,37 @@ class InputController:
             if "back" in cache and cache["back"] and cache["back"].collidepoint(mx, my):
                 ctx.state = STATE_MENU
                 if am: am.play_click()
-            elif "hangar" in cache and cache["hangar"] and cache["hangar"].collidepoint(mx, my):
+                return
+            if "hangar" in cache and cache["hangar"] and cache["hangar"].collidepoint(mx, my):
                 self._set_previous_state(input_ctx, STATE_SECTOR_SELECT)
                 ctx.state = STATE_HANGAR
                 if am: am.play_click()
-            elif "settings" in cache and cache["settings"] and cache["settings"].collidepoint(mx, my):
+                return
+            if "settings" in cache and cache["settings"] and cache["settings"].collidepoint(mx, my):
                 self._set_previous_state(input_ctx, STATE_SECTOR_SELECT)
                 ctx.state = STATE_SETTINGS
                 if am: am.play_click()
-            elif "exit" in cache and cache["exit"] and cache["exit"].collidepoint(mx, my):
+                return
+            if "exit" in cache and cache["exit"] and cache["exit"].collidepoint(mx, my):
                 if input_ctx.quit_callback: input_ctx.quit_callback()
-            elif "diff_rect" in cache and cache["diff_rect"] and cache["diff_rect"].collidepoint(mx, my):
+                return
+            if "diff_rect" in cache and cache["diff_rect"] and cache["diff_rect"].collidepoint(mx, my):
                 ctx.difficulty_mode = (ctx.difficulty_mode + 1) % 5
                 if input_ctx.save_callback: input_ctx.save_callback()
                 if am: am.play_click()
-            elif "missions" in cache and isinstance(cache["missions"], dict):
+                return
+            if "sectors" in cache and isinstance(cache["sectors"], dict):
+                for s_id, s_rect in cache["sectors"].items():
+                    if s_rect and s_rect.collidepoint(mx, my):
+                        ctx.campaign_state.set_current_sector_and_stage(s_id - 1, ctx.current_sub_level)
+                        if am: am.play_weapon_switch()
+                        return
+            if "missions" in cache and isinstance(cache["missions"], dict):
                 for m_id, m_rect in cache["missions"].items():
                     if m_rect and m_rect.collidepoint(mx, my):
                         self._set_pending_mission(input_ctx, m_id)
                         ctx.state = STATE_MISSION_BRIEFING
                         if am: am.play_powerup()
-                        return
-            elif "sectors" in cache and isinstance(cache["sectors"], dict):
-                for s_id, s_rect in cache["sectors"].items():
-                    if s_rect and s_rect.collidepoint(mx, my):
-                        ctx.campaign_state.set_current_sector_and_stage(s_id - 1, ctx.current_sub_level)
-                        if am: am.play_weapon_switch()
                         return
 
         elif ctx.state == STATE_MISSION_BRIEFING:
