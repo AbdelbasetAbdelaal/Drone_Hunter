@@ -35,12 +35,10 @@ func _ready() -> void:
 	# 4. Verify Background Has NO Flipping (No flip_h, No flip_v, No upside-down terrain)
 	var bg: Node2D = world.get_node_or_null("Background")
 	assert(bg != null, "World must have Background layer")
-	assert(bg.get_child_count() >= 4, "Background must have regional sectors")
-	for child in bg.get_children():
-		var bg_sprite = child as Sprite2D
-		assert(bg_sprite != null and bg_sprite.texture != null, "Background region must have valid texture")
-		assert(bg_sprite.flip_v == false, "Background region must NOT have vertical flipping (flip_v must be false)")
-		assert(bg_sprite.flip_h == false, "Background region must NOT have horizontal flipping (flip_h must be false)")
+	var texture_rect = bg.get_node_or_null("SectorBackground") as TextureRect
+	assert(texture_rect != null, "Background must use a TextureRect for seamless tiling")
+	assert(texture_rect.flip_v == false, "Background region must NOT have vertical flipping (flip_v must be false)")
+	assert(texture_rect.flip_h == false, "Background region must NOT have horizontal flipping (flip_h must be false)")
 	print("[PASS] Upright background orientation verified (zero vertical/horizontal flipping).")
 
 	# 5. Verify Screen-Space HUD in CanvasLayer

@@ -1,6 +1,6 @@
 [gd_scene load_steps=10 format=3]
 
-[ext_resource type="Texture2D" path="res://assets/backgrounds/sectors/sector_2_ref.png" id="1_sector_bg"]
+[ext_resource type="Texture2D" path="res://assets/backgrounds/sectors/sector_1_ref.png" id="1_sector_bg"]
 [ext_resource type="Texture2D" path="res://assets/environment/structures/radar_command_tower.png" id="2_tower"]
 [ext_resource type="Texture2D" path="res://assets/environment/structures/missile_launcher.png" id="3_launcher"]
 [ext_resource type="Texture2D" path="res://assets/environment/structures/shield_generator.png" id="4_shield"]
@@ -24,33 +24,14 @@ size = Vector2(64, 2700)
 [node name="Background" type="Node2D" parent="."]
 z_index = -20
 
-[node name="SectorNorthWest" type="Sprite2D" parent="Background"]
-position = Vector2(960, 540)
-scale = Vector2(1.15, 1.15)
+[node name="SectorBackground" type="TextureRect" parent="Background"]
+offset_right = 3840.0
+offset_bottom = 2160.0
 texture = ExtResource("1_sector_bg")
-
-[node name="SectorNorthEast" type="Sprite2D" parent="Background"]
-position = Vector2(2880, 540)
-scale = Vector2(1.15, 1.15)
-texture = ExtResource("1_sector_bg")
-
-[node name="SectorSouthWest" type="Sprite2D" parent="Background"]
-position = Vector2(960, 1620)
-scale = Vector2(1.15, 1.15)
-texture = ExtResource("1_sector_bg")
-
-[node name="SectorSouthEast" type="Sprite2D" parent="Background"]
-position = Vector2(2880, 1620)
-scale = Vector2(1.15, 1.15)
-texture = ExtResource("1_sector_bg")
+stretch_mode = 1
 
 [node name="Midground" type="Node2D" parent="."]
 z_index = -10
-
-[node name="CentralNexusTower" type="Sprite2D" parent="Midground"]
-position = Vector2(1920, 1080)
-scale = Vector2(2, 2)
-texture = ExtResource("2_tower")
 
 [node name="OutpostNorthTower" type="Sprite2D" parent="Midground"]
 position = Vector2(1920, 300)
@@ -104,16 +85,6 @@ texture = ExtResource("4_shield")
 position = Vector2(3520, 1940)
 scale = Vector2(1.4, 1.4)
 texture = ExtResource("3_launcher")
-
-[node name="MissileLauncherCenterWest" type="Sprite2D" parent="Environment"]
-position = Vector2(1100, 1080)
-scale = Vector2(1.4, 1.4)
-texture = ExtResource("3_launcher")
-
-[node name="ShieldGeneratorCenterEast" type="Sprite2D" parent="Environment"]
-position = Vector2(2740, 1080)
-scale = Vector2(1.4, 1.4)
-texture = ExtResource("4_shield")
 
 [node name="ArenaBoundaries" type="StaticBody2D" parent="."]
 
