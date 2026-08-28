@@ -1,4 +1,4 @@
-class_name EnemyScout
+class_name EnemyHeavy
 extends EnemyCore
 
 func _process_ai(_delta: float) -> void:
