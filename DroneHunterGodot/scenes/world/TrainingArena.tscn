@@ -1,20 +1,8 @@
-[gd_scene load_steps=18 format=3]
+[gd_scene load_steps=8 format=3]
 
 [ext_resource type="Texture2D" path="res://assets/backgrounds/sectors/sector_2_ref.png" id="1_base"]
-[ext_resource type="Texture2D" path="res://assets/environment_kit/terrain/cyber_floor_01.png" id="2_floor"]
-[ext_resource type="Texture2D" path="res://assets/environment_kit/terrain/floor_grate.png" id="3_grate"]
-[ext_resource type="Texture2D" path="res://assets/environment_kit/towers/radar_command_tower.png" id="4_tower"]
-[ext_resource type="Texture2D" path="res://assets/environment_kit/towers/aa_platform.png" id="5_aa"]
-[ext_resource type="Texture2D" path="res://assets/environment_kit/radar/radar_dish.png" id="6_dish"]
-[ext_resource type="Texture2D" path="res://assets/environment_kit/industrial/reactor_01.png" id="7_reactor"]
-[ext_resource type="Texture2D" path="res://assets/environment_kit/industrial/generator_01.png" id="8_gen"]
-[ext_resource type="Texture2D" path="res://assets/environment_kit/industrial/turbine_01.png" id="9_turb"]
-[ext_resource type="Texture2D" path="res://assets/environment_kit/industrial/pipe_straight.png" id="10_pipe"]
-[ext_resource type="Texture2D" path="res://assets/environment_kit/vehicles/missile_launcher_platform.png" id="11_launcher"]
-[ext_resource type="Texture2D" path="res://assets/environment_kit/containers/crate_01.png" id="12_crate"]
-[ext_resource type="Texture2D" path="res://assets/environment_kit/props/hazard_stripe_01.png" id="13_hazard"]
-[ext_resource type="PackedScene" path="res://scenes/player/Player.tscn" id="14_player"]
-[ext_resource type="PackedScene" path="res://scenes/ui/HUD.tscn" id="15_hud"]
+[ext_resource type="PackedScene" path="res://scenes/player/Player.tscn" id="2_player"]
+[ext_resource type="PackedScene" path="res://scenes/ui/HUD.tscn" id="3_hud"]
 
 [sub_resource type="RectangleShape2D" id="RectangleShape2D_top"]
 size = Vector2(4400, 64)
@@ -41,94 +29,14 @@ texture = ExtResource("1_base")
 [node name="TerrainDetails" type="Node2D" parent="."]
 z_index = -20
 
-[node name="CyberFloorNW" type="Sprite2D" parent="TerrainDetails"]
-position = Vector2(650, 480)
-scale = Vector2(2, 2)
-texture = ExtResource("2_floor")
-
-[node name="CyberFloorSW" type="Sprite2D" parent="TerrainDetails"]
-position = Vector2(780, 1720)
-scale = Vector2(2.5, 2.5)
-texture = ExtResource("2_floor")
-
-[node name="FloorGrateSW" type="Sprite2D" parent="TerrainDetails"]
-position = Vector2(920, 1720)
-scale = Vector2(2, 2)
-texture = ExtResource("3_grate")
-
 [node name="Landmarks" type="Node2D" parent="."]
 z_index = -15
-
-[node name="RadarCommandTowerNW" type="Sprite2D" parent="Landmarks"]
-position = Vector2(650, 420)
-scale = Vector2(1.3, 1.3)
-texture = ExtResource("4_tower")
-
-[node name="AAStationNE" type="Sprite2D" parent="Landmarks"]
-position = Vector2(3200, 380)
-scale = Vector2(1.3, 1.3)
-texture = ExtResource("5_aa")
-
-[node name="RadarCommandTowerSW" type="Sprite2D" parent="Landmarks"]
-position = Vector2(600, 1680)
-scale = Vector2(1.4, 1.4)
-texture = ExtResource("4_tower")
-
-[node name="AAStationSE" type="Sprite2D" parent="Landmarks"]
-position = Vector2(3300, 1750)
-scale = Vector2(1.3, 1.3)
-texture = ExtResource("5_aa")
-
-[node name="RadarDishSW" type="Sprite2D" parent="Landmarks"]
-position = Vector2(450, 1620)
-scale = Vector2(1.2, 1.2)
-texture = ExtResource("6_dish")
 
 [node name="Structures" type="Node2D" parent="."]
 z_index = -10
 
-[node name="PowerReactorSW" type="Sprite2D" parent="Structures"]
-position = Vector2(750, 1780)
-scale = Vector2(1.3, 1.3)
-texture = ExtResource("7_reactor")
-
-[node name="GeneratorSW" type="Sprite2D" parent="Structures"]
-position = Vector2(900, 1680)
-scale = Vector2(1.3, 1.3)
-texture = ExtResource("8_gen")
-
-[node name="TurbineSW" type="Sprite2D" parent="Structures"]
-position = Vector2(1020, 1680)
-scale = Vector2(1.3, 1.3)
-texture = ExtResource("9_turb")
-
-[node name="PipeNW" type="Sprite2D" parent="Structures"]
-position = Vector2(520, 480)
-scale = Vector2(1.5, 1.5)
-texture = ExtResource("10_pipe")
-
 [node name="Props" type="Node2D" parent="."]
 z_index = -5
-
-[node name="MissileLauncherNW" type="Sprite2D" parent="Props"]
-position = Vector2(480, 520)
-scale = Vector2(1.2, 1.2)
-texture = ExtResource("11_launcher")
-
-[node name="MissileLauncherSE" type="Sprite2D" parent="Props"]
-position = Vector2(3450, 1850)
-scale = Vector2(1.2, 1.2)
-texture = ExtResource("11_launcher")
-
-[node name="CrateSW" type="Sprite2D" parent="Props"]
-position = Vector2(840, 1740)
-scale = Vector2(1.5, 1.5)
-texture = ExtResource("12_crate")
-
-[node name="HazardStripeSW" type="Sprite2D" parent="Props"]
-position = Vector2(650, 1800)
-scale = Vector2(1.3, 1.3)
-texture = ExtResource("13_hazard")
 
 [node name="Boundaries" type="StaticBody2D" parent="."]
 
@@ -148,7 +56,7 @@ shape = SubResource("RectangleShape2D_left")
 position = Vector2(3872, 1080)
 shape = SubResource("RectangleShape2D_right")
 
-[node name="Player" parent="." instance=ExtResource("14_player")]
+[node name="Player" parent="." instance=ExtResource("2_player")]
 position = Vector2(1920, 1080)
 
-[node name="HUD" parent="." instance=ExtResource("15_hud")]
+[node name="HUD" parent="." instance=ExtResource("3_hud")]
