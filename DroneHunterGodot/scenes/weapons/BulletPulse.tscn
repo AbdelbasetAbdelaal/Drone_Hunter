@@ -8,6 +8,8 @@ radius = 8.0
 height = 28.0
 
 [node name="BulletPulse" type="Area2D"]
+collision_layer = 4
+collision_mask = 3
 script = ExtResource("1_proj_script")
 speed = 950.0
 damage = 25.0

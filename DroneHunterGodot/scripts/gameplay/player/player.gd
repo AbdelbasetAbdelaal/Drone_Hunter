@@ -6,6 +6,8 @@ extends CharacterBody2D
 @export var acceleration: float = 6400.0   # MovementController.acceleration = 6400.0
 @export var drag: float = 5.0              # MovementController.drag = 5.0
 
+var aim_target_override: Vector2 = Vector2.INF
+
 @onready var sprite: Sprite2D = $Sprite2D
 @onready var camera: Camera2D = $Camera2D
 @onready var collision_shape: CollisionShape2D = $CollisionShape2D
@@ -38,7 +40,7 @@ func _handle_movement(delta: float) -> void:
 
 func _handle_aim() -> void:
 	# World-space mouse aim (remains accurate during camera movement, scaling & resizing)
-	var mouse_world_pos: Vector2 = get_global_mouse_position()
+	var mouse_world_pos: Vector2 = aim_target_override if aim_target_override != Vector2.INF else get_global_mouse_position()
 	look_at(mouse_world_pos)
 
 func _handle_combat(_delta: float) -> void:
