@@ -18,10 +18,10 @@ class ContinuousBeamBehavior(BaseWeaponBehavior):
         bullets = []
         sm = get_sprite_manager()
 
-        if context.controller:
-            context.controller._fired_this_frame = True
+        if context.on_fired_this_frame:
+            context.on_fired_this_frame()
 
-        active_beam = getattr(context.controller, "active_beam", None) if context.controller else None
+        active_beam = context.active_beam
         if active_beam is None or not active_beam.alive():
             m_pos = context.get_mount_pos_fn("beam_emitter")
             sprite = sm.get_projectile_sprite('beam', (52, 16))
@@ -31,8 +31,8 @@ class ContinuousBeamBehavior(BaseWeaponBehavior):
                 damage_per_second=dps, image=sprite,
                 owner="player", weapon_id=context.weapon_id
             )
-            if context.controller:
-                context.controller.active_beam = new_beam
+            if context.on_beam_created:
+                context.on_beam_created(new_beam)
             bullets.append(new_beam)
             if context.particle_manager:
                 context.particle_manager.spawn_muzzle_flash(m_pos, context.aim_angle, context.weapon_id)

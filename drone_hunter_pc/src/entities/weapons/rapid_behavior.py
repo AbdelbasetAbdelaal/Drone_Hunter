@@ -23,8 +23,6 @@ class RapidBehavior(BaseWeaponBehavior):
 
         mount_key = "dual_left" if self._rapid_side == 0 else "dual_right"
         self._rapid_side = (self._rapid_side + 1) % 2
-        if context.controller:
-            context.controller._rapid_side = self._rapid_side
 
         m_pos = context.get_mount_pos_fn(mount_key)
         sprite = sm.get_projectile_sprite('pulse', (32, 10))

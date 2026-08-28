@@ -12,7 +12,7 @@ import pygame
 
 from src.data.settings import COLOR_CYAN
 from src.data.game_data import (
-    WEAPON_PULSE, WEAPON_SCATTER, WEAPON_MISSILE, WEAPON_DEFS, WEAPON_UPGRADES
+    WEAPON_PULSE, WEAPON_SCATTER, WEAPON_MISSILE, WEAPON_RAPID, WEAPON_DEFS, WEAPON_UPGRADES
 )
 from src.entities.weapons import (
     BaseWeaponBehavior, WeaponFireContext, get_weapon_behavior
@@ -30,14 +30,40 @@ class WeaponController:
         self.weapon_upgrade_levels: dict[str, int] = {}
         self.cooldown_mult: float = 1.0
 
-        # Hardpoint Alternating Mount State
-        self._rapid_side: int = 0
-        self._missile_side: int = 0
-
         # Visual Flash & Continuous Beam State
         self.muzzle_flash_timer: float = 0.0
         self.active_beam = None
         self._fired_this_frame: bool = False
+
+    @property
+    def _rapid_side(self) -> int:
+        try:
+            return getattr(get_weapon_behavior(WEAPON_RAPID), "_rapid_side", 0)
+        except (KeyError, AttributeError):
+            return 0
+
+    @_rapid_side.setter
+    def _rapid_side(self, val: int):
+        try:
+            behavior = get_weapon_behavior(WEAPON_RAPID)
+            behavior._rapid_side = int(val)
+        except (KeyError, AttributeError):
+            pass
+
+    @property
+    def _missile_side(self) -> int:
+        try:
+            return getattr(get_weapon_behavior(WEAPON_MISSILE), "_missile_side", 0)
+        except (KeyError, AttributeError):
+            return 0
+
+    @_missile_side.setter
+    def _missile_side(self, val: int):
+        try:
+            behavior = get_weapon_behavior(WEAPON_MISSILE)
+            behavior._missile_side = int(val)
+        except (KeyError, AttributeError):
+            pass
 
     def configure_drone_class(self, class_data: dict):
         """Applies weapon loadout for the selected drone class."""
@@ -86,6 +112,12 @@ class WeaponController:
             return False
         cd = self.weapon_cooldowns.get(self.active_weapon, 0.0)
         return cd <= 0.0
+
+    def _set_active_beam(self, beam):
+        self.active_beam = beam
+
+    def _set_fired_this_frame(self):
+        self._fired_this_frame = True
 
     def shoot(
         self,
@@ -144,7 +176,9 @@ class WeaponController:
             overclock_active=overclock_active,
             targets_group=targets_group,
             particle_manager=particle_manager,
-            controller=self
+            active_beam=self.active_beam,
+            on_beam_created=self._set_active_beam,
+            on_fired_this_frame=self._set_fired_this_frame
         )
 
         behavior = get_weapon_behavior(self.active_weapon)

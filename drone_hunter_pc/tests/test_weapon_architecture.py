@@ -51,6 +51,14 @@ class TestWeaponArchitecture(unittest.TestCase):
             behavior = get_weapon_behavior(w_id)
             self.assertIsInstance(behavior, cls_type, f"Weapon {w_id} failed to resolve to {cls_type}")
 
+    def test_unknown_weapon_fails_explicitly(self):
+        """Verify an invalid weapon ID raises KeyError explicitly and does not silently fall back to Pulse."""
+        with self.assertRaises(KeyError):
+            get_weapon_behavior("invalid_unknown_superweapon")
+
+        with self.assertRaises(KeyError):
+            get_weapon_behavior("")
+
     def test_pulse_behavior_overdrive_fan(self):
         """Verify Pulse fires 1 bullet normally and 3 bullets under Overdrive mode."""
         player = Player((500, 400))

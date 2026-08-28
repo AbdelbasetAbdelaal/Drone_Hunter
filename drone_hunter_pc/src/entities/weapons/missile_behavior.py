@@ -23,8 +23,6 @@ class MissileBehavior(BaseWeaponBehavior):
 
         mount_key = "left" if self._missile_side == 0 else "right"
         self._missile_side = (self._missile_side + 1) % 2
-        if context.controller:
-            context.controller._missile_side = self._missile_side
 
         m_pos = context.get_mount_pos_fn(mount_key)
         sprite = sm.get_projectile_sprite('missile', (45, 16))

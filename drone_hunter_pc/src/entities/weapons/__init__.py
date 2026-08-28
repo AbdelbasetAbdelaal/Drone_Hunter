@@ -44,7 +44,9 @@ class WeaponRegistry:
         }
 
     def get_behavior(self, weapon_id: str) -> BaseWeaponBehavior:
-        return self._behaviors.get(weapon_id, self._behaviors[WEAPON_PULSE])
+        if weapon_id not in self._behaviors:
+            raise KeyError(f"Unknown weapon behavior: '{weapon_id}'. Valid weapons: {list(self._behaviors.keys())}")
+        return self._behaviors[weapon_id]
 
 
 _GLOBAL_REGISTRY: WeaponRegistry = WeaponRegistry()

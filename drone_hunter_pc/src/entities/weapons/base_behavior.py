@@ -3,7 +3,7 @@
             DRONE HUNTER 2D - WEAPON BEHAVIOR BASE & CONTEXT
 ================================================================================
 Defines the base strategy class and lightweight execution context for modular
-player weapon firing behaviors.
+player weapon firing behaviors without coupling to WeaponController.
 """
 
 from abc import ABC, abstractmethod
@@ -28,7 +28,9 @@ class WeaponFireContext:
     overclock_active: bool = False
     targets_group: Any = None
     particle_manager: Any = None
-    controller: Any = None
+    active_beam: Optional[Any] = None
+    on_beam_created: Optional[Callable[[Any], None]] = None
+    on_fired_this_frame: Optional[Callable[[], None]] = None
 
 
 class BaseWeaponBehavior(ABC):
