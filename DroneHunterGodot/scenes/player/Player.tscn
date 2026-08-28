@@ -1,9 +1,11 @@
-[gd_scene load_steps=5 format=3]
+[gd_scene load_steps=7 format=3]
 
 [ext_resource type="Script" path="res://scripts/gameplay/player/player.gd" id="1_script"]
 [ext_resource type="Texture2D" path="res://assets/player/player_idle.png" id="2_texture"]
 [ext_resource type="Script" path="res://scripts/gameplay/weapons/weapon_controller.gd" id="3_weapon_ctrl"]
 [ext_resource type="Script" path="res://scripts/gameplay/player/ability_controller.gd" id="4_ability_ctrl"]
+[ext_resource type="Script" path="res://scripts/gameplay/combat/health.gd" id="5_health"]
+[ext_resource type="Script" path="res://scripts/gameplay/combat/damage_receiver.gd" id="6_damage"]
 
 [sub_resource type="CircleShape2D" id="CircleShape2D_player"]
 radius = 22.0
@@ -37,3 +39,11 @@ muzzle_offset = Vector2(45, 0)
 script = ExtResource("4_ability_ctrl")
 player = NodePath("..")
 
+[node name="Health" type="Node" parent="."]
+script = ExtResource("5_health")
+max_hp = 100.0
+max_shield = 60.0
+
+[node name="DamageReceiver" type="Node" parent="." node_paths=PackedStringArray("health")]
+script = ExtResource("6_damage")
+health = NodePath("../Health")

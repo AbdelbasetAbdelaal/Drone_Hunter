@@ -1,0 +1,20 @@
+[gd_resource type="Resource" script_class="DroneClassDefinition" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://resources/drones/drone_class_definition.gd" id="1_script"]
+
+[resource]
+script = ExtResource("1_script")
+class_id = "striker"
+display_name = "STRIKER"
+title = "BALANCED FRONTLINE DRONE"
+role = "BALANCED / ACCURATE / VERSATILE"
+description = "Balanced combat chassis with precision forward weapons and versatile performance."
+max_health = 100.0
+base_armor = 0.0
+max_shield = 60.0
+max_energy = 100.0
+max_speed = 520.0
+acceleration = 6400.0
+drag = 5.0
+default_weapons = ["pulse", "scatter", "missile"]
+ability_id = "roll"

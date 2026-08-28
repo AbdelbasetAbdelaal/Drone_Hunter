@@ -1,0 +1,20 @@
+[gd_resource type="Resource" script_class="DroneClassDefinition" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://resources/drones/drone_class_definition.gd" id="1_script"]
+
+[resource]
+script = ExtResource("1_script")
+class_id = "command"
+display_name = "COMMAND"
+title = "ADVANCED ENDGAME PLATFORM"
+role = "ENDGAME / LONG-RANGE / MULTI-POD"
+description = "Endgame quad-thruster platform equipped with multi-pod missile barrages and precision rail slugs."
+max_health = 130.0
+base_armor = 0.15
+max_shield = 90.0
+max_energy = 140.0
+max_speed = 520.0
+acceleration = 5200.0
+drag = 5.0
+default_weapons = ["rail", "beam", "barrage", "cluster"]
+ability_id = "cloak"

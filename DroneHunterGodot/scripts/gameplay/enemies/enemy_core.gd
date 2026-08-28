@@ -41,7 +41,32 @@ func _ready() -> void:
 		target = players[0]
 
 func _on_death() -> void:
+	_spawn_drops()
 	queue_free()
+
+func _spawn_drops() -> void:
+	var powerup_scene = load("res://scenes/entities/Powerup.tscn")
+	if not powerup_scene:
+		return
+		
+	var root = get_tree().current_scene if get_tree() and get_tree().current_scene else get_parent()
+	if not root:
+		return
+		
+	# Always drop Scrap
+	var scrap = powerup_scene.instantiate() as Powerup
+	root.add_child(scrap)
+	scrap.global_position = global_position + Vector2(randf_range(-15, 15), randf_range(-15, 15))
+	scrap.setup(Powerup.PowerupType.SCRAP, int(score_value / 3))
+	
+	# Chance for tactical powerup (25%)
+	if randf() < 0.25:
+		var extra = powerup_scene.instantiate() as Powerup
+		root.add_child(extra)
+		extra.global_position = global_position + Vector2(randf_range(-20, 20), randf_range(-20, 20))
+		var types = [Powerup.PowerupType.BATTERY, Powerup.PowerupType.SHIELD, Powerup.PowerupType.OVERCLOCK, Powerup.PowerupType.WINGMAN]
+		var chosen = types[randi() % types.size()]
+		extra.setup(chosen)
 
 func _physics_process(delta: float) -> void:
 	_process_ai(delta)

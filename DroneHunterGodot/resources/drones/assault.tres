@@ -1,0 +1,20 @@
+[gd_resource type="Resource" script_class="DroneClassDefinition" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://resources/drones/drone_class_definition.gd" id="1_script"]
+
+[resource]
+script = ExtResource("1_script")
+class_id = "assault"
+display_name = "ASSAULT"
+title = "HEAVY ATTACK DREADNOUGHT"
+role = "HEAVY / POWERFUL / HIGH DURABILITY"
+description = "Heavily armored juggernaut packing devastating heavy plasma ordnance and high durability."
+max_health = 150.0
+base_armor = 0.2
+max_shield = 80.0
+max_energy = 80.0
+max_speed = 380.0
+acceleration = 4200.0
+drag = 6.0
+default_weapons = ["pulse", "plasma", "missile"]
+ability_id = "overdrive"

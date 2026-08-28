@@ -1,0 +1,20 @@
+[gd_resource type="Resource" script_class="DroneClassDefinition" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://resources/drones/drone_class_definition.gd" id="1_script"]
+
+[resource]
+script = ExtResource("1_script")
+class_id = "arc"
+display_name = "ARC"
+title = "ENERGY / AREA CONTROL"
+role = "ENERGY / CONTROL / AREA DAMAGE"
+description = "Specialized electromagnetic disruption platform with high-voltage chain arcs and EMP focus."
+max_health = 95.0
+base_armor = 0.05
+max_shield = 100.0
+max_energy = 160.0
+max_speed = 480.0
+acceleration = 5800.0
+drag = 5.0
+default_weapons = ["emp", "tesla", "beam"]
+ability_id = "emp"

@@ -1,0 +1,20 @@
+[gd_resource type="Resource" script_class="DroneClassDefinition" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://resources/drones/drone_class_definition.gd" id="1_script"]
+
+[resource]
+script = ExtResource("1_script")
+class_id = "interceptor"
+display_name = "INTERCEPTOR"
+title = "FAST ATTACK / INTERCEPTION"
+role = "FAST / AGILE / HIGH DPS / LOW SURVIVABILITY"
+description = "High-mobility strike platform with extreme acceleration and rapid-fire armament."
+max_health = 80.0
+base_armor = 0.0
+max_shield = 40.0
+max_energy = 120.0
+max_speed = 600.0
+acceleration = 7200.0
+drag = 4.5
+default_weapons = ["pulse", "rapid", "missile"]
+ability_id = "roll"

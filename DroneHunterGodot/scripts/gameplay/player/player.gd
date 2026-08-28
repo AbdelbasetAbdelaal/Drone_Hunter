@@ -1,52 +1,101 @@
 class_name Player
 extends CharacterBody2D
 
-# Movement values sourced directly from Pygame MovementController (game_data.py & player_movement.py)
-@export var max_speed: float = 520.0       # HORIZONTAL_SPEED = 520.0
-@export var acceleration: float = 6400.0   # MovementController.acceleration = 6400.0
-@export var drag: float = 5.0              # MovementController.drag = 5.0
+signal health_changed(current: float, max_val: float)
+signal shield_changed(current: float, max_val: float)
+signal energy_changed(current: float, max_val: float)
+signal weapon_switched(weapon_name: String)
+signal player_died()
+
+@export var drone_class: DroneClassDefinition
+
+@export var max_speed: float = 520.0
+@export var acceleration: float = 6400.0
+@export var drag: float = 5.0
+
+var max_energy: float = 100.0
+var current_energy: float = 100.0
+var energy_regen: float = 15.0
 
 var aim_target_override: Vector2 = Vector2.INF
 
 @onready var sprite: Sprite2D = $Sprite2D
 @onready var camera: Camera2D = $Camera2D
 @onready var collision_shape: CollisionShape2D = $CollisionShape2D
-@onready var weapon_controller: Node2D = $WeaponController
+@onready var weapon_controller: WeaponController = $WeaponController
+@onready var ability_controller: AbilityController = $AbilityController
+@onready var health: Health = $Health
+@onready var damage_receiver: DamageReceiver = $DamageReceiver
 
 func _ready() -> void:
 	add_to_group("player")
+	if drone_class:
+		apply_drone_class(drone_class)
+	elif ResourceLoader.exists("res://resources/drones/striker.tres"):
+		var default_class = load("res://resources/drones/striker.tres") as DroneClassDefinition
+		if default_class:
+			apply_drone_class(default_class)
+
+	if health:
+		health.health_changed.connect(_on_health_changed)
+		health.died.connect(_on_death)
+
+func apply_drone_class(def: DroneClassDefinition) -> void:
+	drone_class = def
+	max_speed = def.max_speed
+	acceleration = def.acceleration
+	drag = def.drag
+	max_energy = def.max_energy
+	current_energy = max_energy
+	
+	if health:
+		health.max_hp = def.max_health
+		health.current_hp = def.max_health
+		health.max_shield = def.max_shield
+		health.current_shield = def.max_shield
+		health.base_armor = def.base_armor
+		health_changed.emit(health.current_hp, health.max_hp)
+		shield_changed.emit(health.current_shield, health.max_shield)
 
 func _physics_process(delta: float) -> void:
 	_handle_movement(delta)
 	_handle_aim()
 	_handle_combat(delta)
+	_handle_energy(delta)
 	
-	var ability_controller = get_node_or_null("AbilityController")
 	if ability_controller and ability_controller.has_method("handle_input"):
 		ability_controller.handle_input()
 
+func _handle_energy(delta: float) -> void:
+	if current_energy < max_energy:
+		current_energy = min(max_energy, current_energy + energy_regen * delta)
+		energy_changed.emit(current_energy, max_energy)
+
 func _handle_movement(delta: float) -> void:
-	# 360-degree vector input mapped from Godot InputMap
 	var input_vector := Input.get_vector("move_left", "move_right", "move_up", "move_down")
 	
 	if input_vector.length_squared() > 0.0:
 		velocity += input_vector * acceleration * delta
 	
-	# Linear Inertial Drag & Smooth Deceleration (from Pygame: max(0.0, 1.0 - (drag * dt)))
 	var drag_damping: float = max(0.0, 1.0 - (drag * delta))
 	velocity *= drag_damping
 	
-	# Clamp Max Speed (from Pygame: velocity.scale_to_length(max_speed))
 	if velocity.length() > max_speed:
 		velocity = velocity.limit_length(max_speed)
 	
 	move_and_slide()
 
 func _handle_aim() -> void:
-	# World-space mouse aim (remains accurate during camera movement, scaling & resizing)
 	var mouse_world_pos: Vector2 = aim_target_override if aim_target_override != Vector2.INF else get_global_mouse_position()
 	look_at(mouse_world_pos)
 
 func _handle_combat(_delta: float) -> void:
-	if Input.is_action_pressed("fire_primary") and weapon_controller != null and weapon_controller.has_method("try_fire_primary"):
+	if Input.is_action_pressed("fire_primary") and weapon_controller != null:
 		weapon_controller.try_fire_primary()
+
+func _on_health_changed(current: float, max_val: float) -> void:
+	health_changed.emit(current, max_val)
+
+func _on_death() -> void:
+	player_died.emit()
+	print("Player destroyed!")
