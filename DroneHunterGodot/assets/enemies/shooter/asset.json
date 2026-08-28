@@ -1,0 +1,14 @@
+{
+  "name": "shooter",
+  "role": "Medium / Ranged",
+  "source_sheet": "a_high_resolution_sprite_sheet_style_compilation_i.png",
+  "source_box": [
+    315,
+    340,
+    407,
+    470
+  ],
+  "hero": "hero_2048.png",
+  "thumbnail": "thumbnail_512.png",
+  "shadow": "shadow_2048.png"
+}

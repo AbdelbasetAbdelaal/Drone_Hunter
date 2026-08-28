@@ -1,0 +1,1286 @@
+[
+  {
+    "path": "audio/Drone_Hunter_assets_audio/ASSET_MAPPING.md",
+    "category": "AUDIO",
+    "used_by": "Combat SFX & Background Music",
+    "status": "ACTIVE"
+  },
+  {
+    "path": "audio/Drone_Hunter_assets_audio/License.txt",
+    "category": "AUDIO",
+    "used_by": "Combat SFX & Background Music",
+    "status": "ACTIVE"
+  },
+  {
+    "path": "audio/Drone_Hunter_assets_audio/README.md",
+    "category": "AUDIO",
+    "used_by": "Combat SFX & Background Music",
+    "status": "ACTIVE"
+  },
+  {
+    "path": "audio/Drone_Hunter_assets_audio/explosions/explosion_boss.ogg",
+    "category": "BOSSES",
+    "used_by": "Bosses (Excluded)",
+    "status": "OBSOLETE"
+  },
+  {
+    "path": "audio/Drone_Hunter_assets_audio/explosions/explosion_heavy.ogg",
+    "category": "AUDIO",
+    "used_by": "Combat SFX & Background Music",
+    "status": "ACTIVE"
+  },
+  {
+    "path": "audio/Drone_Hunter_assets_audio/explosions/explosion_medium.ogg",
+    "category": "AUDIO",
+    "used_by": "Combat SFX & Background Music",
+    "status": "ACTIVE"
+  },
+  {
+    "path": "audio/Drone_Hunter_assets_audio/explosions/explosion_small.ogg",
+    "category": "AUDIO",
+    "used_by": "Combat SFX & Background Music",
+    "status": "ACTIVE"
+  },
+  {
+    "path": "audio/Drone_Hunter_assets_audio/explosions/player_destroyed.ogg",
+    "category": "AUDIO",
+    "used_by": "Combat SFX & Background Music",
+    "status": "ACTIVE"
+  },
+  {
+    "path": "audio/explosions/explosion_boss.ogg",
+    "category": "BOSSES",
+    "used_by": "Bosses (Excluded)",
+    "status": "OBSOLETE"
+  },
+  {
+    "path": "audio/explosions/explosion_heavy.ogg",
+    "category": "AUDIO",
+    "used_by": "Combat SFX & Background Music",
+    "status": "ACTIVE"
+  },
+  {
+    "path": "audio/explosions/explosion_medium.ogg",
+    "category": "AUDIO",
+    "used_by": "Combat SFX & Background Music",
+    "status": "ACTIVE"
+  },
+  {
+    "path": "audio/explosions/explosion_small.ogg",
+    "category": "AUDIO",
+    "used_by": "Combat SFX & Background Music",
+    "status": "ACTIVE"
+  },
+  {
+    "path": "audio/explosions/player_destroyed.ogg",
+    "category": "AUDIO",
+    "used_by": "Combat SFX & Background Music",
+    "status": "ACTIVE"
+  },
+  {
+    "path": "backgrounds/sectors/sector_1_ref.png",
+    "category": "BACKGROUNDS",
+    "used_by": "Parallax Sector Backgrounds",
+    "status": "ACTIVE"
+  },
+  {
+    "path": "backgrounds/sectors/sector_2_ref.png",
+    "category": "BACKGROUNDS",
+    "used_by": "Parallax Sector Backgrounds",
+    "status": "ACTIVE"
+  },
+  {
+    "path": "backgrounds/sectors/sector_3_ref.png",
+    "category": "BACKGROUNDS",
+    "used_by": "Parallax Sector Backgrounds",
+    "status": "ACTIVE"
+  },
+  {
+    "path": "backgrounds/sectors/sector_4_ref.png",
+    "category": "BACKGROUNDS",
+    "used_by": "Parallax Sector Backgrounds",
+    "status": "ACTIVE"
+  },
+  {
+    "path": "backgrounds/sectors/sector_5_ref.png",
+    "category": "BACKGROUNDS",
+    "used_by": "Parallax Sector Backgrounds",
+    "status": "ACTIVE"
+  },
+  {
+    "path": "environment/cyber_factory/barriers/energy_barrier_blue.png",
+    "category": "ENVIRONMENT",
+    "used_by": "Sector Environment Assets & Hazards",
+    "status": "ACTIVE"
+  },
+  {
+    "path": "environment/cyber_factory/floor/floor_01.png",
+    "category": "ENVIRONMENT",
+    "used_by": "Sector Environment Assets & Hazards",
+    "status": "ACTIVE"
+  },
+  {
+    "path": "environment/cyber_factory/floor/floor_02.png",
+    "category": "ENVIRONMENT",
+    "used_by": "Sector Environment Assets & Hazards",
+    "status": "ACTIVE"
+  },
+  {
+    "path": "environment/cyber_factory/floor/floor_03.png",
+    "category": "ENVIRONMENT",
+    "used_by": "Sector Environment Assets & Hazards",
+    "status": "ACTIVE"
+  },
+  {
+    "path": "environment/cyber_factory/floor/floor_04.png",
+    "category": "ENVIRONMENT",
+    "used_by": "Sector Environment Assets & Hazards",
+    "status": "ACTIVE"
+  },
+  {
+    "path": "environment/cyber_factory/floor/floor_05.png",
+    "category": "ENVIRONMENT",
+    "used_by": "Sector Environment Assets & Hazards",
+    "status": "ACTIVE"
+  },
+  {
+    "path": "environment/cyber_factory/floor/floor_grate.png",
+    "category": "ENVIRONMENT",
+    "used_by": "Sector Environment Assets & Hazards",
+    "status": "ACTIVE"
+  },
+  {
+    "path": "environment/cyber_factory/floor/floor_maintenance.png",
+    "category": "ENVIRONMENT",
+    "used_by": "Sector Environment Assets & Hazards",
+    "status": "ACTIVE"
+  },
+  {
+    "path": "environment/cyber_factory/floor/floor_panel.png",
+    "category": "ENVIRONMENT",
+    "used_by": "Sector Environment Assets & Hazards",
+    "status": "ACTIVE"
+  },
+  {
+    "path": "environment/cyber_factory/hazards/hazard_stripe_01.png",
+    "category": "ENVIRONMENT",
+    "used_by": "Sector Environment Assets & Hazards",
+    "status": "ACTIVE"
+  },
+  {
+    "path": "environment/cyber_factory/machinery/generator_01.png",
+    "category": "ENVIRONMENT",
+    "used_by": "Sector Environment Assets & Hazards",
+    "status": "ACTIVE"
+  },
+  {
+    "path": "environment/cyber_factory/machinery/turbine_01.png",
+    "category": "ENVIRONMENT",
+    "used_by": "Sector Environment Assets & Hazards",
+    "status": "ACTIVE"
+  },
+  {
+    "path": "environment/cyber_factory/pipes/pipe_corner.png",
+    "category": "ENVIRONMENT",
+    "used_by": "Sector Environment Assets & Hazards",
+    "status": "ACTIVE"
+  },
+  {
+    "path": "environment/cyber_factory/pipes/pipe_straight.png",
+    "category": "ENVIRONMENT",
+    "used_by": "Sector Environment Assets & Hazards",
+    "status": "ACTIVE"
+  },
+  {
+    "path": "environment/cyber_factory/props/crate_01.png",
+    "category": "ENVIRONMENT",
+    "used_by": "Sector Environment Assets & Hazards",
+    "status": "ACTIVE"
+  },
+  {
+    "path": "environment/cyber_factory/reactors/reactor_01.png",
+    "category": "ENVIRONMENT",
+    "used_by": "Sector Environment Assets & Hazards",
+    "status": "ACTIVE"
+  },
+  {
+    "path": "environment/cyber_factory/structures/wall_01.png",
+    "category": "ENVIRONMENT",
+    "used_by": "Sector Environment Assets & Hazards",
+    "status": "ACTIVE"
+  },
+  {
+    "path": "high_fidelity/bosses/assembly_warden/asset.json",
+    "category": "BOSSES",
+    "used_by": "Bosses (Excluded)",
+    "status": "OBSOLETE"
+  },
+  {
+    "path": "high_fidelity/bosses/assembly_warden/hero_2048.png",
+    "category": "BOSSES",
+    "used_by": "Bosses (Excluded)",
+    "status": "OBSOLETE"
+  },
+  {
+    "path": "high_fidelity/bosses/assembly_warden/shadow_2048.png",
+    "category": "BOSSES",
+    "used_by": "Bosses (Excluded)",
+    "status": "OBSOLETE"
+  },
+  {
+    "path": "high_fidelity/bosses/assembly_warden/thumbnail_512.png",
+    "category": "BOSSES",
+    "used_by": "Bosses (Excluded)",
+    "status": "OBSOLETE"
+  },
+  {
+    "path": "high_fidelity/bosses/core_executor/asset.json",
+    "category": "BOSSES",
+    "used_by": "Bosses (Excluded)",
+    "status": "OBSOLETE"
+  },
+  {
+    "path": "high_fidelity/bosses/core_executor/hero_2048.png",
+    "category": "BOSSES",
+    "used_by": "Bosses (Excluded)",
+    "status": "OBSOLETE"
+  },
+  {
+    "path": "high_fidelity/bosses/core_executor/shadow_2048.png",
+    "category": "BOSSES",
+    "used_by": "Bosses (Excluded)",
+    "status": "OBSOLETE"
+  },
+  {
+    "path": "high_fidelity/bosses/core_executor/thumbnail_512.png",
+    "category": "BOSSES",
+    "used_by": "Bosses (Excluded)",
+    "status": "OBSOLETE"
+  },
+  {
+    "path": "high_fidelity/bosses/defense_commander/asset.json",
+    "category": "BOSSES",
+    "used_by": "Bosses (Excluded)",
+    "status": "OBSOLETE"
+  },
+  {
+    "path": "high_fidelity/bosses/defense_commander/hero_2048.png",
+    "category": "BOSSES",
+    "used_by": "Bosses (Excluded)",
+    "status": "OBSOLETE"
+  },
+  {
+    "path": "high_fidelity/bosses/defense_commander/shadow_2048.png",
+    "category": "BOSSES",
+    "used_by": "Bosses (Excluded)",
+    "status": "OBSOLETE"
+  },
+  {
+    "path": "high_fidelity/bosses/defense_commander/thumbnail_512.png",
+    "category": "BOSSES",
+    "used_by": "Bosses (Excluded)",
+    "status": "OBSOLETE"
+  },
+  {
+    "path": "high_fidelity/bosses/drone_overlord/asset.json",
+    "category": "BOSSES",
+    "used_by": "Bosses (Excluded)",
+    "status": "OBSOLETE"
+  },
+  {
+    "path": "high_fidelity/bosses/drone_overlord/hero_2048.png",
+    "category": "BOSSES",
+    "used_by": "Bosses (Excluded)",
+    "status": "OBSOLETE"
+  },
+  {
+    "path": "high_fidelity/bosses/drone_overlord/shadow_2048.png",
+    "category": "BOSSES",
+    "used_by": "Bosses (Excluded)",
+    "status": "OBSOLETE"
+  },
+  {
+    "path": "high_fidelity/bosses/drone_overlord/thumbnail_512.png",
+    "category": "BOSSES",
+    "used_by": "Bosses (Excluded)",
+    "status": "OBSOLETE"
+  },
+  {
+    "path": "high_fidelity/bosses/reactor_titan/asset.json",
+    "category": "BOSSES",
+    "used_by": "Bosses (Excluded)",
+    "status": "OBSOLETE"
+  },
+  {
+    "path": "high_fidelity/bosses/reactor_titan/hero_2048.png",
+    "category": "BOSSES",
+    "used_by": "Bosses (Excluded)",
+    "status": "OBSOLETE"
+  },
+  {
+    "path": "high_fidelity/bosses/reactor_titan/shadow_2048.png",
+    "category": "BOSSES",
+    "used_by": "Bosses (Excluded)",
+    "status": "OBSOLETE"
+  },
+  {
+    "path": "high_fidelity/bosses/reactor_titan/thumbnail_512.png",
+    "category": "BOSSES",
+    "used_by": "Bosses (Excluded)",
+    "status": "OBSOLETE"
+  },
+  {
+    "path": "high_fidelity/enemies/heavy/asset.json",
+    "category": "ENEMIES",
+    "used_by": "Core Enemy Drone Archetypes",
+    "status": "ACTIVE"
+  },
+  {
+    "path": "high_fidelity/enemies/heavy/hero_2048.png",
+    "category": "ENEMIES",
+    "used_by": "Core Enemy Drone Archetypes",
+    "status": "ACTIVE"
+  },
+  {
+    "path": "high_fidelity/enemies/heavy/shadow_2048.png",
+    "category": "ENEMIES",
+    "used_by": "Core Enemy Drone Archetypes",
+    "status": "ACTIVE"
+  },
+  {
+    "path": "high_fidelity/enemies/heavy/thumbnail_512.png",
+    "category": "ENEMIES",
+    "used_by": "Core Enemy Drone Archetypes",
+    "status": "ACTIVE"
+  },
+  {
+    "path": "high_fidelity/enemies/scout/asset.json",
+    "category": "ENEMIES",
+    "used_by": "Core Enemy Drone Archetypes",
+    "status": "ACTIVE"
+  },
+  {
+    "path": "high_fidelity/enemies/scout/hero_2048.png",
+    "category": "ENEMIES",
+    "used_by": "Core Enemy Drone Archetypes",
+    "status": "ACTIVE"
+  },
+  {
+    "path": "high_fidelity/enemies/scout/shadow_2048.png",
+    "category": "ENEMIES",
+    "used_by": "Core Enemy Drone Archetypes",
+    "status": "ACTIVE"
+  },
+  {
+    "path": "high_fidelity/enemies/scout/thumbnail_512.png",
+    "category": "ENEMIES",
+    "used_by": "Core Enemy Drone Archetypes",
+    "status": "ACTIVE"
+  },
+  {
+    "path": "high_fidelity/enemies/shield_elite/asset.json",
+    "category": "ENEMIES",
+    "used_by": "Core Enemy Drone Archetypes",
+    "status": "ACTIVE"
+  },
+  {
+    "path": "high_fidelity/enemies/shield_elite/hero_2048.png",
+    "category": "ENEMIES",
+    "used_by": "Core Enemy Drone Archetypes",
+    "status": "ACTIVE"
+  },
+  {
+    "path": "high_fidelity/enemies/shield_elite/shadow_2048.png",
+    "category": "ENEMIES",
+    "used_by": "Core Enemy Drone Archetypes",
+    "status": "ACTIVE"
+  },
+  {
+    "path": "high_fidelity/enemies/shield_elite/thumbnail_512.png",
+    "category": "ENEMIES",
+    "used_by": "Core Enemy Drone Archetypes",
+    "status": "ACTIVE"
+  },
+  {
+    "path": "high_fidelity/enemies/shooter/asset.json",
+    "category": "ENEMIES",
+    "used_by": "Core Enemy Drone Archetypes",
+    "status": "ACTIVE"
+  },
+  {
+    "path": "high_fidelity/enemies/shooter/hero_2048.png",
+    "category": "ENEMIES",
+    "used_by": "Core Enemy Drone Archetypes",
+    "status": "ACTIVE"
+  },
+  {
+    "path": "high_fidelity/enemies/shooter/shadow_2048.png",
+    "category": "ENEMIES",
+    "used_by": "Core Enemy Drone Archetypes",
+    "status": "ACTIVE"
+  },
+  {
+    "path": "high_fidelity/enemies/shooter/thumbnail_512.png",
+    "category": "ENEMIES",
+    "used_by": "Core Enemy Drone Archetypes",
+    "status": "ACTIVE"
+  },
+  {
+    "path": "high_fidelity/enemies/support_special/asset.json",
+    "category": "ENEMIES",
+    "used_by": "Core Enemy Drone Archetypes",
+    "status": "ACTIVE"
+  },
+  {
+    "path": "high_fidelity/enemies/support_special/hero_2048.png",
+    "category": "ENEMIES",
+    "used_by": "Core Enemy Drone Archetypes",
+    "status": "ACTIVE"
+  },
+  {
+    "path": "high_fidelity/enemies/support_special/shadow_2048.png",
+    "category": "ENEMIES",
+    "used_by": "Core Enemy Drone Archetypes",
+    "status": "ACTIVE"
+  },
+  {
+    "path": "high_fidelity/enemies/support_special/thumbnail_512.png",
+    "category": "ENEMIES",
+    "used_by": "Core Enemy Drone Archetypes",
+    "status": "ACTIVE"
+  },
+  {
+    "path": "high_fidelity/player_drones/01_striker/asset.json",
+    "category": "DRONE_CLASSES",
+    "used_by": "Five Core Drone Classes",
+    "status": "ACTIVE"
+  },
+  {
+    "path": "high_fidelity/player_drones/01_striker/hero_2048.png",
+    "category": "DRONE_CLASSES",
+    "used_by": "Five Core Drone Classes",
+    "status": "ACTIVE"
+  },
+  {
+    "path": "high_fidelity/player_drones/01_striker/shadow_2048.png",
+    "category": "DRONE_CLASSES",
+    "used_by": "Five Core Drone Classes",
+    "status": "ACTIVE"
+  },
+  {
+    "path": "high_fidelity/player_drones/01_striker/thumbnail_512.png",
+    "category": "DRONE_CLASSES",
+    "used_by": "Five Core Drone Classes",
+    "status": "ACTIVE"
+  },
+  {
+    "path": "high_fidelity/player_drones/02_phantom/asset.json",
+    "category": "DRONE_CLASSES",
+    "used_by": "Five Core Drone Classes",
+    "status": "ACTIVE"
+  },
+  {
+    "path": "high_fidelity/player_drones/02_phantom/hero_2048.png",
+    "category": "DRONE_CLASSES",
+    "used_by": "Five Core Drone Classes",
+    "status": "ACTIVE"
+  },
+  {
+    "path": "high_fidelity/player_drones/02_phantom/shadow_2048.png",
+    "category": "DRONE_CLASSES",
+    "used_by": "Five Core Drone Classes",
+    "status": "ACTIVE"
+  },
+  {
+    "path": "high_fidelity/player_drones/02_phantom/thumbnail_512.png",
+    "category": "DRONE_CLASSES",
+    "used_by": "Five Core Drone Classes",
+    "status": "ACTIVE"
+  },
+  {
+    "path": "high_fidelity/player_drones/03_titan/asset.json",
+    "category": "DRONE_CLASSES",
+    "used_by": "Five Core Drone Classes",
+    "status": "ACTIVE"
+  },
+  {
+    "path": "high_fidelity/player_drones/03_titan/hero_2048.png",
+    "category": "DRONE_CLASSES",
+    "used_by": "Five Core Drone Classes",
+    "status": "ACTIVE"
+  },
+  {
+    "path": "high_fidelity/player_drones/03_titan/shadow_2048.png",
+    "category": "DRONE_CLASSES",
+    "used_by": "Five Core Drone Classes",
+    "status": "ACTIVE"
+  },
+  {
+    "path": "high_fidelity/player_drones/03_titan/thumbnail_512.png",
+    "category": "DRONE_CLASSES",
+    "used_by": "Five Core Drone Classes",
+    "status": "ACTIVE"
+  },
+  {
+    "path": "high_fidelity/player_drones/04_velocity/asset.json",
+    "category": "DRONE_CLASSES",
+    "used_by": "Five Core Drone Classes",
+    "status": "ACTIVE"
+  },
+  {
+    "path": "high_fidelity/player_drones/04_velocity/hero_2048.png",
+    "category": "DRONE_CLASSES",
+    "used_by": "Five Core Drone Classes",
+    "status": "ACTIVE"
+  },
+  {
+    "path": "high_fidelity/player_drones/04_velocity/shadow_2048.png",
+    "category": "DRONE_CLASSES",
+    "used_by": "Five Core Drone Classes",
+    "status": "ACTIVE"
+  },
+  {
+    "path": "high_fidelity/player_drones/04_velocity/thumbnail_512.png",
+    "category": "DRONE_CLASSES",
+    "used_by": "Five Core Drone Classes",
+    "status": "ACTIVE"
+  },
+  {
+    "path": "high_fidelity/player_drones/05_aegis_quad/asset.json",
+    "category": "DRONE_CLASSES",
+    "used_by": "Five Core Drone Classes",
+    "status": "ACTIVE"
+  },
+  {
+    "path": "high_fidelity/player_drones/05_aegis_quad/hero_2048.png",
+    "category": "DRONE_CLASSES",
+    "used_by": "Five Core Drone Classes",
+    "status": "ACTIVE"
+  },
+  {
+    "path": "high_fidelity/player_drones/05_aegis_quad/shadow_2048.png",
+    "category": "DRONE_CLASSES",
+    "used_by": "Five Core Drone Classes",
+    "status": "ACTIVE"
+  },
+  {
+    "path": "high_fidelity/player_drones/05_aegis_quad/thumbnail_512.png",
+    "category": "DRONE_CLASSES",
+    "used_by": "Five Core Drone Classes",
+    "status": "ACTIVE"
+  },
+  {
+    "path": "sprites/bosses/assembly_warden.png",
+    "category": "BOSSES",
+    "used_by": "Bosses (Excluded)",
+    "status": "OBSOLETE"
+  },
+  {
+    "path": "sprites/bosses/boss_1_colossus.png",
+    "category": "BOSSES",
+    "used_by": "Bosses (Excluded)",
+    "status": "OBSOLETE"
+  },
+  {
+    "path": "sprites/bosses/boss_2_reaper.png",
+    "category": "BOSSES",
+    "used_by": "Bosses (Excluded)",
+    "status": "OBSOLETE"
+  },
+  {
+    "path": "sprites/bosses/boss_3_titan.png",
+    "category": "BOSSES",
+    "used_by": "Bosses (Excluded)",
+    "status": "OBSOLETE"
+  },
+  {
+    "path": "sprites/bosses/boss_4_kraken.png",
+    "category": "BOSSES",
+    "used_by": "Bosses (Excluded)",
+    "status": "OBSOLETE"
+  },
+  {
+    "path": "sprites/bosses/boss_5_core.png",
+    "category": "BOSSES",
+    "used_by": "Bosses (Excluded)",
+    "status": "OBSOLETE"
+  },
+  {
+    "path": "sprites/bosses/core_executor.png",
+    "category": "BOSSES",
+    "used_by": "Bosses (Excluded)",
+    "status": "OBSOLETE"
+  },
+  {
+    "path": "sprites/bosses/defense_commander.png",
+    "category": "BOSSES",
+    "used_by": "Bosses (Excluded)",
+    "status": "OBSOLETE"
+  },
+  {
+    "path": "sprites/bosses/drone_overlord.png",
+    "category": "BOSSES",
+    "used_by": "Bosses (Excluded)",
+    "status": "OBSOLETE"
+  },
+  {
+    "path": "sprites/bosses/reactor_titan.png",
+    "category": "BOSSES",
+    "used_by": "Bosses (Excluded)",
+    "status": "OBSOLETE"
+  },
+  {
+    "path": "sprites/enemies/heavy/heavy_attack.png",
+    "category": "ENEMIES",
+    "used_by": "Core Enemy Sprites",
+    "status": "ACTIVE"
+  },
+  {
+    "path": "sprites/enemies/heavy/heavy_base.png",
+    "category": "ENEMIES",
+    "used_by": "Core Enemy Sprites",
+    "status": "ACTIVE"
+  },
+  {
+    "path": "sprites/enemies/heavy/heavy_hit.png",
+    "category": "ENEMIES",
+    "used_by": "Core Enemy Sprites",
+    "status": "ACTIVE"
+  },
+  {
+    "path": "sprites/enemies/heavy/heavy_idle.png",
+    "category": "ENEMIES",
+    "used_by": "Core Enemy Sprites",
+    "status": "ACTIVE"
+  },
+  {
+    "path": "sprites/enemies/heavy/heavy_move.png",
+    "category": "ENEMIES",
+    "used_by": "Core Enemy Sprites",
+    "status": "ACTIVE"
+  },
+  {
+    "path": "sprites/enemies/scout/scout_attack.png",
+    "category": "ENEMIES",
+    "used_by": "Core Enemy Sprites",
+    "status": "ACTIVE"
+  },
+  {
+    "path": "sprites/enemies/scout/scout_base.png",
+    "category": "ENEMIES",
+    "used_by": "Core Enemy Sprites",
+    "status": "ACTIVE"
+  },
+  {
+    "path": "sprites/enemies/scout/scout_hit.png",
+    "category": "ENEMIES",
+    "used_by": "Core Enemy Sprites",
+    "status": "ACTIVE"
+  },
+  {
+    "path": "sprites/enemies/scout/scout_idle.png",
+    "category": "ENEMIES",
+    "used_by": "Core Enemy Sprites",
+    "status": "ACTIVE"
+  },
+  {
+    "path": "sprites/enemies/scout/scout_move.png",
+    "category": "ENEMIES",
+    "used_by": "Core Enemy Sprites",
+    "status": "ACTIVE"
+  },
+  {
+    "path": "sprites/enemies/shield_elite/shield_elite_attack.png",
+    "category": "ENEMIES",
+    "used_by": "Core Enemy Sprites",
+    "status": "ACTIVE"
+  },
+  {
+    "path": "sprites/enemies/shield_elite/shield_elite_base.png",
+    "category": "ENEMIES",
+    "used_by": "Core Enemy Sprites",
+    "status": "ACTIVE"
+  },
+  {
+    "path": "sprites/enemies/shield_elite/shield_elite_hit.png",
+    "category": "ENEMIES",
+    "used_by": "Core Enemy Sprites",
+    "status": "ACTIVE"
+  },
+  {
+    "path": "sprites/enemies/shield_elite/shield_elite_idle.png",
+    "category": "ENEMIES",
+    "used_by": "Core Enemy Sprites",
+    "status": "ACTIVE"
+  },
+  {
+    "path": "sprites/enemies/shield_elite/shield_elite_move.png",
+    "category": "ENEMIES",
+    "used_by": "Core Enemy Sprites",
+    "status": "ACTIVE"
+  },
+  {
+    "path": "sprites/enemies/shooter/shooter_attack.png",
+    "category": "ENEMIES",
+    "used_by": "Core Enemy Sprites",
+    "status": "ACTIVE"
+  },
+  {
+    "path": "sprites/enemies/shooter/shooter_base.png",
+    "category": "ENEMIES",
+    "used_by": "Core Enemy Sprites",
+    "status": "ACTIVE"
+  },
+  {
+    "path": "sprites/enemies/shooter/shooter_hit.png",
+    "category": "ENEMIES",
+    "used_by": "Core Enemy Sprites",
+    "status": "ACTIVE"
+  },
+  {
+    "path": "sprites/enemies/shooter/shooter_idle.png",
+    "category": "ENEMIES",
+    "used_by": "Core Enemy Sprites",
+    "status": "ACTIVE"
+  },
+  {
+    "path": "sprites/enemies/shooter/shooter_move.png",
+    "category": "ENEMIES",
+    "used_by": "Core Enemy Sprites",
+    "status": "ACTIVE"
+  },
+  {
+    "path": "sprites/pickups/battery.png",
+    "category": "ENVIRONMENT",
+    "used_by": "Tactical Pickups & Powerups",
+    "status": "ACTIVE"
+  },
+  {
+    "path": "sprites/pickups/health.png",
+    "category": "ENVIRONMENT",
+    "used_by": "Tactical Pickups & Powerups",
+    "status": "ACTIVE"
+  },
+  {
+    "path": "sprites/pickups/scrap.png",
+    "category": "ENVIRONMENT",
+    "used_by": "Tactical Pickups & Powerups",
+    "status": "ACTIVE"
+  },
+  {
+    "path": "sprites/pickups/shield.png",
+    "category": "ENVIRONMENT",
+    "used_by": "Tactical Pickups & Powerups",
+    "status": "ACTIVE"
+  },
+  {
+    "path": "sprites/player/drone_chassis_0.png",
+    "category": "SKINS",
+    "used_by": "Drone Skins (Excluded)",
+    "status": "OBSOLETE"
+  },
+  {
+    "path": "sprites/player/drone_chassis_1.png",
+    "category": "SKINS",
+    "used_by": "Drone Skins (Excluded)",
+    "status": "OBSOLETE"
+  },
+  {
+    "path": "sprites/player/drone_chassis_2.png",
+    "category": "SKINS",
+    "used_by": "Drone Skins (Excluded)",
+    "status": "OBSOLETE"
+  },
+  {
+    "path": "sprites/player/drone_chassis_3.png",
+    "category": "SKINS",
+    "used_by": "Drone Skins (Excluded)",
+    "status": "OBSOLETE"
+  },
+  {
+    "path": "sprites/player/drone_chassis_4.png",
+    "category": "SKINS",
+    "used_by": "Drone Skins (Excluded)",
+    "status": "OBSOLETE"
+  },
+  {
+    "path": "sprites/player/player_bank_left.png",
+    "category": "PLAYER",
+    "used_by": "Player Drone System",
+    "status": "ACTIVE"
+  },
+  {
+    "path": "sprites/player/player_bank_right.png",
+    "category": "PLAYER",
+    "used_by": "Player Drone System",
+    "status": "ACTIVE"
+  },
+  {
+    "path": "sprites/player/player_base.png",
+    "category": "PLAYER",
+    "used_by": "Player Drone System",
+    "status": "ACTIVE"
+  },
+  {
+    "path": "sprites/player/player_damaged.png",
+    "category": "PLAYER",
+    "used_by": "Player Drone System",
+    "status": "ACTIVE"
+  },
+  {
+    "path": "sprites/player/player_destroy.png",
+    "category": "PLAYER",
+    "used_by": "Player Drone System",
+    "status": "ACTIVE"
+  },
+  {
+    "path": "sprites/player/player_destroyed.png",
+    "category": "PLAYER",
+    "used_by": "Player Drone System",
+    "status": "ACTIVE"
+  },
+  {
+    "path": "sprites/player/player_fire.png",
+    "category": "PLAYER",
+    "used_by": "Player Drone System",
+    "status": "ACTIVE"
+  },
+  {
+    "path": "sprites/player/player_hit.png",
+    "category": "PLAYER",
+    "used_by": "Player Drone System",
+    "status": "ACTIVE"
+  },
+  {
+    "path": "sprites/player/player_idle.png",
+    "category": "PLAYER",
+    "used_by": "Player Drone System",
+    "status": "ACTIVE"
+  },
+  {
+    "path": "sprites/player/player_move.png",
+    "category": "PLAYER",
+    "used_by": "Player Drone System",
+    "status": "ACTIVE"
+  },
+  {
+    "path": "sprites/player/wingman_0.png",
+    "category": "PLAYER",
+    "used_by": "Player Drone System",
+    "status": "ACTIVE"
+  },
+  {
+    "path": "sprites/player/wingman_1.png",
+    "category": "PLAYER",
+    "used_by": "Player Drone System",
+    "status": "ACTIVE"
+  },
+  {
+    "path": "sprites/player/wingman_2.png",
+    "category": "PLAYER",
+    "used_by": "Player Drone System",
+    "status": "ACTIVE"
+  },
+  {
+    "path": "sprites/player/wingman_3.png",
+    "category": "PLAYER",
+    "used_by": "Player Drone System",
+    "status": "ACTIVE"
+  },
+  {
+    "path": "sprites/player/wingman_4.png",
+    "category": "PLAYER",
+    "used_by": "Player Drone System",
+    "status": "ACTIVE"
+  },
+  {
+    "path": "sprites/projectiles/bullet_pulse.png",
+    "category": "PROJECTILES",
+    "used_by": "Bullet & Projectile Visuals",
+    "status": "ACTIVE"
+  },
+  {
+    "path": "sprites/projectiles/bullet_scatter.png",
+    "category": "PROJECTILES",
+    "used_by": "Bullet & Projectile Visuals",
+    "status": "ACTIVE"
+  },
+  {
+    "path": "sprites/projectiles/enemy_bullet.png",
+    "category": "PROJECTILES",
+    "used_by": "Bullet & Projectile Visuals",
+    "status": "ACTIVE"
+  },
+  {
+    "path": "sprites/projectiles/missile.png",
+    "category": "PROJECTILES",
+    "used_by": "Bullet & Projectile Visuals",
+    "status": "ACTIVE"
+  },
+  {
+    "path": "sprites/structures/aa_platform.png",
+    "category": "ENVIRONMENT",
+    "used_by": "Mission Objectives & Tactical Structures",
+    "status": "ACTIVE"
+  },
+  {
+    "path": "sprites/structures/critical_power_reactor.png",
+    "category": "ENVIRONMENT",
+    "used_by": "Mission Objectives & Tactical Structures",
+    "status": "ACTIVE"
+  },
+  {
+    "path": "sprites/structures/missile_launcher.png",
+    "category": "ENVIRONMENT",
+    "used_by": "Mission Objectives & Tactical Structures",
+    "status": "ACTIVE"
+  },
+  {
+    "path": "sprites/structures/radar_command_tower.png",
+    "category": "ENVIRONMENT",
+    "used_by": "Mission Objectives & Tactical Structures",
+    "status": "ACTIVE"
+  },
+  {
+    "path": "sprites/structures/radar_dish.png",
+    "category": "ENVIRONMENT",
+    "used_by": "Mission Objectives & Tactical Structures",
+    "status": "ACTIVE"
+  },
+  {
+    "path": "sprites/structures/shield_generator.png",
+    "category": "ENVIRONMENT",
+    "used_by": "Mission Objectives & Tactical Structures",
+    "status": "ACTIVE"
+  },
+  {
+    "path": "sprites/vfx/engine_flame.png",
+    "category": "VFX",
+    "used_by": "Combat VFX & Explosions",
+    "status": "ACTIVE"
+  },
+  {
+    "path": "sprites/vfx/explosion_1.png",
+    "category": "VFX",
+    "used_by": "Combat VFX & Explosions",
+    "status": "ACTIVE"
+  },
+  {
+    "path": "sprites/vfx/explosion_2.png",
+    "category": "VFX",
+    "used_by": "Combat VFX & Explosions",
+    "status": "ACTIVE"
+  },
+  {
+    "path": "sprites/vfx/shield_bubble.png",
+    "category": "VFX",
+    "used_by": "Combat VFX & Explosions",
+    "status": "ACTIVE"
+  },
+  {
+    "path": "sprites/vfx/shockwave.png",
+    "category": "VFX",
+    "used_by": "Combat VFX & Explosions",
+    "status": "ACTIVE"
+  },
+  {
+    "path": "sprites/weapons/cluster_torpedo.png",
+    "category": "WEAPONS",
+    "used_by": "Weapon Systems & Icons",
+    "status": "ACTIVE"
+  },
+  {
+    "path": "sprites/weapons/laser_beam.png",
+    "category": "WEAPONS",
+    "used_by": "Weapon Systems & Icons",
+    "status": "ACTIVE"
+  },
+  {
+    "path": "sprites/weapons/laser_pulse.png",
+    "category": "WEAPONS",
+    "used_by": "Weapon Systems & Icons",
+    "status": "ACTIVE"
+  },
+  {
+    "path": "sprites/weapons/laser_scatter.png",
+    "category": "WEAPONS",
+    "used_by": "Weapon Systems & Icons",
+    "status": "ACTIVE"
+  },
+  {
+    "path": "sprites/weapons/missile.png",
+    "category": "WEAPONS",
+    "used_by": "Weapon Systems & Icons",
+    "status": "ACTIVE"
+  },
+  {
+    "path": "sprites/weapons/tesla_orb.png",
+    "category": "WEAPONS",
+    "used_by": "Weapon Systems & Icons",
+    "status": "ACTIVE"
+  },
+  {
+    "path": "sprites/weapons/barrage/icon.png",
+    "category": "WEAPONS",
+    "used_by": "Weapon Systems & Icons",
+    "status": "ACTIVE"
+  },
+  {
+    "path": "sprites/weapons/barrage/impact.png",
+    "category": "WEAPONS",
+    "used_by": "Weapon Systems & Icons",
+    "status": "ACTIVE"
+  },
+  {
+    "path": "sprites/weapons/barrage/muzzle.png",
+    "category": "WEAPONS",
+    "used_by": "Weapon Systems & Icons",
+    "status": "ACTIVE"
+  },
+  {
+    "path": "sprites/weapons/barrage/projectile.png",
+    "category": "WEAPONS",
+    "used_by": "Weapon Systems & Icons",
+    "status": "ACTIVE"
+  },
+  {
+    "path": "sprites/weapons/beam/icon.png",
+    "category": "WEAPONS",
+    "used_by": "Weapon Systems & Icons",
+    "status": "ACTIVE"
+  },
+  {
+    "path": "sprites/weapons/beam/impact.png",
+    "category": "WEAPONS",
+    "used_by": "Weapon Systems & Icons",
+    "status": "ACTIVE"
+  },
+  {
+    "path": "sprites/weapons/beam/muzzle.png",
+    "category": "WEAPONS",
+    "used_by": "Weapon Systems & Icons",
+    "status": "ACTIVE"
+  },
+  {
+    "path": "sprites/weapons/beam/projectile.png",
+    "category": "WEAPONS",
+    "used_by": "Weapon Systems & Icons",
+    "status": "ACTIVE"
+  },
+  {
+    "path": "sprites/weapons/cluster/icon.png",
+    "category": "WEAPONS",
+    "used_by": "Weapon Systems & Icons",
+    "status": "ACTIVE"
+  },
+  {
+    "path": "sprites/weapons/cluster/impact.png",
+    "category": "WEAPONS",
+    "used_by": "Weapon Systems & Icons",
+    "status": "ACTIVE"
+  },
+  {
+    "path": "sprites/weapons/cluster/muzzle.png",
+    "category": "WEAPONS",
+    "used_by": "Weapon Systems & Icons",
+    "status": "ACTIVE"
+  },
+  {
+    "path": "sprites/weapons/cluster/projectile.png",
+    "category": "WEAPONS",
+    "used_by": "Weapon Systems & Icons",
+    "status": "ACTIVE"
+  },
+  {
+    "path": "sprites/weapons/emp/icon.png",
+    "category": "WEAPONS",
+    "used_by": "Weapon Systems & Icons",
+    "status": "ACTIVE"
+  },
+  {
+    "path": "sprites/weapons/emp/impact.png",
+    "category": "WEAPONS",
+    "used_by": "Weapon Systems & Icons",
+    "status": "ACTIVE"
+  },
+  {
+    "path": "sprites/weapons/emp/muzzle.png",
+    "category": "WEAPONS",
+    "used_by": "Weapon Systems & Icons",
+    "status": "ACTIVE"
+  },
+  {
+    "path": "sprites/weapons/emp/projectile.png",
+    "category": "WEAPONS",
+    "used_by": "Weapon Systems & Icons",
+    "status": "ACTIVE"
+  },
+  {
+    "path": "sprites/weapons/missile/icon.png",
+    "category": "WEAPONS",
+    "used_by": "Weapon Systems & Icons",
+    "status": "ACTIVE"
+  },
+  {
+    "path": "sprites/weapons/missile/impact.png",
+    "category": "WEAPONS",
+    "used_by": "Weapon Systems & Icons",
+    "status": "ACTIVE"
+  },
+  {
+    "path": "sprites/weapons/missile/muzzle.png",
+    "category": "WEAPONS",
+    "used_by": "Weapon Systems & Icons",
+    "status": "ACTIVE"
+  },
+  {
+    "path": "sprites/weapons/missile/projectile.png",
+    "category": "WEAPONS",
+    "used_by": "Weapon Systems & Icons",
+    "status": "ACTIVE"
+  },
+  {
+    "path": "sprites/weapons/plasma/icon.png",
+    "category": "WEAPONS",
+    "used_by": "Weapon Systems & Icons",
+    "status": "ACTIVE"
+  },
+  {
+    "path": "sprites/weapons/plasma/impact.png",
+    "category": "WEAPONS",
+    "used_by": "Weapon Systems & Icons",
+    "status": "ACTIVE"
+  },
+  {
+    "path": "sprites/weapons/plasma/muzzle.png",
+    "category": "WEAPONS",
+    "used_by": "Weapon Systems & Icons",
+    "status": "ACTIVE"
+  },
+  {
+    "path": "sprites/weapons/plasma/projectile.png",
+    "category": "WEAPONS",
+    "used_by": "Weapon Systems & Icons",
+    "status": "ACTIVE"
+  },
+  {
+    "path": "sprites/weapons/pulse/icon.png",
+    "category": "WEAPONS",
+    "used_by": "Weapon Systems & Icons",
+    "status": "ACTIVE"
+  },
+  {
+    "path": "sprites/weapons/pulse/impact.png",
+    "category": "WEAPONS",
+    "used_by": "Weapon Systems & Icons",
+    "status": "ACTIVE"
+  },
+  {
+    "path": "sprites/weapons/pulse/muzzle.png",
+    "category": "WEAPONS",
+    "used_by": "Weapon Systems & Icons",
+    "status": "ACTIVE"
+  },
+  {
+    "path": "sprites/weapons/pulse/projectile.png",
+    "category": "WEAPONS",
+    "used_by": "Weapon Systems & Icons",
+    "status": "ACTIVE"
+  },
+  {
+    "path": "sprites/weapons/rail/icon.png",
+    "category": "WEAPONS",
+    "used_by": "Weapon Systems & Icons",
+    "status": "ACTIVE"
+  },
+  {
+    "path": "sprites/weapons/rail/impact.png",
+    "category": "WEAPONS",
+    "used_by": "Weapon Systems & Icons",
+    "status": "ACTIVE"
+  },
+  {
+    "path": "sprites/weapons/rail/muzzle.png",
+    "category": "WEAPONS",
+    "used_by": "Weapon Systems & Icons",
+    "status": "ACTIVE"
+  },
+  {
+    "path": "sprites/weapons/rail/projectile.png",
+    "category": "WEAPONS",
+    "used_by": "Weapon Systems & Icons",
+    "status": "ACTIVE"
+  },
+  {
+    "path": "sprites/weapons/rapid/icon.png",
+    "category": "WEAPONS",
+    "used_by": "Weapon Systems & Icons",
+    "status": "ACTIVE"
+  },
+  {
+    "path": "sprites/weapons/rapid/impact.png",
+    "category": "WEAPONS",
+    "used_by": "Weapon Systems & Icons",
+    "status": "ACTIVE"
+  },
+  {
+    "path": "sprites/weapons/rapid/muzzle.png",
+    "category": "WEAPONS",
+    "used_by": "Weapon Systems & Icons",
+    "status": "ACTIVE"
+  },
+  {
+    "path": "sprites/weapons/rapid/projectile.png",
+    "category": "WEAPONS",
+    "used_by": "Weapon Systems & Icons",
+    "status": "ACTIVE"
+  },
+  {
+    "path": "sprites/weapons/scatter/icon.png",
+    "category": "WEAPONS",
+    "used_by": "Weapon Systems & Icons",
+    "status": "ACTIVE"
+  },
+  {
+    "path": "sprites/weapons/scatter/impact.png",
+    "category": "WEAPONS",
+    "used_by": "Weapon Systems & Icons",
+    "status": "ACTIVE"
+  },
+  {
+    "path": "sprites/weapons/scatter/muzzle.png",
+    "category": "WEAPONS",
+    "used_by": "Weapon Systems & Icons",
+    "status": "ACTIVE"
+  },
+  {
+    "path": "sprites/weapons/scatter/projectile.png",
+    "category": "WEAPONS",
+    "used_by": "Weapon Systems & Icons",
+    "status": "ACTIVE"
+  },
+  {
+    "path": "sprites/weapons/tesla/icon.png",
+    "category": "WEAPONS",
+    "used_by": "Weapon Systems & Icons",
+    "status": "ACTIVE"
+  },
+  {
+    "path": "sprites/weapons/tesla/impact.png",
+    "category": "WEAPONS",
+    "used_by": "Weapon Systems & Icons",
+    "status": "ACTIVE"
+  },
+  {
+    "path": "sprites/weapons/tesla/muzzle.png",
+    "category": "WEAPONS",
+    "used_by": "Weapon Systems & Icons",
+    "status": "ACTIVE"
+  },
+  {
+    "path": "sprites/weapons/tesla/projectile.png",
+    "category": "WEAPONS",
+    "used_by": "Weapon Systems & Icons",
+    "status": "ACTIVE"
+  }
+]
