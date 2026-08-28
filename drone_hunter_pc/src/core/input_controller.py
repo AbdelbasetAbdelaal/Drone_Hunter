@@ -374,23 +374,54 @@ class InputController:
                 ctx.state = STATE_MENU
 
         elif ctx.state in (STATE_MISSION_COMPLETE, STATE_LEVEL_CLEAR, STATE_VICTORY):
-            if event.key in (pygame.K_SPACE, pygame.K_RETURN):
-                next_m = input_ctx.get_next_mission_id_callback() if input_ctx.get_next_mission_id_callback else None
-                if next_m:
-                    self._set_pending_mission(input_ctx, next_m)
-                    if input_ctx.start_mission_callback: input_ctx.start_mission_callback(next_m)
-                else:
-                    ctx.state = STATE_SECTOR_SELECT
+            if event.key in (pygame.K_UP, pygame.K_w):
+                self.menu_cursor = (self.menu_cursor - 1) % 2
+                if am: am.play_weapon_switch()
+            elif event.key in (pygame.K_DOWN, pygame.K_s):
+                self.menu_cursor = (self.menu_cursor + 1) % 2
+                if am: am.play_weapon_switch()
+            elif event.key in (pygame.K_SPACE, pygame.K_RETURN):
+                if self.menu_cursor == 0:
+                    next_m = input_ctx.get_next_mission_id_callback() if input_ctx.get_next_mission_id_callback else None
+                    if next_m:
+                        self._set_pending_mission(input_ctx, next_m)
+                        if input_ctx.start_mission_callback: input_ctx.start_mission_callback(next_m)
+                    else:
+                        ctx.state = STATE_SECTOR_SELECT
+                elif self.menu_cursor == 1:
+                    ctx.state = STATE_HANGAR
+                    if am: am.play_click()
             elif event.key in (pygame.K_h, pygame.K_b):
                 ctx.state = STATE_HANGAR
-            elif event.key == pygame.K_ESCAPE:
+                if am: am.play_click()
+            elif event.key in (pygame.K_ESCAPE, pygame.K_m):
                 ctx.state = STATE_SECTOR_SELECT
+                if am: am.play_click()
 
         elif ctx.state in (STATE_MISSION_FAILED, STATE_GAME_OVER):
-            if event.key in (pygame.K_SPACE, pygame.K_RETURN, pygame.K_r):
+            if event.key in (pygame.K_UP, pygame.K_w):
+                self.menu_cursor = (self.menu_cursor - 1) % 3
+                if am: am.play_weapon_switch()
+            elif event.key in (pygame.K_DOWN, pygame.K_s):
+                self.menu_cursor = (self.menu_cursor + 1) % 3
+                if am: am.play_weapon_switch()
+            elif event.key == pygame.K_r:
                 if input_ctx.start_mission_callback: input_ctx.start_mission_callback(input_ctx.pending_mission_id)
-            elif event.key == pygame.K_ESCAPE:
+            elif event.key in (pygame.K_SPACE, pygame.K_RETURN):
+                if self.menu_cursor == 0:
+                    if input_ctx.start_mission_callback: input_ctx.start_mission_callback(input_ctx.pending_mission_id)
+                elif self.menu_cursor == 1:
+                    ctx.state = STATE_SECTOR_SELECT
+                    if am: am.play_click()
+                elif self.menu_cursor == 2:
+                    ctx.state = STATE_MENU
+                    if am: am.play_click()
+            elif event.key == pygame.K_m:
                 ctx.state = STATE_SECTOR_SELECT
+                if am: am.play_click()
+            elif event.key in (pygame.K_q, pygame.K_ESCAPE):
+                ctx.state = STATE_MENU
+                if am: am.play_click()
 
         elif ctx.state == STATE_HANGAR:
             if event.key in (pygame.K_ESCAPE, pygame.K_b, pygame.K_q):
@@ -673,6 +704,7 @@ class InputController:
                 ctx.state = STATE_HANGAR
                 if am: am.play_click()
             elif ("menu" in cache and cache["menu"] and cache["menu"].collidepoint(mx, my)) or \
+                 ("map" in cache and cache["map"] and cache["map"].collidepoint(mx, my)) or \
                  ("back" in cache and cache["back"] and cache["back"].collidepoint(mx, my)):
                 ctx.state = STATE_SECTOR_SELECT
                 if am: am.play_click()
@@ -680,12 +712,17 @@ class InputController:
         elif ctx.state in (STATE_MISSION_FAILED, STATE_GAME_OVER):
             if "retry" in cache and cache["retry"] and cache["retry"].collidepoint(mx, my):
                 if input_ctx.start_mission_callback: input_ctx.start_mission_callback(input_ctx.pending_mission_id)
+            elif "map" in cache and cache["map"] and cache["map"].collidepoint(mx, my):
+                ctx.state = STATE_SECTOR_SELECT
+                if am: am.play_click()
             elif "hangar" in cache and cache["hangar"] and cache["hangar"].collidepoint(mx, my):
                 ctx.state = STATE_HANGAR
                 if am: am.play_click()
             elif ("menu" in cache and cache["menu"] and cache["menu"].collidepoint(mx, my)) or \
-                 ("back" in cache and cache["back"] and cache["back"].collidepoint(mx, my)):
-                ctx.state = STATE_SECTOR_SELECT
+                 ("back" in cache and cache["back"] and cache["back"].collidepoint(mx, my)) or \
+                 ("exit" in cache and cache["exit"] and cache["exit"].collidepoint(mx, my)) or \
+                 ("quit" in cache and cache["quit"] and cache["quit"].collidepoint(mx, my)):
+                ctx.state = STATE_MENU
                 if am: am.play_click()
 
         elif ctx.state == STATE_CUSTOM_DIFFICULTY:
@@ -1192,15 +1229,17 @@ class InputController:
                     if input_ctx.start_mission_callback:
                         input_ctx.start_mission_callback(input_ctx.pending_mission_id)
                 elif self.menu_cursor == 1:
-                    self._set_previous_state(input_ctx, ctx.state)
-                    ctx.state = STATE_HANGAR
-                elif self.menu_cursor == 2:
                     ctx.state = STATE_SECTOR_SELECT
+                    if am: am.play_click()
+                elif self.menu_cursor == 2:
+                    ctx.state = STATE_MENU
+                    if am: am.play_click()
             elif cancel:
+                ctx.state = STATE_MENU
+                if am: am.play_click()
+            elif sec_map:
                 ctx.state = STATE_SECTOR_SELECT
-            elif hangar_bay:
-                self._set_previous_state(input_ctx, ctx.state)
-                ctx.state = STATE_HANGAR
+                if am: am.play_click()
 
         elif ctx.state in (STATE_CONTROLLER_TEST, STATE_CONTROLLER_BINDING):
             if cancel or pause:

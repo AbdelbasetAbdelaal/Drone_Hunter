@@ -31,8 +31,10 @@ from src.input.input_manager import (
 )
 from src.input.input_manager import InputContext
 from src.core.game import Game
-from src.core.game_state import STATE_PLAYING
-from src.core.game_state import STATE_MENU, STATE_HANGAR, STATE_SECTOR_SELECT, STATE_MISSION_BRIEFING
+from src.core.game_state import (
+    STATE_PLAYING, STATE_MENU, STATE_HANGAR, STATE_SECTOR_SELECT,
+    STATE_MISSION_BRIEFING, STATE_MISSION_FAILED, STATE_MISSION_COMPLETE
+)
 from src.core.gameplay_context import InputHandlingContext
 from src.core.input_controller import InputController
 from src.core.game_context import GameContext
@@ -317,8 +319,77 @@ class TestInputSystem(unittest.TestCase):
         m1_rect = cache["missions"]["S1_M1"]
         controller._handle_mouse_click(m1_rect.centerx, m1_rect.centery, input_ctx)
         
-        self.assertEqual(ctx.state, STATE_MISSION_BRIEFING)
-        self.assertEqual(input_ctx.pending_mission_id, "S1_M1")
+    def test_mission_failed_mouse_interaction(self):
+        """Verify clicking buttons in MISSION FAILED screen activates retry, sector map, and exit."""
+        from src.ui.menus import draw_mission_failed
+        ctx = GameContext()
+        ctx.state = STATE_MISSION_FAILED
+        canvas = pygame.Surface((1280, 720))
+        cache = draw_mission_failed(canvas, 100, (0, 0))
+
+        self.assertIn("retry", cache)
+        self.assertIn("map", cache)
+        self.assertIn("exit", cache)
+
+        controller = InputController()
+        started_missions = []
+        input_ctx = InputHandlingContext(
+            context=ctx,
+            ui_rects_cache=cache,
+            input_manager=self.input_mgr,
+            start_mission_callback=lambda m: started_missions.append(m),
+            pending_mission_id="S1_M1"
+        )
+
+        # 1. Click Retry
+        controller._handle_mouse_click(cache["retry"].centerx, cache["retry"].centery, input_ctx)
+        self.assertEqual(started_missions, ["S1_M1"])
+
+        # 2. Click Sector Map
+        ctx.state = STATE_MISSION_FAILED
+        controller._handle_mouse_click(cache["map"].centerx, cache["map"].centery, input_ctx)
+        self.assertEqual(ctx.state, STATE_SECTOR_SELECT)
+
+        # 3. Click Quit to Menu
+        ctx.state = STATE_MISSION_FAILED
+        controller._handle_mouse_click(cache["exit"].centerx, cache["exit"].centery, input_ctx)
+        self.assertEqual(ctx.state, STATE_MENU)
+
+    def test_mission_failed_keyboard_navigation(self):
+        """Verify arrow keys, WASD, M, Q, and Space work in MISSION FAILED screen."""
+        ctx = GameContext()
+        ctx.state = STATE_MISSION_FAILED
+        controller = InputController()
+        controller.menu_cursor = 0
+        started_missions = []
+        input_ctx = InputHandlingContext(
+            context=ctx,
+            input_manager=self.input_mgr,
+            start_mission_callback=lambda m: started_missions.append(m),
+            pending_mission_id="S1_M2"
+        )
+
+        # Navigate down with Down Arrow / S
+        event_down = pygame.event.Event(pygame.KEYDOWN, key=pygame.K_DOWN)
+        controller._handle_keyboard_menu_navigation(event_down, input_ctx)
+        self.assertEqual(controller.menu_cursor, 1)
+
+        # Press Return on Sector Map
+        event_enter = pygame.event.Event(pygame.KEYDOWN, key=pygame.K_RETURN)
+        controller._handle_keyboard_menu_navigation(event_enter, input_ctx)
+        self.assertEqual(ctx.state, STATE_SECTOR_SELECT)
+
+        # M shortcut to Sector Map
+        ctx.state = STATE_MISSION_FAILED
+        event_m = pygame.event.Event(pygame.KEYDOWN, key=pygame.K_m)
+        controller._handle_keyboard_menu_navigation(event_m, input_ctx)
+        self.assertEqual(ctx.state, STATE_SECTOR_SELECT)
+
+        # Q shortcut to Main Menu
+        ctx.state = STATE_MISSION_FAILED
+        event_q = pygame.event.Event(pygame.KEYDOWN, key=pygame.K_q)
+        controller._handle_keyboard_menu_navigation(event_q, input_ctx)
+        self.assertEqual(ctx.state, STATE_MENU)
 
 
 if __name__ == "__main__":

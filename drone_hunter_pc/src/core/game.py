@@ -498,14 +498,14 @@ class Game:
             self.background.draw_menu_backdrop(canvas)
             self.ui_rects_cache = draw_main_menu(
                 canvas, mouse_pos=canvas_m_pos,
-                selected_index=self._menu_cursor if active_is_gamepad else None
+                selected_index=self._menu_cursor
             )
 
         elif ctx.state == STATE_SAVE_SELECT:
             self.ui_rects_cache = draw_save_slot_select_ui(
                 canvas, self.save_system, mouse_pos=canvas_m_pos,
                 input_manager=self.input_manager,
-                selected_index=self._menu_cursor if active_is_gamepad else None
+                selected_index=self._menu_cursor
             )
 
         elif ctx.state == STATE_SETTINGS:
@@ -513,7 +513,7 @@ class Game:
                 canvas, ctx.difficulty_mode, ctx.show_crt,
                 self.audio_manager.sound_enabled, mouse_pos=canvas_m_pos,
                 input_manager=self.input_manager,
-                selected_index=self._menu_cursor if active_is_gamepad else None,
+                selected_index=self._menu_cursor,
                 is_fullscreen=self.is_fullscreen
             )
 
@@ -522,7 +522,7 @@ class Game:
                 canvas, ctx.custom_difficulty_settings, mouse_pos=canvas_m_pos,
                 dragging=self.custom_difficulty_dragging,
                 input_manager=self.input_manager,
-                selected_index=self._menu_cursor if active_is_gamepad else None
+                selected_index=self._menu_cursor
             )
 
         elif ctx.state == STATE_CONTROLLER_BINDING:
@@ -544,7 +544,7 @@ class Game:
             self.ui_rects_cache = draw_drone_select_ui(
                 canvas, mouse_pos=canvas_m_pos,
                 sprite_manager=get_sprite_manager(),
-                selected_index=self._menu_cursor if active_is_gamepad else None
+                selected_index=self._menu_cursor
             )
 
         elif ctx.state == STATE_HANGAR:
@@ -556,7 +556,7 @@ class Game:
                 weapon_upgrades=getattr(ctx, "weapon_upgrade_levels", {}),
                 unlocked_weapons=getattr(ctx, "unlocked_weapons", ["pulse", "scatter", "missile"]),
                 total_score=getattr(ctx, "total_score", 0),
-                selected_index=self._menu_cursor if active_is_gamepad else None,
+                selected_index=self._menu_cursor,
                 input_manager=self.input_manager
             )
 
@@ -609,7 +609,7 @@ class Game:
             self.ui_rects_cache = draw_pause_settings_ui(
                 canvas, ctx.difficulty_mode, ctx.show_crt, self.audio_manager.sound_enabled,
                 mouse_pos=canvas_m_pos,
-                selected_index=self._menu_cursor if active_is_gamepad else None
+                selected_index=self._menu_cursor
             )
 
         elif ctx.state == STATE_MISSION_COMPLETE:
@@ -623,7 +623,7 @@ class Game:
                 was_first_clear=getattr(self.mission_system, "is_first_clear", False),
                 is_sector_clear=getattr(self.mission_system, "is_sector_clear", False),
                 mouse_pos=canvas_m_pos,
-                selected_index=self._menu_cursor if active_is_gamepad else None
+                selected_index=self._menu_cursor
             )
 
         elif ctx.state == STATE_MISSION_FAILED:
@@ -633,7 +633,7 @@ class Game:
             )
             self.ui_rects_cache = draw_mission_failed(
                 canvas, ctx.scrap, mouse_pos=canvas_m_pos,
-                selected_index=self._menu_cursor if active_is_gamepad else None
+                selected_index=self._menu_cursor
             )
 
         elif ctx.state == STATE_LEVEL_CLEAR:
@@ -644,7 +644,7 @@ class Game:
             self.ui_rects_cache = draw_level_clear_ui(
                 canvas, sector_idx=ctx.current_sector_idx, sub_level=ctx.current_sub_level,
                 score=ctx.level_score, scrap=ctx.scrap, mouse_pos=canvas_m_pos,
-                selected_index=self._menu_cursor if active_is_gamepad else None
+                selected_index=self._menu_cursor
             )
 
         elif ctx.state == STATE_GAME_OVER:
@@ -655,7 +655,7 @@ class Game:
             self.ui_rects_cache = draw_game_over_ui(
                 canvas, sector_idx=ctx.current_sector_idx, sub_level=ctx.current_sub_level,
                 score=ctx.level_score, mouse_pos=canvas_m_pos,
-                selected_index=self._menu_cursor if active_is_gamepad else None
+                selected_index=self._menu_cursor
             )
 
         elif ctx.state == STATE_VICTORY:
