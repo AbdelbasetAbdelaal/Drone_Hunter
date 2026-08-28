@@ -101,6 +101,10 @@ class CampaignState:
             self._completed_missions.append(mission_id)
         self._unlock_next_mission(mission_id)
 
+    def record_mission_completed(self, mission_id: str) -> None:
+        """Convenience alias for complete_mission."""
+        self.complete_mission(mission_id)
+
     def unlock_mission(self, mission_id: str) -> None:
         if mission_id not in self._unlocked_missions:
             self._unlocked_missions.append(mission_id)

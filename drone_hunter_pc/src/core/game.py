@@ -361,6 +361,21 @@ class Game:
         )
         self.context.state = STATE_PLAYING
 
+    def start_mission(self, mission_id: Optional[str] = None):
+        """Convenience alias for starting a tactical mission."""
+        return self.start_phase5_mission(mission_id)
+
+    def set_selected_drone(self, drone_id: str):
+        """Sets active player drone platform and updates loadout."""
+        self.context.selected_drone = drone_id
+        if self.context.player is not None:
+            from src.data.game_data import get_drone_class_by_id, get_drone_loadout
+            d_info = get_drone_class_by_id(drone_id)
+            if d_info:
+                self.context.player.drone_class = drone_id
+                self.context.player.available_weapons = get_drone_loadout(drone_id)
+                self.context.player.active_weapon = self.context.player.available_weapons[0]
+
     def reset_game(self):
         """Initializes or resets player, spawner, and stage wave tracking."""
         self.gameplay_controller.reset_game(
