@@ -9,6 +9,7 @@ extends CharacterBody2D
 @onready var sprite: Sprite2D = $Sprite2D
 @onready var camera: Camera2D = $Camera2D
 @onready var collision_shape: CollisionShape2D = $CollisionShape2D
+@onready var weapon_controller: Node2D = $WeaponController
 
 func _ready() -> void:
 	pass
@@ -16,6 +17,7 @@ func _ready() -> void:
 func _physics_process(delta: float) -> void:
 	_handle_movement(delta)
 	_handle_aim()
+	_handle_combat(delta)
 
 func _handle_movement(delta: float) -> void:
 	# 360-degree vector input mapped from Godot InputMap
@@ -38,3 +40,7 @@ func _handle_aim() -> void:
 	# World-space mouse aim (remains accurate during camera movement, scaling & resizing)
 	var mouse_world_pos: Vector2 = get_global_mouse_position()
 	look_at(mouse_world_pos)
+
+func _handle_combat(_delta: float) -> void:
+	if Input.is_action_pressed("fire_primary") and weapon_controller != null and weapon_controller.has_method("try_fire_primary"):
+		weapon_controller.try_fire_primary()

@@ -1,3 +1,23 @@
-[gd_scene format=3 uid="uid://wp28x7u601py2"]
+[gd_scene load_steps=4 format=3]
+
+[ext_resource type="Script" path="res://scripts/gameplay/weapons/projectile.gd" id="1_proj_script"]
+[ext_resource type="Texture2D" path="res://assets/projectiles/bullet_pulse.png" id="2_bullet_texture"]
+
+[sub_resource type="CapsuleShape2D" id="CapsuleShape2D_pulse"]
+radius = 8.0
+height = 28.0
 
 [node name="BulletPulse" type="Area2D"]
+script = ExtResource("1_proj_script")
+speed = 950.0
+damage = 25.0
+max_range = 1400.0
+
+[node name="Sprite2D" type="Sprite2D" parent="."]
+rotation = 1.5707963
+scale = Vector2(0.7, 0.7)
+texture = ExtResource("2_bullet_texture")
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="."]
+rotation = 1.5707963
+shape = SubResource("CapsuleShape2D_pulse")
