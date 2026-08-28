@@ -135,7 +135,7 @@ class CombatSystem:
                 beam_max_y = max(start_y, actual_end_y) + 48.0
 
                 # 2. Damage enemies along the beam with broad-phase & squared-distance
-                dmg = b.damage_per_second * dt
+                base_beam_damage = b.damage_per_second * dt
                 for target in targets:
                     if not getattr(target, "alive", False):
                         continue
@@ -155,17 +155,18 @@ class CombatSystem:
 
                     if dist_sq <= hit_radius * hit_radius:
                         # Enemy is hit by continuous beam
+                        target_dmg = base_beam_damage
                         is_shielded = False
                         for ally, ax, ay in shield_drones:
                             if ally != target and ((cx - ax) ** 2 + (cy - ay) ** 2) <= SHIELD_RADIUS_SQ:
                                 is_shielded = True
                                 break
                         if is_shielded:
-                            dmg = max(1.0, dmg / 3.0)
+                            target_dmg = max(1.0, base_beam_damage / 3.0)
                             if ctx.particle_manager and random.random() < 0.15:
                                 ctx.particle_manager.spawn_shield_ripple(target.rect.center)
 
-                        target.take_damage(dmg, source="beam")
+                        target.take_damage(target_dmg, source="beam")
                         if ctx.particle_manager:
                             ctx.particle_manager.spawn_spark((proj_x, proj_y), count=random.randint(1, 3), color=(56, 189, 248))
                             if random.random() < 0.35:
