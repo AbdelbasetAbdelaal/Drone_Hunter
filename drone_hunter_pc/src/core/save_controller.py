@@ -26,13 +26,18 @@ class SaveController:
                          input_manager=None, achievement_system=None) -> dict:
         """Selects a save slot (accepting 0-indexed or 1-indexed number) and loads it."""
         idx = (slot_num - 1) if (1 <= slot_num <= 3) else slot_num
-        idx = max(0, min(2, idx))
+        if not isinstance(idx, int) or idx < 0 or idx >= 3:
+            logger.warning(f"Invalid save slot requested: {slot_num}. Rejecting.")
+            return self.save_system._create_normalized_defaults() if hasattr(self.save_system, "_create_normalized_defaults") else self.save_system.get_default_save_data()
         self.selected_save_slot = idx
         return self.load_slot(idx, context, audio_manager, input_manager, achievement_system)
 
     def load_slot(self, slot_index: int, context, audio_manager=None,
                   input_manager=None, achievement_system=None) -> dict:
         """Restores context and subsystems from the specified save slot."""
+        if not isinstance(slot_index, int) or slot_index < 0 or slot_index >= 3:
+            logger.warning(f"Invalid save slot_index requested: {slot_index}. Rejecting.")
+            return self.save_system._create_normalized_defaults() if hasattr(self.save_system, "_create_normalized_defaults") else self.save_system.get_default_save_data()
         self.selected_save_slot = slot_index
         self.save_system.set_slot(slot_index)
 

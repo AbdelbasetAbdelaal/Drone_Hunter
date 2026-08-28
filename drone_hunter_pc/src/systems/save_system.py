@@ -31,9 +31,10 @@ class SaveSystem:
         self.base_dir = base_dir
 
         if slot_index is not None:
-            clamped_slot = max(0, min(NUM_SAVE_SLOTS - 1, int(slot_index)))
-            self.slot_index = clamped_slot
-            self.save_path = os.path.join(base_dir, f"save_slot_{clamped_slot + 1}.json")
+            if not isinstance(slot_index, int) or slot_index < 0 or slot_index >= NUM_SAVE_SLOTS:
+                raise ValueError(f"Invalid slot_index: {slot_index}. Must be 0 <= slot_index < {NUM_SAVE_SLOTS}")
+            self.slot_index = slot_index
+            self.save_path = os.path.join(base_dir, f"save_slot_{slot_index + 1}.json")
         elif save_filename is not None:
             # Prevent directory traversal in custom filename
             safe_filename = os.path.basename(save_filename)
@@ -47,17 +48,17 @@ class SaveSystem:
 
     def set_slot(self, slot_index: int):
         """Switches the active save slot with strict slot range validation (0..2)."""
-        clamped_slot = max(0, min(NUM_SAVE_SLOTS - 1, int(slot_index)))
-        self.slot_index = clamped_slot
-        self.save_path = os.path.join(self.base_dir, f"save_slot_{clamped_slot + 1}.json")
+        if not isinstance(slot_index, int) or slot_index < 0 or slot_index >= NUM_SAVE_SLOTS:
+            raise ValueError(f"Invalid slot_index: {slot_index}. Must be 0 <= slot_index < {NUM_SAVE_SLOTS}")
+        self.slot_index = slot_index
+        self.save_path = os.path.join(self.base_dir, f"save_slot_{slot_index + 1}.json")
         self.temp_path = self.save_path + ".tmp"
 
     def get_default_save_data(self) -> dict:
-        """Returns the authoritative default save data schema with legacy compatibility keys."""
+        """Returns ONLY the current authoritative save data schema without legacy fields."""
         return {
             "save_version": CURRENT_SAVE_VERSION,
             "scrap": 0,
-            "coins": 0,
             "highscore": 0,
             "play_time": 0,
             "last_played": None,
@@ -78,19 +79,6 @@ class SaveSystem:
                 "campaign_completed": False,
                 "new_game_plus_count": 0
             },
-            "sectors": [True, False, False, False, False],
-            "stages": [True] + [False] * 14,
-            "missions": {
-                "current_sector": 1,
-                "current_mission": 1,
-                "completed": [],
-                "unlocked": ["S1_M1"]
-            },
-            "sector_progress": {
-                "completed": [],
-                "unlocked": [1]
-            },
-            "campaign_completed": False,
             "achievements": [],
             "show_crt": False,
             "is_fullscreen": False,
@@ -114,9 +102,19 @@ class SaveSystem:
             "controller_mappings": {}
         }
 
+    def _create_normalized_defaults(self) -> dict:
+        """Helper to create defaults with backward-compatibility query aliases."""
+        res = self.get_default_save_data()
+        res["coins"] = 0
+        res["campaign_completed"] = False
+        res["sectors"] = [True, False, False, False, False]
+        res["stages"] = [True] + [False] * 14
+        return res
+
     def _get_slot_path(self, slot_index: int) -> str:
-        clamped_slot = max(0, min(NUM_SAVE_SLOTS - 1, int(slot_index)))
-        return os.path.join(self.base_dir, f"save_slot_{clamped_slot + 1}.json")
+        if not isinstance(slot_index, int) or slot_index < 0 or slot_index >= NUM_SAVE_SLOTS:
+            raise ValueError(f"Invalid slot_index: {slot_index}. Must be 0 <= slot_index < {NUM_SAVE_SLOTS}")
+        return os.path.join(self.base_dir, f"save_slot_{slot_index + 1}.json")
 
     def get_save_slot_list(self) -> List[Dict]:
         """Returns metadata for all 3 save slots plus legacy save if it exists."""
@@ -192,10 +190,10 @@ class SaveSystem:
 
     def delete_save_slot(self, slot_index: int) -> bool:
         """Deletes the specified save slot file."""
-        if slot_index < 0 or slot_index >= NUM_SAVE_SLOTS:
+        if not isinstance(slot_index, int) or slot_index < 0 or slot_index >= NUM_SAVE_SLOTS:
             return False
-        slot_path = self._get_slot_path(slot_index)
         try:
+            slot_path = self._get_slot_path(slot_index)
             if os.path.exists(slot_path):
                 os.remove(slot_path)
             temp_path = slot_path + ".tmp"
@@ -208,7 +206,6 @@ class SaveSystem:
 
     def load(self) -> dict:
         """Loads and normalizes save data, supporting both versioned and legacy unversioned files."""
-        defaults = self.get_default_save_data()
         load_path = self.save_path
 
         if not os.path.exists(load_path):
@@ -217,7 +214,7 @@ class SaveSystem:
                 load_path = legacy_path
             else:
                 logging.info(f"Save file not found at {self.save_path}. Using safe defaults.")
-                return defaults
+                return self._create_normalized_defaults()
 
         try:
             with open(load_path, "r", encoding="utf-8") as f:
@@ -225,10 +222,22 @@ class SaveSystem:
 
             if not isinstance(data, dict):
                 logging.warning(f"Save data at {load_path} is not a valid JSON object. Falling back to defaults.")
-                return defaults
+                return self._create_normalized_defaults()
 
-            # Schema version detection
-            save_version = data.get("save_version", 0)
+            # Schema version detection & validation
+            raw_version = data.get("save_version")
+            if raw_version is not None and isinstance(raw_version, (int, float)):
+                save_version = int(raw_version)
+                if save_version > CURRENT_SAVE_VERSION:
+                    logging.warning(
+                        f"Unsupported future save_version {save_version} in {load_path} "
+                        f"(current version is {CURRENT_SAVE_VERSION}). Falling back to safe defaults."
+                    )
+                    return self._create_normalized_defaults()
+            else:
+                save_version = 0  # Legacy / unversioned
+
+            defaults = self.get_default_save_data()
 
             # Core Resources & Stats Normalization
             legacy_coins = max(0, int(data.get("coins", 0))) if isinstance(data.get("coins"), (int, float)) else 0
@@ -367,15 +376,17 @@ class SaveSystem:
             # Optional compatibility fields for legacy callers querying old keys
             result["coins"] = scrap
             result["campaign_completed"] = bool(campaign_state.get("campaign_completed", False))
+            result["sectors"] = [True, False, False, False, False]
+            result["stages"] = [True] + [False] * 14
 
             return result
 
         except json.JSONDecodeError as jde:
             logging.error(f"Save file {self.save_path} is corrupted ({jde}). Falling back to safe defaults.")
-            return defaults
+            return self._create_normalized_defaults()
         except Exception as e:
             logging.error(f"Unexpected error loading save data from {load_path}: {e}. Using safe defaults.")
-            return defaults
+            return self._create_normalized_defaults()
 
     def save(self, data_or_scrap: Any = None, **kwargs) -> bool:
         """Atomically saves game data using a temporary write & replace pattern with schema version 1."""

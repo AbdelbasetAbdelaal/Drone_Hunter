@@ -27,6 +27,25 @@ class TestProductionSaveSystem(unittest.TestCase):
         sys.temp_path = sys.save_path + ".tmp"
         return sys
 
+    def test_default_save_schema_has_no_obsolete_fields(self):
+        """Verify get_default_save_data() contains ONLY current schema and lacks obsolete fields."""
+        save_sys = SaveSystem(slot_index=0)
+        defaults = save_sys.get_default_save_data()
+
+        self.assertIn("save_version", defaults)
+        self.assertEqual(defaults["save_version"], CURRENT_SAVE_VERSION)
+        self.assertIn("campaign_state", defaults)
+        self.assertIn("scrap", defaults)
+
+        # Obsolete fields MUST NOT exist in default save data
+        self.assertNotIn("coins", defaults)
+        self.assertNotIn("stages", defaults)
+        self.assertNotIn("missions", defaults)
+        self.assertNotIn("sector_progress", defaults)
+        self.assertNotIn("sectors", defaults)
+        self.assertNotIn("bosses_defeated", defaults)
+        self.assertNotIn("selected_skin", defaults)
+
     def test_versioned_save_format(self):
         """Verify newly created saves write save_version: 1."""
         save_sys = self._get_custom_save_sys("test_ver.json")
@@ -40,12 +59,30 @@ class TestProductionSaveSystem(unittest.TestCase):
         self.assertEqual(data["scrap"], 500)
         self.assertEqual(data["highscore"], 12000)
 
+    def test_future_save_version_rejected(self):
+        """Verify an unsupported future save_version (e.g. 999) is safely rejected and returns safe defaults."""
+        save_sys = self._get_custom_save_sys("future_save.json")
+        future_payload = {
+            "save_version": 999,
+            "scrap": 999999,
+            "highscore": 999999,
+            "campaign_state": {"current_mission": "S99_M99"}
+        }
+        with open(save_sys.save_path, "w", encoding="utf-8") as f:
+            json.dump(future_payload, f)
+
+        loaded = save_sys.load()
+        # Should return safe defaults instead of corrupting runtime state
+        self.assertEqual(loaded["scrap"], 0)
+        self.assertEqual(loaded["highscore"], 0)
+        self.assertEqual(loaded["campaign_state"]["current_mission"], "S1_M1")
+
     def test_obsolete_fields_omitted_from_new_saves(self):
         """Verify new saves do NOT write coins, stages, bosses_defeated, selected_skin, or duplicate missions trees."""
         save_sys = self._get_custom_save_sys("test_clean.json")
         save_sys.save({
             "scrap": 300,
-            "coins": 300,  # obsolete passed via legacy kwargs
+            "coins": 300,
             "stages": [True] * 15,
             "bosses_defeated": [1, 2],
             "selected_skin": 2,
@@ -193,6 +230,37 @@ class TestProductionSaveSystem(unittest.TestCase):
         self.assertEqual(sys0.load()["scrap"], 100)
         self.assertEqual(sys1.load()["scrap"], 200)
         self.assertEqual(sys2.load()["scrap"], 300)
+
+    def test_strict_slot_validation(self):
+        """Verify valid slots 0..2 succeed while invalid slot indices are rejected strictly."""
+        sys = SaveSystem(slot_index=0)
+        sys.base_dir = self.test_dir
+
+        # Valid slots
+        sys.set_slot(0)
+        sys.set_slot(1)
+        sys.set_slot(2)
+
+        # Invalid slot indices MUST raise ValueError
+        with self.assertRaises(ValueError):
+            sys.set_slot(-1)
+
+        with self.assertRaises(ValueError):
+            sys.set_slot(3)
+
+        with self.assertRaises(ValueError):
+            sys.set_slot(99)
+
+        with self.assertRaises(ValueError):
+            SaveSystem(slot_index=-1)
+
+        with self.assertRaises(ValueError):
+            SaveSystem(slot_index=3)
+
+        # delete_save_slot returns False on invalid slots
+        self.assertFalse(sys.delete_save_slot(-1))
+        self.assertFalse(sys.delete_save_slot(3))
+        self.assertFalse(sys.delete_save_slot(99))
 
     def test_stale_temp_file_ignored(self):
         """Verify a stale .tmp file does not overwrite or corrupt loading of main save."""
