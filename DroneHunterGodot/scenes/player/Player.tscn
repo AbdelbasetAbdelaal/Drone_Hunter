@@ -5,14 +5,14 @@
 [ext_resource type="Script" path="res://scripts/gameplay/weapons/weapon_controller.gd" id="3_weapon_ctrl"]
 
 [sub_resource type="CircleShape2D" id="CircleShape2D_player"]
-radius = 38.0
+radius = 22.0
 
 [node name="Player" type="CharacterBody2D"]
 collision_mask = 3
 script = ExtResource("1_script")
 
 [node name="Sprite2D" type="Sprite2D" parent="."]
-scale = Vector2(0.75, 0.75)
+scale = Vector2(0.42, 0.42)
 texture = ExtResource("2_texture")
 
 [node name="CollisionShape2D" type="CollisionShape2D" parent="."]
@@ -29,4 +29,4 @@ position_smoothing_speed = 8.0
 
 [node name="WeaponController" type="Node2D" parent="."]
 script = ExtResource("3_weapon_ctrl")
-muzzle_offset = Vector2(75, 0)
+muzzle_offset = Vector2(45, 0)
