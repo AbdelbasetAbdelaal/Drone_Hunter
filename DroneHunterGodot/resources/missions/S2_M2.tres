@@ -1,0 +1,16 @@
+[gd_resource type="Resource" script_class="MissionDefinition" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://resources/missions/mission_definition.gd" id="1_script"]
+
+[resource]
+script = ExtResource("1_script")
+mission_id = "S2_M2"
+sector_index = 2
+mission_index = 2
+title = "Assembly Line Defense"
+description = "Repel armored enemy waves attempting to secure prototype drones."
+sector_background = "backgrounds/sectors/sector_1_ref.png"
+total_waves = 4
+is_boss_mission = false
+scrap_reward = 450
+target_score = 4500

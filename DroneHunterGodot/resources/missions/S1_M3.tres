@@ -1,0 +1,16 @@
+[gd_resource type="Resource" script_class="MissionDefinition" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://resources/missions/mission_definition.gd" id="1_script"]
+
+[resource]
+script = ExtResource("1_script")
+mission_id = "S1_M3"
+sector_index = 1
+mission_index = 3
+title = "Desert Titan Showdown"
+description = "Neutralize the Titan Carrier command fortress in the deep desert."
+sector_background = "backgrounds/sectors/sector_2_ref.png"
+total_waves = 4
+is_boss_mission = true
+scrap_reward = 500
+target_score = 5000

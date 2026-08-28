@@ -1,0 +1,16 @@
+[gd_resource type="Resource" script_class="MissionDefinition" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://resources/missions/mission_definition.gd" id="1_script"]
+
+[resource]
+script = ExtResource("1_script")
+mission_id = "S2_M1"
+sector_index = 2
+mission_index = 1
+title = "Factory Perimeter Breach"
+description = "Infiltrate the automated manufacturing complex outer ring."
+sector_background = "backgrounds/sectors/sector_1_ref.png"
+total_waves = 3
+is_boss_mission = false
+scrap_reward = 350
+target_score = 3500

@@ -1,0 +1,16 @@
+[gd_resource type="Resource" script_class="MissionDefinition" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://resources/missions/mission_definition.gd" id="1_script"]
+
+[resource]
+script = ExtResource("1_script")
+mission_id = "S4_M1"
+sector_index = 4
+mission_index = 1
+title = "Asteroid Belt Escort"
+description = "Clear orbital defense grids and floating missile batteries."
+sector_background = "backgrounds/sectors/sector_4_ref.png"
+total_waves = 4
+is_boss_mission = false
+scrap_reward = 750
+target_score = 7000

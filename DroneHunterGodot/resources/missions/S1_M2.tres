@@ -1,0 +1,16 @@
+[gd_resource type="Resource" script_class="MissionDefinition" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://resources/missions/mission_definition.gd" id="1_script"]
+
+[resource]
+script = ExtResource("1_script")
+mission_id = "S1_M2"
+sector_index = 1
+mission_index = 2
+title = "Mining Outpost Raid"
+description = "Destroy hostile shooter units guarding the desert extraction facility."
+sector_background = "backgrounds/sectors/sector_2_ref.png"
+total_waves = 3
+is_boss_mission = false
+scrap_reward = 300
+target_score = 3000

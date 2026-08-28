@@ -1,0 +1,155 @@
+[gd_scene load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/ui/sector_map.gd" id="1_script"]
+
+[node name="SectorMap" type="Control"]
+layout_mode = 3
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+script = ExtResource("1_script")
+
+[node name="Background" type="ColorRect" parent="."]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+color = Color(0.04, 0.06, 0.1, 1)
+
+[node name="Header" type="Panel" parent="."]
+layout_mode = 1
+anchors_preset = 10
+anchor_right = 1.0
+offset_left = 30.0
+offset_top = 20.0
+offset_right = -30.0
+offset_bottom = 70.0
+grow_horizontal = 2
+
+[node name="Title" type="Label" parent="Header"]
+layout_mode = 1
+anchors_preset = 4
+anchor_top = 0.5
+anchor_bottom = 0.5
+offset_left = 20.0
+offset_top = -14.0
+offset_right = 400.0
+offset_bottom = 14.0
+grow_vertical = 2
+theme_override_colors/font_color = Color(0.3, 0.8, 1, 1)
+theme_override_font_sizes/font_size = 20
+text = "CAMPAIGN SECTOR OPERATIONS"
+vertical_alignment = 1
+
+[node name="Content" type="HBoxContainer" parent="."]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+offset_left = 30.0
+offset_top = 85.0
+offset_right = -30.0
+offset_bottom = -75.0
+grow_horizontal = 2
+grow_vertical = 2
+theme_override_constants/separation = 24
+
+[node name="LeftPanel" type="VBoxContainer" parent="Content"]
+custom_minimum_size = Vector2(300, 0)
+layout_mode = 2
+theme_override_constants/separation = 10
+
+[node name="SectionTitle" type="Label" parent="Content/LeftPanel"]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.3, 0.8, 1, 1)
+theme_override_font_sizes/font_size = 16
+text = "SECTORS (1 - 5)"
+
+[node name="SectorButtons" type="VBoxContainer" parent="Content/LeftPanel"]
+layout_mode = 2
+size_flags_vertical = 3
+theme_override_constants/separation = 8
+
+[node name="Sector1" type="Button" parent="Content/LeftPanel/SectorButtons"]
+custom_minimum_size = Vector2(0, 48)
+layout_mode = 2
+text = "SECTOR 1: DESERT CANYON"
+
+[node name="Sector2" type="Button" parent="Content/LeftPanel/SectorButtons"]
+custom_minimum_size = Vector2(0, 48)
+layout_mode = 2
+text = "SECTOR 2: CYBER FACTORY"
+
+[node name="Sector3" type="Button" parent="Content/LeftPanel/SectorButtons"]
+custom_minimum_size = Vector2(0, 48)
+layout_mode = 2
+text = "SECTOR 3: TROPICAL FOREST"
+
+[node name="Sector4" type="Button" parent="Content/LeftPanel/SectorButtons"]
+custom_minimum_size = Vector2(0, 48)
+layout_mode = 2
+text = "SECTOR 4: ORBITAL SPACE"
+
+[node name="Sector5" type="Button" parent="Content/LeftPanel/SectorButtons"]
+custom_minimum_size = Vector2(0, 48)
+layout_mode = 2
+text = "SECTOR 5: CYBER CORE"
+
+[node name="RightPanel" type="VBoxContainer" parent="Content"]
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_constants/separation = 12
+
+[node name="SectorTitle" type="Label" parent="Content/RightPanel"]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.2, 0.9, 0.4, 1)
+theme_override_font_sizes/font_size = 18
+text = "SECTOR 1: DESERT CANYON"
+
+[node name="MissionList" type="VBoxContainer" parent="Content/RightPanel"]
+layout_mode = 2
+theme_override_constants/separation = 8
+
+[node name="DetailsPanel" type="Panel" parent="Content/RightPanel"]
+layout_mode = 2
+size_flags_vertical = 3
+
+[node name="MissionDetails" type="Label" parent="Content/RightPanel"]
+layout_mode = 2
+size_flags_vertical = 3
+theme_override_font_sizes/font_size = 14
+text = "Select a mission to view briefing details."
+autowrap_mode = 2
+
+[node name="Footer" type="HBoxContainer" parent="."]
+layout_mode = 1
+anchors_preset = 12
+anchor_top = 1.0
+anchor_right = 1.0
+anchor_bottom = 1.0
+offset_left = 30.0
+offset_top = -60.0
+offset_right = -30.0
+offset_bottom = -16.0
+grow_horizontal = 2
+grow_vertical = 0
+theme_override_constants/separation = 20
+
+[node name="BackBtn" type="Button" parent="Footer"]
+custom_minimum_size = Vector2(200, 0)
+layout_mode = 2
+text = "← HANGAR BAY"
+
+[node name="Spacer" type="Control" parent="Footer"]
+layout_mode = 2
+size_flags_horizontal = 3
+
+[node name="LaunchBtn" type="Button" parent="Footer"]
+custom_minimum_size = Vector2(240, 0)
+layout_mode = 2
+theme_override_colors/font_color = Color(0.2, 0.9, 0.4, 1)
+text = "ENGAGE MISSION →"

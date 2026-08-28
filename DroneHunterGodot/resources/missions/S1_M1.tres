@@ -1,0 +1,16 @@
+[gd_resource type="Resource" script_class="MissionDefinition" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://resources/missions/mission_definition.gd" id="1_script"]
+
+[resource]
+script = ExtResource("1_script")
+mission_id = "S1_M1"
+sector_index = 1
+mission_index = 1
+title = "Canyon Vanguard"
+description = "Eliminate advancing scout patrols in the sandstone canyon."
+sector_background = "backgrounds/sectors/sector_2_ref.png"
+total_waves = 3
+is_boss_mission = false
+scrap_reward = 200
+target_score = 2000
