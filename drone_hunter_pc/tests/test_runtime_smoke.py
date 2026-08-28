@@ -109,7 +109,7 @@ def run_runtime_smoke():
     # 6. Test Campaign Victory
     print("Testing Campaign Victory transition...")
     ctx.current_sector_idx = 4
-    ctx.current_sub_level = 3
+    ctx.current_sub_level = 5
     game.start_next_stage()
     assert ctx.state == STATE_VICTORY
     game.render()

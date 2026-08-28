@@ -409,7 +409,7 @@ class InputController:
             if event.key in (pygame.K_ESCAPE, pygame.K_q):
                 ctx.state = STATE_MENU
             elif event.key in (pygame.K_SPACE, pygame.K_RETURN):
-                current_sector = ctx.missions.get("current_sector", 1)
+                current_sector = ctx.campaign_state.current_sector_idx + 1
                 sector_missions = get_missions_for_sector(current_sector)
                 mission_system = input_ctx.mission_system
                 selected_mission = next(
@@ -422,7 +422,7 @@ class InputController:
                         )
                         or (
                             (not mission_system or not hasattr(mission_system, "get_mission_state"))
-                            and mission["id"] in ctx.missions.get("unlocked", [])
+                            and mission["id"] in ctx.campaign_state.unlocked_missions
                         )
                     ),
                     None,
@@ -971,7 +971,7 @@ class InputController:
                 if am: am.play_click()
                 return
 
-            cur_sec = ctx.missions.get("current_sector", 1)
+            cur_sec = ctx.campaign_state.current_sector_idx + 1
             sec_missions = get_missions_for_sector(cur_sec)
 
             if d_left:
@@ -989,7 +989,7 @@ class InputController:
                         if ms.get_mission_state(ctx, m["id"]) != "locked":
                             target_m = m["id"]
                             break
-                    elif m["id"] in ctx.missions.get("unlocked", []):
+                    elif m["id"] in ctx.campaign_state.unlocked_missions:
                         target_m = m["id"]
                         break
                 if not target_m and sec_missions:

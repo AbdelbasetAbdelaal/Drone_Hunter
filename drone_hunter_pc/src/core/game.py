@@ -159,7 +159,6 @@ class Game:
             self.save_controller.load_slot(
                 0, self.context, self.audio_manager, self.input_manager, self.achievement_system
             )
-            self.context._sync_from_campaign_state()
         self.reset_game()
         self.context.state = STATE_SAVE_SELECT
 
@@ -358,14 +357,14 @@ class Game:
         self.state_manager.change_state(STATE_PLAYING)
         self.gameplay_controller.start_mission(
             mission_id=mission_id,
-            gp_ctx_or_context=self.create_gameplay_context()
+            gp_ctx=self.create_gameplay_context()
         )
         self.context.state = STATE_PLAYING
 
     def reset_game(self):
         """Initializes or resets player, spawner, and stage wave tracking."""
         self.gameplay_controller.reset_game(
-            gp_ctx_or_context=self.create_gameplay_context()
+            gp_ctx=self.create_gameplay_context()
         )
 
     def start_stage(self, sector_idx: Optional[int] = None, stage_idx: Optional[int] = None):
@@ -374,20 +373,20 @@ class Game:
         self.gameplay_controller.start_stage(
             sector_idx=sector_idx,
             stage_idx=stage_idx,
-            gp_ctx_or_context=self.create_gameplay_context()
+            gp_ctx=self.create_gameplay_context()
         )
         self.context.state = STATE_PLAYING
 
     def start_next_stage(self):
         """Advances to next stage or triggers Campaign Victory."""
         self.gameplay_controller.start_next_stage(
-            gp_ctx_or_context=self.create_gameplay_context()
+            gp_ctx=self.create_gameplay_context()
         )
 
     def start_new_game_plus(self):
         """Increments NG+ count, applies difficulty multipliers, and launches S1_M1."""
         self.gameplay_controller.start_new_game_plus(
-            gp_ctx_or_context=self.create_gameplay_context()
+            gp_ctx=self.create_gameplay_context()
         )
 
     def get_next_mission_id(self) -> Optional[str]:
@@ -396,22 +395,22 @@ class Game:
 
     def buy_upgrade(self, upgrade_id: str) -> bool:
         return self.gameplay_controller.buy_upgrade(
-            upgrade_id, gp_ctx_or_context=self.create_gameplay_context()
+            upgrade_id, gp_ctx=self.create_gameplay_context()
         )
 
     def equip_weapon(self, slot_index: int, weapon_id: str) -> bool:
         return self.gameplay_controller.equip_weapon(
-            slot_index, weapon_id, gp_ctx_or_context=self.create_gameplay_context()
+            slot_index, weapon_id, gp_ctx=self.create_gameplay_context()
         )
 
     def buy_weapon_upgrade(self, weapon_id: str) -> bool:
         return self.gameplay_controller.buy_weapon_upgrade(
-            weapon_id, gp_ctx_or_context=self.create_gameplay_context()
+            weapon_id, gp_ctx=self.create_gameplay_context()
         )
 
     def unlock_weapon(self, weapon_id: str) -> bool:
         return self.gameplay_controller.unlock_weapon(
-            weapon_id, gp_ctx_or_context=self.create_gameplay_context()
+            weapon_id, gp_ctx=self.create_gameplay_context()
         )
 
     # --------------------------------------------------------------------------

@@ -39,65 +39,20 @@ class GameplayController:
     def current_objective_text(self) -> Optional[str]:
         return self._current_objective_text
 
-    def _resolve_gameplay_context(self, context_or_gp_ctx: Any = None, **kwargs) -> GameplayContext:
-        """Helper to accept either a GameplayContext instance or individual legacy parameters."""
-        gp_ctx_kwarg = kwargs.get("gp_ctx")
-        if isinstance(gp_ctx_kwarg, GameplayContext):
-            return gp_ctx_kwarg
-        if isinstance(context_or_gp_ctx, GameplayContext):
-            return context_or_gp_ctx
-        ctx = context_or_gp_ctx if context_or_gp_ctx is not None else kwargs.get("context")
-        if isinstance(ctx, GameplayContext):
-            return ctx
-        return GameplayContext(
-            context=ctx,
-            progression=kwargs.get("progression", self.progression),
-            particle_manager=kwargs.get("particle_manager"),
-            camera=kwargs.get("camera"),
-            spawner=kwargs.get("spawner"),
-            encounter_system=kwargs.get("encounter_system"),
-            combat_director=kwargs.get("combat_director"),
-            mission_system=kwargs.get("mission_system"),
-            objective_system=kwargs.get("objective_system"),
-            combat_system=kwargs.get("combat_system"),
-            background=kwargs.get("background"),
-            audio_manager=kwargs.get("audio_manager"),
-            input_manager=kwargs.get("input_manager"),
-            achievement_system=kwargs.get("achievement_system"),
-            save_callback=kwargs.get("save_callback"),
-            get_canvas_mouse_pos_func=kwargs.get("get_canvas_mouse_pos_func"),
-            start_mission_callback=kwargs.get("start_mission_callback"),
-            start_stage_callback=kwargs.get("start_stage_callback"),
-        )
+    def start_mission(self, mission_id: Optional[str] = None, gp_ctx: Optional[GameplayContext] = None):
+        """Prepares and launches a tactical mission."""
+        if gp_ctx is None:
+            raise ValueError("GameplayController.start_mission requires a valid GameplayContext")
 
-    def start_mission(self, mission_id: Optional[str] = None, gp_ctx_or_context: Optional[Any] = None,
-                      gp_ctx: Optional[Any] = None, progression=None, particle_manager=None, camera=None,
-                      encounter_system=None, combat_director=None,
-                      objective_system=None, mission_system=None, background=None, **kwargs):
-        """Prepares and launches a Phase 5/6 tactical mission."""
-        target_ctx = gp_ctx if gp_ctx is not None else gp_ctx_or_context
-        if isinstance(mission_id, GameplayContext):
-            resolved_ctx = mission_id
-            mission_id = None
-        elif isinstance(target_ctx, GameplayContext):
-            resolved_ctx = target_ctx
-        else:
-            resolved_ctx = self._resolve_gameplay_context(
-                target_ctx, progression=progression, particle_manager=particle_manager,
-                camera=camera, encounter_system=encounter_system, combat_director=combat_director,
-                objective_system=objective_system,
-                mission_system=mission_system, background=background, **kwargs
-            )
-
-        ctx = resolved_ctx.context
-        mission_sys = resolved_ctx.mission_system
-        prog = resolved_ctx.progression or self.progression
-        pm = resolved_ctx.particle_manager
-        cam = resolved_ctx.camera
-        enc = resolved_ctx.encounter_system
-        cd = resolved_ctx.combat_director
-        objs = resolved_ctx.objective_system
-        bg = resolved_ctx.background
+        ctx = gp_ctx.context
+        mission_sys = gp_ctx.mission_system
+        prog = gp_ctx.progression or self.progression
+        pm = gp_ctx.particle_manager
+        cam = gp_ctx.camera
+        enc = gp_ctx.encounter_system
+        cd = gp_ctx.combat_director
+        objs = gp_ctx.objective_system
+        bg = gp_ctx.background
 
         if not mission_id:
             mission_id = getattr(mission_sys, "active_mission_id", None) or self.pending_mission_id or "S1_M1"
@@ -119,7 +74,8 @@ class GameplayController:
         ctx.combo_count = 1
         ctx.combo_timer = 0.0
         ctx.damage_flash_timer = 0.0
-        ctx.shake_timer = 0.0
+        ctx.screen_shake_time = 0.0
+        ctx.screen_shake_intensity = 0.0
         ctx.level_score = 0
         ctx.mission_damage_taken = 0.0
         ctx.mission_start_time = pygame.time.get_ticks() / 1000.0
@@ -180,27 +136,16 @@ class GameplayController:
         if mission_sys:
             mission_sys.start_mission(ctx, mission_id, cd, objs)
 
-    def reset_game(self, gp_ctx_or_context=None, progression=None, particle_manager=None,
-                   camera=None, spawner=None, encounter_system=None, combat_director=None,
-                   background=None, **kwargs):
+    def reset_game(self, gp_ctx: GameplayContext):
         """Initializes or resets player, spawner, and stage wave tracking."""
-        if isinstance(gp_ctx_or_context, GameplayContext):
-            resolved_ctx = gp_ctx_or_context
-        else:
-            resolved_ctx = self._resolve_gameplay_context(
-                gp_ctx_or_context, progression=progression, particle_manager=particle_manager,
-                camera=camera, spawner=spawner, encounter_system=encounter_system,
-                combat_director=combat_director, background=background, **kwargs
-            )
-
-        ctx = resolved_ctx.context
-        prog = resolved_ctx.progression or self.progression
-        pm = resolved_ctx.particle_manager
-        cam = resolved_ctx.camera
-        spw = resolved_ctx.spawner
-        enc = resolved_ctx.encounter_system
-        cd = resolved_ctx.combat_director
-        bg = resolved_ctx.background
+        ctx = gp_ctx.context
+        prog = gp_ctx.progression or self.progression
+        pm = gp_ctx.particle_manager
+        cam = gp_ctx.camera
+        spw = gp_ctx.spawner
+        enc = gp_ctx.encounter_system
+        cd = gp_ctx.combat_director
+        bg = gp_ctx.background
 
         ctx.level_score = 0
         ctx.combo_count = 1
@@ -248,53 +193,37 @@ class GameplayController:
         ctx.wave_manager = WaveManager(target_score)
 
         if spw is not None:
-            spw.reset_for_stage(ctx.current_sector_idx * 3 + ctx.current_sub_level, ctx.current_sector_idx)
+            spw.reset_for_stage(ctx.current_sector_idx * 5 + ctx.current_sub_level, ctx.current_sector_idx)
         if enc is not None:
             enc.reset()
         if cd is not None:
             cd.reset()
         if bg is not None:
             bg.set_sector(ctx.current_sector_idx)
-        mission_sys = resolved_ctx.mission_system
+        mission_sys = gp_ctx.mission_system
         if mission_sys is not None:
             mission_sys.active_mission_id = None
             mission_sys.state = "idle"
 
     def start_stage(self, sector_idx: Optional[int] = None, stage_idx: Optional[int] = None,
-                    gp_ctx_or_context=None, progression=None, particle_manager=None, camera=None,
-                    spawner=None, encounter_system=None, combat_director=None, background=None, **kwargs):
+                    gp_ctx: Optional[GameplayContext] = None):
         """Prepares and launches a gameplay stage."""
-        if isinstance(sector_idx, GameplayContext):
-            resolved_ctx = sector_idx
-            sector_idx = None
-            stage_idx = None
-        elif isinstance(gp_ctx_or_context, GameplayContext):
-            resolved_ctx = gp_ctx_or_context
-        else:
-            resolved_ctx = self._resolve_gameplay_context(
-                gp_ctx_or_context, progression=progression, particle_manager=particle_manager,
-                camera=camera, spawner=spawner, encounter_system=encounter_system,
-                combat_director=combat_director, background=background, **kwargs
-            )
-        if sector_idx is not None: resolved_ctx.context.current_sector_idx = sector_idx
-        if stage_idx is not None: resolved_ctx.context.current_sub_level = stage_idx
+        if gp_ctx is None:
+            raise ValueError("GameplayController.start_stage requires a valid GameplayContext")
 
-        self.reset_game(resolved_ctx)
+        if sector_idx is not None:
+            gp_ctx.context.current_sector_idx = sector_idx
+        if stage_idx is not None:
+            gp_ctx.context.current_sub_level = stage_idx
 
-    def start_next_stage(self, gp_ctx_or_context=None, progression=None, save_callback=None,
-                         start_stage_callback=None, **kwargs):
+        self.reset_game(gp_ctx)
+
+    def start_next_stage(self, gp_ctx: GameplayContext):
         """Advances to next stage or triggers Campaign Victory."""
-        if isinstance(gp_ctx_or_context, GameplayContext):
-            resolved_ctx = gp_ctx_or_context
-        else:
-            resolved_ctx = self._resolve_gameplay_context(
-                gp_ctx_or_context, progression=progression, save_callback=save_callback,
-                start_stage_callback=start_stage_callback, **kwargs
-            )
-        ctx = resolved_ctx.context
-        prog = resolved_ctx.progression or self.progression
-        save_cb = resolved_ctx.save_callback
-        stage_cb = resolved_ctx.start_stage_callback
+        ctx = gp_ctx.context
+        prog = gp_ctx.progression or self.progression
+        save_cb = gp_ctx.save_callback
+        stage_cb = gp_ctx.start_stage_callback
 
         next_sec, next_stg, is_victory = prog.unlock_next_stage(
             ctx.current_sector_idx, ctx.current_sub_level
@@ -308,19 +237,11 @@ class GameplayController:
             if stage_cb:
                 stage_cb(next_sec, next_stg)
 
-    def start_new_game_plus(self, gp_ctx_or_context=None, save_callback=None,
-                           start_mission_callback=None, **kwargs):
+    def start_new_game_plus(self, gp_ctx: GameplayContext):
         """Increments NG+ count, applies difficulty multipliers, and launches S1_M1."""
-        if isinstance(gp_ctx_or_context, GameplayContext):
-            resolved_ctx = gp_ctx_or_context
-        else:
-            resolved_ctx = self._resolve_gameplay_context(
-                gp_ctx_or_context, save_callback=save_callback,
-                start_mission_callback=start_mission_callback, **kwargs
-            )
-        ctx = resolved_ctx.context
-        save_cb = resolved_ctx.save_callback
-        start_cb = resolved_ctx.start_mission_callback
+        ctx = gp_ctx.context
+        save_cb = gp_ctx.save_callback
+        start_cb = gp_ctx.start_mission_callback
 
         ctx.campaign_state.start_new_game_plus()
         ctx.update_ng_plus_multipliers()
@@ -345,19 +266,11 @@ class GameplayController:
         except Exception:
             return "S1_M2"
 
-    def buy_upgrade(self, upgrade_id: str, gp_ctx_or_context=None, progression=None,
-                    audio_manager=None, save_callback=None, **kwargs) -> bool:
-        if isinstance(gp_ctx_or_context, GameplayContext):
-            resolved_ctx = gp_ctx_or_context
-        else:
-            resolved_ctx = self._resolve_gameplay_context(
-                gp_ctx_or_context, progression=progression, audio_manager=audio_manager,
-                save_callback=save_callback, **kwargs
-            )
-        ctx = resolved_ctx.context
-        prog = resolved_ctx.progression or self.progression
-        am = resolved_ctx.audio_manager
-        save_cb = resolved_ctx.save_callback
+    def buy_upgrade(self, upgrade_id: str, gp_ctx: GameplayContext) -> bool:
+        ctx = gp_ctx.context
+        prog = gp_ctx.progression or self.progression
+        am = gp_ctx.audio_manager
+        save_cb = gp_ctx.save_callback
 
         if upgrade_id in ("hull", "energy", "weapon", "mobility"):
             if prog and prog.purchase_upgrade(ctx, upgrade_id):
@@ -385,14 +298,9 @@ class GameplayController:
             return True
         return False
 
-    def equip_weapon(self, slot_index: int, weapon_id: str, gp_ctx_or_context=None,
-                     save_callback=None, **kwargs) -> bool:
-        if isinstance(gp_ctx_or_context, GameplayContext):
-            resolved_ctx = gp_ctx_or_context
-        else:
-            resolved_ctx = self._resolve_gameplay_context(gp_ctx_or_context, save_callback=save_callback, **kwargs)
-        ctx = resolved_ctx.context
-        save_cb = resolved_ctx.save_callback
+    def equip_weapon(self, slot_index: int, weapon_id: str, gp_ctx: GameplayContext) -> bool:
+        ctx = gp_ctx.context
+        save_cb = gp_ctx.save_callback
 
         if not ctx.player or weapon_id not in ctx.unlocked_weapons:
             return False
@@ -408,17 +316,10 @@ class GameplayController:
         if save_cb: save_cb()
         return True
 
-    def buy_weapon_upgrade(self, weapon_id: str, gp_ctx_or_context=None,
-                           audio_manager=None, save_callback=None, **kwargs) -> bool:
-        if isinstance(gp_ctx_or_context, GameplayContext):
-            resolved_ctx = gp_ctx_or_context
-        else:
-            resolved_ctx = self._resolve_gameplay_context(
-                gp_ctx_or_context, audio_manager=audio_manager, save_callback=save_callback, **kwargs
-            )
-        ctx = resolved_ctx.context
-        am = resolved_ctx.audio_manager
-        save_cb = resolved_ctx.save_callback
+    def buy_weapon_upgrade(self, weapon_id: str, gp_ctx: GameplayContext) -> bool:
+        ctx = gp_ctx.context
+        am = gp_ctx.audio_manager
+        save_cb = gp_ctx.save_callback
 
         if weapon_id not in WEAPON_UPGRADES:
             return False
@@ -435,17 +336,10 @@ class GameplayController:
             return True
         return False
 
-    def unlock_weapon(self, weapon_id: str, gp_ctx_or_context=None,
-                      audio_manager=None, save_callback=None, **kwargs) -> bool:
-        if isinstance(gp_ctx_or_context, GameplayContext):
-            resolved_ctx = gp_ctx_or_context
-        else:
-            resolved_ctx = self._resolve_gameplay_context(
-                gp_ctx_or_context, audio_manager=audio_manager, save_callback=save_callback, **kwargs
-            )
-        ctx = resolved_ctx.context
-        am = resolved_ctx.audio_manager
-        save_cb = resolved_ctx.save_callback
+    def unlock_weapon(self, weapon_id: str, gp_ctx: GameplayContext) -> bool:
+        ctx = gp_ctx.context
+        am = gp_ctx.audio_manager
+        save_cb = gp_ctx.save_callback
 
         if weapon_id in ctx.unlocked_weapons or weapon_id not in WEAPON_UNLOCK_COSTS:
             return False
@@ -461,56 +355,25 @@ class GameplayController:
             return True
         return False
 
-    def update_gameplay(self, dt: float = 0.016, gp_ctx: Any = None, *args, **kwargs):
-        """Simulates real-time combat, entities, hazards, projectiles, and mission objectives.
-        Accepts GameplayContext cleanly or handles legacy arguments gracefully."""
+    def update_gameplay(self, dt: float = 0.016, gp_ctx: Optional[GameplayContext] = None):
+        """Simulates real-time combat, entities, hazards, projectiles, and mission objectives."""
         if gp_ctx is None:
-            gp_ctx = kwargs.get("gp_ctx_or_context") or kwargs.get("context")
-        if isinstance(dt, GameplayContext):
-            resolved_ctx = dt
-            dt = 0.016
-        elif isinstance(gp_ctx, GameplayContext):
-            resolved_ctx = gp_ctx
-        else:
-            # Fallback for any legacy tests passing positional arguments
-            context = gp_ctx
-            input_mgr = args[0] if len(args) > 0 else kwargs.get("input_manager")
-            audio_mgr = args[1] if len(args) > 1 else kwargs.get("audio_manager")
-            particle_mgr = args[2] if len(args) > 2 else kwargs.get("particle_manager")
-            combat_sys = args[3] if len(args) > 3 else kwargs.get("combat_system")
-            combat_dir = args[4] if len(args) > 4 else kwargs.get("combat_director")
-            mission_sys = args[5] if len(args) > 5 else kwargs.get("mission_system")
-            obj_sys = args[6] if len(args) > 6 else kwargs.get("objective_system")
-            spawner_sys = args[7] if len(args) > 7 else kwargs.get("spawner")
-            enc_sys = args[8] if len(args) > 8 else kwargs.get("encounter_system")
-            ach_sys = args[9] if len(args) > 9 else kwargs.get("achievement_system")
-            cam_sys = args[10] if len(args) > 10 else kwargs.get("camera")
-            save_cb = args[11] if len(args) > 11 else kwargs.get("save_callback")
-            mouse_func = args[12] if len(args) > 12 else kwargs.get("get_canvas_mouse_pos_func")
+            raise ValueError("GameplayController.update_gameplay requires a valid GameplayContext")
 
-            resolved_ctx = GameplayContext(
-                context=context, input_manager=input_mgr, audio_manager=audio_mgr,
-                particle_manager=particle_mgr, combat_system=combat_sys,
-                combat_director=combat_dir, mission_system=mission_sys,
-                objective_system=obj_sys, spawner=spawner_sys,
-                encounter_system=enc_sys, achievement_system=ach_sys, camera=cam_sys,
-                save_callback=save_cb, get_canvas_mouse_pos_func=mouse_func
-            )
-
-        ctx = resolved_ctx.context
-        input_manager = resolved_ctx.input_manager
-        audio_manager = resolved_ctx.audio_manager
-        particle_manager = resolved_ctx.particle_manager
-        combat_system = resolved_ctx.combat_system
-        combat_director = resolved_ctx.combat_director
-        mission_system = resolved_ctx.mission_system
-        objective_system = resolved_ctx.objective_system
-        spawner = resolved_ctx.spawner
-        encounter_system = resolved_ctx.encounter_system
-        camera = resolved_ctx.camera
-        achievement_system = resolved_ctx.achievement_system
-        save_callback = resolved_ctx.save_callback
-        get_canvas_mouse_pos_func = resolved_ctx.get_canvas_mouse_pos_func
+        ctx = gp_ctx.context
+        input_manager = gp_ctx.input_manager
+        audio_manager = gp_ctx.audio_manager
+        particle_manager = gp_ctx.particle_manager
+        combat_system = gp_ctx.combat_system
+        combat_director = gp_ctx.combat_director
+        mission_system = gp_ctx.mission_system
+        objective_system = gp_ctx.objective_system
+        spawner = gp_ctx.spawner
+        encounter_system = gp_ctx.encounter_system
+        camera = gp_ctx.camera
+        achievement_system = gp_ctx.achievement_system
+        save_callback = gp_ctx.save_callback
+        get_canvas_mouse_pos_func = gp_ctx.get_canvas_mouse_pos_func
 
         sec_info = SECTORS[ctx.current_sector_idx]
         if getattr(ctx, "wave_manager", None) is not None:

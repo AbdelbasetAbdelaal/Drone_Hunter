@@ -142,15 +142,14 @@ def draw_mission_select_ui(canvas: pygame.Surface, ctx, scrap: int, mouse_pos: t
     s_lbl = font_banner.render("CAMPAIGN SECTORS", True, COLOR_WHITE)
     canvas.blit(s_lbl, (48, 90))
     
-    current_selected_sector = ctx.campaign_state.current_sector_idx + 1 if hasattr(ctx, "campaign_state") else ctx.missions.get("current_sector", 1)
+    current_selected_sector = ctx.campaign_state.current_sector_idx + 1
     
     sy = 126
     card_h = 66
     for sec in SECTORS_PHASE5:
         s_id = sec["id"]
-        cs = getattr(ctx, "campaign_state", None)
-        is_unlocked = s_id in (cs.unlocked_sectors if cs else ctx.sector_progress.get("unlocked", []))
-        is_completed = s_id in (cs.completed_sectors if cs else ctx.sector_progress.get("completed", []))
+        is_unlocked = ctx.campaign_state.is_sector_unlocked(s_id)
+        is_completed = ctx.campaign_state.is_sector_completed(s_id)
         is_selected = (s_id == current_selected_sector)
         
         s_rect = pygame.Rect(44, sy, left_w - 28, card_h)
@@ -220,11 +219,8 @@ def draw_mission_select_ui(canvas: pygame.Surface, ctx, scrap: int, mouse_pos: t
     
     for m in missions:
         m_id = m["id"]
-        cs = getattr(ctx, "campaign_state", None)
-        unlocked_list = cs.unlocked_missions if cs else ctx.missions.get("unlocked", [])
-        completed_list = cs.completed_missions if cs else ctx.missions.get("completed", [])
-        is_unlocked = m_id in unlocked_list
-        is_completed = m_id in completed_list
+        is_unlocked = ctx.campaign_state.is_mission_unlocked(m_id)
+        is_completed = ctx.campaign_state.is_mission_completed(m_id)
         
         m_rect = pygame.Rect(right_x + 20, my_y, right_w - 40, m_card_h)
         hov = m_rect.collidepoint(mx, my) and is_unlocked

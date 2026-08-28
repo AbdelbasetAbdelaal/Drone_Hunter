@@ -103,7 +103,7 @@ class AchievementSystem:
 
         if "all_sectors_cleared" not in unlocked:
             cs = getattr(ctx, "campaign_state", None)
-            completed_sectors = cs.completed_sectors if cs else getattr(ctx, "sector_progress", {}).get("completed", [])
+            completed_sectors = cs.completed_sectors if cs else []
             if len(completed_sectors) >= 5:
                 self.unlock("all_sectors_cleared")
 
@@ -152,8 +152,9 @@ class AchievementSystem:
         if "survivalist" not in unlocked:
             try:
                 from src.data.mission_data import get_mission_data
-                missions = getattr(ctx, "missions", {})
-                for m_id in missions.get("completed", []):
+                cs = getattr(ctx, "campaign_state", None)
+                completed_missions = cs.completed_missions if cs else []
+                for m_id in completed_missions:
                     md = get_mission_data(m_id)
                     if md and md.get("objective") == "survive":
                         self.unlock("survivalist")

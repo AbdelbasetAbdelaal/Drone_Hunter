@@ -57,10 +57,10 @@ class TestPhase5Missions(unittest.TestCase):
 
     def test_initial_state(self):
         # Newly created GameContext should have default Phase 5 unlocks
-        self.assertEqual(self.ctx.missions["current_sector"], 1)
-        self.assertEqual(self.ctx.missions["unlocked"], ["S1_M1"])
-        self.assertEqual(self.ctx.sector_progress["unlocked"], [1])
-        self.assertEqual(self.ctx.missions["completed"], [])
+        self.assertEqual(self.ctx.campaign_state.current_sector_idx, 0)
+        self.assertEqual(self.ctx.campaign_state.unlocked_missions, ["S1_M1"])
+        self.assertEqual(self.ctx.campaign_state.unlocked_sectors, [1])
+        self.assertEqual(self.ctx.campaign_state.completed_missions, [])
         
         self.assertEqual(self.mission_sys.get_mission_state(self.ctx, "S1_M1"), STATE_AVAILABLE)
         self.assertEqual(self.mission_sys.get_mission_state(self.ctx, "S1_M2"), STATE_LOCKED)
@@ -77,17 +77,19 @@ class TestPhase5Missions(unittest.TestCase):
         
         self.assertEqual(self.mission_sys.state, STATE_COMPLETED)
         self.assertTrue(self.mission_sys.is_mission_success)
-        self.assertIn("S1_M1", self.ctx.missions["completed"])
+        self.assertIn("S1_M1", self.ctx.campaign_state.completed_missions)
         self.assertEqual(self.mission_sys.get_mission_state(self.ctx, "S1_M1"), STATE_COMPLETED)
         
         # Should unlock M2
-        self.assertIn("S1_M2", self.ctx.missions["unlocked"])
+        self.assertIn("S1_M2", self.ctx.campaign_state.unlocked_missions)
         self.assertEqual(self.mission_sys.get_mission_state(self.ctx, "S1_M2"), STATE_AVAILABLE)
 
     def test_sector_completion(self):
         # Complete up to S1_M4
-        self.ctx.missions["unlocked"] = ["S1_M1", "S1_M2", "S1_M3", "S1_M4", "S1_M5"]
-        self.ctx.missions["completed"] = ["S1_M1", "S1_M2", "S1_M3", "S1_M4"]
+        for m in ["S1_M1", "S1_M2", "S1_M3", "S1_M4", "S1_M5"]:
+            self.ctx.campaign_state.unlock_mission(m)
+        for m in ["S1_M1", "S1_M2", "S1_M3", "S1_M4"]:
+            self.ctx.campaign_state.complete_mission(m)
         
         self.assertEqual(self.ctx.scrap, 0)
         
@@ -95,12 +97,12 @@ class TestPhase5Missions(unittest.TestCase):
         self.mission_sys._trigger_success(self.ctx)
         
         # M5 complete, Sector 1 complete
-        self.assertIn("S1_M5", self.ctx.missions["completed"])
-        self.assertIn(1, self.ctx.sector_progress["completed"])
+        self.assertIn("S1_M5", self.ctx.campaign_state.completed_missions)
+        self.assertIn(1, self.ctx.campaign_state.completed_sectors)
         
         # Should unlock Sector 2 and S2_M1
-        self.assertIn(2, self.ctx.sector_progress["unlocked"])
-        self.assertIn("S2_M1", self.ctx.missions["unlocked"])
+        self.assertIn(2, self.ctx.campaign_state.unlocked_sectors)
+        self.assertIn("S2_M1", self.ctx.campaign_state.unlocked_missions)
         
         # Check scrap rewards: M5 (Diff 3) = 400, Sector 1 Bonus = 500 => Total 900
         self.assertEqual(self.ctx.scrap, 900)

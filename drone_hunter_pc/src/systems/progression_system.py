@@ -6,38 +6,24 @@ Tracks sector campaigns, sub-level stages, target scores, unlocks, and
 campaign victory state transitions.
 """
 
-from typing import Tuple
+from typing import Tuple, Optional
 from src.data.game_data import SECTORS
 from src.core.campaign_state import CampaignState
 
 
 class ProgressionSystem:
-    def __init__(self, campaign_state: CampaignState = None, *args):
-        if campaign_state is None and len(args) >= 2:
-            from src.core.game_context import GameContext
-            campaign_state = GameContext().campaign_state
-            if args[0] is not None:
-                campaign_state._unlocked_sectors = [i + 1 for i, v in enumerate(args[0]) if v]
-            if len(args) > 1 and args[1] is not None:
-                for idx, unlocked in enumerate(args[1]):
-                    if unlocked:
-                        sector = idx // 3
-                        stage = (idx % 3) + 1
-                        mission_id = f"S{sector + 1}_M{stage}"
-                        if mission_id not in campaign_state._unlocked_missions:
-                            campaign_state._unlocked_missions.append(mission_id)
-        elif campaign_state is None:
-            from src.core.game_context import GameContext
-            campaign_state = GameContext().campaign_state
-        self.campaign_state = campaign_state
+    def __init__(self, campaign_state: Optional[CampaignState] = None):
+        if campaign_state is None:
+            campaign_state = CampaignState()
+        self.campaign_state: CampaignState = campaign_state
 
     @property
     def unlocked_sectors(self) -> list:
         return self.campaign_state.unlocked_sectors
 
     @property
-    def unlocked_stages(self) -> list:
-        return self.campaign_state.unlocked_stages
+    def unlocked_missions(self) -> list:
+        return self.campaign_state.unlocked_missions
 
     def get_current_stage_target_score(self, sector_idx: int, sub_level: int) -> int:
         """Retrieves target clear score for the active stage."""
@@ -50,26 +36,25 @@ class ProgressionSystem:
         return 5000
 
     def is_stage_unlocked(self, sector_idx: int, sub_level: int) -> bool:
-        flat_idx = sector_idx * 3 + (sub_level - 1)
-        if 0 <= flat_idx < len(self.campaign_state.unlocked_stages):
-            return self.campaign_state.unlocked_stages[flat_idx]
-        return False
+        mission_id = f"S{sector_idx + 1}_M{sub_level}"
+        return self.campaign_state.is_mission_unlocked(mission_id)
 
     def is_sector_unlocked(self, sector_idx: int) -> bool:
-        if 0 <= sector_idx < len(self.campaign_state.unlocked_sectors):
-            return self.campaign_state.unlocked_sectors[sector_idx]
-        return False
+        return self.campaign_state.is_sector_unlocked(sector_idx + 1)
 
     def unlock_next_stage(self, current_sector_idx: int, current_sub_level: int) -> Tuple[int, int, bool]:
         """
         Advances stage and sector upon clearing.
         Returns: (next_sector_idx, next_sub_level, is_campaign_victory)
         """
+        current_mission = f"S{current_sector_idx + 1}_M{current_sub_level}"
+        self.campaign_state.complete_mission(current_mission)
+
         next_sub_level = current_sub_level + 1
         next_sector_idx = current_sector_idx
         is_campaign_victory = False
 
-        if next_sub_level > 3:
+        if next_sub_level > 5:
             next_sub_level = 1
             next_sector_idx += 1
             
@@ -77,6 +62,7 @@ class ProgressionSystem:
             if next_sector_idx >= len(SECTORS):
                 is_campaign_victory = True
                 next_sector_idx = len(SECTORS) - 1
+                self.campaign_state.mark_campaign_complete()
             else:
                 self.campaign_state.unlock_sector(next_sector_idx + 1)
 
@@ -132,4 +118,3 @@ class ProgressionSystem:
         # Level 1: 1.0, Level 2: 1.05, Level 3: 1.10, Level 4: 1.15, Level 5: 1.20
         mobility_level = ctx.upgrade_levels.get("mobility", 1)
         player.max_speed = 220.0 * (1.0 + ((mobility_level - 1) * 0.05))
-

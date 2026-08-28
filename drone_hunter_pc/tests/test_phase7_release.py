@@ -87,10 +87,10 @@ class TestPhase7Release(unittest.TestCase):
 
         for sector_id in range(1, 6):
             # Sector must be unlocked
-            self.assertIn(sector_id, ctx.sector_progress["unlocked"], f"Sector {sector_id} should be unlocked!")
+            self.assertIn(sector_id, ctx.campaign_state.unlocked_sectors, f"Sector {sector_id} should be unlocked!")
             for mission_num in range(1, 6):
                 m_id = f"S{sector_id}_M{mission_num}"
-                self.assertIn(m_id, ctx.missions["unlocked"], f"Mission {m_id} must be unlocked!")
+                self.assertIn(m_id, ctx.campaign_state.unlocked_missions, f"Mission {m_id} must be unlocked!")
 
                 # Play & complete mission
                 self.game.start_phase5_mission(m_id)
@@ -99,7 +99,7 @@ class TestPhase7Release(unittest.TestCase):
 
                 # Trigger success
                 ms._trigger_success(ctx)
-                self.assertIn(m_id, ctx.missions["completed"])
+                self.assertIn(m_id, ctx.campaign_state.completed_missions)
 
         # After completing Sector 5 Mission 5, campaign should be marked completed
         self.assertTrue(ctx.campaign_completed)

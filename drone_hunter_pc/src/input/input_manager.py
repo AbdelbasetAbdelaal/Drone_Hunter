@@ -348,7 +348,11 @@ class InputManager:
                 self.active_device = DEVICE_KEYBOARD_MOUSE
 
                 # Global shortcuts (available in all contexts)
-                mod = getattr(event, "mod", 0) | pygame.key.get_mods()
+                try:
+                    current_mods = pygame.key.get_mods() if pygame.display.get_init() else 0
+                except Exception:
+                    current_mods = 0
+                mod = getattr(event, "mod", 0) | current_mods
                 is_alt = bool(mod & (pygame.KMOD_ALT | pygame.KMOD_LALT | pygame.KMOD_RALT))
                 if event.key == pygame.K_F11 or (event.key in (pygame.K_RETURN, pygame.K_KP_ENTER) and is_alt):
                     self.actions_triggered[ACTION_FULLSCREEN] = True

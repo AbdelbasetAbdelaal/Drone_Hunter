@@ -113,11 +113,11 @@ class TestAchievementSystem(unittest.TestCase):
 
     def test_all_sectors_cleared(self):
         """Verify all_sectors_cleared unlocks when all 5 sectors are completed."""
-        self.ctx.sector_progress = {"completed": [1, 2, 3, 4], "unlocked": [5]}
+        self.ctx.campaign_state._completed_sectors = [1, 2, 3, 4]
         self.ach.check_all(self.ctx)
         self.assertNotIn("all_sectors_cleared", self.ach.unlocked)
 
-        self.ctx.sector_progress = {"completed": [1, 2, 3, 4, 5], "unlocked": [5]}
+        self.ctx.campaign_state._completed_sectors = [1, 2, 3, 4, 5]
         self.ach.check_all(self.ctx)
         self.assertIn("all_sectors_cleared", self.ach.unlocked)
 
@@ -153,7 +153,7 @@ class TestAchievementSystem(unittest.TestCase):
         """Verify no_damage_mission unlocks when mission completes with zero damage."""
         self.ctx.mission_damage_taken = 10.0
         self.ctx.mission_start_time = 1.0
-        self.ctx.missions = {"completed": ["S1_M1"]}
+        self.ctx.campaign_state.complete_mission("S1_M1")
         self.ach.check_mission_complete(self.ctx)
         self.assertNotIn("no_damage_mission", self.ach.unlocked)
 
@@ -165,7 +165,7 @@ class TestAchievementSystem(unittest.TestCase):
         """Verify speed_run unlocks when mission completes in under 2 minutes."""
         self.ctx.mission_start_time = 1.0
         self.ctx.mission_elapsed_time = 130.0
-        self.ctx.missions = {"completed": ["S1_M1"]}
+        self.ctx.campaign_state.complete_mission("S1_M1")
         self.ach.check_mission_complete(self.ctx)
         self.assertNotIn("speed_run", self.ach.unlocked)
 
@@ -177,10 +177,9 @@ class TestAchievementSystem(unittest.TestCase):
         """Verify survivalist unlocks after completing a survival mission."""
         md = get_mission_data("S1_M2")
         if md and md.get("objective") == "survive":
-            self.ctx.missions = {"completed": ["S1_M2"]}
+            self.ctx.campaign_state.complete_mission("S1_M2")
             self.ach.check_mission_complete(self.ctx, game=None)
-            # game=None means survivalist check is skipped; test with mock game
-            self.assertNotIn("survivalist", self.ach.unlocked)
+            self.assertIn("survivalist", self.ach.unlocked)
 
     def test_unlock_callback(self):
         """Verify callbacks fire when achievements are unlocked."""

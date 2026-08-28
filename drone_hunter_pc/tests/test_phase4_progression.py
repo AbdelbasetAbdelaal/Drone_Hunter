@@ -1,8 +1,11 @@
+import sys
 import unittest
 import pygame
 import json
 import os
 import shutil
+
+sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 
 from src.core.game_context import GameContext
 from src.entities.player import Player
@@ -127,12 +130,9 @@ class TestPhase4Progression(unittest.TestCase):
         
         self.save_system.save(
             scrap=self.ctx.scrap,
-            coins=self.ctx.coins,
             highscore=self.ctx.highscore,
             upgrades=self.ctx.upgrade_levels,
-            sectors=self.ctx.unlocked_sectors,
             show_crt=self.ctx.show_crt,
-            stages=self.ctx.unlocked_stages,
             difficulty_mode=self.ctx.difficulty_mode
         )
         

@@ -122,7 +122,7 @@ class TestPhase1Architecture(unittest.TestCase):
     def test_gameplay_controller_does_not_require_game(self):
         """A. Proves GameplayController operates purely via GameplayContext without any Game instance."""
         ctx = GameContext()
-        prog = ProgressionSystem([True, False, False, False, False], [True] + [False] * 14)
+        prog = ProgressionSystem(ctx.campaign_state)
         pm = ParticleManager()
         cam = Camera2D()
         enc = EncounterSystem()

@@ -389,25 +389,26 @@ class CombatSystem:
             p_hits = pygame.sprite.spritecollide(player, ctx.powerup_group, True)
             for p in p_hits:
                 if ctx.audio_manager: ctx.audio_manager.play_powerup()
+                pm = ctx.particle_manager
                 if p.p_type == "battery":
                     player.health = min(player.max_health, player.health + 35.0)
                     player.energy = min(player.max_energy, player.energy + 25.0)
-                    ctx.particle_manager.spawn_floating_text(p.rect.center, "+HULL REPAIR", COLOR_EMERALD, 18)
+                    if pm: pm.spawn_floating_text(p.rect.center, "+HULL REPAIR", COLOR_EMERALD, 18)
                 elif p.p_type == "overclock":
                     player.trigger_overclock(6.0)
-                    ctx.particle_manager.spawn_floating_text(p.rect.center, "OVERCLOCK!", COLOR_OVERCLOCK, 22)
+                    if pm: pm.spawn_floating_text(p.rect.center, "OVERCLOCK!", COLOR_OVERCLOCK, 22)
                 elif p.p_type == "shield":
                     player.activate_shield(3)
-                    ctx.particle_manager.spawn_floating_text(p.rect.center, "SHIELD CHARGED", COLOR_SHIELD, 20)
+                    if pm: pm.spawn_floating_text(p.rect.center, "SHIELD CHARGED", COLOR_SHIELD, 20)
                 elif p.p_type == "slowmo": # Proper bullet-time slow motion (Bug 2)
                     ctx.trigger_slowmo(5.0)
-                    ctx.particle_manager.spawn_floating_text(p.rect.center, "TIME DILATION", COLOR_SLOWMO, 20)
+                    if pm: pm.spawn_floating_text(p.rect.center, "TIME DILATION", COLOR_SLOWMO, 20)
                 elif p.p_type == "coin":
-                    ctx.coins += 50
-                    ctx.particle_manager.spawn_floating_text(p.rect.center, "+50 SCRAP", COLOR_COIN, 18)
+                    ctx.scrap += 50
+                    if pm: pm.spawn_floating_text(p.rect.center, "+50 SCRAP", COLOR_COIN, 18)
                 elif p.p_type == "wingman":
                     player.spawn_wingman()
-                    ctx.particle_manager.spawn_floating_text(p.rect.center, "+WINGMAN DRONE", COLOR_CYAN, 20)
+                    if pm: pm.spawn_floating_text(p.rect.center, "+WINGMAN DRONE", COLOR_CYAN, 20)
                 elif p.p_type == "weapon":
                     player.cycle_weapon()
-                    ctx.particle_manager.spawn_floating_text(p.rect.center, f"WPN: {player.active_weapon.upper()}", COLOR_GOLD, 22)
+                    if pm: pm.spawn_floating_text(p.rect.center, f"WPN: {player.active_weapon.upper()}", COLOR_GOLD, 22)

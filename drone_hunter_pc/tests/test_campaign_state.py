@@ -211,28 +211,18 @@ class TestGameContextCampaignStateIntegration(unittest.TestCase):
         ctx.current_sector_idx = 3
         self.assertEqual(ctx.campaign_state.current_sector_idx, 3)
 
-    def test_context_missions_property_syncs(self):
+    def test_context_current_sub_level_setter_updates_campaign_state(self):
         from src.core.game_context import GameContext
         ctx = GameContext()
-        ctx.missions = {
-            "current_sector": 2,
-            "current_mission": 3,
-            "completed": ["S2_M1"],
-            "unlocked": ["S2_M1", "S2_M2"],
-        }
-        self.assertEqual(ctx.campaign_state.current_mission, "S2_M3")
-        self.assertIn("S2_M1", ctx.campaign_state._completed_missions)
-        self.assertIn("S2_M2", ctx.campaign_state._unlocked_missions)
+        ctx.current_sub_level = 4
+        self.assertEqual(ctx.campaign_state.current_sub_level, 4)
 
-    def test_context_sector_progress_property_syncs(self):
+    def test_context_unlocked_sectors_property(self):
         from src.core.game_context import GameContext
         ctx = GameContext()
-        ctx.sector_progress = {
-            "completed": [2],
-            "unlocked": [3],
-        }
-        self.assertIn(2, ctx.campaign_state._completed_sectors)
-        self.assertIn(3, ctx.campaign_state._unlocked_sectors)
+        self.assertEqual(ctx.unlocked_sectors, [1])
+        ctx.campaign_state.unlock_sector(2)
+        self.assertEqual(ctx.unlocked_sectors, [1, 2])
 
     def test_context_campaign_completed_setter(self):
         from src.core.game_context import GameContext

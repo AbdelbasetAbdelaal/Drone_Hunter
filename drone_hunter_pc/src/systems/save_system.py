@@ -181,8 +181,9 @@ class SaveSystem:
             with open(load_path, "r", encoding="utf-8") as f:
                 data = json.load(f)
 
-            legacy_coins = max(0, int(data.get("coins", defaults["coins"])))
-            scrap = max(0, int(data.get("scrap", legacy_coins)))
+            legacy_coins = max(0, int(data.get("coins", 0)))
+            raw_scrap = int(data.get("scrap", 0))
+            scrap = max(0, raw_scrap if raw_scrap > 0 else (legacy_coins if legacy_coins > 0 else 0))
             highscore = max(0, int(data.get("highscore", defaults["highscore"])))
             play_time = max(0, int(data.get("play_time", 0)))
             last_played = data.get("last_played")
@@ -195,12 +196,14 @@ class SaveSystem:
                         try: upgrades[k] = max(0, int(v))
                         except (ValueError, TypeError): pass
 
-            sectors = list(data.get("sectors", defaults["sectors"]))
+            raw_sectors = data.get("sectors")
+            sectors = list(raw_sectors) if raw_sectors is not None else list(defaults["sectors"])
             while len(sectors) < len(SECTORS):
                 sectors.append(False)
             sectors[0] = True
 
-            stages = list(data.get("stages", defaults["stages"]))
+            raw_stages = data.get("stages")
+            stages = list(raw_stages) if raw_stages is not None else list(defaults["stages"])
             while len(stages) < 15:
                 stages.append(False)
             stages[0] = True
@@ -272,6 +275,7 @@ class SaveSystem:
                 "stages": stages,
                 "missions": missions,
                 "sector_progress": sector_progress,
+                "campaign_state": data.get("campaign_state"),
                 "campaign_completed": campaign_completed,
                 "achievements": achievements,
                 "show_crt": show_crt,
@@ -331,6 +335,8 @@ class SaveSystem:
             stages = [True] + [False] * 14
 
         defaults = self.get_default_save_data()
+        if sectors is None: sectors = defaults["sectors"]
+        if upgrades is None: upgrades = defaults["upgrades"]
         if missions is None: missions = defaults["missions"]
         if sector_progress is None: sector_progress = defaults["sector_progress"]
         if weapon_upgrades is None: weapon_upgrades = defaults["weapon_upgrades"]

@@ -36,6 +36,7 @@ SIDE_OBJ_TYPE_NAMES = {
     "precision_strikes": "Precision Strikes",
 }
 
+
 class MissionSystem:
     def __init__(self):
         self.active_mission_id: Optional[str] = None
@@ -62,8 +63,6 @@ class MissionSystem:
         self._precision_strike_count = 0
         self._player_taken_damage = False
 
-        ctx.missions["current_sector"] = self.active_mission_data["sector_id"]
-        ctx.missions["current_mission"] = self.active_mission_data["mission_number"]
         ctx.campaign_state.set_current_mission(
             f"S{self.active_mission_data['sector_id']}_M{self.active_mission_data['mission_number']}"
         )
@@ -305,10 +304,6 @@ class MissionSystem:
         """Returns the LOCKED, AVAILABLE, or COMPLETED state for UI."""
         cs = getattr(ctx, "campaign_state", None)
         if cs is None:
-            if mission_id in ctx.missions.get("completed", []):
-                return STATE_COMPLETED
-            elif mission_id in ctx.missions.get("unlocked", []):
-                return STATE_AVAILABLE
             return STATE_LOCKED
         if cs.is_mission_completed(mission_id):
             return STATE_COMPLETED

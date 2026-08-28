@@ -173,9 +173,8 @@ class TestMissionResetClearsEntities(unittest.TestCase):
     def test_reset_preserves_progression(self):
         ctx = GameContext()
         ctx.scrap = 500
-        ctx.coins = 100
-        ctx.missions["completed"] = ["S1_M1"]
-        ctx.sector_progress["completed"] = [1]
+        ctx.campaign_state.complete_mission("S1_M1")
+        ctx.campaign_state.complete_sector(1)
         
         ctx.bullet_group.add(Bullet((0, 0), (100, 0)))
         ctx.target_group.add(Enemy(pos=(400, 400)))
@@ -188,8 +187,8 @@ class TestMissionResetClearsEntities(unittest.TestCase):
         ctx.powerup_group.empty()
         
         self.assertEqual(ctx.scrap, 500)
-        self.assertEqual(ctx.coins, 100)
-        self.assertEqual(ctx.missions["completed"], ["S1_M1"])
+        self.assertIn("S1_M1", ctx.campaign_state.completed_missions)
+        self.assertIn(1, ctx.campaign_state.completed_sectors)
         self.assertEqual(len(ctx.bullet_group), 0)
         self.assertEqual(len(ctx.target_group), 0)
 
@@ -240,9 +239,9 @@ class TestMissionProgression(unittest.TestCase):
         mission_sys.start_mission(ctx, "S1_M5", director)
         mission_sys._trigger_success(ctx)
         
-        self.assertIn(1, ctx.sector_progress["completed"])
-        self.assertIn(2, ctx.sector_progress["unlocked"])
-        self.assertIn("S2_M1", ctx.missions["unlocked"])
+        self.assertIn(1, ctx.campaign_state.completed_sectors)
+        self.assertIn(2, ctx.campaign_state.unlocked_sectors)
+        self.assertIn("S2_M1", ctx.campaign_state.unlocked_missions)
         self.assertEqual(ctx.scrap, 900)
 
     def test_reward_not_duplicated_on_replay(self):

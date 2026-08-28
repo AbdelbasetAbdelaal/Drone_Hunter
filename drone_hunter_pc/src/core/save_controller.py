@@ -59,11 +59,9 @@ class SaveController:
                 "new_game_plus_count": saved_data.get("new_game_plus_count", 0),
             }
         context.campaign_state = CampaignState.deserialize(campaign_data)
-        context._sync_from_campaign_state()
 
         # Progression & Resources
         context.scrap = saved_data.get("scrap", 0)
-        context.coins = saved_data.get("coins", 0)
         context.highscore = saved_data.get("highscore", 0)
         context.upgrade_levels = saved_data.get("upgrades", {})
         context.show_crt = saved_data.get("show_crt", False)
@@ -143,7 +141,6 @@ class SaveController:
 
         save_dict = {
             "scrap": getattr(context, "scrap", 0),
-            "coins": getattr(context, "coins", 0),
             "highscore": getattr(context, "highscore", 0),
             "upgrades": getattr(context, "upgrade_levels", {}),
             "campaign_state": getattr(context, "campaign_state", CampaignState()).serialize(),

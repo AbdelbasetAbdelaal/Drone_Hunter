@@ -64,6 +64,10 @@ class CampaignState:
     def new_game_plus_count(self) -> int:
         return self._new_game_plus_count
 
+    @new_game_plus_count.setter
+    def new_game_plus_count(self, value: int) -> None:
+        self._new_game_plus_count = int(value)
+
     # ------------------------------------------------------------------
     # Derived properties
     # ------------------------------------------------------------------
