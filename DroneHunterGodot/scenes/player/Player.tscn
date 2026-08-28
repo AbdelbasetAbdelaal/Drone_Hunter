@@ -3,6 +3,7 @@
 [ext_resource type="Script" path="res://scripts/gameplay/player/player.gd" id="1_script"]
 [ext_resource type="Texture2D" path="res://assets/player/player_idle.png" id="2_texture"]
 [ext_resource type="Script" path="res://scripts/gameplay/weapons/weapon_controller.gd" id="3_weapon_ctrl"]
+[ext_resource type="Script" path="res://scripts/gameplay/player/ability_controller.gd" id="4_ability_ctrl"]
 
 [sub_resource type="CircleShape2D" id="CircleShape2D_player"]
 radius = 22.0
@@ -30,3 +31,8 @@ position_smoothing_speed = 8.0
 [node name="WeaponController" type="Node2D" parent="."]
 script = ExtResource("3_weapon_ctrl")
 muzzle_offset = Vector2(45, 0)
+
+[node name="AbilityController" type="Node" parent="." node_paths=PackedStringArray("player")]
+script = ExtResource("4_ability_ctrl")
+player = NodePath("..")
+

@@ -20,6 +20,10 @@ func _physics_process(delta: float) -> void:
 	_handle_movement(delta)
 	_handle_aim()
 	_handle_combat(delta)
+	
+	var ability_controller = get_node_or_null("AbilityController")
+	if ability_controller and ability_controller.has_method("handle_input"):
+		ability_controller.handle_input()
 
 func _handle_movement(delta: float) -> void:
 	# 360-degree vector input mapped from Godot InputMap
