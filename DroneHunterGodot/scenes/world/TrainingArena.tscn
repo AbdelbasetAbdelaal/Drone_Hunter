@@ -1,0 +1,50 @@
+[gd_scene load_steps=6 format=3]
+
+[ext_resource type="PackedScene" path="res://scenes/player/Player.tscn" id="1_player"]
+
+[sub_resource type="RectangleShape2D" id="RectangleShape2D_top"]
+size = Vector2(2560, 64)
+
+[sub_resource type="RectangleShape2D" id="RectangleShape2D_bottom"]
+size = Vector2(2560, 64)
+
+[sub_resource type="RectangleShape2D" id="RectangleShape2D_left"]
+size = Vector2(64, 1440)
+
+[sub_resource type="RectangleShape2D" id="RectangleShape2D_right"]
+size = Vector2(64, 1440)
+
+[node name="TrainingArena" type="Node2D"]
+
+[node name="BackgroundCanvas" type="ColorRect" parent="."]
+offset_right = 1920.0
+offset_bottom = 1080.0
+color = Color(0.027451, 0.035294, 0.054902, 1)
+
+[node name="GridVisual" type="ColorRect" parent="."]
+offset_left = 32.0
+offset_top = 32.0
+offset_right = 1888.0
+offset_bottom = 1048.0
+color = Color(0.054902, 0.078431, 0.121569, 1)
+
+[node name="ArenaBoundaries" type="StaticBody2D" parent="."]
+
+[node name="WallTop" type="CollisionShape2D" parent="ArenaBoundaries"]
+position = Vector2(960, -32)
+shape = SubResource("RectangleShape2D_top")
+
+[node name="WallBottom" type="CollisionShape2D" parent="ArenaBoundaries"]
+position = Vector2(960, 1112)
+shape = SubResource("RectangleShape2D_bottom")
+
+[node name="WallLeft" type="CollisionShape2D" parent="ArenaBoundaries"]
+position = Vector2(-32, 540)
+shape = SubResource("RectangleShape2D_left")
+
+[node name="WallRight" type="CollisionShape2D" parent="ArenaBoundaries"]
+position = Vector2(1952, 540)
+shape = SubResource("RectangleShape2D_right")
+
+[node name="Player" parent="." instance=ExtResource("1_player")]
+position = Vector2(960, 540)

@@ -1,3 +1,21 @@
-[gd_scene format=3 uid="uid://b28x7u601py10"]
+[gd_scene load_steps=4 format=3]
+
+[ext_resource type="Script" path="res://scripts/gameplay/player/player.gd" id="1_script"]
+[ext_resource type="Texture2D" path="res://assets/player/player_idle.png" id="2_texture"]
+
+[sub_resource type="CircleShape2D" id="CircleShape2D_player"]
+radius = 28.0
 
 [node name="Player" type="CharacterBody2D"]
+script = ExtResource("1_script")
+
+[node name="Sprite2D" type="Sprite2D" parent="."]
+scale = Vector2(0.4, 0.4)
+texture = ExtResource("2_texture")
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="."]
+shape = SubResource("CircleShape2D_player")
+
+[node name="Camera2D" type="Camera2D" parent="."]
+position_smoothing_enabled = true
+position_smoothing_speed = 8.0
