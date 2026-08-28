@@ -1,11 +1,27 @@
 class_name WeaponController
 extends Node2D
 
-@export var primary_projectile_scene: PackedScene = preload("res://scenes/weapons/BulletPulse.tscn")
-@export var fire_rate: float = 7.5  # Shots per second (from Pygame WEAPON_PULSE spec)
-@export var muzzle_offset: Vector2 = Vector2(75.0, 0.0)
+@export var muzzle_offset: Vector2 = Vector2(88.0, 0.0) # Player STRIKER primary mount profile
+
+var weapons: Array[WeaponDefinition] = []
+var active_weapon_index: int = 0
+var behaviors: Array[WeaponBehavior] = []
 
 var _cooldown_timer: float = 0.0
+
+func _ready() -> void:
+	_init_weapons()
+
+func _init_weapons() -> void:
+	# Temporarily hardcode Pulse until full resource data setup
+	var pulse_def = WeaponDefinition.new()
+	pulse_def.weapon_id = "pulse"
+	pulse_def.display_name = "Pulse Laser"
+	pulse_def.cooldown = 0.18
+	pulse_def.damage = 12.0
+	pulse_def.speed = 650.0
+	weapons.append(pulse_def)
+	behaviors.append(PulseBehavior.new(pulse_def, self))
 
 func _physics_process(delta: float) -> void:
 	if _cooldown_timer > 0.0:
@@ -15,30 +31,16 @@ func can_fire_primary() -> bool:
 	return _cooldown_timer <= 0.0
 
 func try_fire_primary() -> bool:
-	if not can_fire_primary():
+	if not can_fire_primary() or behaviors.size() == 0:
 		return false
 	
-	if primary_projectile_scene == null:
-		return false
-	
-	var bullet = primary_projectile_scene.instantiate() as Area2D
-	if bullet == null:
-		return false
+	var active_def = weapons[active_weapon_index]
+	var active_behavior = behaviors[active_weapon_index]
 	
 	var spawn_pos = global_position + muzzle_offset.rotated(global_rotation)
 	var spawn_rot = global_rotation
 	
-	# Add to current scene root / world first
-	var root_node = get_tree().current_scene if get_tree() and get_tree().current_scene else get_parent()
-	if root_node:
-		root_node.add_child(bullet)
-	else:
-		get_parent().add_child(bullet)
-		
-	# Apply global transform after entering tree
-	bullet.global_position = spawn_pos
-	bullet.global_rotation = spawn_rot
+	active_behavior.fire(spawn_pos, spawn_rot)
 	
-	# Only start cooldown after successful projectile creation and insertion
-	_cooldown_timer = 1.0 / max(0.1, fire_rate)
+	_cooldown_timer = active_def.cooldown
 	return true

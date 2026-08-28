@@ -4,8 +4,16 @@ extends Area2D
 @export var speed: float = 950.0
 @export var damage: float = 25.0
 @export var max_range: float = 1400.0
+@export var damage_type: int = Hit.DamageType.NORMAL
 
 var _traveled_distance: float = 0.0
+var _source: Node2D = null
+
+func setup(p_speed: float, p_damage: float, p_damage_type: int, p_source: Node2D) -> void:
+	speed = p_speed
+	damage = p_damage
+	damage_type = p_damage_type
+	_source = p_source
 
 func _ready() -> void:
 	top_level = true
@@ -27,11 +35,21 @@ func _on_area_entered(area: Area2D) -> void:
 	_handle_hit(area)
 
 func _handle_hit(target: Node2D) -> void:
-	if target == self or target is Player or target.is_in_group("player"):
+	# Avoid hitting self source
+	if target == _source:
 		return
+		
+	# Find damage receiver
+	var receiver: DamageReceiver = null
+	if target is DamageReceiver:
+		receiver = target
+	elif target.has_node("DamageReceiver"):
+		receiver = target.get_node("DamageReceiver") as DamageReceiver
+		
+	if receiver != null:
+		var hit = Hit.new(damage, damage_type, _source, global_position)
+		receiver.take_damage(hit)
+	elif target.has_method("take_damage"):
+		target.take_damage(damage) # Fallback for old tests
 	
-	if target.has_method("take_damage"):
-		target.take_damage(damage)
-	
-	# Cleanly remove projectile upon hitting either an enemy or arena boundary/environment body
 	queue_free()
