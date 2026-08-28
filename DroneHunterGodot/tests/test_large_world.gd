@@ -1,7 +1,7 @@
 extends Node
 
 func _ready() -> void:
-	print("=== RUNNING GODOT 4.3 ENVIRONMENT KIT + LARGE WORLD TEST ===")
+	print("=== RUNNING GODOT 4.3 DESERT / INDUSTRIAL SCI-FI WORLD TEST ===")
 
 	# 1. Load and Instantiate TrainingArena World
 	var arena_scene: PackedScene = load("res://scenes/world/TrainingArena.tscn")
@@ -11,43 +11,39 @@ func _ready() -> void:
 	add_child(world)
 	print("[PASS] World scene TrainingArena instantiated.")
 
-	# 2. Verify Background Layer and Base Terrain
-	var bg: Node2D = world.get_node_or_null("Background")
-	assert(bg != null, "TrainingArena must have Background layer")
-	var base_ground: TextureRect = bg.get_node_or_null("BaseGround")
-	assert(base_ground != null, "Background must have BaseGround TextureRect")
-	assert(base_ground.texture != null, "BaseGround must have valid texture from environment kit")
-	assert(base_ground.size.x >= 3840.0 and base_ground.size.y >= 2160.0, "Base ground must cover the 3840x2160 world area")
-	print("[PASS] Background layer and continuous base terrain verified.")
+	# 2. Verify BaseTerrain Layer (Desert / Industrial Sci-Fi visual identity)
+	var base_terrain: Node2D = world.get_node_or_null("BaseTerrain")
+	assert(base_terrain != null, "World must have BaseTerrain layer")
+	var ground: Sprite2D = base_terrain.get_node_or_null("DesertGround")
+	assert(ground != null and ground.texture != null, "BaseTerrain must have DesertGround Sprite2D")
+	assert(ground.position == Vector2(1920, 1080), "Desert ground must be centered at (1920, 1080)")
+	print("[PASS] BaseTerrain layer with coherent Desert/Industrial backdrop verified.")
 
-	# 3. Verify Modular Environment Kit Layers (Terrain, Water, Structures, Props, Obstacles)
-	var terrain: Node2D = world.get_node_or_null("Terrain")
-	assert(terrain != null and terrain.get_child_count() >= 5, "Terrain layer must have modular terrain nodes")
-	for child in terrain.get_children():
+	# 3. Verify Hierarchy Layers (TerrainDetails, Landmarks, Structures, Props)
+	var terrain_details: Node2D = world.get_node_or_null("TerrainDetails")
+	assert(terrain_details != null and terrain_details.get_child_count() >= 2, "TerrainDetails layer must exist")
+	for child in terrain_details.get_children():
 		if child is Sprite2D:
-			assert((child as Sprite2D).texture != null, "Terrain sprite must have valid texture: %s" % child.name)
+			assert((child as Sprite2D).texture != null, "Terrain detail must have valid texture: %s" % child.name)
 
-	var water: Node2D = world.get_node_or_null("Water")
-	assert(water != null and water.get_child_count() >= 2, "Water layer must have waterway elements")
-	for child in water.get_children():
+	var landmarks: Node2D = world.get_node_or_null("Landmarks")
+	assert(landmarks != null and landmarks.get_child_count() >= 4, "Landmarks layer must have major navigation towers")
+	for child in landmarks.get_children():
 		if child is Sprite2D:
-			assert((child as Sprite2D).texture != null, "Water sprite must have valid texture: %s" % child.name)
+			assert((child as Sprite2D).texture != null, "Landmark must have valid texture: %s" % child.name)
 
 	var structures: Node2D = world.get_node_or_null("Structures")
-	assert(structures != null and structures.get_child_count() >= 6, "Structures layer must have modular landmarks")
+	assert(structures != null and structures.get_child_count() >= 3, "Structures layer must have industrial machinery")
 	for child in structures.get_children():
 		if child is Sprite2D:
-			assert((child as Sprite2D).texture != null, "Structure sprite must have valid texture: %s" % child.name)
+			assert((child as Sprite2D).texture != null, "Structure must have valid texture: %s" % child.name)
 
 	var props: Node2D = world.get_node_or_null("Props")
-	assert(props != null and props.get_child_count() >= 5, "Props layer must have tactical prop assets")
+	assert(props != null and props.get_child_count() >= 3, "Props layer must have tactical props")
 	for child in props.get_children():
 		if child is Sprite2D:
-			assert((child as Sprite2D).texture != null, "Prop sprite must have valid texture: %s" % child.name)
-
-	var obstacles: Node2D = world.get_node_or_null("Obstacles")
-	assert(obstacles != null, "Obstacles layer must exist")
-	print("[PASS] Modular environment kit layers (Terrain, Water, Structures, Props, Obstacles) verified.")
+			assert((child as Sprite2D).texture != null, "Prop must have valid texture: %s" % child.name)
+	print("[PASS] Spatial hierarchy (TerrainDetails, Landmarks, Structures, Props) verified.")
 
 	# 4. Verify Boundaries (StaticBody2D)
 	var boundaries: StaticBody2D = world.get_node_or_null("Boundaries")
@@ -108,12 +104,12 @@ func _ready() -> void:
 	assert(player.global_position.x > 3500.0, "Player must navigate to Right sector")
 
 	# Four Corners
-	# NW Corner (Canyon Oasis)
+	# NW Corner (Canyon Outpost)
 	player.global_position = Vector2(400.0, 300.0)
 	await get_tree().physics_frame
 	assert(player.global_position.x < 600.0 and player.global_position.y < 500.0, "Player must navigate to NW Corner")
 
-	# NE Corner (Tactical Bridge & River)
+	# NE Corner (Canyon Bridge & Road Approach)
 	player.global_position = Vector2(3400.0, 300.0)
 	await get_tree().physics_frame
 	assert(player.global_position.x > 3200.0 and player.global_position.y < 500.0, "Player must navigate to NE Corner")
@@ -128,7 +124,7 @@ func _ready() -> void:
 	await get_tree().physics_frame
 	assert(player.global_position.x > 3200.0 and player.global_position.y > 1700.0, "Player must navigate to SE Corner")
 
-	print("[PASS] Full world exploration verified across all quadrants and landmarks.")
+	print("[PASS] Full world exploration verified across all regions.")
 
-	print("\n*** ALL ENVIRONMENT KIT + LARGE WORLD TESTS PASSED SUCCESSFULLY! ***")
+	print("\n*** ALL DESERT / INDUSTRIAL SCI-FI WORLD TESTS PASSED SUCCESSFULLY! ***")
 	get_tree().quit(0)
