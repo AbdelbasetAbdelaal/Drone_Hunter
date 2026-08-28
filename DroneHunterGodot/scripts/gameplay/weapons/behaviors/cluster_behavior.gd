@@ -1,7 +1,7 @@
-class_name PulseBehavior
+class_name ClusterBehavior
 extends WeaponBehavior
 
-var projectile_scene: PackedScene = preload("res://scenes/weapons/BulletPulse.tscn")
+var projectile_scene: PackedScene = preload("res://scenes/weapons/GenericProjectile.tscn")
 
 func fire(muzzle_pos: Vector2, muzzle_rot: float) -> void:
 	if projectile_scene == null:
@@ -17,5 +17,6 @@ func fire(muzzle_pos: Vector2, muzzle_rot: float) -> void:
 	proj.global_position = muzzle_pos
 	proj.global_rotation = muzzle_rot
 	
-	# Pass definition values to projectile
 	proj.setup(definition.speed, definition.damage, Hit.DamageType.NORMAL, controller.get_parent(), definition.projectile_asset)
+	
+	# TODO: Implement specific logic for ClusterBehavior

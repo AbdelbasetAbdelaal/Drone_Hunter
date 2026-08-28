@@ -9,11 +9,20 @@ extends Area2D
 var _traveled_distance: float = 0.0
 var _source: Node2D = null
 
-func setup(p_speed: float, p_damage: float, p_damage_type: int, p_source: Node2D) -> void:
+func setup(p_speed: float, p_damage: float, p_damage_type: int, p_source: Node2D, p_asset_path: String = "") -> void:
 	speed = p_speed
 	damage = p_damage
 	damage_type = p_damage_type
 	_source = p_source
+	
+	if p_asset_path != "":
+		# Assuming p_asset_path is something like "weapons/laser_pulse.png"
+		var full_path = "res://assets/" + p_asset_path
+		if ResourceLoader.exists(full_path):
+			var tex = load(full_path)
+			var sprite = get_node_or_null("Sprite2D") as Sprite2D
+			if sprite and tex:
+				sprite.texture = tex
 
 func _ready() -> void:
 	top_level = true
