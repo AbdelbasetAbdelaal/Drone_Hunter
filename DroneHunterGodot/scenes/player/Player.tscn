@@ -8,6 +8,7 @@
 radius = 38.0
 
 [node name="Player" type="CharacterBody2D"]
+collision_mask = 3
 script = ExtResource("1_script")
 
 [node name="Sprite2D" type="Sprite2D" parent="."]
@@ -18,6 +19,11 @@ texture = ExtResource("2_texture")
 shape = SubResource("CircleShape2D_player")
 
 [node name="Camera2D" type="Camera2D" parent="."]
+limit_left = 0
+limit_top = 0
+limit_right = 3840
+limit_bottom = 2160
+limit_smoothed = true
 position_smoothing_enabled = true
 position_smoothing_speed = 8.0
 

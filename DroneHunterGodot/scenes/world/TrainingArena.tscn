@@ -1,95 +1,141 @@
-[gd_scene load_steps=12 format=3]
+[gd_scene load_steps=10 format=3]
 
-[ext_resource type="Texture2D" path="res://assets/backgrounds/sectors/sector_2_ref.png" id="1_bg"]
-[ext_resource type="Texture2D" path="res://assets/environment/structures/shield_generator.png" id="2_shield_gen"]
-[ext_resource type="Texture2D" path="res://assets/environment/structures/radar_command_tower.png" id="3_tower"]
-[ext_resource type="Texture2D" path="res://assets/environment/structures/radar_dish.png" id="4_radar"]
+[ext_resource type="Texture2D" path="res://assets/backgrounds/sectors/sector_2_ref.png" id="1_sector_bg"]
+[ext_resource type="Texture2D" path="res://assets/environment/structures/radar_command_tower.png" id="2_tower"]
+[ext_resource type="Texture2D" path="res://assets/environment/structures/radar_dish.png" id="3_radar"]
+[ext_resource type="Texture2D" path="res://assets/environment/structures/shield_generator.png" id="4_shield"]
 [ext_resource type="Texture2D" path="res://assets/environment/structures/missile_launcher.png" id="5_launcher"]
-[ext_resource type="PackedScene" path="res://scenes/enemies/EnemyScout.tscn" id="6_scout"]
-[ext_resource type="PackedScene" path="res://scenes/player/Player.tscn" id="7_player"]
+[ext_resource type="PackedScene" path="res://scenes/player/Player.tscn" id="6_player"]
 
 [sub_resource type="RectangleShape2D" id="RectangleShape2D_top"]
-size = Vector2(2560, 64)
+size = Vector2(4400, 64)
 
 [sub_resource type="RectangleShape2D" id="RectangleShape2D_bottom"]
-size = Vector2(2560, 64)
+size = Vector2(4400, 64)
 
 [sub_resource type="RectangleShape2D" id="RectangleShape2D_left"]
-size = Vector2(64, 1440)
+size = Vector2(64, 2700)
 
 [sub_resource type="RectangleShape2D" id="RectangleShape2D_right"]
-size = Vector2(64, 1440)
+size = Vector2(64, 2700)
 
 [node name="TrainingArena" type="Node2D"]
 
 [node name="Background" type="Node2D" parent="."]
+z_index = -20
+
+[node name="SectorNorthWest" type="Sprite2D" parent="Background"]
+position = Vector2(960, 540)
+scale = Vector2(1.15, 1.15)
+texture = ExtResource("1_sector_bg")
+
+[node name="SectorNorthEast" type="Sprite2D" parent="Background"]
+position = Vector2(2880, 540)
+scale = Vector2(1.15, 1.15)
+texture = ExtResource("1_sector_bg")
+flip_h = true
+
+[node name="SectorSouthWest" type="Sprite2D" parent="Background"]
+position = Vector2(960, 1620)
+scale = Vector2(1.15, 1.15)
+texture = ExtResource("1_sector_bg")
+flip_v = true
+
+[node name="SectorSouthEast" type="Sprite2D" parent="Background"]
+position = Vector2(2880, 1620)
+scale = Vector2(1.15, 1.15)
+texture = ExtResource("1_sector_bg")
+flip_h = true
+flip_v = true
+
+[node name="Midground" type="Node2D" parent="."]
 z_index = -10
 
-[node name="SectorBackground" type="Sprite2D" parent="Background"]
-position = Vector2(960, 540)
-scale = Vector2(0.75, 0.75)
-texture = ExtResource("1_bg")
+[node name="CentralNexusTower" type="Sprite2D" parent="Midground"]
+position = Vector2(1920, 1080)
+scale = Vector2(2.5, 2.5)
+texture = ExtResource("2_tower")
+
+[node name="OutpostNorthShield" type="Sprite2D" parent="Midground"]
+position = Vector2(1920, 300)
+scale = Vector2(2, 2)
+texture = ExtResource("4_shield")
+
+[node name="OutpostSouthShield" type="Sprite2D" parent="Midground"]
+position = Vector2(1920, 1860)
+scale = Vector2(2, 2)
+texture = ExtResource("4_shield")
 
 [node name="Environment" type="Node2D" parent="."]
+z_index = -5
 
-[node name="RadarTowerNorth" type="Sprite2D" parent="Environment"]
-position = Vector2(960, 140)
-scale = Vector2(1.5, 1.5)
-texture = ExtResource("3_tower")
+[node name="RadarTowerNW" type="Sprite2D" parent="Environment"]
+position = Vector2(500, 320)
+scale = Vector2(1.8, 1.8)
+texture = ExtResource("2_tower")
 
-[node name="RadarDishNorthWest" type="Sprite2D" parent="Environment"]
-position = Vector2(300, 180)
-scale = Vector2(1.5, 1.5)
-texture = ExtResource("4_radar")
+[node name="RadarDishNW" type="Sprite2D" parent="Environment"]
+position = Vector2(300, 480)
+scale = Vector2(1.6, 1.6)
+texture = ExtResource("3_radar")
 
-[node name="RadarDishNorthEast" type="Sprite2D" parent="Environment"]
-position = Vector2(1620, 180)
-scale = Vector2(1.5, 1.5)
-texture = ExtResource("4_radar")
+[node name="ShieldGeneratorNE" type="Sprite2D" parent="Environment"]
+position = Vector2(3300, 320)
+scale = Vector2(1.8, 1.8)
+texture = ExtResource("4_shield")
 
-[node name="ShieldGeneratorSouthWest" type="Sprite2D" parent="Environment"]
-position = Vector2(320, 880)
-scale = Vector2(1.5, 1.5)
-texture = ExtResource("2_shield_gen")
+[node name="MissileLauncherNE" type="Sprite2D" parent="Environment"]
+position = Vector2(3500, 480)
+scale = Vector2(1.6, 1.6)
+texture = ExtResource("5_launcher")
 
-[node name="ShieldGeneratorSouthEast" type="Sprite2D" parent="Environment"]
-position = Vector2(1600, 880)
-scale = Vector2(1.5, 1.5)
-texture = ExtResource("2_shield_gen")
+[node name="RadarTowerSW" type="Sprite2D" parent="Environment"]
+position = Vector2(500, 1780)
+scale = Vector2(1.8, 1.8)
+texture = ExtResource("2_tower")
 
-[node name="MissileLauncherSouth" type="Sprite2D" parent="Environment"]
-position = Vector2(960, 940)
+[node name="RadarDishSW" type="Sprite2D" parent="Environment"]
+position = Vector2(300, 1940)
+scale = Vector2(1.6, 1.6)
+texture = ExtResource("3_radar")
+
+[node name="ShieldGeneratorSE" type="Sprite2D" parent="Environment"]
+position = Vector2(3300, 1780)
+scale = Vector2(1.8, 1.8)
+texture = ExtResource("4_shield")
+
+[node name="MissileLauncherSE" type="Sprite2D" parent="Environment"]
+position = Vector2(3500, 1940)
+scale = Vector2(1.6, 1.6)
+texture = ExtResource("5_launcher")
+
+[node name="MissileLauncherCenterWest" type="Sprite2D" parent="Environment"]
+position = Vector2(1100, 1080)
 scale = Vector2(1.5, 1.5)
 texture = ExtResource("5_launcher")
 
-[node name="Enemies" type="Node2D" parent="."]
-
-[node name="EnemyScout1" parent="Enemies" instance=ExtResource("6_scout")]
-position = Vector2(1400, 420)
-
-[node name="EnemyScout2" parent="Enemies" instance=ExtResource("6_scout")]
-position = Vector2(1400, 660)
-
-[node name="EnemyScout3" parent="Enemies" instance=ExtResource("6_scout")]
-position = Vector2(580, 360)
+[node name="RadarDishCenterEast" type="Sprite2D" parent="Environment"]
+position = Vector2(2740, 1080)
+scale = Vector2(1.5, 1.5)
+texture = ExtResource("3_radar")
 
 [node name="ArenaBoundaries" type="StaticBody2D" parent="."]
 
 [node name="WallTop" type="CollisionShape2D" parent="ArenaBoundaries"]
-position = Vector2(960, -32)
+position = Vector2(1920, -32)
 shape = SubResource("RectangleShape2D_top")
 
 [node name="WallBottom" type="CollisionShape2D" parent="ArenaBoundaries"]
-position = Vector2(960, 1112)
+position = Vector2(1920, 2192)
 shape = SubResource("RectangleShape2D_bottom")
 
 [node name="WallLeft" type="CollisionShape2D" parent="ArenaBoundaries"]
-position = Vector2(-32, 540)
+position = Vector2(-32, 1080)
 shape = SubResource("RectangleShape2D_left")
 
 [node name="WallRight" type="CollisionShape2D" parent="ArenaBoundaries"]
-position = Vector2(1952, 540)
+position = Vector2(3872, 1080)
 shape = SubResource("RectangleShape2D_right")
 
-[node name="Player" parent="." instance=ExtResource("7_player")]
-position = Vector2(960, 540)
+[node name="Player" parent="." instance=ExtResource("6_player")]
+position = Vector2(1920, 1080)
