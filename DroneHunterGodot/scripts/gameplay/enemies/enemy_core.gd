@@ -1,7 +1,7 @@
 class_name EnemyCore
 extends CharacterBody2D
 
-@export var max_health: float = 30.0
+@export var max_hp: float = 30.0
 @export var base_speed: float = 210.0
 @export var base_armor: float = 0.0
 @export var score_value: int = 150
@@ -12,13 +12,24 @@ extends CharacterBody2D
 
 var target: Node2D
 
+var current_hp: float:
+	get:
+		return health.current_hp if health != null else 0.0
+	set(value):
+		if health != null:
+			health.current_hp = value
+
+var move_speed: float:
+	get: return base_speed
+	set(v): base_speed = v
+
 func _ready() -> void:
 	add_to_group("enemy")
 	
 	if health:
-		health.max_hp = max_health
+		health.max_hp = max_hp
 		health.base_armor = base_armor
-		health.current_hp = max_health
+		health.current_hp = max_hp
 		health.died.connect(_on_death)
 		
 	if damage_receiver:

@@ -15,20 +15,20 @@ func _ready() -> void:
 func _init_weapons() -> void:
 	# Define all 11 weapons based on Phase 2 requirements and game_data.py
 	
-	_add_weapon("pulse", "Pulse Laser", 1, 0.18, 12, 650, 1, 0.0, "weapons/laser_pulse.png", PulseBehavior)
-	_add_weapon("rapid", "Rapid Autocannon", 2, 0.08, 8, 980, 1, 3.0, "weapons/laser_pulse.png", RapidBehavior)
-	_add_weapon("scatter", "Spread Cannon", 2, 0.75, 10, 500, 5, 22.0, "weapons/laser_scatter.png", ScatterBehavior)
-	_add_weapon("missile", "Heavy Missile", 3, 2.5, 65, 260, 1, 0.0, "weapons/missile.png", MissileBehavior)
-	_add_weapon("barrage", "Missile Barrage", 3, 2.2, 38, 620, 4, 28.0, "weapons/missile.png", BarrageBehavior)
-	_add_weapon("plasma", "Heavy Plasma Cannon", 2, 0.85, 90, 460, 1, 0.0, "weapons/laser_beam.png", PlasmaBehavior)
-	_add_weapon("rail", "Precision Railgun", 1, 1.10, 115, 1800, 1, 0.0, "weapons/laser_beam.png", RailgunBehavior)
-	_add_weapon("beam", "Plasma Cutting Beam", 2, 0.08, 26, 1500, 1, 0.0, "weapons/laser_beam.png", BeamBehavior)
-	_add_weapon("tesla", "Tesla Arc", 2, 0.40, 44, 1100, 1, 0.0, "weapons/tesla_orb.png", TeslaBehavior)
-	_add_weapon("cluster", "Cluster Torpedo", 4, 2.0, 85, 520, 1, 0.0, "weapons/cluster_torpedo.png", ClusterBehavior)
-	_add_weapon("emp", "EMP Shockwave Pulse", 1, 0.50, 30, 1200, 1, 0.0, "weapons/tesla_orb.png", EMPBehavior)
+	_add_weapon("pulse", "Pulse Laser", 1, 0.18, 25, 950, 1, 0.0, "projectiles/bullet_pulse.png", PulseBehavior)
+	_add_weapon("rapid", "Rapid Autocannon", 2, 0.08, 8, 1100, 1, 3.0, "projectiles/bullet_pulse.png", RapidBehavior)
+	_add_weapon("scatter", "Spread Cannon", 2, 0.75, 10, 600, 5, 22.0, "projectiles/bullet_scatter.png", ScatterBehavior)
+	_add_weapon("missile", "Heavy Missile", 3, 2.5, 65, 320, 1, 0.0, "weapons/missile/projectile.png", MissileBehavior)
+	_add_weapon("barrage", "Missile Barrage", 3, 2.2, 38, 650, 4, 28.0, "weapons/barrage/projectile.png", BarrageBehavior)
+	_add_weapon("plasma", "Heavy Plasma Cannon", 2, 0.85, 90, 500, 1, 0.0, "weapons/plasma/projectile.png", PlasmaBehavior)
+	_add_weapon("rail", "Precision Railgun", 1, 1.10, 115, 1800, 1, 0.0, "weapons/rail/projectile.png", RailgunBehavior)
+	_add_weapon("beam", "Plasma Cutting Beam", 2, 0.08, 26, 1500, 1, 0.0, "weapons/beam/projectile.png", BeamBehavior)
+	_add_weapon("tesla", "Tesla Arc", 2, 0.40, 44, 1100, 1, 0.0, "weapons/tesla/projectile.png", TeslaBehavior)
+	_add_weapon("cluster", "Cluster Torpedo", 4, 2.0, 85, 550, 1, 0.0, "weapons/cluster/projectile.png", ClusterBehavior)
+	_add_weapon("emp", "EMP Shockwave Pulse", 1, 0.50, 30, 1200, 1, 0.0, "weapons/emp/projectile.png", EMPBehavior)
 
 func _add_weapon(id: String, display_name: String, slot: int, cooldown: float, damage: float, speed: float, count: int, spread: float, asset: String, behavior_class) -> void:
-	var def = WeaponDefinition.new()
+	var def: WeaponDefinition = WeaponDefinition.new()
 	def.weapon_id = id
 	def.display_name = display_name
 	def.slot = slot

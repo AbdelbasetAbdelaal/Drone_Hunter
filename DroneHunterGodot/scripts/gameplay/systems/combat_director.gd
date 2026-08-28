@@ -9,8 +9,6 @@ var shield_scene: PackedScene = preload("res://scenes/enemies/EnemyShieldElite.t
 @export var spawn_parent: Node2D
 
 func _ready() -> void:
-	# Small delay to ensure player and world are loaded
-	await get_tree().create_timer(0.5).timeout
 	_spawn_initial_encounter()
 
 func _spawn_initial_encounter() -> void:

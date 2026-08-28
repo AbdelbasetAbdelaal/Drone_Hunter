@@ -1,7 +1,7 @@
 class_name PulseBehavior
 extends WeaponBehavior
 
-var projectile_scene: PackedScene = preload("res://scenes/weapons/BulletPulse.tscn")
+var projectile_scene: PackedScene = preload("res://scenes/weapons/GenericProjectile.tscn")
 
 func fire(muzzle_pos: Vector2, muzzle_rot: float) -> void:
 	if projectile_scene == null:

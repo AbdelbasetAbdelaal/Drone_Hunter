@@ -16,13 +16,19 @@ func setup(p_speed: float, p_damage: float, p_damage_type: int, p_source: Node2D
 	_source = p_source
 	
 	if p_asset_path != "":
-		# Assuming p_asset_path is something like "weapons/laser_pulse.png"
 		var full_path = "res://assets/" + p_asset_path
 		if ResourceLoader.exists(full_path):
 			var tex = load(full_path)
 			var sprite = get_node_or_null("Sprite2D") as Sprite2D
 			if sprite and tex:
 				sprite.texture = tex
+				var max_dim: float = max(tex.get_width(), tex.get_height())
+				if max_dim > 200.0:
+					var target_size: float = 48.0
+					var s: float = target_size / max_dim
+					sprite.scale = Vector2(s, s)
+				else:
+					sprite.scale = Vector2(0.7, 0.7)
 
 func _ready() -> void:
 	top_level = true
@@ -50,9 +56,7 @@ func _handle_hit(target: Node2D) -> void:
 		
 	# Find damage receiver
 	var receiver: DamageReceiver = null
-	if target is DamageReceiver:
-		receiver = target
-	elif target.has_node("DamageReceiver"):
+	if target.has_node("DamageReceiver"):
 		receiver = target.get_node("DamageReceiver") as DamageReceiver
 		
 	if receiver != null:
