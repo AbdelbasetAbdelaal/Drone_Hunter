@@ -88,4 +88,4 @@ func _on_back() -> void:
 	var gm = get_tree().get_first_node_in_group("game_manager")
 	if gm:
 		gm.save_game()
-	get_tree().change_scene_to_file("res://scenes/ui/MainMenu.tscn")
+		gm.navigate_to_state(GameStateManager.State.MAIN_MENU)

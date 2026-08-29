@@ -92,9 +92,16 @@ func _connect_events() -> void:
 			cd.objective_controller.progress_updated.connect(_on_objective_progress)
 
 	# Buttons
-	victory_continue_btn.pressed.connect(func(): get_tree().change_scene_to_file("res://scenes/ui/SectorMap.tscn"))
+	var gm = get_tree().get_first_node_in_group("game_manager")
+	victory_continue_btn.pressed.connect(func():
+		if gm:
+			gm.navigate_to_state(GameStateManager.State.CAMPAIGN_SELECT)
+	)
 	defeat_retry_btn.pressed.connect(func(): get_tree().reload_current_scene())
-	defeat_hangar_btn.pressed.connect(func(): get_tree().change_scene_to_file("res://scenes/ui/Hangar.tscn"))
+	defeat_hangar_btn.pressed.connect(func():
+		if gm:
+			gm.navigate_to_state(GameStateManager.State.HANGAR)
+	)
 	
 	pause_resume_btn.pressed.connect(_toggle_pause)
 	if pause_restart_btn:
@@ -105,11 +112,13 @@ func _connect_events() -> void:
 	if pause_settings_btn:
 		pause_settings_btn.pressed.connect(func():
 			get_tree().paused = false
-			get_tree().change_scene_to_file("res://scenes/ui/Settings.tscn")
+			if gm:
+				gm.navigate_to_state(GameStateManager.State.SETTINGS)
 		)
 	pause_hangar_btn.pressed.connect(func():
 		get_tree().paused = false
-		get_tree().change_scene_to_file("res://scenes/ui/Hangar.tscn")
+		if gm:
+			gm.navigate_to_state(GameStateManager.State.HANGAR)
 	)
 
 func _input(event: InputEvent) -> void:

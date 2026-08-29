@@ -16,8 +16,12 @@ var mission_def: MissionDefinition
 
 func _ready() -> void:
 	_load_mission_data()
+	var gm = get_tree().get_first_node_in_group("game_manager")
 	launch_btn.pressed.connect(_on_launch)
-	back_btn.pressed.connect(func(): get_tree().change_scene_to_file("res://scenes/ui/SectorMap.tscn"))
+	back_btn.pressed.connect(func():
+		if gm:
+			gm.navigate_to_state(GameStateManager.State.CAMPAIGN_SELECT)
+	)
 
 func _load_mission_data() -> void:
 	var gm = get_tree().get_first_node_in_group("game_manager")
@@ -63,4 +67,6 @@ func _load_mission_data() -> void:
 	side_obj_lbl.text = side_text
 
 func _on_launch() -> void:
-	get_tree().change_scene_to_file("res://scenes/world/TrainingArena.tscn")
+	var gm = get_tree().get_first_node_in_group("game_manager")
+	if gm:
+		gm.navigate_to_state(GameStateManager.State.GAMEPLAY)

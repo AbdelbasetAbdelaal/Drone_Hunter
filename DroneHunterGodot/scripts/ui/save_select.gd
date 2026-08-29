@@ -9,7 +9,11 @@ extends Control
 
 func _ready() -> void:
 	_refresh_slots()
-	back_btn.pressed.connect(func(): get_tree().change_scene_to_file("res://scenes/ui/MainMenu.tscn"))
+	var gm = get_tree().get_first_node_in_group("game_manager")
+	back_btn.pressed.connect(func():
+		if gm:
+			gm.navigate_to_state(GameStateManager.State.MAIN_MENU)
+	)
 
 func _refresh_slots() -> void:
 	var gm = get_tree().get_first_node_in_group("game_manager")
@@ -44,7 +48,6 @@ func _refresh_slots() -> void:
 			load_btn.disabled = true
 			del_btn.disabled = true
 			
-		# Disconnect previous signals if any
 		if load_btn.pressed.is_connected(_on_load_slot):
 			load_btn.pressed.disconnect(_on_load_slot)
 		if new_btn.pressed.is_connected(_on_new_slot):
@@ -60,7 +63,7 @@ func _on_load_slot(slot_idx: int) -> void:
 	var gm = get_tree().get_first_node_in_group("game_manager")
 	if gm:
 		gm.load_game(slot_idx)
-	get_tree().change_scene_to_file("res://scenes/ui/SectorMap.tscn")
+		gm.navigate_to_state(GameStateManager.State.CAMPAIGN_SELECT)
 
 func _on_new_slot(slot_idx: int) -> void:
 	var gm = get_tree().get_first_node_in_group("game_manager")
@@ -72,7 +75,7 @@ func _on_new_slot(slot_idx: int) -> void:
 		if gm.progression_manager:
 			gm.progression_manager.reset()
 		gm.save_game(slot_idx)
-	get_tree().change_scene_to_file("res://scenes/ui/DroneSelect.tscn")
+		gm.navigate_to_state(GameStateManager.State.DRONE_SELECT)
 
 func _on_delete_slot(slot_idx: int) -> void:
 	var gm = get_tree().get_first_node_in_group("game_manager")

@@ -21,8 +21,12 @@ func _ready() -> void:
 	_setup_buttons()
 	_select_drone("striker")
 	
+	var gm = get_tree().get_first_node_in_group("game_manager")
 	deploy_btn.pressed.connect(_on_deploy)
-	back_btn.pressed.connect(func(): get_tree().change_scene_to_file("res://scenes/ui/MainMenu.tscn"))
+	back_btn.pressed.connect(func():
+		if gm:
+			gm.navigate_to_state(GameStateManager.State.MAIN_MENU)
+	)
 
 func _load_drone_definitions() -> void:
 	var keys = ["striker", "interceptor", "assault", "arc", "command"]
@@ -65,4 +69,6 @@ func _select_drone(drone_id: String) -> void:
 		gm.select_drone(drone_id)
 
 func _on_deploy() -> void:
-	get_tree().change_scene_to_file("res://scenes/ui/SectorMap.tscn")
+	var gm = get_tree().get_first_node_in_group("game_manager")
+	if gm:
+		gm.navigate_to_state(GameStateManager.State.CAMPAIGN_SELECT)

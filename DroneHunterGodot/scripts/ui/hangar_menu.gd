@@ -118,8 +118,12 @@ func _update_drone_preview() -> void:
 
 func _on_launch() -> void:
 	launch_requested.emit(current_drone_id)
-	get_tree().change_scene_to_file("res://scenes/ui/SectorMap.tscn")
+	var gm = get_tree().get_first_node_in_group("game_manager")
+	if gm:
+		gm.navigate_to_state(GameStateManager.State.CAMPAIGN_SELECT)
 
 func _on_back() -> void:
 	back_requested.emit()
-	get_tree().change_scene_to_file("res://scenes/ui/SectorMap.tscn")
+	var gm = get_tree().get_first_node_in_group("game_manager")
+	if gm:
+		gm.navigate_to_state(GameStateManager.State.MAIN_MENU)

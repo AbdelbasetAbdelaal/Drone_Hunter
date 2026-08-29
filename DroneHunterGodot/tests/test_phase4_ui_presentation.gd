@@ -9,13 +9,41 @@ const SettingsMenuClass = preload("res://scripts/ui/settings_menu.gd")
 const HUDClass = preload("res://scripts/ui/hud.gd")
 
 func _ready() -> void:
-	print("\n=== RUNNING GODOT 4.3 PHASE 4 (UI / UX / AUDIO / PRESENTATION) TEST SUITE ===")
+	print("\n=== RUNNING GODOT 4.3 PHASE 4 (FINAL HARDENING & PRESENTATION) TEST SUITE ===")
 
 	var gm = get_tree().get_first_node_in_group("game_manager")
 	assert(gm != null, "GameManager autoload must exist")
 
 	# -------------------------------------------------------------
-	# TEST 1: MAIN MENU FLOW & SAVE AVAILABILITY
+	# TEST 1: CENTRALIZED STATE NAVIGATION VIA GAMESTATEMANAGER
+	# -------------------------------------------------------------
+	assert(gm.state_manager != null, "GameStateManager must exist in GameManager")
+	
+	# Verify State-to-Scene dictionary completeness
+	for s in [
+		GameStateManager.State.MAIN_MENU,
+		GameStateManager.State.SAVE_SELECT,
+		GameStateManager.State.DRONE_SELECT,
+		GameStateManager.State.CAMPAIGN_SELECT,
+		GameStateManager.State.MISSION_BRIEFING,
+		GameStateManager.State.GAMEPLAY,
+		GameStateManager.State.HANGAR,
+		GameStateManager.State.SETTINGS
+	]:
+		assert(gm.STATE_SCENES.has(s), "GameStateManager must have scene mapping for state %s" % gm.state_manager.state_to_string(s))
+		var scene_p = gm.STATE_SCENES[s]
+		assert(ResourceLoader.exists(scene_p), "Mapped scene does not exist: " + scene_p)
+		
+	# Test state transitions
+	gm.state_manager.change_state(GameStateManager.State.SAVE_SELECT)
+	assert(gm.state_manager.get_current_state() == GameStateManager.State.SAVE_SELECT, "Current state must be SAVE_SELECT")
+	assert(gm.state_manager.get_previous_state() == GameStateManager.State.MAIN_MENU, "Previous state must be MAIN_MENU")
+	
+	gm.state_manager.change_state(GameStateManager.State.MAIN_MENU)
+	print("[PASS] TEST 1: Centralized GameStateManager state machine & scene mappings verified.")
+
+	# -------------------------------------------------------------
+	# TEST 2: MAIN MENU FLOW & SAVE AVAILABILITY
 	# -------------------------------------------------------------
 	var main_menu_scene = load("res://scenes/ui/MainMenu.tscn") as PackedScene
 	assert(main_menu_scene != null, "MainMenu.tscn must be loadable")
@@ -27,10 +55,10 @@ func _ready() -> void:
 	assert(main_menu.settings_btn != null, "Settings button must exist")
 	assert(main_menu.quit_btn != null, "Quit button must exist")
 	main_menu.queue_free()
-	print("[PASS] TEST 1: Main Menu navigation hierarchy and responsive controls verified.")
+	print("[PASS] TEST 2: Main Menu navigation hierarchy and responsive controls verified.")
 
 	# -------------------------------------------------------------
-	# TEST 2: SAVE SELECT 3-SLOT MANAGEMENT
+	# TEST 3: SAVE SELECT 3-SLOT MANAGEMENT & PURGE
 	# -------------------------------------------------------------
 	var save_select_scene = load("res://scenes/ui/SaveSelect.tscn") as PackedScene
 	assert(save_select_scene != null, "SaveSelect.tscn must be loadable")
@@ -49,10 +77,10 @@ func _ready() -> void:
 	assert(not gm.save_manager.has_save(1), "Slot 1 must be deleted")
 	
 	save_select.queue_free()
-	print("[PASS] TEST 2: SaveSelect 3-slot management (Load, New, Delete) verified.")
+	print("[PASS] TEST 3: SaveSelect 3-slot management (Load, New, Delete) verified.")
 
 	# -------------------------------------------------------------
-	# TEST 3: DRONE SELECT FOR ALL 5 CLASSES (NO SKINS)
+	# TEST 4: DRONE SELECT FOR ALL 5 CLASSES (NO SKINS)
 	# -------------------------------------------------------------
 	var drone_select_scene = load("res://scenes/ui/DroneSelect.tscn") as PackedScene
 	assert(drone_select_scene != null, "DroneSelect.tscn must be loadable")
@@ -68,10 +96,10 @@ func _ready() -> void:
 		assert(drone_select.ability_lbl.text.begins_with("CORE ABILITY:"), "Ability must be bound for: " + d_id)
 		
 	drone_select.queue_free()
-	print("[PASS] TEST 3: DroneSelect verified for all 5 core classes with zero skin dependencies.")
+	print("[PASS] TEST 4: DroneSelect verified for all 5 core classes with zero skin dependencies.")
 
 	# -------------------------------------------------------------
-	# TEST 4: SECTOR MAP & LOCKED MISSION REJECTION
+	# TEST 5: SECTOR MAP & CAMPAIGN AUTHORITY ENFORCEMENT
 	# -------------------------------------------------------------
 	var sector_map_scene = load("res://scenes/ui/SectorMap.tscn") as PackedScene
 	assert(sector_map_scene != null, "SectorMap.tscn must be loadable")
@@ -92,10 +120,10 @@ func _ready() -> void:
 	assert(sector_map.selected_mission_id == "S1_M1", "Selected mission must be S1_M1")
 	
 	sector_map.queue_free()
-	print("[PASS] TEST 4: SectorMap 25-mission navigation and locked mission guard verified.")
+	print("[PASS] TEST 5: SectorMap 25-mission navigation and CampaignState authority verified.")
 
 	# -------------------------------------------------------------
-	# TEST 5: MISSION BRIEFING COMPLETE DATA BINDING
+	# TEST 6: MISSION BRIEFING COMPLETE DATA BINDING
 	# -------------------------------------------------------------
 	var briefing_scene = load("res://scenes/ui/MissionBriefing.tscn") as PackedScene
 	assert(briefing_scene != null, "MissionBriefing.tscn must be loadable")
@@ -111,10 +139,10 @@ func _ready() -> void:
 	assert(briefing.lore_lbl.text.length() > 20, "Lore text must be present")
 	
 	briefing.queue_free()
-	print("[PASS] TEST 5: MissionBriefing authoritative data binding verified.")
+	print("[PASS] TEST 6: MissionBriefing authoritative data binding verified.")
 
 	# -------------------------------------------------------------
-	# TEST 6: COMBAT HUD BINDINGS & PROGRESS BARS
+	# TEST 7: COMBAT HUD BINDINGS & PROGRESS BARS
 	# -------------------------------------------------------------
 	var hud_scene = load("res://scenes/ui/HUD.tscn") as PackedScene
 	assert(hud_scene != null, "HUD.tscn must be loadable")
@@ -139,10 +167,10 @@ func _ready() -> void:
 	assert(hud.victory_scrap_lbl.text.contains("1400"), "Victory scrap reward mismatch")
 	
 	hud.queue_free()
-	print("[PASS] TEST 6: Combat HUD health/shield/energy bars, encounter progress, and modals verified.")
+	print("[PASS] TEST 7: Combat HUD health/shield/energy bars, encounter progress, and modals verified.")
 
 	# -------------------------------------------------------------
-	# TEST 7: SETTINGS PERSISTENCE & AUDIO VOLUME APPLICATION
+	# TEST 8: SETTINGS & AUDIO BUS PERSISTENCE
 	# -------------------------------------------------------------
 	var settings_scene = load("res://scenes/ui/Settings.tscn") as PackedScene
 	assert(settings_scene != null, "Settings.tscn must be loadable")
@@ -157,6 +185,11 @@ func _ready() -> void:
 	assert(is_equal_approx(gm.music_volume, 0.60), "Music volume mismatch")
 	assert(is_equal_approx(gm.sfx_volume, 0.70), "SFX volume mismatch")
 	
+	# Verify audio buses in AudioServer
+	var master_bus_idx = AudioServer.get_bus_index("Master")
+	if master_bus_idx != -1:
+		assert(not AudioServer.is_bus_mute(master_bus_idx), "Master bus should not be muted at 75%")
+		
 	# Save & reload settings
 	gm.save_game(0)
 	gm.load_game(0)
@@ -165,10 +198,10 @@ func _ready() -> void:
 	assert(is_equal_approx(gm.sfx_volume, 0.70), "SFX volume must persist after reload")
 	
 	settings.queue_free()
-	print("[PASS] TEST 7: Audio & Display Settings persistence verified.")
+	print("[PASS] TEST 8: Audio & Display Settings runtime authority & persistence verified.")
 
 	# -------------------------------------------------------------
-	# TEST 8: NO OBSOLETE BOSS OR SKIN UI IN SCENE TREE
+	# TEST 9: NO OBSOLETE BOSS OR SKIN UI IN SCENE TREE
 	# -------------------------------------------------------------
 	var check_tree = func(node: Node, callable: Callable) -> void:
 		assert(not node.name.to_lower().contains("bosshealth"), "No Boss health bar permitted in UI")
@@ -176,10 +209,10 @@ func _ready() -> void:
 		for c in node.get_children():
 			callable.call(c, callable)
 	check_tree.call(get_tree().root, check_tree)
-	print("[PASS] TEST 8: Confirmed zero obsolete Boss or Skin UI in active scene tree.")
+	print("[PASS] TEST 9: Confirmed zero obsolete Boss or Skin UI in active scene tree.")
 
 	# -------------------------------------------------------------
-	# TEST 9: FULL E2E PLAYER EXPERIENCE LOOP
+	# TEST 10: FULL E2E PLAYER EXPERIENCE LOOP
 	# -------------------------------------------------------------
 	gm.current_slot = 0
 	gm.scrap = 500
@@ -216,7 +249,7 @@ func _ready() -> void:
 	
 	cd.queue_free()
 	gm_reload.queue_free()
-	print("[PASS] TEST 9: Full E2E Player Experience (Menu -> Drone -> Mission -> Victory -> Hangar -> Upgrade -> Save -> Reload) verified.")
+	print("[PASS] TEST 10: Full E2E Player Experience (Menu -> Drone -> Mission -> Victory -> Hangar -> Upgrade -> Save -> Reload) verified.")
 
-	print("\n*** ALL PHASE 4 (UI / UX / AUDIO / PRESENTATION) TESTS PASSED 100% SUCCESSFULLY! ***\n")
+	print("\n*** ALL PHASE 4 (FINAL HARDENING & PRESENTATION) TESTS PASSED 100% SUCCESSFULLY! ***\n")
 	get_tree().quit(0)

@@ -28,29 +28,33 @@ func _connect_signals() -> void:
 
 func _on_new_game() -> void:
 	var gm = get_tree().get_first_node_in_group("game_manager")
-	if gm and gm.campaign_state:
-		gm.campaign_state.reset_campaign()
+	if gm:
+		if gm.campaign_state:
+			gm.campaign_state.reset_campaign()
 		gm.scrap = 500
 		if gm.progression_manager:
 			gm.progression_manager.reset()
 		gm.save_game()
-	get_tree().change_scene_to_file("res://scenes/ui/DroneSelect.tscn")
+		gm.navigate_to_state(GameStateManager.State.DRONE_SELECT)
 
 func _on_continue() -> void:
 	var gm = get_tree().get_first_node_in_group("game_manager")
 	if gm:
-		# Find first active save slot or load current slot
 		for s in [gm.current_slot, 0, 1, 2]:
 			if gm.save_manager and gm.save_manager.has_save(s):
 				gm.load_game(s)
 				break
-	get_tree().change_scene_to_file("res://scenes/ui/SectorMap.tscn")
+		gm.navigate_to_state(GameStateManager.State.CAMPAIGN_SELECT)
 
 func _on_save_select() -> void:
-	get_tree().change_scene_to_file("res://scenes/ui/SaveSelect.tscn")
+	var gm = get_tree().get_first_node_in_group("game_manager")
+	if gm:
+		gm.navigate_to_state(GameStateManager.State.SAVE_SELECT)
 
 func _on_settings() -> void:
-	get_tree().change_scene_to_file("res://scenes/ui/Settings.tscn")
+	var gm = get_tree().get_first_node_in_group("game_manager")
+	if gm:
+		gm.navigate_to_state(GameStateManager.State.SETTINGS)
 
 func _on_quit() -> void:
 	get_tree().quit()

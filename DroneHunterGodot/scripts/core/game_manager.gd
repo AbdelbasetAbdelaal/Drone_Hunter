@@ -33,6 +33,17 @@ var ui_volume: float = 0.85
 
 var unlocked_drones: Array[String] = ["striker", "interceptor", "assault", "arc", "command"]
 
+const STATE_SCENES = {
+	GameStateManager.State.MAIN_MENU: "res://scenes/ui/MainMenu.tscn",
+	GameStateManager.State.SAVE_SELECT: "res://scenes/ui/SaveSelect.tscn",
+	GameStateManager.State.DRONE_SELECT: "res://scenes/ui/DroneSelect.tscn",
+	GameStateManager.State.CAMPAIGN_SELECT: "res://scenes/ui/SectorMap.tscn",
+	GameStateManager.State.MISSION_BRIEFING: "res://scenes/ui/MissionBriefing.tscn",
+	GameStateManager.State.GAMEPLAY: "res://scenes/world/TrainingArena.tscn",
+	GameStateManager.State.HANGAR: "res://scenes/ui/Hangar.tscn",
+	GameStateManager.State.SETTINGS: "res://scenes/ui/Settings.tscn"
+}
+
 var upgrade_levels: Dictionary:
 	get: return progression_manager.to_dict() if progression_manager else {}
 	set(v):
@@ -50,6 +61,13 @@ func _ready() -> void:
 	apply_settings()
 	if state_manager and state_manager.has_signal("state_changed"):
 		state_manager.state_changed.connect(_on_state_changed)
+
+func navigate_to_state(target_state: GameStateManager.State) -> void:
+	if state_manager:
+		state_manager.change_state(target_state)
+	var scene_path = STATE_SCENES.get(target_state, "")
+	if scene_path != "" and is_inside_tree() and get_tree() != null:
+		get_tree().change_scene_to_file(scene_path)
 
 func add_scrap(amount: int) -> void:
 	scrap += max(0, amount)
@@ -155,12 +173,35 @@ func apply_settings() -> void:
 	else:
 		DisplayServer.window_set_mode(DisplayServer.WINDOW_MODE_WINDOWED)
 		
+	# Update Audio Buses in AudioServer
+	var master_idx = AudioServer.get_bus_index("Master")
+	if master_idx != -1:
+		AudioServer.set_bus_volume_db(master_idx, linear_to_db(clamp(master_volume, 0.0001, 2.0)))
+		AudioServer.set_bus_mute(master_idx, master_volume <= 0.001)
+		
+	var music_idx = AudioServer.get_bus_index("Music")
+	if music_idx != -1:
+		AudioServer.set_bus_volume_db(music_idx, linear_to_db(clamp(music_volume, 0.0001, 2.0)))
+		AudioServer.set_bus_mute(music_idx, music_volume <= 0.001)
+		
+	var sfx_idx = AudioServer.get_bus_index("SFX")
+	if sfx_idx != -1:
+		AudioServer.set_bus_volume_db(sfx_idx, linear_to_db(clamp(sfx_volume, 0.0001, 2.0)))
+		AudioServer.set_bus_mute(sfx_idx, sfx_volume <= 0.001)
+
+	var ui_idx = AudioServer.get_bus_index("UI")
+	if ui_idx != -1:
+		AudioServer.set_bus_volume_db(ui_idx, linear_to_db(clamp(ui_volume, 0.0001, 2.0)))
+		AudioServer.set_bus_mute(ui_idx, ui_volume <= 0.001)
+		
 	var am = get_tree().get_first_node_in_group("audio_manager")
 	if am:
 		if "music_volume" in am:
 			am.music_volume = music_volume
 		if "sfx_volume" in am:
 			am.sfx_volume = sfx_volume
+		if "ui_volume" in am:
+			am.ui_volume = ui_volume
 			
 	settings_changed.emit()
 
