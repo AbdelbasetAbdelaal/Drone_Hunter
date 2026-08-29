@@ -63,6 +63,8 @@ func is_sector_completed(sec_id: int) -> bool:
 
 func complete_mission(m_id: String) -> Dictionary:
 	var result = {
+		"success": false,
+		"reason": "",
 		"mission_id": m_id,
 		"already_completed": m_id in completed_missions,
 		"base_reward": 0,
@@ -73,6 +75,14 @@ func complete_mission(m_id: String) -> Dictionary:
 		"campaign_completed": false
 	}
 	
+	# Enforce campaign unlock rule: cannot complete a locked mission
+	if not is_mission_unlocked(m_id):
+		result["success"] = false
+		result["reason"] = "mission_locked"
+		push_warning("CampaignState: Attempted to complete locked mission '%s'." % m_id)
+		return result
+		
+	result["success"] = true
 	var is_first_time = not (m_id in completed_missions)
 	if is_first_time:
 		completed_missions.append(m_id)

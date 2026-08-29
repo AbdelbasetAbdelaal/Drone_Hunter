@@ -5,7 +5,11 @@ signal objective_completed()
 signal objective_failed()
 signal progress_updated(text: String, percent: float)
 
+var primary_objective: String = "destroy_all"
 var objective_type: String = "destroy_all"
+var objective_target: String = "radar_command"
+var defense_level: int = 1
+
 var target_duration: float = 0.0
 var elapsed_time: float = 0.0
 var is_active: bool = false
@@ -17,7 +21,10 @@ var completed_encounters: int = 0
 func setup_objective(mission_def: MissionDefinition) -> void:
 	if not mission_def:
 		return
-	objective_type = mission_def.objective_type
+	primary_objective = mission_def.primary_objective
+	objective_type = mission_def.primary_objective
+	objective_target = mission_def.objective_target
+	defense_level = mission_def.defense_level
 	target_duration = mission_def.duration
 	total_encounters = max(1, mission_def.encounter_sequence.size())
 	completed_encounters = 0
@@ -60,7 +67,7 @@ func complete_objective() -> void:
 	is_finished = true
 	is_active = false
 	objective_completed.emit()
-	print("ObjectiveController: Objective Completed (%s)" % objective_type)
+	print("ObjectiveController: Objective Completed (%s - %s)" % [primary_objective, objective_target])
 
 func fail_objective() -> void:
 	if is_finished:
@@ -68,7 +75,7 @@ func fail_objective() -> void:
 	is_finished = true
 	is_active = false
 	objective_failed.emit()
-	print("ObjectiveController: Objective Failed (%s)" % objective_type)
+	print("ObjectiveController: Objective Failed (%s - %s)" % [primary_objective, objective_target])
 
 func _emit_progress() -> void:
 	var desc = ""

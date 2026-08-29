@@ -104,7 +104,11 @@ func _spawn_encounter_wave(enemy_types: Array) -> void:
 	}
 	
 	for e_type in enemy_types:
-		var scene = type_map.get(str(e_type).to_lower(), scout_scene)
+		var type_key = str(e_type).to_lower()
+		if not type_map.has(type_key):
+			push_error("CombatDirector: Unknown enemy type '%s' in encounter sequence. Failing safely." % str(e_type))
+			continue
+		var scene = type_map[type_key]
 		_spawn_enemy(scene, base_pos + _random_spawn_offset())
 
 func _spawn_fallback_wave(wave_num: int) -> void:
