@@ -1,4 +1,4 @@
-﻿# Drone Hunter 2D
+# Drone Hunter 2D
 
 Fast-paced 2D sci-fi tactical arcade space shooter.
 
@@ -22,5 +22,5 @@ Fast-paced 2D sci-fi tactical arcade space shooter.
 3. Press Play (F5).
 
 ## How to run the Windows release build
-1. Execute export_release.bat to create the build in the elease/ directory.
-2. Run elease/DroneHunter.exe.
+1. Execute `export_release.bat` to create the build in the `release\` directory.
+2. Run `release\DroneHunter.exe`.

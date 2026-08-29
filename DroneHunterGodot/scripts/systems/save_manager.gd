@@ -1,4 +1,4 @@
-﻿class_name SaveManager
+class_name SaveManager
 extends RefCounted
 
 const SAVE_PATH_TEMPLATE = "user://save_slot_{slot}.json"
@@ -32,15 +32,33 @@ func save_slot(slot: int, payload: Dictionary) -> bool:
 	file.flush()
 	file.close()
 	
-	# Atomic replace
+	# Safe replace with .bak
 	var dir = DirAccess.open("user://")
 	if dir:
-		if dir.file_exists(path.get_file()):
-			dir.remove(path.get_file())
-		var err = dir.rename(tmp_path.get_file(), path.get_file())
+		var target_file = path.get_file()
+		var tmp_file = tmp_path.get_file()
+		var bak_file = target_file + ".bak"
+		
+		if dir.file_exists(bak_file):
+			dir.remove(bak_file)
+			
+		var has_target = dir.file_exists(target_file)
+		if has_target:
+			var err = dir.rename(target_file, bak_file)
+			if err != OK:
+				push_error("SaveManager: Failed to backup existing save.")
+				dir.remove(tmp_file)
+				return false
+				
+		var err = dir.rename(tmp_file, target_file)
 		if err != OK:
-			push_error("SaveManager: Failed to rename temp file.")
+			push_error("SaveManager: Failed to rename temp file. Restoring backup.")
+			if has_target:
+				dir.rename(bak_file, target_file)
 			return false
+			
+		if has_target and dir.file_exists(bak_file):
+			dir.remove(bak_file)
 	else:
 		return false
 		
@@ -87,34 +105,74 @@ func _validate_and_sanitize(payload: Dictionary) -> Dictionary:
 		return {}
 		
 	var ver = payload.get("save_version", 0)
-	if ver > CURRENT_SCHEMA_VERSION:
-		# Future version - reject safely
+	if typeof(ver) != TYPE_INT or ver > CURRENT_SCHEMA_VERSION:
 		return {}
 		
 	var sanitized = payload.duplicate(true)
 	
-	var scrap = int(sanitized.get("scrap", 0))
+	# Scrap
+	var scrap_raw = sanitized.get("scrap", 0)
+	if typeof(scrap_raw) != TYPE_INT and typeof(scrap_raw) != TYPE_FLOAT:
+		scrap_raw = 0
+	var scrap = int(scrap_raw)
 	if scrap < 0:
 		scrap = 0
 	sanitized["scrap"] = scrap
 	
-	var selected_drone = str(sanitized.get("selected_drone_id", "striker"))
-	if not (selected_drone in VALID_DRONES):
+	# Drone
+	var selected_drone = sanitized.get("selected_drone_id", "striker")
+	if typeof(selected_drone) != TYPE_STRING or not (selected_drone in VALID_DRONES):
 		selected_drone = "striker"
 	sanitized["selected_drone_id"] = selected_drone
 	
-	if sanitized.has("upgrade_levels") and sanitized["upgrade_levels"] is Dictionary:
+	# Upgrades
+	if sanitized.has("upgrade_levels") and typeof(sanitized["upgrade_levels"]) == TYPE_DICTIONARY:
 		var upgrades = sanitized["upgrade_levels"] as Dictionary
 		for cat in upgrades.keys():
+			if typeof(upgrades[cat]) != TYPE_INT and typeof(upgrades[cat]) != TYPE_FLOAT:
+				upgrades[cat] = 0
 			var lvl = int(upgrades[cat])
 			upgrades[cat] = clamp(lvl, 0, MAX_UPGRADE_LEVEL)
 	else:
 		sanitized["upgrade_levels"] = {}
 		
-	if not (sanitized.has("unlocked_drones") and sanitized["unlocked_drones"] is Array):
-		sanitized["unlocked_drones"] = ["striker", "interceptor", "assault", "arc", "command"]
+	# Unlocked Drones
+	var default_drones = ["striker"]
+	if sanitized.has("unlocked_drones"):
+		var raw_drones = sanitized["unlocked_drones"]
+		if typeof(raw_drones) == TYPE_ARRAY:
+			var valid_drones: Array[String] = []
+			for d in raw_drones:
+				if typeof(d) == TYPE_STRING and d in VALID_DRONES:
+					valid_drones.append(d)
+			if valid_drones.is_empty():
+				sanitized["unlocked_drones"] = default_drones.duplicate()
+			else:
+				sanitized["unlocked_drones"] = valid_drones
+		else:
+			sanitized["unlocked_drones"] = default_drones.duplicate()
+	else:
+		sanitized["unlocked_drones"] = default_drones.duplicate()
 		
-	if not (sanitized.has("campaign") and sanitized["campaign"] is Dictionary):
+	# Unlocked Weapons
+	if sanitized.has("unlocked_weapons"):
+		var raw_weapons = sanitized["unlocked_weapons"]
+		if typeof(raw_weapons) == TYPE_ARRAY:
+			var valid_weapons: Array[String] = []
+			for w in raw_weapons:
+				if typeof(w) == TYPE_STRING:
+					valid_weapons.append(w)
+			sanitized["unlocked_weapons"] = valid_weapons
+		else:
+			sanitized["unlocked_weapons"] = []
+	else:
+		sanitized["unlocked_weapons"] = []
+		
+	# Campaign
+	if sanitized.has("campaign") and typeof(sanitized["campaign"]) == TYPE_DICTIONARY:
+		# Just checking if valid dictionary
+		pass
+	else:
 		sanitized["campaign"] = {"unlocked_missions": ["S1_M1"], "completed_missions": [], "current_mission": "S1_M1"}
 	
 	return sanitized

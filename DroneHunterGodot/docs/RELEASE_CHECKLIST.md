@@ -1,23 +1,23 @@
 ﻿# Release Checklist
 
-[x] Godot 4.3
-[x] GL Compatibility
-[x] Windows export
-[x] no debug UI
-[x] no Boss system
-[x] no Skin system
-[x] 25 missions
-[x] 5 drones
-[x] 11 weapons
-[x] abilities
-[x] save/load
-[x] 3 save slots
-[x] objective targets
-[x] mission success
-[x] mission failure
-[x] retry
-[x] audio
-[x] VFX
-[x] performance
-[x] clean build
-[x] baseline hardware test
+[✓] Godot 4.3
+[✓] GL Compatibility
+[ ] NOT TESTED Windows export
+[✓] no debug UI
+[✓] no Boss system
+[✓] no Skin system
+[✓] 25 missions
+[✓] 5 drones
+[✓] 11 weapons
+[✓] abilities
+[✓] save/load
+[✓] 3 save slots
+[✓] objective targets
+[✓] mission success
+[✓] mission failure
+[✓] retry
+[✓] audio
+[✓] VFX
+[ ] NOT TESTED performance
+[ ] NOT TESTED clean build
+[ ] NOT TESTED baseline hardware test

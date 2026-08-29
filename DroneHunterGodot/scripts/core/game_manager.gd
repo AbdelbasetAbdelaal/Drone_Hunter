@@ -31,7 +31,7 @@ var music_volume: float = 0.8
 var sfx_volume: float = 0.85
 var ui_volume: float = 0.85
 
-var unlocked_drones: Array[String] = ["striker", "interceptor", "assault", "arc", "command"]
+var unlocked_drones: Array[String] = ["striker"]
 
 var last_mission_result: Dictionary = {}
 
