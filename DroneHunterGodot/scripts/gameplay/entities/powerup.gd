@@ -15,13 +15,15 @@ enum PowerupType {
 @export var scrap_amount: int = 50
 
 var _time_accum: float = 0.0
-var _magnetic_range: float = 200.0
-var _magnet_speed: float = 450.0
+var _magnetic_range: float = 240.0
+var _magnet_speed: float = 520.0
+var _picked_up: bool = false
 
 @onready var sprite: Sprite2D = $Sprite2D
 @onready var label: Label = $Label
 
 func _ready() -> void:
+	add_to_group("pickup")
 	collision_layer = 32 # Effect / Pickup layer
 	collision_mask = 1  # Player layer
 	body_entered.connect(_on_body_entered)
@@ -42,10 +44,10 @@ func _setup_visuals() -> void:
 	match powerup_type:
 		PowerupType.BATTERY:
 			color = Color(0.2, 0.9, 0.4)
-			text_icon = "HP"
+			text_icon = "+HP"
 		PowerupType.SHIELD:
-			color = Color(0.2, 0.6, 1.0)
-			text_icon = "SHD"
+			color = Color(0.2, 0.7, 1.0)
+			text_icon = "+SHD"
 		PowerupType.OVERCLOCK:
 			color = Color(1.0, 0.3, 0.2)
 			text_icon = "OVR"
@@ -54,24 +56,28 @@ func _setup_visuals() -> void:
 			text_icon = "SLO"
 		PowerupType.SCRAP:
 			color = Color(1.0, 0.85, 0.2)
-			text_icon = "$"
+			text_icon = "+🔩"
 		PowerupType.WINGMAN:
 			color = Color(0.2, 0.9, 0.9)
-			text_icon = "WNG"
+			text_icon = "WING"
 		PowerupType.WEAPON:
 			color = Color(1.0, 0.6, 0.1)
 			text_icon = "WPN"
 
 	if sprite:
 		sprite.modulate = color
+		sprite.scale = Vector2(0.6, 0.6)
 	if label:
 		label.text = text_icon
 		label.modulate = color
 
 func _physics_process(delta: float) -> void:
+	if _picked_up:
+		return
+		
 	_time_accum += delta
 	# Floating bobbing
-	position.y += sin(_time_accum * 4.0) * 12.0 * delta
+	position.y += sin(_time_accum * 4.0) * 8.0 * delta
 	
 	# Magnetic pull to player
 	if not is_inside_tree():
@@ -84,9 +90,14 @@ func _physics_process(delta: float) -> void:
 			global_position += dir * _magnet_speed * delta
 
 func _on_body_entered(body: Node2D) -> void:
+	if _picked_up:
+		return
 	if body.is_in_group("player"):
+		_picked_up = true
 		_apply_to_player(body)
-		queue_free()
+		set_deferred("monitoring", false)
+		set_deferred("monitorable", false)
+		call_deferred("queue_free")
 
 func _apply_to_player(player: Node2D) -> void:
 	var health = player.get_node_or_null("Health") as Health

@@ -33,7 +33,41 @@ func _ready() -> void:
 	defeat_modal.visible = false
 	pause_modal.visible = false
 	
+	_style_progress_bars()
 	_connect_events()
+
+func _style_progress_bars() -> void:
+	# Hull Bar: Emerald Green
+	_apply_bar_theme(hull_bar, Color(0.18, 0.85, 0.45), Color(0.04, 0.12, 0.07, 0.85))
+	# Shield Bar: Electric Cyan
+	_apply_bar_theme(shield_bar, Color(0.0, 0.85, 1.0), Color(0.02, 0.08, 0.18, 0.85))
+	# Energy Bar: Amber Gold
+	_apply_bar_theme(energy_bar, Color(1.0, 0.75, 0.1), Color(0.14, 0.09, 0.02, 0.85))
+
+func _apply_bar_theme(bar: ProgressBar, fill_color: Color, bg_color: Color) -> void:
+	if not bar:
+		return
+	var bg = StyleBoxFlat.new()
+	bg.bg_color = bg_color
+	bg.corner_radius_top_left = 3
+	bg.corner_radius_top_right = 3
+	bg.corner_radius_bottom_left = 3
+	bg.corner_radius_bottom_right = 3
+	bg.border_width_left = 1
+	bg.border_width_top = 1
+	bg.border_width_right = 1
+	bg.border_width_bottom = 1
+	bg.border_color = Color(0.3, 0.5, 0.7, 0.4)
+	
+	var fill = StyleBoxFlat.new()
+	fill.bg_color = fill_color
+	fill.corner_radius_top_left = 3
+	fill.corner_radius_top_right = 3
+	fill.corner_radius_bottom_left = 3
+	fill.corner_radius_bottom_right = 3
+	
+	bar.add_theme_stylebox_override("background", bg)
+	bar.add_theme_stylebox_override("fill", fill)
 
 func _connect_events() -> void:
 	# Connect to Player

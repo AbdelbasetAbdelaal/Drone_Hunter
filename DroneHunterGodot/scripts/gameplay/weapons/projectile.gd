@@ -44,31 +44,35 @@ func _physics_process(delta: float) -> void:
 	_traveled_distance += move_amount
 	
 	if _traveled_distance >= max_range:
-		queue_free()
+		_safe_destroy()
 
 func _on_body_entered(body: Node2D) -> void:
-	_handle_hit(body)
+	_handle_hit.call_deferred(body)
 
 func _on_area_entered(area: Area2D) -> void:
-	_handle_hit(area)
+	_handle_hit.call_deferred(area)
 
 func _handle_hit(target: Node2D) -> void:
 	if _has_hit:
 		return
-	if target == _source:
+	if not is_instance_valid(target) or target == _source:
 		return
 		
 	_has_hit = true
 	
+	var valid_source: Object = _source if is_instance_valid(_source) else null
+	
 	# Find damage receiver
-	var receiver: DamageReceiver = null
-	if target.has_node("DamageReceiver"):
-		receiver = target.get_node("DamageReceiver") as DamageReceiver
-		
-	if receiver != null:
-		var hit = Hit.new(damage, damage_type, _source, global_position)
+	var receiver = target.get_node_or_null("DamageReceiver")
+	if receiver != null and receiver.has_method("take_damage"):
+		var hit = Hit.new(damage, damage_type, valid_source, global_position)
 		receiver.take_damage(hit)
 	elif target.has_method("take_damage"):
 		target.take_damage(damage)
 	
+	_safe_destroy()
+
+func _safe_destroy() -> void:
+	set_deferred("monitoring", false)
+	set_deferred("monitorable", false)
 	call_deferred("queue_free")
