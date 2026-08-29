@@ -119,8 +119,7 @@ func try_fire_primary() -> bool:
 	if _cooldown_timer > 0.0:
 		if def.id == "beam" and _active_beam != null and is_instance_valid(_active_beam):
 			_beam_fired_this_frame = true
-			var spawn_root = get_tree().current_scene if get_tree() else get_parent()
-			behavior.fire(get_muzzle_pos(), get_muzzle_rot(), player, spawn_root)
+			_active_beam.update_beam(get_muzzle_pos(), get_muzzle_rot(), get_physics_process_delta_time())
 			return true
 		return false
 		
