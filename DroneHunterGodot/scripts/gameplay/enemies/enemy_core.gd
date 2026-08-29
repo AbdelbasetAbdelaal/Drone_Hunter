@@ -5,6 +5,7 @@ extends CharacterBody2D
 @export var base_speed: float = 210.0
 @export var base_armor: float = 0.0
 @export var score_value: int = 150
+@export var contact_damage: float = 15.0
 
 @onready var sprite: Sprite2D = $Sprite2D
 @onready var health: Health = $Health
@@ -12,6 +13,7 @@ extends CharacterBody2D
 
 var target: Node2D
 var _stun_timer: float = 0.0
+var _contact_cooldown: float = 0.0
 
 var explosion_scene: PackedScene = preload("res://scenes/vfx/ExplosionVFX.tscn")
 
@@ -96,15 +98,34 @@ func _spawn_drops() -> void:
 				extra.setup(chosen)
 
 func _physics_process(delta: float) -> void:
+	if _contact_cooldown > 0.0:
+		_contact_cooldown -= delta
+		
 	if _stun_timer > 0.0:
 		_stun_timer -= delta
 		velocity = velocity.move_toward(Vector2.ZERO, 350.0 * delta)
 		move_and_slide()
+		_check_player_contact()
 		if _stun_timer <= 0.0 and sprite:
 			sprite.modulate = Color.WHITE
 		return
 		
 	_process_ai(delta)
+	_check_player_contact()
+
+func _check_player_contact() -> void:
+	if _contact_cooldown > 0.0:
+		return
+	for i in range(get_slide_collision_count()):
+		var col = get_slide_collision(i)
+		var collider = col.get_collider()
+		if collider and collider.is_in_group("player"):
+			var receiver = collider.get_node_or_null("DamageReceiver")
+			if receiver and receiver.has_method("take_damage"):
+				var hit = Hit.new(contact_damage, Hit.DamageType.CONTACT, self, global_position)
+				receiver.take_damage(hit)
+				_contact_cooldown = 0.8
+				break
 
 func _process_ai(_delta: float) -> void:
 	# Virtual method to be overridden by AI controllers

@@ -16,6 +16,13 @@ func setup(p_speed: float, p_damage: float, p_damage_type: int, p_source: Node2D
 	damage_type = p_damage_type
 	_source = p_source
 	
+	if is_instance_valid(_source) and _source.is_in_group("enemy"):
+		collision_layer = 8 # Enemy Projectile
+		collision_mask = 1 | 16 # Collides with Player (1) and Structures (16)
+	else:
+		collision_layer = 4 # Player Projectile
+		collision_mask = 2 | 16 # Collides with Enemies (2) and Structures (16)
+	
 	if p_asset_path != "":
 		var full_path = "res://assets/" + p_asset_path
 		if ResourceLoader.exists(full_path):
