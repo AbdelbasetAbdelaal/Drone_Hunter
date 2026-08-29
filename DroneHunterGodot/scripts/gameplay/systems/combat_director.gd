@@ -82,6 +82,9 @@ func _spawn_mission_ground_targets() -> void:
 		
 	# Deterministic placement in the mission world
 	var target_pos = Vector2(1920, 680)
+	if "objective_target_position" in current_mission_def:
+		target_pos = current_mission_def.objective_target_position
+		
 	var t_inst = target_scene.instantiate()
 	spawn_parent.add_child(t_inst)
 	t_inst.global_position = target_pos
@@ -203,8 +206,8 @@ func _on_objective_failed() -> void:
 
 func _on_player_died() -> void:
 	var gm = get_tree().get_first_node_in_group("game_manager")
-	if gm and gm.state_manager:
-		gm.state_manager.change_state(GameStateManager.State.MISSION_FAILED)
+	if gm:
+		gm.navigate_to_state(GameStateManager.State.MISSION_FAILED)
 	mission_failed.emit()
 	print("Combat Director: Player died - Mission Failed.")
 
@@ -218,13 +221,14 @@ func _on_mission_victory() -> void:
 	var gm = get_tree().get_first_node_in_group("game_manager")
 	if gm and gm.campaign_state and current_mission_def:
 		var comp_res = gm.campaign_state.complete_mission(current_mission_def.mission_id)
+		comp_res["score"] = mission_score
+		gm.last_mission_result = comp_res
 		total_scrap_payout = comp_res.get("total_reward", total_scrap_payout)
 		if gm.has_method("add_scrap"):
 			gm.add_scrap(total_scrap_payout)
 		if gm.has_method("save_game"):
 			gm.save_game()
-		if gm.state_manager:
-			gm.state_manager.change_state(GameStateManager.State.MISSION_COMPLETE)
+		gm.navigate_to_state(GameStateManager.State.MISSION_COMPLETE)
 	elif gm and gm.has_method("add_scrap"):
 		gm.add_scrap(total_scrap_payout)
 			

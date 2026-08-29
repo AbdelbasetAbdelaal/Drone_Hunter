@@ -20,3 +20,4 @@ side_objectives = [{"type": "no_damage_taken", "value": true}]
 scrap_reward = 250
 target_score = 2500
 sector_background = "backgrounds/sectors/sector_2_ref.png"
+objective_target_position = Vector2(2682, 748)

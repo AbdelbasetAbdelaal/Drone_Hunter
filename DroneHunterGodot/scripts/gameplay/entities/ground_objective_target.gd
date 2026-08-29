@@ -27,7 +27,6 @@ const TARGET_TEXTURES = {
 
 func _ready() -> void:
 	add_to_group("objective_targets")
-	add_to_group("enemy") # Allows player weapons to target and damage it
 	
 	if not health:
 		health = Health.new()

@@ -10,6 +10,7 @@ extends Resource
 @export var difficulty: int = 1
 @export var primary_objective: String = "destroy_all" # "destroy_all", "survive", "complete_encounters"
 @export var objective_target: String = "radar_command" # "radar_command", "missile_complex", "power_reactor", "communication_hub", "cyber_defense_core", "weapons_factory"
+@export var objective_target_position: Vector2 = Vector2(1920, 680)
 @export var defense_level: int = 1
 @export var duration: float = 0.0 # Used when primary_objective == "survive"
 @export var encounter_sequence: Array = [] # Array of enemy type arrays

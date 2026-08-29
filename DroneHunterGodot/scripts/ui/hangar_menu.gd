@@ -33,6 +33,12 @@ var drone_definitions: Dictionary = {}
 
 func _ready() -> void:
 	_load_drone_definitions()
+	var gm = get_tree().get_first_node_in_group("game_manager")
+	if gm:
+		var drone_id = gm.selected_drone_id
+		if drone_id == "" or not drone_definitions.has(drone_id):
+			drone_id = "striker"
+		current_drone_id = drone_id
 	_connect_signals()
 	_update_ui()
 

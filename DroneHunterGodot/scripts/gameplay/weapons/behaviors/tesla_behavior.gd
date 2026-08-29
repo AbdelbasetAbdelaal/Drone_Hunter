@@ -22,6 +22,7 @@ func fire(muzzle_pos: Vector2, muzzle_rot: float, source: Node2D, spawn_root: No
 	var enemies: Array = []
 	if spawn_root.is_inside_tree():
 		enemies = spawn_root.get_tree().get_nodes_in_group("enemy")
+		enemies.append_array(spawn_root.get_tree().get_nodes_in_group("objective_targets"))
 		
 	var aim_dir = Vector2.RIGHT.rotated(muzzle_rot)
 	var primary_target: Node2D = null

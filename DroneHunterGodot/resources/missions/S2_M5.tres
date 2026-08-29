@@ -20,3 +20,4 @@ side_objectives = [{"type": "precision_strikes", "value": 10}, {"type": "no_dama
 scrap_reward = 900
 target_score = 9000
 sector_background = "backgrounds/sectors/sector_2_ref.png"
+objective_target_position = Vector2(2252, 1224)

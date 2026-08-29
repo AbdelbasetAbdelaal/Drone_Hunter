@@ -20,3 +20,4 @@ side_objectives = [{"type": "collect_data_cores", "value": 3}, {"type": "time_li
 scrap_reward = 150
 target_score = 1500
 sector_background = "backgrounds/sectors/sector_5_ref.png"
+objective_target_position = Vector2(1770, 1186)

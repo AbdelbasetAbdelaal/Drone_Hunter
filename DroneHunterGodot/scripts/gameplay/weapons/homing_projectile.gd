@@ -12,6 +12,7 @@ func _acquire_target() -> void:
 	if not is_inside_tree():
 		return
 	var enemies = get_tree().get_nodes_in_group("enemy")
+	enemies.append_array(get_tree().get_nodes_in_group("objective_targets"))
 	var best_dist: float = 1200.0
 	for e in enemies:
 		if is_instance_valid(e) and e is Node2D:

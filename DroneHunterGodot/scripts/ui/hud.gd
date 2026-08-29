@@ -106,19 +106,15 @@ func _connect_events() -> void:
 	pause_resume_btn.pressed.connect(_toggle_pause)
 	if pause_restart_btn:
 		pause_restart_btn.pressed.connect(func():
-			get_tree().paused = false
+			if gm: gm.state_manager.change_state(GameStateManager.State.GAMEPLAY)
 			get_tree().reload_current_scene()
 		)
 	if pause_settings_btn:
 		pause_settings_btn.pressed.connect(func():
-			get_tree().paused = false
-			if gm:
-				gm.navigate_to_state(GameStateManager.State.SETTINGS)
+			if gm: gm.navigate_to_state(GameStateManager.State.SETTINGS)
 		)
 	pause_hangar_btn.pressed.connect(func():
-		get_tree().paused = false
-		if gm:
-			gm.navigate_to_state(GameStateManager.State.HANGAR)
+		if gm: gm.navigate_to_state(GameStateManager.State.HANGAR)
 	)
 
 func _input(event: InputEvent) -> void:
@@ -128,8 +124,16 @@ func _input(event: InputEvent) -> void:
 func _toggle_pause() -> void:
 	if victory_modal.visible or defeat_modal.visible:
 		return
-	is_paused = !is_paused
-	get_tree().paused = is_paused
+	var gm = get_tree().get_first_node_in_group("game_manager")
+	if not gm: return
+	
+	if gm.state_manager.get_current_state() == GameStateManager.State.PAUSE:
+		gm.state_manager.change_state(GameStateManager.State.GAMEPLAY)
+		is_paused = false
+	else:
+		gm.state_manager.change_state(GameStateManager.State.PAUSE)
+		is_paused = true
+		
 	pause_modal.visible = is_paused
 
 func _process(_delta: float) -> void:

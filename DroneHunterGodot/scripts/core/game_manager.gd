@@ -33,6 +33,8 @@ var ui_volume: float = 0.85
 
 var unlocked_drones: Array[String] = ["striker", "interceptor", "assault", "arc", "command"]
 
+var last_mission_result: Dictionary = {}
+
 const STATE_SCENES = {
 	GameStateManager.State.MAIN_MENU: "res://scenes/ui/MainMenu.tscn",
 	GameStateManager.State.SAVE_SELECT: "res://scenes/ui/SaveSelect.tscn",
@@ -41,7 +43,9 @@ const STATE_SCENES = {
 	GameStateManager.State.MISSION_BRIEFING: "res://scenes/ui/MissionBriefing.tscn",
 	GameStateManager.State.GAMEPLAY: "res://scenes/world/TrainingArena.tscn",
 	GameStateManager.State.HANGAR: "res://scenes/ui/Hangar.tscn",
-	GameStateManager.State.SETTINGS: "res://scenes/ui/Settings.tscn"
+	GameStateManager.State.SETTINGS: "res://scenes/ui/Settings.tscn",
+	GameStateManager.State.MISSION_COMPLETE: "res://scenes/ui/MissionComplete.tscn",
+	GameStateManager.State.MISSION_FAILED: "res://scenes/ui/MissionFailed.tscn"
 }
 
 var upgrade_levels: Dictionary:
@@ -206,4 +210,9 @@ func apply_settings() -> void:
 	settings_changed.emit()
 
 func _on_state_changed(old_state, new_state) -> void:
-	pass
+	if new_state == GameStateManager.State.PAUSE:
+		if get_tree():
+			get_tree().paused = true
+	elif old_state == GameStateManager.State.PAUSE and new_state != GameStateManager.State.PAUSE:
+		if get_tree():
+			get_tree().paused = false
