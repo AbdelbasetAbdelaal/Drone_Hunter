@@ -11,6 +11,9 @@ extends CharacterBody2D
 @onready var damage_receiver: DamageReceiver = $DamageReceiver
 
 var target: Node2D
+var _stun_timer: float = 0.0
+
+var explosion_scene: PackedScene = preload("res://scenes/vfx/ExplosionVFX.tscn")
 
 var current_hp: float:
 	get:
@@ -40,9 +43,24 @@ func _ready() -> void:
 	if players.size() > 0:
 		target = players[0]
 
+func apply_emp_stun(duration: float) -> void:
+	_stun_timer = max(_stun_timer, duration)
+	if sprite:
+		sprite.modulate = Color(0.4, 0.9, 2.5, 1.0)
+
 func _on_death() -> void:
+	_spawn_explosion()
 	_spawn_drops()
 	queue_free()
+
+func _spawn_explosion() -> void:
+	if not is_inside_tree() or not explosion_scene:
+		return
+	var root = get_tree().current_scene if get_tree() and get_tree().current_scene else get_parent()
+	if root:
+		var exp_node = explosion_scene.instantiate() as Node2D
+		root.add_child(exp_node)
+		exp_node.global_position = global_position
 
 func _spawn_drops() -> void:
 	var powerup_scene = load("res://scenes/entities/Powerup.tscn")
@@ -73,6 +91,14 @@ func _spawn_drops() -> void:
 				extra.setup(chosen)
 
 func _physics_process(delta: float) -> void:
+	if _stun_timer > 0.0:
+		_stun_timer -= delta
+		velocity = velocity.move_toward(Vector2.ZERO, 350.0 * delta)
+		move_and_slide()
+		if _stun_timer <= 0.0 and sprite:
+			sprite.modulate = Color.WHITE
+		return
+		
 	_process_ai(delta)
 
 func _process_ai(_delta: float) -> void:

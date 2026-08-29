@@ -20,6 +20,8 @@ var energy_regen: float = 15.0
 var aim_target_override: Vector2 = Vector2.INF
 
 @onready var sprite: Sprite2D = $Sprite2D
+@onready var engine_flame: Sprite2D = $EngineFlame
+@onready var shield_bubble: Sprite2D = $ShieldBubble
 @onready var camera: Camera2D = $Camera2D
 @onready var collision_shape: CollisionShape2D = $CollisionShape2D
 @onready var weapon_controller: WeaponController = $WeaponController
@@ -62,6 +64,7 @@ func _physics_process(delta: float) -> void:
 	_handle_aim()
 	_handle_combat(delta)
 	_handle_energy(delta)
+	_handle_vfx(delta)
 	
 	if ability_controller and ability_controller.has_method("handle_input"):
 		ability_controller.handle_input()
@@ -113,6 +116,27 @@ func _handle_combat(_delta: float) -> void:
 	)
 	if is_firing and weapon_controller != null:
 		weapon_controller.try_fire_primary()
+
+func _handle_vfx(_delta: float) -> void:
+	# Engine Flame Dynamics
+	if engine_flame:
+		var speed_ratio = velocity.length() / max_speed
+		if speed_ratio > 0.05:
+			engine_flame.visible = true
+			var flame_scale = lerp(0.2, 0.45, speed_ratio) + randf_range(-0.03, 0.03)
+			engine_flame.scale = Vector2(flame_scale, flame_scale * 1.2)
+			engine_flame.modulate.a = clamp(speed_ratio * 1.2, 0.4, 1.0)
+		else:
+			engine_flame.visible = false
+
+	# Shield Bubble visual update
+	if shield_bubble and health:
+		if health.current_shield > 0.0:
+			shield_bubble.visible = true
+			var pulse = (sin(Time.get_ticks_msec() * 0.005) + 1.0) * 0.5
+			shield_bubble.modulate = Color(0.3, 0.8, 1.0, lerp(0.15, 0.35, pulse))
+		else:
+			shield_bubble.visible = false
 
 func _on_health_changed(_old_val: float, new_val: float, max_val: float) -> void:
 	health_changed.emit(new_val, max_val)
