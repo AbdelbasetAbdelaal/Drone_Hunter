@@ -47,6 +47,7 @@ func _setup_sector_buttons() -> void:
 	for i in range(1, 6):
 		var btn = sector_btns_container.get_node_or_null("Sector" + str(i)) as Button
 		if btn:
+			btn.text = "SECTOR %d: %s" % [i, SECTOR_NAMES[i - 1]]
 			var sec_unlocked = cs.is_sector_unlocked(i) if cs else (i == 1)
 			btn.disabled = not sec_unlocked
 			btn.pressed.connect(func(): _select_sector(i))
