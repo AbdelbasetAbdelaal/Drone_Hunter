@@ -93,6 +93,7 @@ func _ready() -> void:
 	# -------------------------------------------------------------
 	var wc = player.weapon_controller
 	assert(wc != null, "WeaponController must exist on Player")
+	wc._init_weapons()
 	assert(wc.weapons.size() == 11, "WeaponController must have 11 active weapons")
 	
 	# Test energy gating with an isolated local WeaponDefinition

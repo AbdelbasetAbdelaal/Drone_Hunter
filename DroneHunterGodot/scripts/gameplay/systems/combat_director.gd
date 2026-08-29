@@ -27,6 +27,7 @@ var scout_scene: PackedScene = preload("res://scenes/enemies/EnemyScout.tscn")
 var shooter_scene: PackedScene = preload("res://scenes/enemies/EnemyShooter.tscn")
 var heavy_scene: PackedScene = preload("res://scenes/enemies/EnemyHeavy.tscn")
 var shield_scene: PackedScene = preload("res://scenes/enemies/EnemyShieldElite.tscn")
+var target_scene: PackedScene = preload("res://scenes/missions/GroundObjectiveTarget.tscn")
 
 var objective_controller: ObjectiveController
 
@@ -43,9 +44,11 @@ func _ready() -> void:
 		objective_controller.objective_failed.connect(_on_objective_failed)
 	
 	# Connect to player death
-	var player = get_tree().get_first_node_in_group("player") as Player
-	if player and not player.player_died.is_connected(_on_player_died):
-		player.player_died.connect(_on_player_died)
+	for p in get_tree().get_nodes_in_group("player"):
+		if is_instance_valid(p) and not p.is_queued_for_deletion():
+			if p.has_signal("player_died") and not p.player_died.is_connected(_on_player_died):
+				p.player_died.connect(_on_player_died)
+			break
 		
 	# If no mission definition was explicitly assigned, load default current mission
 	if not current_mission_def:
@@ -68,7 +71,24 @@ func start_mission(mission_def: MissionDefinition) -> void:
 	if objective_controller:
 		objective_controller.setup_objective(mission_def)
 		
+	_spawn_mission_ground_targets()
 	start_next_encounter()
+
+func _spawn_mission_ground_targets() -> void:
+	if not current_mission_def or current_mission_def.objective_target == "":
+		return
+	if not target_scene or not spawn_parent:
+		return
+		
+	# Deterministic placement in the mission world
+	var target_pos = Vector2(1920, 680)
+	var t_inst = target_scene.instantiate()
+	spawn_parent.add_child(t_inst)
+	t_inst.global_position = target_pos
+	t_inst.configure_target(current_mission_def.objective_target, current_mission_def.defense_level)
+	
+	if objective_controller:
+		objective_controller.register_target(t_inst)
 
 func start_next_encounter() -> void:
 	current_encounter_index += 1
@@ -76,7 +96,8 @@ func start_next_encounter() -> void:
 	
 	if not is_survive and current_encounter_index > total_encounters:
 		if objective_controller and objective_controller.objective_type in ["complete_encounters", "destroy_all"]:
-			objective_controller.complete_objective()
+			if objective_controller.active_targets.size() == 0:
+				objective_controller.complete_objective()
 		return
 		
 	var display_idx = ((current_encounter_index - 1) % total_encounters) + 1
@@ -181,6 +202,9 @@ func _on_objective_failed() -> void:
 	_on_player_died()
 
 func _on_player_died() -> void:
+	var gm = get_tree().get_first_node_in_group("game_manager")
+	if gm and gm.state_manager:
+		gm.state_manager.change_state(GameStateManager.State.MISSION_FAILED)
 	mission_failed.emit()
 	print("Combat Director: Player died - Mission Failed.")
 
@@ -199,6 +223,8 @@ func _on_mission_victory() -> void:
 			gm.add_scrap(total_scrap_payout)
 		if gm.has_method("save_game"):
 			gm.save_game()
+		if gm.state_manager:
+			gm.state_manager.change_state(GameStateManager.State.MISSION_COMPLETE)
 	elif gm and gm.has_method("add_scrap"):
 		gm.add_scrap(total_scrap_payout)
 			

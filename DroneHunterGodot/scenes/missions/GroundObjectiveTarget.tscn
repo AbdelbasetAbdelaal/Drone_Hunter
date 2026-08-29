@@ -1,0 +1,39 @@
+[gd_scene load_steps=5 format=3]
+
+[ext_resource type="Script" path="res://scripts/gameplay/entities/ground_objective_target.gd" id="1_target_script"]
+[ext_resource type="Script" path="res://scripts/gameplay/combat/health.gd" id="2_health"]
+[ext_resource type="Script" path="res://scripts/gameplay/combat/damage_receiver.gd" id="3_receiver"]
+
+[sub_resource type="RectangleShape2D" id="RectangleShape2D_target"]
+size = Vector2(96, 96)
+
+[node name="GroundObjectiveTarget" type="StaticBody2D"]
+collision_layer = 4
+collision_mask = 3
+script = ExtResource("1_target_script")
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="."]
+shape = SubResource("RectangleShape2D_target")
+
+[node name="Sprite2D" type="Sprite2D" parent="."]
+
+[node name="Health" type="Node" parent="."]
+script = ExtResource("2_health")
+max_hp = 300.0
+current_hp = 300.0
+
+[node name="DamageReceiver" type="Area2D" parent="."]
+collision_layer = 4
+collision_mask = 2
+script = ExtResource("3_receiver")
+
+[node name="ReceiverShape" type="CollisionShape2D" parent="DamageReceiver"]
+shape = SubResource("RectangleShape2D_target")
+
+[node name="HealthBar" type="ProgressBar" parent="."]
+offset_left = -48.0
+offset_top = -64.0
+offset_right = 48.0
+offset_bottom = -54.0
+value = 100.0
+show_percentage = false

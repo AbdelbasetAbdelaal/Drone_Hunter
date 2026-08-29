@@ -82,20 +82,30 @@ func apply_upgrades_to_player(player: Node2D) -> void:
 	var weapon_lvl = get_upgrade_level("weapon")
 	var mob_lvl = get_upgrade_level("mobility")
 	
+	var base_hp = 100.0
+	var base_nrg = 100.0
+	var base_spd = 520.0
+	
+	if "drone_class" in player and player.drone_class:
+		base_hp = player.drone_class.max_health
+		base_nrg = player.drone_class.max_energy
+		base_spd = player.drone_class.max_speed
+	
 	if "health" in player and player.health:
-		player.health.max_hp = 100.0 + (hull_lvl * 20.0)
+		player.health.max_hp = base_hp + (hull_lvl * 20.0)
 		player.health.current_hp = player.health.max_hp
 		
 	if "max_energy" in player:
-		player.max_energy = 100.0 + (energy_lvl * 20.0)
+		player.max_energy = base_nrg + (energy_lvl * 20.0)
 		player.current_energy = player.max_energy
 		
-	if "move_speed" in player:
-		player.move_speed = 520.0 * (1.0 + mob_lvl * 0.08)
+	if "max_speed" in player:
+		player.max_speed = base_spd * (1.0 + mob_lvl * 0.08)
 
 func to_dict() -> Dictionary:
 	return upgrade_levels.duplicate()
 
 func from_dict(data: Dictionary) -> void:
 	for cat in ["hull", "energy", "weapon", "mobility"]:
-		upgrade_levels[cat] = clamp(int(data.get(cat, 0)), 0, MAX_UPGRADE_LEVEL)
+		if data.has(cat):
+			upgrade_levels[cat] = int(data[cat])

@@ -20,6 +20,11 @@ var _overclock_cooldown: float = 0.0
 var _overclock_timer: float = 0.0
 var is_overclock: bool = false
 
+var current_ability_id: String = "roll"
+
+func setup_ability(ability_id: String) -> void:
+	current_ability_id = ability_id.to_lower()
+
 var shockwave_tex = preload("res://assets/vfx/shockwave.png")
 
 func _physics_process(delta: float) -> void:

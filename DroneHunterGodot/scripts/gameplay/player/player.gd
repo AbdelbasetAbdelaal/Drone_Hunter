@@ -31,16 +31,30 @@ var aim_target_override: Vector2 = Vector2.INF
 
 func _ready() -> void:
 	add_to_group("player")
-	if drone_class:
+	
+	var gm = get_tree().get_first_node_in_group("game_manager")
+	var target_drone_id = gm.selected_drone_id if (gm and gm.selected_drone_id != "") else "striker"
+	var class_path = "res://resources/drones/" + target_drone_id + ".tres"
+	
+	if ResourceLoader.exists(class_path):
+		var selected_def = load(class_path) as DroneClassDefinition
+		if selected_def:
+			apply_drone_class(selected_def)
+	elif drone_class:
 		apply_drone_class(drone_class)
 	elif ResourceLoader.exists("res://resources/drones/striker.tres"):
 		var default_class = load("res://resources/drones/striker.tres") as DroneClassDefinition
 		if default_class:
 			apply_drone_class(default_class)
 
+	if gm:
+		gm.apply_upgrades_to_player(self)
+
 	if health:
-		health.health_changed.connect(_on_health_changed)
-		health.died.connect(_on_death)
+		if not health.health_changed.is_connected(_on_health_changed):
+			health.health_changed.connect(_on_health_changed)
+		if not health.died.is_connected(_on_death):
+			health.died.connect(_on_death)
 
 func apply_drone_class(def: DroneClassDefinition) -> void:
 	drone_class = def
@@ -58,6 +72,12 @@ func apply_drone_class(def: DroneClassDefinition) -> void:
 		health.base_armor = def.base_armor
 		health_changed.emit(health.current_hp, health.max_hp)
 		shield_changed.emit(health.current_shield, health.max_shield)
+		
+	if weapon_controller and def.default_weapons.size() > 0:
+		weapon_controller.equip_weapons(def.default_weapons)
+		
+	if ability_controller and def.ability_id != "":
+		ability_controller.setup_ability(def.ability_id)
 
 func _physics_process(delta: float) -> void:
 	_handle_movement(delta)
