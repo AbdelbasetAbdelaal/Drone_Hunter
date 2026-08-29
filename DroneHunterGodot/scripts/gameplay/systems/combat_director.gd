@@ -80,8 +80,21 @@ func _spawn_enemy(scene: PackedScene, pos: Vector2) -> void:
 	enemies_remaining += 1
 	inst.tree_exited.connect(_on_enemy_defeated)
 
+func get_living_enemy_count() -> int:
+	if not is_inside_tree() or get_tree() == null:
+		return enemies_remaining
+	var list = get_tree().get_nodes_in_group("enemy")
+	var count = 0
+	for e in list:
+		if is_instance_valid(e) and not e.is_queued_for_deletion():
+			if "health" in e and e.health and not e.health.is_dead:
+				count += 1
+			elif not ("health" in e):
+				count += 1
+	return count
+
 func _on_enemy_defeated() -> void:
-	enemies_remaining = max(0, enemies_remaining - 1)
+	enemies_remaining = get_living_enemy_count()
 	mission_score += 150
 	
 	if enemies_remaining == 0:

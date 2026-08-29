@@ -121,7 +121,8 @@ func _process(_delta: float) -> void:
 	# Update director stats
 	var cd = get_tree().get_first_node_in_group("combat_director") as CombatDirector
 	if cd:
-		enemies_label.text = "ENEMIES: " + str(cd.enemies_remaining)
+		var living_count = cd.get_living_enemy_count() if cd.has_method("get_living_enemy_count") else cd.enemies_remaining
+		enemies_label.text = "ENEMIES: " + str(living_count)
 		score_label.text = "SCORE: " + str(cd.mission_score)
 		
 	var gm = get_tree().get_first_node_in_group("game_manager")
