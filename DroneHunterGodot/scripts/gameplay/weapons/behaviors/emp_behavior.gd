@@ -4,14 +4,8 @@ extends WeaponBehavior
 var emp_script = preload("res://scripts/gameplay/weapons/emp_projectile.gd")
 var base_scene: PackedScene = preload("res://scenes/weapons/GenericProjectile.tscn")
 
-func fire(muzzle_pos: Vector2, muzzle_rot: float, source: Node2D = null, spawn_root: Node = null) -> void:
-	if base_scene == null:
-		return
-		
-	var root_node = spawn_root
-	if root_node == null and controller != null:
-		root_node = controller.get_tree().current_scene if controller.get_tree() and controller.get_tree().current_scene else controller.get_parent()
-	if root_node == null:
+func fire(muzzle_pos: Vector2, muzzle_rot: float, source: Node2D, spawn_root: Node) -> void:
+	if base_scene == null or spawn_root == null:
 		return
 		
 	var proj = base_scene.instantiate() as Projectile
@@ -21,8 +15,7 @@ func fire(muzzle_pos: Vector2, muzzle_rot: float, source: Node2D = null, spawn_r
 	if emp_script:
 		proj.set_script(emp_script)
 		
-	root_node.add_child(proj)
+	spawn_root.add_child(proj)
 	proj.global_position = muzzle_pos
 	proj.global_rotation = muzzle_rot
-	var shooter = source if source != null else (controller.get_parent() if controller else null)
-	proj.setup(definition.speed, definition.damage, Hit.DamageType.EMP, shooter, definition.projectile_asset)
+	proj.setup(definition.speed, definition.damage, Hit.DamageType.EMP, source, definition.projectile_asset)

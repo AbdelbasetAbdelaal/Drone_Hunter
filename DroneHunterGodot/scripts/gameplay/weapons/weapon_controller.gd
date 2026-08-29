@@ -11,8 +11,6 @@ var _cooldown_timer: float = 0.0
 var _active_beam: ContinuousBeamProjectile = null
 var _beam_fired_this_frame: bool = false
 
-var beam_script = preload("res://scripts/gameplay/weapons/continuous_beam_projectile.gd")
-
 func _ready() -> void:
 	_init_weapons()
 
@@ -46,7 +44,7 @@ func _init_weapons() -> void:
 			if def:
 				weapons.append(def)
 				var b_class = behavior_map.get(w_id, PulseBehavior)
-				behaviors.append(b_class.new(def, self))
+				behaviors.append(b_class.new(def))
 
 func _physics_process(delta: float) -> void:
 	if _cooldown_timer > 0.0:
@@ -123,19 +121,21 @@ func try_fire_primary() -> bool:
 				return false
 			player.current_energy = max(0.0, player.current_energy - energy_needed)
 			
-		if _active_beam == null or not is_instance_valid(_active_beam):
+		var is_starting_beam = (_active_beam == null or not is_instance_valid(_active_beam))
+		if is_starting_beam:
 			_active_beam = ContinuousBeamProjectile.new()
 			if root_node:
 				root_node.add_child(_active_beam)
 			_active_beam.setup(player, active_def.damage)
+			
+			var am = get_tree().get_first_node_in_group("audio_manager")
+			if am and am.has_method("play_weapon"):
+				am.play_weapon("beam")
 				
 		if _active_beam != null and is_instance_valid(_active_beam):
 			_active_beam.update_beam(spawn_pos, spawn_rot, delta)
 			_beam_fired_this_frame = true
 			
-		var am = get_tree().get_first_node_in_group("audio_manager")
-		if am and am.has_method("play_weapon") and not _beam_fired_this_frame:
-			am.play_weapon("beam")
 		return true
 
 	# Discrete Projectile Weapons Execution

@@ -7,27 +7,21 @@ const TESLA_RANGE: float = 600.0
 const CHAIN_RANGE: float = 320.0
 const MAX_CHAINS: int = 2
 
-func fire(muzzle_pos: Vector2, muzzle_rot: float, source: Node2D = null, spawn_root: Node = null) -> void:
-	var root_node = spawn_root
-	if root_node == null and controller != null:
-		root_node = controller.get_tree().current_scene if controller.get_tree() and controller.get_tree().current_scene else controller.get_parent()
-	if root_node == null:
+func fire(muzzle_pos: Vector2, muzzle_rot: float, source: Node2D, spawn_root: Node) -> void:
+	if spawn_root == null:
 		return
 		
-	var shooter = source if source != null else (controller.get_parent() if controller else null)
-	
 	if projectile_scene:
 		var proj = projectile_scene.instantiate() as Projectile
 		if proj:
-			root_node.add_child(proj)
+			spawn_root.add_child(proj)
 			proj.global_position = muzzle_pos
 			proj.global_rotation = muzzle_rot
-			proj.setup(definition.speed, definition.damage, Hit.DamageType.NORMAL, shooter, definition.projectile_asset)
+			proj.setup(definition.speed, definition.damage, Hit.DamageType.NORMAL, source, definition.projectile_asset)
 	
-	# Fetch all enemies
 	var enemies: Array = []
-	if root_node.is_inside_tree():
-		enemies = root_node.get_tree().get_nodes_in_group("enemy")
+	if spawn_root.is_inside_tree():
+		enemies = spawn_root.get_tree().get_nodes_in_group("enemy")
 		
 	var aim_dir = Vector2.RIGHT.rotated(muzzle_rot)
 	var primary_target: Node2D = null
@@ -40,8 +34,7 @@ func fire(muzzle_pos: Vector2, muzzle_rot: float, source: Node2D = null, spawn_r
 			var dist = to_enemy.length()
 			if dist <= TESLA_RANGE and dist > 5.0:
 				var dir_to_enemy = to_enemy.normalized()
-				var dot = aim_dir.dot(dir_to_enemy) # -1.0 to 1.0
-				# Score combines directional alignment (weight 400) and proximity
+				var dot = aim_dir.dot(dir_to_enemy)
 				var score = (dot * 400.0) - dist
 				if score > best_score:
 					best_score = score
@@ -51,11 +44,11 @@ func fire(muzzle_pos: Vector2, muzzle_rot: float, source: Node2D = null, spawn_r
 		return
 		
 	var hit_targets: Array[Node2D] = [primary_target]
-	_draw_lightning(muzzle_pos, primary_target.global_position, root_node)
+	_draw_lightning(muzzle_pos, primary_target.global_position, spawn_root)
 	
 	var p_recv = primary_target.get_node_or_null("DamageReceiver")
 	if p_recv and p_recv.has_method("take_damage"):
-		p_recv.take_damage(Hit.new(definition.damage, Hit.DamageType.NORMAL, shooter, primary_target.global_position))
+		p_recv.take_damage(Hit.new(definition.damage, Hit.DamageType.NORMAL, source, primary_target.global_position))
 		
 	# Select nearest valid chained targets from primary target
 	var chained_count: int = 0
@@ -75,13 +68,15 @@ func fire(muzzle_pos: Vector2, muzzle_rot: float, source: Node2D = null, spawn_r
 				var chain_dist = primary_target.global_position.distance_to(e.global_position)
 				if chain_dist <= CHAIN_RANGE:
 					hit_targets.append(e)
-					_draw_lightning(primary_target.global_position, e.global_position, root_node)
+					_draw_lightning(primary_target.global_position, e.global_position, spawn_root)
 					var c_recv = e.get_node_or_null("DamageReceiver")
 					if c_recv and c_recv.has_method("take_damage"):
-						c_recv.take_damage(Hit.new(definition.damage * 0.75, Hit.DamageType.NORMAL, shooter, e.global_position))
+						c_recv.take_damage(Hit.new(definition.damage * 0.75, Hit.DamageType.NORMAL, source, e.global_position))
 					chained_count += 1
 
 func _draw_lightning(start: Vector2, end: Vector2, root: Node) -> void:
+	if not root:
+		return
 	var line = Line2D.new()
 	line.width = 4.0
 	line.default_color = Color(0.4, 0.9, 1.8, 1.0)
