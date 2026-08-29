@@ -1,15 +1,19 @@
 class_name RailgunBehavior
 extends WeaponBehavior
 
-var projectile_scene: PackedScene = preload("res://scenes/weapons/GenericProjectile.tscn")
+var piercing_script = preload("res://scripts/gameplay/weapons/piercing_projectile.gd")
+var base_scene: PackedScene = preload("res://scenes/weapons/GenericProjectile.tscn")
 
 func fire(muzzle_pos: Vector2, muzzle_rot: float) -> void:
-	if projectile_scene == null or controller == null:
+	if base_scene == null or controller == null:
 		return
 		
-	var proj = projectile_scene.instantiate() as Projectile
+	var proj = base_scene.instantiate() as Projectile
 	if proj == null:
 		return
+		
+	if piercing_script:
+		proj.set_script(piercing_script)
 		
 	var root_node = controller.get_tree().current_scene if controller.get_tree() and controller.get_tree().current_scene else controller.get_parent()
 	root_node.add_child(proj)
