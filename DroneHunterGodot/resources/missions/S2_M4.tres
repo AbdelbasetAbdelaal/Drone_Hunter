@@ -4,15 +4,15 @@
 
 [resource]
 script = ExtResource("1_script")
-mission_id = "S2_M1"
+mission_id = "S2_M4"
 sector_index = 2
-mission_index = 1
-title = "Core Entry"
-description = "You have breached the Core Sector boundary. Ancient mining drones have been repurposed as weapons — sweep the canyon entry and clear a path toward the reactor heart."
-difficulty = 2
-objective_type = "destroy_all"
-duration = 0.0
+mission_index = 4
+title = "Security Grid"
+description = "The security grid has locked down and is flooding the sector with drones on a loop. Survive the 45-second onslaught until the grid overloads and resets."
+difficulty = 3
+objective_type = "survive"
+duration = 45.0
 encounter_sequence = [["scout", "scout", "scout", "scout", "scout"], ["scout", "shooter", "scout", "shooter", "scout"], ["scout", "heavy", "scout", "shooter"]]
-scrap_reward = 150
-target_score = 1500
+scrap_reward = 600
+target_score = 6000
 sector_background = "backgrounds/sectors/sector_2_ref.png"

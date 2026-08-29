@@ -86,12 +86,12 @@ func _update_ui() -> void:
 
 func _update_upgrade_card(cat: String, lvl_lbl: Label, btn: Button) -> void:
 	var gm = get_tree().get_first_node_in_group("game_manager")
-	var lvl = gm.upgrade_levels.get(cat, 1) if gm else 1
-	var cost = gm.get_upgrade_cost(cat) if gm else 150
+	var lvl = gm.get_upgrade_level(cat) if gm else 0
+	var cost = gm.get_upgrade_cost(cat) if gm else 100
 	var scrap_val = gm.scrap if gm else 500
 	
 	lvl_lbl.text = "LEVEL " + str(lvl) + " / 5"
-	if lvl >= 5:
+	if lvl >= 5 or cost < 0:
 		btn.text = "MAX"
 		btn.disabled = true
 	else:
@@ -118,7 +118,8 @@ func _update_drone_preview() -> void:
 
 func _on_launch() -> void:
 	launch_requested.emit(current_drone_id)
-	get_tree().change_scene_to_file("res://scenes/world/TrainingArena.tscn")
+	get_tree().change_scene_to_file("res://scenes/ui/SectorMap.tscn")
 
 func _on_back() -> void:
 	back_requested.emit()
+	get_tree().change_scene_to_file("res://scenes/ui/SectorMap.tscn")

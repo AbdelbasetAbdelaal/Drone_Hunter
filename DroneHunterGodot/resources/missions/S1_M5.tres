@@ -1,0 +1,18 @@
+[gd_resource type="Resource" script_class="MissionDefinition" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://resources/missions/mission_definition.gd" id="1_script"]
+
+[resource]
+script = ExtResource("1_script")
+mission_id = "S1_M5"
+sector_index = 1
+mission_index = 5
+title = "Perimeter Collapse"
+description = "The outer perimeter has fully collapsed. What remains of the drone network is converging on your position. Crush the remaining resistance and claim the sector for the Alliance."
+difficulty = 3
+objective_type = "complete_encounters"
+duration = 0.0
+encounter_sequence = [["scout", "scout", "scout", "scout"], ["scout", "shooter", "scout", "shooter", "scout"], ["scout", "heavy", "scout", "shooter"]]
+scrap_reward = 900
+target_score = 9000
+sector_background = "backgrounds/sectors/sector_1_ref.png"

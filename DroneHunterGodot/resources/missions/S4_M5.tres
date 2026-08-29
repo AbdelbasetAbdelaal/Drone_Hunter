@@ -4,15 +4,15 @@
 
 [resource]
 script = ExtResource("1_script")
-mission_id = "S4_M2"
+mission_id = "S4_M5"
 sector_index = 4
-mission_index = 2
-title = "Interceptor Grid"
-description = "The interceptor grid has locked onto all Alliance signatures. Survive 75 seconds of relentless drone waves until your ECM countermeasures force the grid to stand down."
-difficulty = 4
-objective_type = "survive"
-duration = 75.0
+mission_index = 5
+title = "Defense Collapse"
+description = "The entire megacity defense grid is collapsing around you. Every remaining drone unit is throwing itself at your position in a final, desperate defense. Survive and claim the sector."
+difficulty = 5
+objective_type = "complete_encounters"
+duration = 0.0
 encounter_sequence = [["scout", "shield_elite", "shooter", "scout"], ["shield_elite", "heavy", "shooter", "shooter", "scout"], ["scout", "heavy", "shooter", "heavy", "scout"]]
-scrap_reward = 250
-target_score = 2500
+scrap_reward = 900
+target_score = 9000
 sector_background = "backgrounds/sectors/sector_4_ref.png"

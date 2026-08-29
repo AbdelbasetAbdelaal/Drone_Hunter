@@ -1,0 +1,18 @@
+[gd_resource type="Resource" script_class="MissionDefinition" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://resources/missions/mission_definition.gd" id="1_script"]
+
+[resource]
+script = ExtResource("1_script")
+mission_id = "S5_M4"
+sector_index = 5
+mission_index = 4
+title = "Final Defense"
+description = "The final defense line before the command core unleashes everything it has. Wave after wave of elite and heavy units pour into the chamber. Crush them and open the path to victory."
+difficulty = 5
+objective_type = "complete_encounters"
+duration = 0.0
+encounter_sequence = [["shield_elite", "heavy", "shooter", "shooter", "scout"], ["scout", "heavy", "shooter", "heavy", "scout"], ["shield_elite", "heavy", "shooter", "shooter", "scout"], ["scout", "heavy", "shooter", "heavy", "scout"]]
+scrap_reward = 600
+target_score = 6000
+sector_background = "backgrounds/sectors/sector_5_ref.png"

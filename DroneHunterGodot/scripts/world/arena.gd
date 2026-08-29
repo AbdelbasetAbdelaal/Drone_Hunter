@@ -36,6 +36,6 @@ func _configure_mission_environment() -> void:
 				if tex:
 					ground_sprite.texture = tex
 					
-			# Update combat director parameters
+			# Update combat director with active mission definition
 			if enemies_director:
-				enemies_director.max_waves = mission_def.total_waves
+				enemies_director.start_mission(mission_def)

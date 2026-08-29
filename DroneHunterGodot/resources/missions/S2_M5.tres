@@ -1,0 +1,18 @@
+[gd_resource type="Resource" script_class="MissionDefinition" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://resources/missions/mission_definition.gd" id="1_script"]
+
+[resource]
+script = ExtResource("1_script")
+mission_id = "S2_M5"
+sector_index = 2
+mission_index = 5
+title = "Core Breach"
+description = "The reactor core itself is within reach. Elite drone formations guard the final approach. Shatter their lines and seize control of the Core Sector's power grid."
+difficulty = 4
+objective_type = "complete_encounters"
+duration = 0.0
+encounter_sequence = [["scout", "shield_elite", "shooter", "scout"], ["scout", "shooter", "scout", "shooter", "scout"], ["scout", "heavy", "shooter", "heavy", "scout"]]
+scrap_reward = 900
+target_score = 9000
+sector_background = "backgrounds/sectors/sector_2_ref.png"

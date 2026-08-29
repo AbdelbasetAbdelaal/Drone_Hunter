@@ -1,0 +1,18 @@
+[gd_resource type="Resource" script_class="MissionDefinition" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://resources/missions/mission_definition.gd" id="1_script"]
+
+[resource]
+script = ExtResource("1_script")
+mission_id = "S1_M4"
+sector_index = 1
+mission_index = 4
+title = "Production Line"
+description = "The autonomous production line has been reprogrammed to churn out hostile units at an alarming rate. Sabotage key assembly nodes while surviving the drone onslaught."
+difficulty = 2
+objective_type = "complete_encounters"
+duration = 0.0
+encounter_sequence = [["shooter", "scout", "shooter"], ["scout", "scout", "scout", "scout", "scout"], ["scout", "heavy", "scout", "shooter"]]
+scrap_reward = 600
+target_score = 6000
+sector_background = "backgrounds/sectors/sector_1_ref.png"

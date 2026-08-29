@@ -4,15 +4,15 @@
 
 [resource]
 script = ExtResource("1_script")
-mission_id = "S4_M1"
-sector_index = 4
-mission_index = 1
-title = "Outer Defense"
-description = "Megacity outer defense drones have been weaponized by the enemy AI. Push through the shield vanguards and heavy battlegroups to reach the interceptor network."
-difficulty = 4
+mission_id = "S3_M5"
+sector_index = 3
+mission_index = 5
+title = "Critical Overload"
+description = "The reactor is moments from critical overload. The entire drone network has converged on the core chamber in a last stand. End them and stabilize the sector's power grid."
+difficulty = 5
 objective_type = "complete_encounters"
 duration = 0.0
 encounter_sequence = [["scout", "shield_elite", "shooter", "scout"], ["scout", "heavy", "shooter", "heavy", "scout"], ["shield_elite", "heavy", "shooter", "shooter", "scout"]]
-scrap_reward = 150
-target_score = 1500
-sector_background = "backgrounds/sectors/sector_4_ref.png"
+scrap_reward = 900
+target_score = 9000
+sector_background = "backgrounds/sectors/sector_3_ref.png"
