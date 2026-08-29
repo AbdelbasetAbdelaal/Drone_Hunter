@@ -24,6 +24,8 @@ extends CanvasLayer
 
 @onready var pause_modal: Panel = $Root/PauseModal
 @onready var pause_resume_btn: Button = $Root/PauseModal/VBox/ResumeBtn
+@onready var pause_restart_btn: Button = $Root/PauseModal/VBox/RestartBtn
+@onready var pause_settings_btn: Button = $Root/PauseModal/VBox/SettingsBtn
 @onready var pause_hangar_btn: Button = $Root/PauseModal/VBox/HangarBtn
 
 var is_paused: bool = false
@@ -83,9 +85,11 @@ func _connect_events() -> void:
 	# Connect to CombatDirector
 	var cd = get_tree().get_first_node_in_group("combat_director") as CombatDirector
 	if cd:
-		cd.wave_started.connect(_on_wave_started)
+		cd.encounter_started.connect(_on_wave_started)
 		cd.mission_completed.connect(_on_mission_victory)
 		cd.mission_failed.connect(_on_mission_failed)
+		if cd.objective_controller:
+			cd.objective_controller.progress_updated.connect(_on_objective_progress)
 
 	# Buttons
 	victory_continue_btn.pressed.connect(func(): get_tree().change_scene_to_file("res://scenes/ui/SectorMap.tscn"))
@@ -93,6 +97,16 @@ func _connect_events() -> void:
 	defeat_hangar_btn.pressed.connect(func(): get_tree().change_scene_to_file("res://scenes/ui/Hangar.tscn"))
 	
 	pause_resume_btn.pressed.connect(_toggle_pause)
+	if pause_restart_btn:
+		pause_restart_btn.pressed.connect(func():
+			get_tree().paused = false
+			get_tree().reload_current_scene()
+		)
+	if pause_settings_btn:
+		pause_settings_btn.pressed.connect(func():
+			get_tree().paused = false
+			get_tree().change_scene_to_file("res://scenes/ui/Settings.tscn")
+		)
 	pause_hangar_btn.pressed.connect(func():
 		get_tree().paused = false
 		get_tree().change_scene_to_file("res://scenes/ui/Hangar.tscn")
@@ -116,13 +130,13 @@ func _process(_delta: float) -> void:
 		var wc = player.weapon_controller
 		if wc.weapons.size() > wc.active_weapon_index:
 			var active_def = wc.weapons[wc.active_weapon_index]
-			weapon_label.text = "WEAPON: " + active_def.display_name.to_upper()
+			weapon_label.text = "WEAPON: [SLOT %d] %s" % [active_def.slot, active_def.display_name.to_upper()]
 			
 	# Update director stats
 	var cd = get_tree().get_first_node_in_group("combat_director") as CombatDirector
 	if cd:
 		var living_count = cd.get_living_enemy_count() if cd.has_method("get_living_enemy_count") else cd.enemies_remaining
-		enemies_label.text = "ENEMIES: " + str(living_count)
+		enemies_label.text = "HOSTILES: " + str(living_count)
 		score_label.text = "SCORE: " + str(cd.mission_score)
 		
 	var gm = get_tree().get_first_node_in_group("game_manager")
@@ -142,7 +156,11 @@ func _on_energy_changed(cur: float, max_val: float) -> void:
 	energy_bar.value = cur
 
 func _on_wave_started(wave_idx: int, total_waves: int) -> void:
-	wave_label.text = "WAVE %d / %d" % [wave_idx, total_waves]
+	wave_label.text = "ENCOUNTER %d / %d" % [wave_idx, total_waves]
+
+func _on_objective_progress(desc: String, _pct: float) -> void:
+	if desc != "":
+		wave_label.text = desc
 
 func _on_mission_victory(score: int, scrap: int) -> void:
 	victory_modal.visible = true

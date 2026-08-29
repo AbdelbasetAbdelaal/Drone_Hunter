@@ -11,6 +11,7 @@ const MAX_UPGRADE_LEVEL: int = 5
 signal scrap_changed(new_amount: int)
 signal drone_selected(drone_id: String)
 signal upgrade_purchased(category: String, new_level: int)
+signal settings_changed()
 
 var state_manager: GameStateManagerClass
 var campaign_state: CampaignStateClass
@@ -22,7 +23,13 @@ var selected_drone_id: String = "striker"
 var scrap: int = 500
 var total_score: int = 0
 var difficulty_mode: int = 1
+
+# Settings
 var is_fullscreen: bool = false
+var master_volume: float = 1.0
+var music_volume: float = 0.8
+var sfx_volume: float = 0.85
+var ui_volume: float = 0.85
 
 var unlocked_drones: Array[String] = ["striker", "interceptor", "assault", "arc", "command"]
 
@@ -40,6 +47,7 @@ func _ready() -> void:
 	save_manager = SaveManagerClass.new()
 	
 	load_game(current_slot)
+	apply_settings()
 	if state_manager and state_manager.has_signal("state_changed"):
 		state_manager.state_changed.connect(_on_state_changed)
 
@@ -89,7 +97,14 @@ func save_game(slot: int = -1) -> bool:
 		"selected_drone_id": selected_drone_id,
 		"upgrade_levels": progression_manager.to_dict() if progression_manager else {},
 		"unlocked_drones": unlocked_drones.duplicate(),
-		"campaign": campaign_state.to_dict() if campaign_state else {}
+		"campaign": campaign_state.to_dict() if campaign_state else {},
+		"settings": {
+			"is_fullscreen": is_fullscreen,
+			"master_volume": master_volume,
+			"music_volume": music_volume,
+			"sfx_volume": sfx_volume,
+			"ui_volume": ui_volume
+		}
 	}
 	return save_manager.save_slot(target_slot, payload)
 
@@ -116,6 +131,15 @@ func load_game(slot: int = 0) -> bool:
 		for d in drones:
 			unlocked_drones.append(str(d))
 			
+	var sets = data.get("settings", {})
+	if sets is Dictionary:
+		is_fullscreen = bool(sets.get("is_fullscreen", false))
+		master_volume = float(sets.get("master_volume", 1.0))
+		music_volume = float(sets.get("music_volume", 0.8))
+		sfx_volume = float(sets.get("sfx_volume", 0.85))
+		ui_volume = float(sets.get("ui_volume", 0.85))
+		apply_settings()
+		
 	scrap_changed.emit(scrap)
 	drone_selected.emit(selected_drone_id)
 	return true
@@ -124,6 +148,21 @@ func delete_save(slot: int) -> bool:
 	if save_manager:
 		return save_manager.delete_slot(slot)
 	return false
+
+func apply_settings() -> void:
+	if is_fullscreen:
+		DisplayServer.window_set_mode(DisplayServer.WINDOW_MODE_FULLSCREEN)
+	else:
+		DisplayServer.window_set_mode(DisplayServer.WINDOW_MODE_WINDOWED)
+		
+	var am = get_tree().get_first_node_in_group("audio_manager")
+	if am:
+		if "music_volume" in am:
+			am.music_volume = music_volume
+		if "sfx_volume" in am:
+			am.sfx_volume = sfx_volume
+			
+	settings_changed.emit()
 
 func _on_state_changed(old_state, new_state) -> void:
 	pass

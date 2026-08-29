@@ -1,0 +1,245 @@
+[gd_scene load_steps=3 format=3]
+
+[ext_resource type="Script" path="res://scripts/ui/save_select.gd" id="1_script"]
+[ext_resource type="Texture2D" path="res://assets/backgrounds/sectors/sector_2_ref.png" id="2_bg"]
+
+[node name="SaveSelect" type="Control"]
+layout_mode = 3
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+script = ExtResource("1_script")
+
+[node name="Background" type="TextureRect" parent="."]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+texture = ExtResource("2_bg")
+expand_mode = 1
+stretch_mode = 6
+
+[node name="DarkOverlay" type="ColorRect" parent="."]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+color = Color(0.02, 0.04, 0.08, 0.85)
+
+[node name="Content" type="VBoxContainer" parent="."]
+layout_mode = 1
+anchors_preset = 8
+anchor_left = 0.5
+anchor_top = 0.5
+anchor_right = 0.5
+anchor_bottom = 0.5
+offset_left = -480.0
+offset_top = -240.0
+offset_right = 480.0
+offset_bottom = 200.0
+grow_horizontal = 2
+grow_vertical = 2
+theme_override_constants/separation = 28
+
+[node name="Header" type="VBoxContainer" parent="Content"]
+layout_mode = 2
+
+[node name="Title" type="Label" parent="Content/Header"]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.3, 0.85, 1, 1)
+theme_override_font_sizes/font_size = 28
+text = "SELECT SAVE PROFILE"
+horizontal_alignment = 1
+
+[node name="SlotCards" type="HBoxContainer" parent="Content"]
+layout_mode = 2
+theme_override_constants/separation = 24
+alignment = 1
+
+[node name="Slot0" type="Panel" parent="Content/SlotCards"]
+custom_minimum_size = Vector2(300, 260)
+layout_mode = 2
+
+[node name="VBox" type="VBoxContainer" parent="Content/SlotCards/Slot0"]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+offset_left = 16.0
+offset_top = 16.0
+offset_right = -16.0
+offset_bottom = -16.0
+grow_horizontal = 2
+grow_vertical = 2
+theme_override_constants/separation = 12
+
+[node name="Title" type="Label" parent="Content/SlotCards/Slot0/VBox"]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.2, 0.9, 0.4, 1)
+theme_override_font_sizes/font_size = 20
+text = "SLOT 1"
+horizontal_alignment = 1
+
+[node name="Info" type="Label" parent="Content/SlotCards/Slot0/VBox"]
+custom_minimum_size = Vector2(0, 100)
+layout_mode = 2
+text = "[EMPTY SAVE SLOT]"
+horizontal_alignment = 1
+vertical_alignment = 1
+
+[node name="BtnRow" type="HBoxContainer" parent="Content/SlotCards/Slot0/VBox"]
+layout_mode = 2
+theme_override_constants/separation = 8
+
+[node name="LoadBtn" type="Button" parent="Content/SlotCards/Slot0/VBox/BtnRow"]
+custom_minimum_size = Vector2(0, 36)
+layout_mode = 2
+size_flags_horizontal = 3
+text = "LOAD"
+
+[node name="NewBtn" type="Button" parent="Content/SlotCards/Slot0/VBox/BtnRow"]
+custom_minimum_size = Vector2(0, 36)
+layout_mode = 2
+size_flags_horizontal = 3
+text = "NEW"
+
+[node name="DeleteBtn" type="Button" parent="Content/SlotCards/Slot0/VBox/BtnRow"]
+custom_minimum_size = Vector2(0, 36)
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_colors/font_color = Color(1, 0.4, 0.4, 1)
+text = "DEL"
+
+[node name="Slot1" type="Panel" parent="Content/SlotCards"]
+custom_minimum_size = Vector2(300, 260)
+layout_mode = 2
+
+[node name="VBox" type="VBoxContainer" parent="Content/SlotCards/Slot1"]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+offset_left = 16.0
+offset_top = 16.0
+offset_right = -16.0
+offset_bottom = -16.0
+grow_horizontal = 2
+grow_vertical = 2
+theme_override_constants/separation = 12
+
+[node name="Title" type="Label" parent="Content/SlotCards/Slot1/VBox"]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.2, 0.9, 0.4, 1)
+theme_override_font_sizes/font_size = 20
+text = "SLOT 2"
+horizontal_alignment = 1
+
+[node name="Info" type="Label" parent="Content/SlotCards/Slot1/VBox"]
+custom_minimum_size = Vector2(0, 100)
+layout_mode = 2
+text = "[EMPTY SAVE SLOT]"
+horizontal_alignment = 1
+vertical_alignment = 1
+
+[node name="BtnRow" type="HBoxContainer" parent="Content/SlotCards/Slot1/VBox"]
+layout_mode = 2
+theme_override_constants/separation = 8
+
+[node name="LoadBtn" type="Button" parent="Content/SlotCards/Slot1/VBox/BtnRow"]
+custom_minimum_size = Vector2(0, 36)
+layout_mode = 2
+size_flags_horizontal = 3
+text = "LOAD"
+
+[node name="NewBtn" type="Button" parent="Content/SlotCards/Slot1/VBox/BtnRow"]
+custom_minimum_size = Vector2(0, 36)
+layout_mode = 2
+size_flags_horizontal = 3
+text = "NEW"
+
+[node name="DeleteBtn" type="Button" parent="Content/SlotCards/Slot1/VBox/BtnRow"]
+custom_minimum_size = Vector2(0, 36)
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_colors/font_color = Color(1, 0.4, 0.4, 1)
+text = "DEL"
+
+[node name="Slot2" type="Panel" parent="Content/SlotCards"]
+custom_minimum_size = Vector2(300, 260)
+layout_mode = 2
+
+[node name="VBox" type="VBoxContainer" parent="Content/SlotCards/Slot2"]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+offset_left = 16.0
+offset_top = 16.0
+offset_right = -16.0
+offset_bottom = -16.0
+grow_horizontal = 2
+grow_vertical = 2
+theme_override_constants/separation = 12
+
+[node name="Title" type="Label" parent="Content/SlotCards/Slot2/VBox"]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.2, 0.9, 0.4, 1)
+theme_override_font_sizes/font_size = 20
+text = "SLOT 3"
+horizontal_alignment = 1
+
+[node name="Info" type="Label" parent="Content/SlotCards/Slot2/VBox"]
+custom_minimum_size = Vector2(0, 100)
+layout_mode = 2
+text = "[EMPTY SAVE SLOT]"
+horizontal_alignment = 1
+vertical_alignment = 1
+
+[node name="BtnRow" type="HBoxContainer" parent="Content/SlotCards/Slot2/VBox"]
+layout_mode = 2
+theme_override_constants/separation = 8
+
+[node name="LoadBtn" type="Button" parent="Content/SlotCards/Slot2/VBox/BtnRow"]
+custom_minimum_size = Vector2(0, 36)
+layout_mode = 2
+size_flags_horizontal = 3
+text = "LOAD"
+
+[node name="NewBtn" type="Button" parent="Content/SlotCards/Slot2/VBox/BtnRow"]
+custom_minimum_size = Vector2(0, 36)
+layout_mode = 2
+size_flags_horizontal = 3
+text = "NEW"
+
+[node name="DeleteBtn" type="Button" parent="Content/SlotCards/Slot2/VBox/BtnRow"]
+custom_minimum_size = Vector2(0, 36)
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_colors/font_color = Color(1, 0.4, 0.4, 1)
+text = "DEL"
+
+[node name="Footer" type="HBoxContainer" parent="."]
+layout_mode = 1
+anchors_preset = 7
+anchor_left = 0.5
+anchor_top = 1.0
+anchor_right = 0.5
+anchor_bottom = 1.0
+offset_left = -120.0
+offset_top = -80.0
+offset_right = 120.0
+offset_bottom = -36.0
+grow_horizontal = 2
+grow_vertical = 0
+alignment = 1
+
+[node name="BackBtn" type="Button" parent="Footer"]
+custom_minimum_size = Vector2(240, 44)
+layout_mode = 2
+text = "← BACK TO MAIN MENU"

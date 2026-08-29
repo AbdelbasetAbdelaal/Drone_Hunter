@@ -109,4 +109,4 @@ func _on_launch_mission() -> void:
 	if gm and cs:
 		cs.current_mission = selected_mission_id
 		
-	get_tree().change_scene_to_file("res://scenes/world/TrainingArena.tscn")
+	get_tree().change_scene_to_file("res://scenes/ui/MissionBriefing.tscn")

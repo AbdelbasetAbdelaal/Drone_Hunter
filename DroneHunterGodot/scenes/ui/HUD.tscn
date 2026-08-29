@@ -231,9 +231,9 @@ anchor_top = 0.5
 anchor_right = 0.5
 anchor_bottom = 0.5
 offset_left = -180.0
-offset_top = -110.0
+offset_top = -140.0
 offset_right = 180.0
-offset_bottom = 110.0
+offset_bottom = 140.0
 grow_horizontal = 2
 grow_vertical = 2
 
@@ -248,7 +248,7 @@ offset_right = -24.0
 offset_bottom = -20.0
 grow_horizontal = 2
 grow_vertical = 2
-theme_override_constants/separation = 12
+theme_override_constants/separation = 10
 
 [node name="Title" type="Label" parent="Root/PauseModal/VBox"]
 layout_mode = 2
@@ -261,6 +261,16 @@ horizontal_alignment = 1
 custom_minimum_size = Vector2(0, 36)
 layout_mode = 2
 text = "RESUME"
+
+[node name="RestartBtn" type="Button" parent="Root/PauseModal/VBox"]
+custom_minimum_size = Vector2(0, 36)
+layout_mode = 2
+text = "RESTART MISSION"
+
+[node name="SettingsBtn" type="Button" parent="Root/PauseModal/VBox"]
+custom_minimum_size = Vector2(0, 36)
+layout_mode = 2
+text = "SETTINGS ⚙"
 
 [node name="HangarBtn" type="Button" parent="Root/PauseModal/VBox"]
 custom_minimum_size = Vector2(0, 36)

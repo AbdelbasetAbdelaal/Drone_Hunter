@@ -1,0 +1,215 @@
+[gd_scene load_steps=3 format=3]
+
+[ext_resource type="Script" path="res://scripts/ui/drone_select.gd" id="1_script"]
+[ext_resource type="Texture2D" path="res://assets/backgrounds/sectors/sector_2_ref.png" id="2_bg"]
+
+[node name="DroneSelect" type="Control"]
+layout_mode = 3
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+script = ExtResource("1_script")
+
+[node name="Background" type="TextureRect" parent="."]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+texture = ExtResource("2_bg")
+expand_mode = 1
+stretch_mode = 6
+
+[node name="DarkOverlay" type="ColorRect" parent="."]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+color = Color(0.02, 0.04, 0.08, 0.85)
+
+[node name="Header" type="HBoxContainer" parent="."]
+layout_mode = 1
+anchors_preset = 10
+anchor_right = 1.0
+offset_left = 40.0
+offset_top = 28.0
+offset_right = -40.0
+offset_bottom = 68.0
+grow_horizontal = 2
+
+[node name="Title" type="Label" parent="Header"]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.3, 0.85, 1, 1)
+theme_override_font_sizes/font_size = 24
+text = "SELECT COMBAT DRONE CHASSIS"
+
+[node name="Content" type="HBoxContainer" parent="."]
+layout_mode = 1
+anchors_preset = 8
+anchor_left = 0.5
+anchor_top = 0.5
+anchor_right = 0.5
+anchor_bottom = 0.5
+offset_left = -580.0
+offset_top = -240.0
+offset_right = 580.0
+offset_bottom = 200.0
+grow_horizontal = 2
+grow_vertical = 2
+theme_override_constants/separation = 28
+
+[node name="LeftCol" type="VBoxContainer" parent="Content"]
+custom_minimum_size = Vector2(300, 0)
+layout_mode = 2
+theme_override_constants/separation = 12
+
+[node name="Label" type="Label" parent="Content/LeftCol"]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.7, 0.8, 0.9, 1)
+text = "AVAILABLE CHASSIS"
+
+[node name="DroneButtons" type="VBoxContainer" parent="Content/LeftCol"]
+layout_mode = 2
+theme_override_constants/separation = 10
+
+[node name="Striker" type="Button" parent="Content/LeftCol/DroneButtons"]
+custom_minimum_size = Vector2(0, 48)
+layout_mode = 2
+text = "STRIKER"
+
+[node name="Interceptor" type="Button" parent="Content/LeftCol/DroneButtons"]
+custom_minimum_size = Vector2(0, 48)
+layout_mode = 2
+text = "INTERCEPTOR"
+
+[node name="Assault" type="Button" parent="Content/LeftCol/DroneButtons"]
+custom_minimum_size = Vector2(0, 48)
+layout_mode = 2
+text = "ASSAULT"
+
+[node name="Arc" type="Button" parent="Content/LeftCol/DroneButtons"]
+custom_minimum_size = Vector2(0, 48)
+layout_mode = 2
+text = "ARC"
+
+[node name="Command" type="Button" parent="Content/LeftCol/DroneButtons"]
+custom_minimum_size = Vector2(0, 48)
+layout_mode = 2
+text = "COMMAND"
+
+[node name="RightCol" type="VBoxContainer" parent="Content"]
+layout_mode = 2
+size_flags_horizontal = 3
+
+[node name="PreviewCard" type="Panel" parent="Content/RightCol"]
+layout_mode = 2
+size_flags_vertical = 3
+
+[node name="SpriteContainer" type="Control" parent="Content/RightCol/PreviewCard"]
+layout_mode = 1
+anchors_preset = 6
+anchor_left = 1.0
+anchor_top = 0.5
+anchor_right = 1.0
+anchor_bottom = 0.5
+offset_left = -280.0
+offset_top = -100.0
+offset_right = -80.0
+offset_bottom = 100.0
+grow_horizontal = 0
+grow_vertical = 2
+
+[node name="DroneSprite" type="Sprite2D" parent="Content/RightCol/PreviewCard/SpriteContainer"]
+position = Vector2(100, 100)
+
+[node name="DroneName" type="Label" parent="Content/RightCol/PreviewCard"]
+layout_mode = 0
+offset_left = 28.0
+offset_top = 24.0
+offset_right = 400.0
+offset_bottom = 56.0
+theme_override_colors/font_color = Color(0.2, 0.9, 0.4, 1)
+theme_override_font_sizes/font_size = 24
+text = "STRIKER"
+
+[node name="DroneRole" type="Label" parent="Content/RightCol/PreviewCard"]
+layout_mode = 0
+offset_left = 28.0
+offset_top = 60.0
+offset_right = 450.0
+offset_bottom = 84.0
+theme_override_colors/font_color = Color(0.7, 0.8, 0.9, 1)
+theme_override_font_sizes/font_size = 13
+text = "BALANCED / ACCURATE / VERSATILE"
+
+[node name="DroneDesc" type="Label" parent="Content/RightCol/PreviewCard"]
+layout_mode = 0
+offset_left = 28.0
+offset_top = 96.0
+offset_right = 520.0
+offset_bottom = 150.0
+theme_override_font_sizes/font_size = 14
+text = "Balanced combat chassis with precision forward weapons and versatile performance."
+autowrap_mode = 3
+
+[node name="StatsLbl" type="Label" parent="Content/RightCol/PreviewCard"]
+layout_mode = 0
+offset_left = 28.0
+offset_top = 220.0
+offset_right = 780.0
+offset_bottom = 248.0
+theme_override_colors/font_color = Color(0.3, 0.85, 1, 1)
+theme_override_font_sizes/font_size = 14
+text = "HULL: 100  |  SHIELD: 60  |  ENERGY: 100  |  SPEED: 520  |  ARMOR: 0%"
+
+[node name="WeaponsLbl" type="Label" parent="Content/RightCol/PreviewCard"]
+layout_mode = 0
+offset_left = 28.0
+offset_top = 260.0
+offset_right = 780.0
+offset_bottom = 288.0
+theme_override_colors/font_color = Color(1, 0.8, 0.2, 1)
+theme_override_font_sizes/font_size = 14
+text = "WEAPONS: • PULSE • SCATTER • MISSILE"
+
+[node name="AbilityLbl" type="Label" parent="Content/RightCol/PreviewCard"]
+layout_mode = 0
+offset_left = 28.0
+offset_top = 300.0
+offset_right = 780.0
+offset_bottom = 328.0
+theme_override_colors/font_color = Color(0.4, 0.9, 1, 1)
+theme_override_font_sizes/font_size = 14
+text = "CORE ABILITY: ROLL"
+
+[node name="Footer" type="HBoxContainer" parent="."]
+layout_mode = 1
+anchors_preset = 7
+anchor_left = 0.5
+anchor_top = 1.0
+anchor_right = 0.5
+anchor_bottom = 1.0
+offset_left = -280.0
+offset_top = -80.0
+offset_right = 280.0
+offset_bottom = -36.0
+grow_horizontal = 2
+grow_vertical = 0
+theme_override_constants/separation = 24
+alignment = 1
+
+[node name="BackBtn" type="Button" parent="Footer"]
+custom_minimum_size = Vector2(220, 44)
+layout_mode = 2
+text = "← BACK TO MENU"
+
+[node name="DeployBtn" type="Button" parent="Footer"]
+custom_minimum_size = Vector2(220, 44)
+layout_mode = 2
+theme_override_colors/font_color = Color(0.2, 0.9, 0.4, 1)
+text = "SELECT CHASSIS ▶"
