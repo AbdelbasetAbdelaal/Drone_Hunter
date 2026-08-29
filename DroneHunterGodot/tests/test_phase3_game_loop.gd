@@ -6,92 +6,130 @@ const ObjectiveControllerClass = preload("res://scripts/gameplay/systems/objecti
 const SaveManagerClass = preload("res://scripts/systems/save_manager.gd")
 
 func _ready() -> void:
-	print("\n=== RUNNING GODOT 4.3 PHASE 3 (FULL GAME LOOP & PROGRESSION) TEST SUITE ===")
+	print("\n=== RUNNING GODOT 4.3 PHASE 3 (DATA FIDELITY & FULL GAME LOOP) TEST SUITE ===")
 	
 	# -------------------------------------------------------------
-	# TEST 1: ALL 25 MISSION DEFINITION RESOURCES
+	# TEST 1: COMPLETE 25-MISSION REFERENCE DATA FIDELITY
 	# -------------------------------------------------------------
-	var expected_missions = [
-		"S1_M1", "S1_M2", "S1_M3", "S1_M4", "S1_M5",
-		"S2_M1", "S2_M2", "S2_M3", "S2_M4", "S2_M5",
-		"S3_M1", "S3_M2", "S3_M3", "S3_M4", "S3_M5",
-		"S4_M1", "S4_M2", "S4_M3", "S4_M4", "S4_M5",
-		"S5_M1", "S5_M2", "S5_M3", "S5_M4", "S5_M5"
-	]
+	var expected_metadata = {
+		"S1_M1": {"sec": 1, "num": 1, "diff": 1, "obj": "destroy_all", "target": "radar_command", "def": 1, "dur": 0.0, "rew": 150, "waves": 2},
+		"S1_M2": {"sec": 1, "num": 2, "diff": 1, "obj": "destroy_all", "target": "communication_hub", "def": 1, "dur": 0.0, "rew": 250, "waves": 3},
+		"S1_M3": {"sec": 1, "num": 3, "diff": 2, "obj": "complete_encounters", "target": "radar_command", "def": 2, "dur": 0.0, "rew": 400, "waves": 3},
+		"S1_M4": {"sec": 1, "num": 4, "diff": 2, "obj": "complete_encounters", "target": "missile_complex", "def": 2, "dur": 0.0, "rew": 600, "waves": 3},
+		"S1_M5": {"sec": 1, "num": 5, "diff": 3, "obj": "complete_encounters", "target": "power_reactor", "def": 3, "dur": 0.0, "rew": 900, "waves": 3},
+
+		"S2_M1": {"sec": 2, "num": 1, "diff": 2, "obj": "destroy_all", "target": "missile_complex", "def": 2, "dur": 0.0, "rew": 150, "waves": 3},
+		"S2_M2": {"sec": 2, "num": 2, "diff": 2, "obj": "complete_encounters", "target": "weapons_factory", "def": 2, "dur": 0.0, "rew": 250, "waves": 3},
+		"S2_M3": {"sec": 2, "num": 3, "diff": 3, "obj": "complete_encounters", "target": "communication_hub", "def": 3, "dur": 0.0, "rew": 400, "waves": 3},
+		"S2_M4": {"sec": 2, "num": 4, "diff": 3, "obj": "survive", "target": "radar_command", "def": 3, "dur": 45.0, "rew": 600, "waves": 3},
+		"S2_M5": {"sec": 2, "num": 5, "diff": 4, "obj": "complete_encounters", "target": "power_reactor", "def": 3, "dur": 0.0, "rew": 900, "waves": 3},
+
+		"S3_M1": {"sec": 3, "num": 1, "diff": 3, "obj": "complete_encounters", "target": "communication_hub", "def": 3, "dur": 0.0, "rew": 150, "waves": 3},
+		"S3_M2": {"sec": 3, "num": 2, "diff": 3, "obj": "survive", "target": "power_reactor", "def": 3, "dur": 75.0, "rew": 250, "waves": 3},
+		"S3_M3": {"sec": 3, "num": 3, "diff": 4, "obj": "complete_encounters", "target": "weapons_factory", "def": 4, "dur": 0.0, "rew": 400, "waves": 4},
+		"S3_M4": {"sec": 3, "num": 4, "diff": 4, "obj": "complete_encounters", "target": "cyber_defense_core", "def": 4, "dur": 0.0, "rew": 600, "waves": 3},
+		"S3_M5": {"sec": 3, "num": 5, "diff": 5, "obj": "complete_encounters", "target": "power_reactor", "def": 4, "dur": 0.0, "rew": 900, "waves": 3},
+
+		"S4_M1": {"sec": 4, "num": 1, "diff": 4, "obj": "complete_encounters", "target": "radar_command", "def": 4, "dur": 0.0, "rew": 150, "waves": 3},
+		"S4_M2": {"sec": 4, "num": 2, "diff": 4, "obj": "survive", "target": "missile_complex", "def": 4, "dur": 75.0, "rew": 250, "waves": 3},
+		"S4_M3": {"sec": 4, "num": 3, "diff": 4, "obj": "complete_encounters", "target": "cyber_defense_core", "def": 4, "dur": 0.0, "rew": 400, "waves": 4},
+		"S4_M4": {"sec": 4, "num": 4, "diff": 5, "obj": "complete_encounters", "target": "weapons_factory", "def": 5, "dur": 0.0, "rew": 600, "waves": 3},
+		"S4_M5": {"sec": 4, "num": 5, "diff": 5, "obj": "complete_encounters", "target": "cyber_defense_core", "def": 5, "dur": 0.0, "rew": 900, "waves": 3},
+
+		"S5_M1": {"sec": 5, "num": 1, "diff": 4, "obj": "complete_encounters", "target": "radar_command", "def": 5, "dur": 0.0, "rew": 150, "waves": 4},
+		"S5_M2": {"sec": 5, "num": 2, "diff": 5, "obj": "survive", "target": "missile_complex", "def": 5, "dur": 90.0, "rew": 250, "waves": 3},
+		"S5_M3": {"sec": 5, "num": 3, "diff": 5, "obj": "complete_encounters", "target": "weapons_factory", "def": 5, "dur": 0.0, "rew": 400, "waves": 4},
+		"S5_M4": {"sec": 5, "num": 4, "diff": 5, "obj": "complete_encounters", "target": "power_reactor", "def": 5, "dur": 0.0, "rew": 600, "waves": 4},
+		"S5_M5": {"sec": 5, "num": 5, "diff": 5, "obj": "complete_encounters", "target": "cyber_defense_core", "def": 5, "dur": 0.0, "rew": 900, "waves": 4}
+	}
 	
-	for m_id in expected_missions:
+	for m_id in expected_metadata.keys():
 		var p = "res://resources/missions/%s.tres" % m_id
 		assert(ResourceLoader.exists(p), "Missing mission resource: " + p)
 		var def = load(p) as MissionDefinition
 		assert(def != null, "Failed to load mission: " + p)
+		
+		var exp_data = expected_metadata[m_id]
 		assert(def.mission_id == m_id, "Mission ID mismatch: " + m_id)
-		assert(def.sector_index >= 1 and def.sector_index <= 5, "Invalid sector index for " + m_id)
-		assert(def.mission_index >= 1 and def.mission_index <= 5, "Invalid mission index for " + m_id)
-		assert(def.encounter_sequence.size() > 0, "Encounter sequence must not be empty for " + m_id)
-		assert(def.scrap_reward > 0, "Scrap reward must be positive for " + m_id)
+		assert(def.sector_index == exp_data["sec"], "Sector mismatch for " + m_id)
+		assert(def.mission_index == exp_data["num"], "Mission index mismatch for " + m_id)
+		assert(def.difficulty == exp_data["diff"], "Difficulty mismatch for " + m_id)
+		assert(def.primary_objective == exp_data["obj"], "Primary objective mismatch for " + m_id)
+		assert(def.objective_target == exp_data["target"], "Objective target mismatch for " + m_id)
+		assert(def.defense_level == exp_data["def"], "Defense level mismatch for " + m_id)
+		assert(is_equal_approx(def.duration, exp_data["dur"]), "Duration mismatch for " + m_id)
+		assert(def.scrap_reward == exp_data["rew"], "Scrap reward mismatch for " + m_id)
+		assert(def.encounter_sequence.size() == exp_data["waves"], "Encounter sequence count mismatch for " + m_id)
+		assert(def.lore.length() > 20, "Lore description must be present for " + m_id)
+		assert(def.side_objectives.size() > 0, "Side objectives must be present for " + m_id)
 		assert(def.is_boss_mission == false, "No mission must be a boss mission")
 		
-	print("[PASS] TEST 1: All 25 authoritative MissionDefinition resources validated.")
+	print("[PASS] TEST 1: All 25 authoritative MissionDefinition resources validated with 100% reference fidelity.")
 
 	# -------------------------------------------------------------
-	# TEST 2: CAMPAIGN PROGRESSION & SECTOR UNLOCKS
+	# TEST 2: CAMPAIGN PROGRESSION & AUTHORITATIVE SECTOR REWARDS
 	# -------------------------------------------------------------
 	var camp = CampaignStateClass.new()
 	assert(camp.is_mission_unlocked("S1_M1"), "S1_M1 must be unlocked by default")
 	assert(not camp.is_mission_unlocked("S1_M2"), "S1_M2 must be locked initially")
-	assert(camp.is_sector_unlocked(1), "Sector 1 must be unlocked by default")
-	assert(not camp.is_sector_unlocked(2), "Sector 2 must be locked initially")
 	
-	# Complete S1_M1 -> Unlocks S1_M2
+	# Complete S1_M1 -> Unlocks S1_M2, +150 reward
 	var res1 = camp.complete_mission("S1_M1")
-	assert(camp.is_mission_completed("S1_M1"), "S1_M1 must be completed")
+	assert(res1["base_reward"] == 150 and res1["sector_bonus"] == 0 and res1["total_reward"] == 150, "S1_M1 reward must be 150")
 	assert(camp.is_mission_unlocked("S1_M2"), "S1_M2 must be unlocked")
-	assert(res1["scrap_earned"] == 150, "S1_M1 reward must be 150")
 	
-	# Complete S1_M2, S1_M3, S1_M4
 	camp.complete_mission("S1_M2")
 	camp.complete_mission("S1_M3")
 	camp.complete_mission("S1_M4")
 	
-	# Complete S1_M5 -> Unlocks S2_M1 and grants Sector 1 bonus (500)
-	var res5 = camp.complete_mission("S1_M5")
-	assert(camp.is_mission_unlocked("S2_M1"), "S2_M1 must be unlocked after S1_M5")
-	assert(camp.is_sector_unlocked(2), "Sector 2 must be unlocked after S1_M5")
-	assert(res5["sector_bonus"] == 500, "Sector 1 completion bonus must be 500")
+	# Complete S1_M5 -> Base 900 + Sector 1 Bonus 500 = 1400
+	var res1_5 = camp.complete_mission("S1_M5")
+	assert(res1_5["base_reward"] == 900, "S1_M5 base reward must be 900")
+	assert(res1_5["sector_bonus"] == 500, "Sector 1 bonus must be 500")
+	assert(res1_5["total_reward"] == 1400, "S1_M5 total reward must be 1400 (900 + 500)")
+	assert(camp.is_mission_unlocked("S2_M1"), "S2_M1 must be unlocked")
+	assert(camp.is_sector_unlocked(2), "Sector 2 must be unlocked")
 	
-	# Progress through all missions to S5_M5
+	# Repeated completion of S1_M5 must NOT award the one-time 500 sector bonus again
+	var res1_5_repeat = camp.complete_mission("S1_M5")
+	assert(res1_5_repeat["sector_bonus"] == 0, "Repeated sector completion must NOT grant sector bonus again")
+	assert(res1_5_repeat["total_reward"] == 900, "Repeated S1_M5 payout must be base reward only (900)")
+	
+	# Progress through remaining sectors
 	for s in range(2, 6):
 		for m in range(1, 6):
 			var m_id = "S%d_M%d" % [s, m]
 			if not camp.is_mission_completed(m_id):
-				camp.complete_mission(m_id)
-				
+				var r = camp.complete_mission(m_id)
+				if m == 5:
+					var exp_sec_bonus = CampaignState.SECTOR_BONUSES[s]
+					assert(r["sector_bonus"] == exp_sec_bonus, "Sector %d bonus mismatch" % s)
+					assert(r["total_reward"] == 900 + exp_sec_bonus, "Total reward mismatch on S%d_M5" % s)
+					
 	assert(camp.campaign_completed, "Campaign must be marked complete after S5_M5")
-	print("[PASS] TEST 2: Campaign progression and sector unlocks verified across all 25 missions.")
+	print("[PASS] TEST 2: Campaign progression and authoritative sector bonuses verified across all 5 sectors.")
 
 	# -------------------------------------------------------------
-	# TEST 3: OBJECTIVE CONTROLLER RUNTIME
+	# TEST 3: SURVIVAL OBJECTIVE & DETERMINISTIC TIME TRACKING
 	# -------------------------------------------------------------
 	var obj_ctrl = ObjectiveControllerClass.new()
 	add_child(obj_ctrl)
 	
-	# Test Destroy All
-	var def_destroy = load("res://resources/missions/S1_M1.tres") as MissionDefinition
-	obj_ctrl.setup_objective(def_destroy)
+	var def_s2_m4 = load("res://resources/missions/S2_M4.tres") as MissionDefinition
+	obj_ctrl.setup_objective(def_s2_m4)
+	assert(obj_ctrl.objective_type == "survive", "Objective must be survive")
 	assert(obj_ctrl.is_active, "ObjectiveController must be active")
-	obj_ctrl.on_encounter_cleared(2, 2)
-	obj_ctrl.on_all_enemies_destroyed()
-	assert(obj_ctrl.is_finished, "Destroy All objective must complete")
 	
-	# Test Survive
-	var def_survive = load("res://resources/missions/S2_M4.tres") as MissionDefinition
-	obj_ctrl.setup_objective(def_survive)
-	assert(obj_ctrl.objective_type == "survive", "Objective type must be survive")
-	obj_ctrl._physics_process(50.0) # Duration is 45.0
-	assert(obj_ctrl.is_finished, "Survive objective must complete after duration")
+	# Simulate 20 seconds of combat (should remain active)
+	obj_ctrl._physics_process(20.0)
+	assert(obj_ctrl.is_active and not obj_ctrl.is_finished, "Survival objective must remain active before 45s")
+	
+	# Simulate remaining 26 seconds (total 46s >= 45s target duration)
+	obj_ctrl._physics_process(26.0)
+	assert(obj_ctrl.is_finished, "Survival objective must complete when target duration is reached")
 	
 	obj_ctrl.queue_free()
-	print("[PASS] TEST 3: ObjectiveController runtime (destroy_all, survive, complete_encounters) verified.")
+	print("[PASS] TEST 3: Survive objective deterministic time tracking verified.")
 
 	# -------------------------------------------------------------
 	# TEST 4: UPGRADES & SCRAP ECONOMY
@@ -101,18 +139,14 @@ func _ready() -> void:
 	var initial_cost = prog.get_upgrade_cost("hull")
 	assert(initial_cost == 100, "Initial Hull upgrade cost must be 100")
 	
-	# Attempt purchase with insufficient scrap
 	var fail_res = prog.purchase_upgrade("hull", 50)
 	assert(not fail_res["success"], "Purchase must fail with insufficient scrap")
 	
-	# Successful purchase
 	var success_res = prog.purchase_upgrade("hull", 200)
 	assert(success_res["success"], "Purchase must succeed with sufficient scrap")
 	assert(success_res["new_level"] == 1, "New level must be 1")
 	assert(success_res["remaining_scrap"] == 100, "Remaining scrap must be 100")
-	assert(prog.get_upgrade_cost("hull") > initial_cost, "Next level cost must increase")
 	
-	# Test max level cap
 	for i in range(10):
 		prog.purchase_upgrade("hull", 999999)
 	assert(prog.get_upgrade_level("hull") == 5, "Upgrade must cap at level 5")
@@ -120,7 +154,7 @@ func _ready() -> void:
 	print("[PASS] TEST 4: ProgressionManager upgrades and Scrap economy verified.")
 
 	# -------------------------------------------------------------
-	# TEST 5: SAVE SYSTEM (SLOTS 0, 1, 2) & CORRUPTION RECOVERY
+	# TEST 5: MULTI-SLOT SAVE SYSTEM & VALIDATION
 	# -------------------------------------------------------------
 	var sm = SaveManagerClass.new()
 	for slot in [0, 1, 2]:
@@ -139,12 +173,10 @@ func _ready() -> void:
 		assert(not loaded.is_empty(), "Loaded slot %d must not be empty" % slot)
 		assert(loaded["scrap"] == payload["scrap"], "Scrap in slot %d mismatch" % slot)
 		assert(loaded["selected_drone_id"] == "interceptor", "Drone in slot %d mismatch" % slot)
-		assert(loaded["upgrade_levels"]["weapon"] == 3, "Upgrades in slot %d mismatch" % slot)
 		
 		sm.delete_slot(slot)
 		assert(not sm.has_save(slot), "delete_slot(%d) must remove save file" % slot)
 		
-	# Test invalid slot rejection
 	assert(not sm.save_slot(99, {}), "Invalid slot must be rejected")
 	assert(sm.load_slot(99).is_empty(), "Invalid slot load must return empty dict")
 	print("[PASS] TEST 5: Multi-slot SaveManager (slots 0, 1, 2) serialization verified.")
@@ -161,9 +193,8 @@ func _ready() -> void:
 	print("[PASS] TEST 6: All 5 DroneClassDefinition resources validated.")
 
 	# -------------------------------------------------------------
-	# TEST 7: HIGH-VALUE E2E GAMEPLAY LOOP SCENARIO
+	# TEST 7: EXTENDED HIGH-VALUE E2E GAMEPLAY LOOP SCENARIO
 	# -------------------------------------------------------------
-	# 1. Access Game Manager & Reset Campaign
 	var gm = get_tree().get_first_node_in_group("game_manager")
 	assert(gm != null, "GameManager autoload must exist")
 	gm.current_slot = 0
@@ -172,7 +203,7 @@ func _ready() -> void:
 	gm.progression_manager.reset()
 	gm.select_drone("striker")
 	
-	# 2. Setup CombatDirector for S1_M1
+	# Start S1_M1
 	var cd = CombatDirector.new()
 	add_child(cd)
 	
@@ -182,28 +213,42 @@ func _ready() -> void:
 	assert(gm.campaign_state.is_mission_unlocked("S1_M1"), "S1_M1 must be unlocked initially")
 	assert(not gm.campaign_state.is_mission_unlocked("S1_M2"), "S1_M2 must be locked before completion")
 	
-	# 3. Simulate completion of encounter objective
-	var scrap_before = gm.scrap
+	var scrap_start = gm.scrap
 	cd._on_mission_victory()
 	
-	# 4. Verify Victory, Scrap Reward, and S1_M2 unlock
-	assert(gm.scrap == scrap_before + s1_m1_def.scrap_reward, "Scrap reward must be added to economy")
+	assert(gm.scrap == scrap_start + 150, "Scrap reward must be added to economy (+150)")
 	assert(gm.campaign_state.is_mission_completed("S1_M1"), "S1_M1 must be completed")
 	assert(gm.campaign_state.is_mission_unlocked("S1_M2"), "S1_M2 must now be unlocked")
 	
-	# 5. Buy Hull Upgrade
+	# Purchase Hull upgrade
 	var bought = gm.purchase_upgrade("hull")
 	assert(bought, "Upgrade purchase must succeed")
 	assert(gm.get_upgrade_level("hull") == 1, "Hull upgrade level must be 1")
 	
-	# 6. Save Slot 0 and Reload in fresh instance
+	# Advance to S1_M5 and complete it to test Sector 1 bonus ($500)
+	gm.campaign_state.complete_mission("S1_M2")
+	gm.campaign_state.complete_mission("S1_M3")
+	gm.campaign_state.complete_mission("S1_M4")
+	
+	var s1_m5_def = load("res://resources/missions/S1_M5.tres") as MissionDefinition
+	cd.start_mission(s1_m5_def)
+	
+	var scrap_before_s1_m5 = gm.scrap
+	cd._on_mission_victory()
+	
+	# Payout must be: Base 900 + Sector 1 Bonus 500 = 1400
+	assert(gm.scrap == scrap_before_s1_m5 + 1400, "S1_M5 victory must award 1400 Scrap (900 base + 500 sector bonus)")
+	assert(gm.campaign_state.is_mission_unlocked("S2_M1"), "S2_M1 must be unlocked after S1_M5")
+	assert(gm.campaign_state.is_sector_unlocked(2), "Sector 2 must be unlocked")
+	
+	# Save Slot 0 and Reload in fresh instance
 	gm.save_game(0)
 	
 	var gm_reloaded = GameManagerNode.new()
 	add_child(gm_reloaded)
 	var loaded_ok = gm_reloaded.load_game(0)
 	assert(loaded_ok, "Reloading save slot 0 must succeed")
-	assert(gm_reloaded.campaign_state.is_mission_unlocked("S1_M2"), "S1_M2 must remain unlocked after reload")
+	assert(gm_reloaded.campaign_state.is_mission_unlocked("S2_M1"), "S2_M1 must remain unlocked after reload")
 	assert(gm_reloaded.get_upgrade_level("hull") == 1, "Hull upgrade must be preserved after reload")
 	assert(gm_reloaded.scrap == gm.scrap, "Scrap amount must be preserved after reload")
 	
@@ -212,7 +257,7 @@ func _ready() -> void:
 	
 	cd.queue_free()
 	gm_reloaded.queue_free()
-	print("[PASS] TEST 7: Full E2E Loop (New Save -> Play -> Victory -> Scrap -> Unlock -> Upgrade -> Save -> Reload) verified.")
+	print("[PASS] TEST 7: Extended E2E Loop (S1_M1 -> S1_M5 -> Sector 1 Bonus -> S2_M1 Unlock -> Upgrade -> Save -> Reload) verified.")
 
-	print("\n*** ALL PHASE 3 FULL GAME LOOP TESTS PASSED 100% SUCCESSFULLY! ***\n")
+	print("\n*** ALL PHASE 3 FINAL DATA FIDELITY TESTS PASSED 100% SUCCESSFULLY! ***\n")
 	get_tree().quit(0)

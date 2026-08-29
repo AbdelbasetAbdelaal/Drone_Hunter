@@ -65,21 +65,25 @@ func complete_mission(m_id: String) -> Dictionary:
 	var result = {
 		"mission_id": m_id,
 		"already_completed": m_id in completed_missions,
+		"base_reward": 0,
+		"sector_bonus": 0,
+		"total_reward": 0,
 		"next_mission_unlocked": "",
 		"sector_unlocked": 0,
-		"campaign_completed": false,
-		"scrap_earned": 0,
-		"sector_bonus": 0
+		"campaign_completed": false
 	}
 	
-	if not (m_id in completed_missions):
+	var is_first_time = not (m_id in completed_missions)
+	if is_first_time:
 		completed_missions.append(m_id)
 		
-	# Calculate base reward
 	var num = _get_mission_number(m_id)
-	result["scrap_earned"] = MISSION_REWARDS.get(num, 150)
+	var base_rew = MISSION_REWARDS.get(num, 150)
+	result["base_reward"] = base_rew
 	
-	# Determine next mission in sequence
+	var sec_bonus = 0
+	var cur_sec = _get_sector_id(m_id)
+	
 	var idx = ALL_MISSIONS_ORDERED.find(m_id)
 	if idx != -1:
 		if idx + 1 < ALL_MISSIONS_ORDERED.size():
@@ -90,27 +94,26 @@ func complete_mission(m_id: String) -> Dictionary:
 				mission_unlocked.emit(next_m)
 			current_mission = next_m
 			
-			# Check sector unlock (e.g. S1_M5 completion unlocks Sector 2)
 			var next_sec = _get_sector_id(next_m)
-			var cur_sec = _get_sector_id(m_id)
 			if next_sec > cur_sec:
 				if not (cur_sec in completed_sectors):
 					completed_sectors.append(cur_sec)
-					result["sector_bonus"] = SECTOR_BONUSES.get(cur_sec, 500)
+					sec_bonus = SECTOR_BONUSES.get(cur_sec, 500)
+					result["sector_bonus"] = sec_bonus
 				if not (next_sec in unlocked_sectors):
 					unlocked_sectors.append(next_sec)
 					result["sector_unlocked"] = next_sec
 					sector_unlocked_signal.emit(next_sec)
 		else:
-			# Completed S5_M5 -> Entire Campaign Complete!
-			var cur_sec = _get_sector_id(m_id)
 			if not (cur_sec in completed_sectors):
 				completed_sectors.append(cur_sec)
-				result["sector_bonus"] = SECTOR_BONUSES.get(cur_sec, 2500)
+				sec_bonus = SECTOR_BONUSES.get(cur_sec, 2500)
+				result["sector_bonus"] = sec_bonus
 			campaign_completed = true
 			result["campaign_completed"] = true
 			campaign_finished.emit()
 			
+	result["total_reward"] = base_rew + sec_bonus
 	return result
 
 func unlock_next_mission(current_id: String) -> String:

@@ -72,17 +72,21 @@ func start_mission(mission_def: MissionDefinition) -> void:
 
 func start_next_encounter() -> void:
 	current_encounter_index += 1
-	if current_encounter_index > total_encounters:
+	var is_survive = (objective_controller and objective_controller.objective_type == "survive")
+	
+	if not is_survive and current_encounter_index > total_encounters:
 		if objective_controller and objective_controller.objective_type in ["complete_encounters", "destroy_all"]:
 			objective_controller.complete_objective()
 		return
 		
-	encounter_started.emit(current_encounter_index, total_encounters)
-	wave_started.emit(current_encounter_index, total_encounters)
-	print("Combat Director: Starting Encounter %d / %d" % [current_encounter_index, total_encounters])
+	var display_idx = ((current_encounter_index - 1) % total_encounters) + 1
+	encounter_started.emit(display_idx, total_encounters)
+	wave_started.emit(display_idx, total_encounters)
+	print("Combat Director: Starting Encounter %d / %d" % [display_idx, total_encounters])
 	
-	if current_mission_def and current_encounter_index - 1 < current_mission_def.encounter_sequence.size():
-		var wave_list = current_mission_def.encounter_sequence[current_encounter_index - 1]
+	if current_mission_def and current_mission_def.encounter_sequence.size() > 0:
+		var seq_idx = (current_encounter_index - 1) % current_mission_def.encounter_sequence.size()
+		var wave_list = current_mission_def.encounter_sequence[seq_idx]
 		_spawn_encounter_wave(wave_list)
 	else:
 		_spawn_fallback_wave(current_encounter_index)
@@ -141,20 +145,30 @@ func _on_enemy_defeated() -> void:
 	mission_score += 150
 	
 	if enemies_remaining == 0:
+		var is_survive = (objective_controller and objective_controller.objective_type == "survive")
 		encounter_cleared.emit(current_encounter_index)
 		wave_cleared.emit(current_encounter_index)
+		
 		if objective_controller:
 			objective_controller.on_encounter_cleared(current_encounter_index, total_encounters)
 			
-		if current_encounter_index < total_encounters:
-			var timer = get_tree().create_timer(2.0)
-			if timer:
-				await timer.timeout
-				if is_inside_tree():
-					start_next_encounter()
+		if is_survive:
+			if not objective_controller.is_finished:
+				var timer = get_tree().create_timer(1.5)
+				if timer:
+					await timer.timeout
+					if is_inside_tree() and not objective_controller.is_finished:
+						start_next_encounter()
 		else:
-			if objective_controller:
-				objective_controller.on_all_enemies_destroyed()
+			if current_encounter_index < total_encounters:
+				var timer = get_tree().create_timer(2.0)
+				if timer:
+					await timer.timeout
+					if is_inside_tree():
+						start_next_encounter()
+			else:
+				if objective_controller:
+					objective_controller.on_all_enemies_destroyed()
 
 func _on_objective_completed() -> void:
 	_on_mission_victory()
@@ -167,20 +181,22 @@ func _on_player_died() -> void:
 	print("Combat Director: Player died - Mission Failed.")
 
 func _on_mission_victory() -> void:
-	var scrap_reward = current_mission_def.scrap_reward if current_mission_def else 150
+	var total_scrap_payout = current_mission_def.scrap_reward if current_mission_def else 150
 	
 	var am = get_tree().get_first_node_in_group("audio_manager")
 	if am and am.has_method("play_victory"):
 		am.play_victory()
 		
 	var gm = get_tree().get_first_node_in_group("game_manager")
-	if gm:
+	if gm and gm.campaign_state and current_mission_def:
+		var comp_res = gm.campaign_state.complete_mission(current_mission_def.mission_id)
+		total_scrap_payout = comp_res.get("total_reward", total_scrap_payout)
 		if gm.has_method("add_scrap"):
-			gm.add_scrap(scrap_reward)
-		if gm.campaign_state and current_mission_def:
-			gm.campaign_state.complete_mission(current_mission_def.mission_id)
-			if gm.has_method("save_game"):
-				gm.save_game()
+			gm.add_scrap(total_scrap_payout)
+		if gm.has_method("save_game"):
+			gm.save_game()
+	elif gm and gm.has_method("add_scrap"):
+		gm.add_scrap(total_scrap_payout)
 			
-	mission_completed.emit(mission_score, scrap_reward)
-	print("Combat Director: Mission Victory! Score: %d, Scrap Reward: %d" % [mission_score, scrap_reward])
+	mission_completed.emit(mission_score, total_scrap_payout)
+	print("Combat Director: Mission Victory! Score: %d, Total Scrap Payout: %d" % [mission_score, total_scrap_payout])
