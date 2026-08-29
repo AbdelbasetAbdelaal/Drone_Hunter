@@ -31,3 +31,11 @@ extends Resource
 @export var projectile_speed: float:
 	get: return speed
 	set(v): speed = v
+
+@export var projectile_count: int:
+	get: return projectiles_per_shot
+	set(v): projectiles_per_shot = v
+
+@export var spread: float:
+	get: return spread_deg
+	set(v): spread_deg = v

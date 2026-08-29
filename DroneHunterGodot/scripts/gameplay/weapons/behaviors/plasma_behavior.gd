@@ -4,7 +4,7 @@ extends WeaponBehavior
 var projectile_scene: PackedScene = preload("res://scenes/weapons/GenericProjectile.tscn")
 
 func fire(muzzle_pos: Vector2, muzzle_rot: float) -> void:
-	if projectile_scene == null:
+	if projectile_scene == null or controller == null:
 		return
 		
 	var proj = projectile_scene.instantiate() as Projectile
@@ -16,7 +16,4 @@ func fire(muzzle_pos: Vector2, muzzle_rot: float) -> void:
 	
 	proj.global_position = muzzle_pos
 	proj.global_rotation = muzzle_rot
-	
-	proj.setup(definition.speed, definition.damage, Hit.DamageType.NORMAL, controller.get_parent(), definition.projectile_asset)
-	
-	# TODO: Implement specific logic for PlasmaBehavior
+	proj.setup(definition.speed, definition.damage, Hit.DamageType.EXPLOSION, controller.get_parent(), definition.projectile_asset)

@@ -16,6 +16,10 @@ var _overdrive_cooldown: float = 0.0
 var _overdrive_timer: float = 0.0
 var is_overdrive: bool = false
 
+var _overclock_cooldown: float = 0.0
+var _overclock_timer: float = 0.0
+var is_overclock: bool = false
+
 var shockwave_tex = preload("res://assets/vfx/shockwave.png")
 
 func _physics_process(delta: float) -> void:
@@ -27,6 +31,8 @@ func _physics_process(delta: float) -> void:
 		_cloak_cooldown -= delta
 	if _overdrive_cooldown > 0.0:
 		_overdrive_cooldown -= delta
+	if _overclock_cooldown > 0.0:
+		_overclock_cooldown -= delta
 		
 	if is_rolling:
 		_roll_timer -= delta
@@ -47,6 +53,13 @@ func _physics_process(delta: float) -> void:
 		_overdrive_timer -= delta
 		if _overdrive_timer <= 0.0:
 			is_overdrive = false
+			if player and player.has_node("Sprite2D"):
+				player.get_node("Sprite2D").modulate = Color.WHITE
+
+	if is_overclock:
+		_overclock_timer -= delta
+		if _overclock_timer <= 0.0:
+			is_overclock = false
 			if player and player.has_node("Sprite2D"):
 				player.get_node("Sprite2D").modulate = Color.WHITE
 
@@ -71,6 +84,10 @@ func handle_input() -> void:
 		Input.is_physical_key_pressed(KEY_F) or
 		Input.is_key_pressed(KEY_F)
 	)
+	var overclock_pressed = (
+		Input.is_physical_key_pressed(KEY_R) or
+		Input.is_key_pressed(KEY_R)
+	)
 
 	if roll_pressed and _roll_cooldown <= 0.0:
 		_start_roll()
@@ -80,6 +97,8 @@ func handle_input() -> void:
 		_start_cloak()
 	elif overdrive_pressed and _overdrive_cooldown <= 0.0:
 		_start_overdrive()
+	elif overclock_pressed and _overclock_cooldown <= 0.0:
+		_start_overclock()
 
 func _start_roll() -> void:
 	is_rolling = true
@@ -159,3 +178,16 @@ func _start_overdrive() -> void:
 	var cam = player.get_tree().get_first_node_in_group("camera")
 	if cam and cam.has_method("add_trauma"):
 		cam.add_trauma(0.25)
+
+func _start_overclock() -> void:
+	_overclock_cooldown = 15.0
+	_overclock_timer = 5.0
+	is_overclock = true
+	if player:
+		if "current_energy" in player and "max_energy" in player:
+			player.current_energy = player.max_energy
+		if player.has_node("Sprite2D"):
+			player.get_node("Sprite2D").modulate = Color(0.3, 1.8, 1.8, 1.0)
+	var cam = player.get_tree().get_first_node_in_group("camera")
+	if cam and cam.has_method("add_trauma"):
+		cam.add_trauma(0.18)

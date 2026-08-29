@@ -80,9 +80,22 @@ func try_fire_primary() -> bool:
 	if not can_fire_primary() or behaviors.size() == 0 or active_weapon_index >= behaviors.size():
 		return false
 	
+	var player = get_parent() as Player
 	var active_def = weapons[active_weapon_index]
-	var active_behavior = behaviors[active_weapon_index]
 	
+	var is_overdrive = false
+	if player and player.has_node("AbilityController"):
+		var ac = player.get_node("AbilityController")
+		if ac and "is_overdrive" in ac:
+			is_overdrive = ac.is_overdrive
+			
+	# Energy check: if not in Overdrive and energy is insufficient, abort firing
+	if player and not is_overdrive:
+		if player.current_energy < active_def.energy_cost:
+			return false
+		player.current_energy -= active_def.energy_cost
+		
+	var active_behavior = behaviors[active_weapon_index]
 	var spawn_pos = global_position + muzzle_offset.rotated(global_rotation)
 	var spawn_rot = global_rotation
 	
@@ -91,6 +104,10 @@ func try_fire_primary() -> bool:
 	var am = get_tree().get_first_node_in_group("audio_manager")
 	if am and am.has_method("play_weapon"):
 		am.play_weapon(active_def.weapon_id)
-	
-	_cooldown_timer = active_def.cooldown
+		
+	var cd = active_def.cooldown
+	if is_overdrive:
+		cd *= 0.5
+		
+	_cooldown_timer = cd
 	return true
