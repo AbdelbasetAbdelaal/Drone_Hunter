@@ -82,7 +82,9 @@ func handle_input() -> void:
 	var overdrive_pressed = (
 		Input.is_action_just_pressed("ultimate") or
 		Input.is_physical_key_pressed(KEY_F) or
-		Input.is_key_pressed(KEY_F)
+		Input.is_key_pressed(KEY_F) or
+		Input.is_physical_key_pressed(KEY_Q) or
+		Input.is_key_pressed(KEY_Q)
 	)
 	var overclock_pressed = (
 		Input.is_physical_key_pressed(KEY_R) or

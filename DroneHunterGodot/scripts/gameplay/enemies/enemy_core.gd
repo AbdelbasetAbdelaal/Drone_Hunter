@@ -28,6 +28,13 @@ var move_speed: float:
 	get: return base_speed
 	set(v): base_speed = v
 
+var stun_timer: float:
+	get: return _stun_timer
+	set(v): _stun_timer = v
+
+var is_stunned: bool:
+	get: return _stun_timer > 0.0
+
 func _ready() -> void:
 	add_to_group("enemy")
 	
