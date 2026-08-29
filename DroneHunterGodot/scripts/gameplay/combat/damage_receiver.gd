@@ -58,7 +58,12 @@ func _trigger_hit_feedback(hit: Hit, is_shield: bool) -> void:
 			if dmg_num.has_method("setup"):
 				dmg_num.setup(hit.amount, is_shield, hit.amount >= 50.0)
 			
-	# 3. If Parent is Player, trigger screen shake trauma
+	# 3. Audio feedback
+	var am = parent_node.get_tree().get_first_node_in_group("audio_manager")
+	if am and am.has_method("play_hit"):
+		am.play_hit(is_shield)
+		
+	# 4. If Parent is Player, trigger screen shake trauma
 	if parent_node.is_in_group("player"):
 		var cam = parent_node.get_tree().get_first_node_in_group("camera")
 		if cam and cam.has_method("add_trauma"):

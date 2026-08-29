@@ -88,5 +88,9 @@ func try_fire_primary() -> bool:
 	
 	active_behavior.fire(spawn_pos, spawn_rot)
 	
+	var am = get_tree().get_first_node_in_group("audio_manager")
+	if am and am.has_method("play_weapon"):
+		am.play_weapon(active_def.weapon_id)
+	
 	_cooldown_timer = active_def.cooldown
 	return true

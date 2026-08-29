@@ -54,7 +54,12 @@ func _on_death() -> void:
 	queue_free()
 
 func _spawn_explosion() -> void:
-	if not is_inside_tree() or not explosion_scene:
+	if not is_inside_tree():
+		return
+	var am = get_tree().get_first_node_in_group("audio_manager")
+	if am and am.has_method("play_explosion"):
+		am.play_explosion("medium")
+	if not explosion_scene:
 		return
 	var root = get_tree().current_scene if get_tree() and get_tree().current_scene else get_parent()
 	if root:

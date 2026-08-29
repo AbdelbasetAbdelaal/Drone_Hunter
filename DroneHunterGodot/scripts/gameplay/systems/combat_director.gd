@@ -101,6 +101,9 @@ func _on_player_died() -> void:
 
 func _on_mission_victory() -> void:
 	mission_scrap_earned = int(mission_score * 0.4)
+	var am = get_tree().get_first_node_in_group("audio_manager")
+	if am and am.has_method("play_victory"):
+		am.play_victory()
 	var gm = get_tree().get_first_node_in_group("game_manager")
 	if gm and gm.has_method("add_scrap"):
 		gm.add_scrap(mission_scrap_earned)

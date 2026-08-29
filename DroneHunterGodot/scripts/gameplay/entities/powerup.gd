@@ -100,6 +100,10 @@ func _on_body_entered(body: Node2D) -> void:
 		call_deferred("queue_free")
 
 func _apply_to_player(player: Node2D) -> void:
+	var am = get_tree().get_first_node_in_group("audio_manager")
+	if am and am.has_method("play_pickup"):
+		am.play_pickup()
+		
 	var health = player.get_node_or_null("Health") as Health
 	var ability = player.get_node_or_null("AbilityController")
 	var weapons = player.get_node_or_null("WeaponController")
